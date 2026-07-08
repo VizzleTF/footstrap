@@ -30,13 +30,24 @@ function renderMainMenu(tree, url, level) {
 		/* touch/click support: hover-only dropdowns are unusable on mobile, so
 		 * tapping a section toggles its submenu open (and keeps it open until
 		 * another is tapped or you tap outside — see the document handler). */
-		if (hasSub)
+		if (hasSub) {
 			link.addEventListener('click', (ev) => {
 				ev.preventDefault();
 				const open = li.classList.contains('open');
 				ul.querySelectorAll('li.open').forEach((o) => o.classList.remove('open'));
 				if (!open) li.classList.add('open');
 			});
+			/* hybrid devices (desktop + touch): once a real MOUSE enters the
+			 * menu, drop any tap-opened .open so hover becomes authoritative and
+			 * you don't get a tapped menu stacked under a hovered one.
+			 * Guard on pointerType === 'mouse' — a tap fires pointerenter with
+			 * type 'touch' before click, and clearing .open there would break
+			 * the second-tap-to-close on real touch devices. */
+			li.addEventListener('pointerenter', (ev) => {
+				if (ev.pointerType === 'mouse')
+					ul.querySelectorAll('li.open').forEach((o) => o.classList.remove('open'));
+			});
+		}
 
 		ul.appendChild(li);
 	});
