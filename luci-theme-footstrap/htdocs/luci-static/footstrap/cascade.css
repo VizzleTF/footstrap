@@ -3770,14 +3770,24 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); co
 	border: 1px solid var(--border) !important; color: var(--dim) !important;
 	min-height: 32px; padding: 0 12px;
 }
-.td .cbi-button-action, .td .cbi-button-edit, .td .cbi-button-positive, .td .cbi-button-apply {
+.td .cbi-button-action, .td .cbi-button-edit, .td .cbi-button-apply {
 	color: var(--accent) !important; border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
 }
 .td .cbi-button-negative, .td .cbi-button-remove {
 	color: var(--danger) !important; border-color: color-mix(in srgb, var(--danger) 40%, transparent) !important;
 }
-.td .cbi-button-action:hover, .td .cbi-button-edit:hover, .td .cbi-button-positive:hover { background: var(--accent-soft) !important; }
+.td .cbi-button-action:hover, .td .cbi-button-edit:hover { background: var(--accent-soft) !important; }
 .td .cbi-button-negative:hover, .td .cbi-button-remove:hover { background: color-mix(in srgb, var(--danger) 12%, transparent) !important; }
+
+/* Enabled/positive toggle in a table cell (e.g. System -> Startup) rendered as
+ * blue text on a green fill = unreadable. Make it a green outline, matching the
+ * red-outline negative button and the other table action buttons. */
+.td .cbi-button-positive {
+	color: var(--good) !important;
+	border-color: color-mix(in srgb, var(--good) 40%, transparent) !important;
+	background: transparent !important;
+}
+.td .cbi-button-positive:hover { background: color-mix(in srgb, var(--good) 12%, transparent) !important; }
 
 /* ==================================================================
  * FOOTSTRAP polish round 2: native selects, spinners, dense tables
