@@ -119,6 +119,186 @@ function segControl(current, opts, onPick) {
 	return wrap;
 }
 
+/* ---- SPA client router (variant C) ---------------------------------------
+ *
+ * Kills the full page reload for `view`-type menu nodes (~89% of pages). LuCI
+ * already renders every page client-side into #view (LuCI.view.__init__ →
+ * load()→render()); only *navigation* is server-dispatched. So we intercept
+ * link clicks, and instead of a full GET we re-instantiate the target view in
+ * place — the exact thing the stock dispatcher's view.ut does via
+ * ui.instantiateView(), minus the page reload.
+ *
+ * Safety: this is purely additive theme JS. Anything that is NOT a satisfied
+ * `view` node (call/function/template/alias/firstchild, external links,
+ * downloads, cross-origin, modified clicks) or any error falls through to a
+ * normal browser navigation. Deep links / F5 keep working because we pushState
+ * the real dispatcher URL. Other themes are unaffected.
+ *
+ * Re-instantiation detail: L.require('view.x') returns a cached *singleton*
+ * whose __init__ (the render) already ran once, so calling it again won't
+ * repaint. We instead grab the class off the instance (Class sets
+ * prototype.constructor = the constructor) and `new v.constructor()` to run a
+ * fresh __init__ → fresh load()+render() into #view — identical to a full load,
+ * which always starts from a fresh instance anyway. See docs/14. */
+
+let _tree = null, _renderMain = null, _wired = false;
+
+/* rebuild mode menu + main menu + section tabs from the current L.env; called
+ * on first load and after every SPA navigation. Clears the containers first so
+ * a re-render doesn't stack duplicates. */
+function renderChrome() {
+	const modemenu = document.querySelector('#modemenu');
+	const topmenu  = document.querySelector('#topmenu');
+	const tabmenu  = document.querySelector('#tabmenu');
+
+	if (modemenu) { modemenu.innerHTML = ''; modemenu.style.display = 'none'; modemenu.classList.remove('single'); }
+	if (topmenu)  topmenu.innerHTML = '';
+	if (tabmenu)  { tabmenu.innerHTML = ''; tabmenu.style.display = 'none'; }
+
+	renderModeMenu(_tree, _renderMain);
+
+	if (L.env.dispatchpath.length >= 3) {
+		let node = _tree, url = '';
+		for (let i = 0; i < 3 && node; i++) {
+			node = node.children[L.env.dispatchpath[i]];
+			url = url + (url ? '/' : '') + L.env.dispatchpath[i];
+		}
+		if (node)
+			renderTabMenu(node, url);
+	}
+}
+
+/* /cgi-bin/luci/admin/status/overview -> ['admin','status','overview'] */
+function segsFromPath(pathname) {
+	const base = L.env.scriptname || '';
+	if (base && pathname.indexOf(base) !== 0)
+		return null;
+	const rest = pathname.slice(base.length).replace(/^\/+|\/+$/g, '');
+	return rest.length ? rest.split('/') : null;
+}
+
+/* walk the (scrubbed, ACL-filtered) menu tree to the node for a path */
+function nodeForSegs(segs) {
+	let node = _tree;
+	for (let i = 0; i < segs.length; i++) {
+		node = node && node.children && node.children[segs[i]];
+		if (!node) return null;
+	}
+	return node;
+}
+
+/* Attempt an in-place navigation to `pathname`. Returns true if handled as a
+ * SPA nav (caller should preventDefault), false to let the browser do a normal
+ * full navigation. `push` adds a history entry (false when replaying popstate). */
+function navigate(pathname, push) {
+	const segs = segsFromPath(pathname);
+	if (!segs) return false;
+
+	const node = nodeForSegs(segs);
+	if (!node || !node.action || node.action.type !== 'view' || node.satisfied === false)
+		return false;
+
+	/* Ensure a #view container. On view pages the dispatcher emits one; on a
+	 * `template` page (e.g. the status overview) it doesn't — inject one into
+	 * .fs-content, dropping the stale template content, so we can SPA *away* from
+	 * overview too. Navigating back TO overview stays a full reload (it's a
+	 * template node → navigate() bails), so it always re-renders fresh. */
+	if (!document.getElementById('view')) {
+		const host = document.querySelector('.fs-content');
+		if (!host) return false;
+		Array.from(host.children).forEach(c => {
+			if (c.id !== 'tabmenu' && !c.classList.contains('alert-message') && c.nodeName !== 'NOSCRIPT')
+				c.remove();
+		});
+		const v = document.createElement('div');
+		v.id = 'view';
+		host.appendChild(v);
+	}
+
+	const className = 'view.' + String(node.action.path).replace(/\//g, '.');
+
+	/* teardown: drop the outgoing view's pollers so they stop hitting detached
+	 * DOM / wasting RPCs. Flush the queue but do NOT Poll.stop() — stop() deletes
+	 * the internal tick and the incoming view's poll.add() would never auto-start.
+	 * The only non-view poller LuCI adds is the transient apply/reboot reachability
+	 * check, so a flush here is safe. */
+	if (L.Poll && L.Poll.queue)
+		L.Poll.queue.length = 0;
+	try { if (typeof ui.hideModal == 'function') ui.hideModal(); } catch (e) {}
+
+	/* point the runtime env at the new node so views, tabs and highlighting read
+	 * the right path. For a fully-matched leaf, request == dispatch path. */
+	L.env.requestpath  = segs.slice();
+	L.env.dispatchpath = segs.slice();
+	L.env.pathinfo     = '/' + segs.join('/');
+	L.env.nodespec     = { satisfied: true, action: node.action, title: node.title, depends: node.depends };
+
+	if (push)
+		history.pushState({ fsnav: true }, '', pathname);
+
+	/* titles: <host> | <page> */
+	const host = (document.title.split('|')[0] || '').trim();
+	document.title = node.title ? (host + ' | ' + _(node.title)) : host;
+	const tmain = document.querySelector('.fs-title-main');
+	if (tmain && node.title)
+		tmain.textContent = _(node.title);
+
+	renderChrome();
+
+	/* Require + instantiate through the runtime singleton `window.L`, NOT the
+	 * bare `L` a LuCI module factory is handed. They are different objects: the
+	 * dispatcher builds `window.L = new LuCI()` and the `ui` module augments *that*
+	 * instance with helper methods (itemlist/showModal/…), whereas a module's `L`
+	 * param is the un-augmented base. A required module captures whichever `L` did
+	 * the require(), so a view required via the bare `L` throws "L.itemlist is not
+	 * a function" mid-render. `env`/`Poll` are shared (prototype/singleton) so the
+	 * mutations above are fine on either; only the require target must be window.L.
+	 * See docs/14.
+	 *
+	 * Fresh instance -> fresh __init__ -> renders into #view. require/instanceof
+	 * errors fall back to a real navigation; render-time errors are handled inside
+	 * LuCI.view (shows the stock error), same as a full load. */
+	const RT = window.L;
+	RT.require(className).then(view => {
+		if (!(view instanceof RT.view))
+			throw new TypeError('Loaded class ' + className + ' is not a view');
+		new view.constructor();
+	}).catch(() => { window.location = pathname; });
+
+	return true;
+}
+
+function wireRouter() {
+	if (_wired) return;
+	_wired = true;
+
+	document.addEventListener('click', (ev) => {
+		if (ev.defaultPrevented || ev.button !== 0 ||
+		    ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey)
+			return;
+
+		const a = ev.target.closest('a[href]');
+		if (!a) return;
+		if (a.target && a.target !== '_self') return;
+		if (a.hasAttribute('download')) return;
+
+		const raw = a.getAttribute('href');
+		if (!raw || raw.charAt(0) === '#') return;
+
+		let url;
+		try { url = new URL(a.href, window.location.href); } catch (e) { return; }
+		if (url.origin !== window.location.origin) return;
+
+		if (navigate(url.pathname, true))
+			ev.preventDefault();
+	}, false);
+
+	window.addEventListener('popstate', () => {
+		if (!navigate(window.location.pathname, false))
+			window.location.reload();
+	});
+}
+
 function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
@@ -167,19 +347,12 @@ return baseclass.extend({
 	 * injected renderMainMenu), the section tabs, and wire the theme toggle. */
 	bootstrap(renderMainMenu) {
 		ui.menu.load().then((tree) => {
-			renderModeMenu(tree, renderMainMenu);
+			_tree = tree;
+			_renderMain = renderMainMenu;
 
-			if (L.env.dispatchpath.length >= 3) {
-				let node = tree, url = '';
-				for (let i = 0; i < 3 && node; i++) {
-					node = node.children[L.env.dispatchpath[i]];
-					url = url + (url ? '/' : '') + L.env.dispatchpath[i];
-				}
-				if (node)
-					renderTabMenu(node, url);
-			}
-
+			renderChrome();
 			wireAppearance();
+			wireRouter();
 		});
 	}
 });
