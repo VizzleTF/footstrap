@@ -20,6 +20,11 @@ LUCI_TITLE:=Footstrap Theme
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
 
+# Ship CSS/JS verbatim — the LuCI minifier mangles modern CSS (:has(),
+# color-mix(), nested calc()) and ES syntax, which breaks the layout.
+LUCI_MINIFY_CSS:=0
+LUCI_MINIFY_JS:=0
+
 PKG_LICENSE:=Apache-2.0
 
 define Package/luci-theme-footstrap/postrm
