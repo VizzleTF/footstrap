@@ -124,8 +124,8 @@
  * Specificity: [data-palette][data-darkmode] (0,3,0) wins over the base blocks.
  * ============================================================ */
 :root[data-palette="github"],
-:root[data-palette="roman"] {
-	/* GitHub — LIGHT (Roman reuses these colours; only its background differs) */
+:root[data-palette="rvht"] {
+	/* GitHub — LIGHT (Rvht reuses these colours; only its background differs) */
 	--bg: #f6f8fa;
 	--panel: #ffffff;
 	--panel2: #f6f8fa;
@@ -145,7 +145,7 @@
 }
 
 :root[data-palette="github"][data-darkmode="true"],
-:root[data-palette="roman"][data-darkmode="true"] {
+:root[data-palette="rvht"][data-darkmode="true"] {
 	/* GitHub — DARK (dimmed) */
 	--bg: #1c2128;
 	--panel: #22272e;
@@ -165,39 +165,39 @@
 	--success-color-high-rgb: 87, 171, 90;
 }
 
-/* Roman = GitHub colours + a doodle-cats wallpaper behind the content area.
+/* Rvht = GitHub colours + a doodle-cats wallpaper behind the content area.
  * Cards sit on --panel and cover it, so the cats show through the gaps. The
  * pattern fill is a low-opacity neutral grey, so it reads on both the light and
  * dark GitHub backgrounds. */
-:root[data-palette="roman"] .fs-main,
-:root[data-palette="roman"] .fs-topwrap {
+:root[data-palette="rvht"] .fs-main,
+:root[data-palette="rvht"] .fs-topwrap {
 	background-image: url(cats.svg);
 	background-repeat: repeat;
 	background-size: 520px auto;
 }
 /* let the cats show through the footer too */
-:root[data-palette="roman"] footer.fs-footer { background: transparent; }
+:root[data-palette="rvht"] footer.fs-footer { background: transparent; }
 
-/* Roman: give the tab bar the same solid card style as the sections (panel bg +
+/* Rvht: give the tab bar the same solid card style as the sections (panel bg +
  * border + radius + shadow) so the cats sit behind it, not through it. Drop the
  * tab underline (it overflowed the rounded corners) — the active tab is marked by
  * its accent-coloured label. */
-:root[data-palette="roman"] #tabmenu ul.tabs,
-:root[data-palette="roman"] ul.cbi-tabmenu {
+:root[data-palette="rvht"] #tabmenu ul.tabs,
+:root[data-palette="rvht"] ul.cbi-tabmenu {
 	background: var(--panel);
 	border: 1px solid var(--border);
 	border-radius: 16px;
 	box-shadow: var(--fs-shadow);
 	padding: 4px 10px;
 }
-:root[data-palette="roman"] #tabmenu ul.tabs > li > a {
+:root[data-palette="rvht"] #tabmenu ul.tabs > li > a {
 	border-bottom: 0;
 	margin-bottom: 0;
 }
 /* controls carry a border/rounding, so their frost is bounded by their shape */
-:root[data-palette="roman"] .cbi-button,
-:root[data-palette="roman"] .btn,
-:root[data-palette="roman"] .cbi-dropdown:not([open]) {
+:root[data-palette="rvht"] .cbi-button,
+:root[data-palette="rvht"] .btn,
+:root[data-palette="rvht"] .cbi-dropdown:not([open]) {
 	backdrop-filter: blur(6px);
 	-webkit-backdrop-filter: blur(6px);
 }
@@ -3831,6 +3831,24 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); co
 }
 .td .cbi-button-positive:hover { background: color-mix(in srgb, var(--good) 12%, transparent) !important; }
 
+/* Coloured action buttons in a bare .cbi-section-actions container (no .td
+ * class) — e.g. form.Button options in a TableSection, as luci-app-nikki uses
+ * for Reload/Restart/Update Dashboard. Only edit/remove were coloured here, so
+ * action/positive/negative all fell back to the neutral grey outline and looked
+ * identical. Give them the same coloured outline as their .td counterparts. */
+.cbi-section-actions .cbi-button-action {
+	color: var(--accent) !important; border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+.cbi-section-actions .cbi-button-action:hover { background: var(--accent-soft) !important; }
+.cbi-section-actions .cbi-button-positive {
+	color: var(--good) !important; border-color: color-mix(in srgb, var(--good) 40%, transparent) !important;
+}
+.cbi-section-actions .cbi-button-positive:hover { background: color-mix(in srgb, var(--good) 12%, transparent) !important; }
+.cbi-section-actions .cbi-button-negative {
+	color: var(--danger) !important; border-color: color-mix(in srgb, var(--danger) 40%, transparent) !important;
+}
+.cbi-section-actions .cbi-button-negative:hover { background: color-mix(in srgb, var(--danger) 12%, transparent) !important; }
+
 /* ==================================================================
  * FOOTSTRAP polish round 2: native selects, spinners, dense tables
  * ================================================================== */
@@ -4146,16 +4164,54 @@ body[data-page="admin-system-package-manager"] .pager .text { flex: 0 0 auto; }
 /* frame + uppercase headers + row hover come from the general .table card;
  * only the Software-specific bits (widths, mono cells, paddings) stay here. */
 body[data-page="admin-system-package-manager"] #packages { margin-top: 16px; width: 100%; max-width: 100%; }
-body[data-page="admin-system-package-manager"] #packages .td,
-body[data-page="admin-system-package-manager"] #packages .th { overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
 body[data-page="admin-system-package-manager"] #packages .th { padding: 12px 14px; }
 body[data-page="admin-system-package-manager"] #packages .td { padding: 10px 14px; font-size: 13px; color: var(--dim); border: 0; }
+
+/* Column widths — the package NAME is the important column, so give it the
+ * flexible room and hard-cap the version / size columns instead. Names break on
+ * their natural hyphens (word-break:normal), never per-character. */
+body[data-page="admin-system-package-manager"] #packages .th:first-child,
 body[data-page="admin-system-package-manager"] #packages .td[data-title="Package name"] {
+	flex: 1 1 190px; min-width: 150px;
 	font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text);
+	word-break: normal; overflow-wrap: break-word;
+}
+body[data-page="admin-system-package-manager"] #packages .th.version,
+body[data-page="admin-system-package-manager"] #packages .td.version {
+	flex: 0 0 150px; width: 150px; min-width: 150px;
+	white-space: normal; word-break: normal; overflow-wrap: break-word;
+}
+body[data-page="admin-system-package-manager"] #packages .th.size,
+body[data-page="admin-system-package-manager"] #packages .td.size {
+	flex: 0 0 92px; width: 92px; min-width: 92px; white-space: nowrap;
 }
 body[data-page="admin-system-package-manager"] #packages .td.version,
 body[data-page="admin-system-package-manager"] #packages .td.size { font-family: var(--font-mono); font-size: 12px; color: var(--dim); }
+body[data-page="admin-system-package-manager"] #packages .th.col-10,
+body[data-page="admin-system-package-manager"] #packages .td[data-title="Description"] { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
+body[data-page="admin-system-package-manager"] #packages .th.cbi-section-actions,
+body[data-page="admin-system-package-manager"] #packages .td.cbi-section-actions { flex: 0 0 auto; }
 body[data-page="admin-system-package-manager"] #packages .td .btn { border-radius: 8px !important; white-space: nowrap; }
+
+/* Mobile: this table has no .cbi-map wrapper, so the shared container-query
+ * stacking doesn't reach it. #view is a query container (declared once, near the
+ * generic data-table stacking below) and we stack rows into label/value pairs
+ * (data-title comes from the header cells). */
+@container (max-width: 760px) {
+	body[data-page="admin-system-package-manager"] #packages .tr.cbi-section-table-titles { display: none; }
+	body[data-page="admin-system-package-manager"] #packages .tr { display: block; padding: 12px 16px; }
+	body[data-page="admin-system-package-manager"] #packages .td {
+		display: flex; justify-content: space-between; gap: 14px; align-items: baseline;
+		width: auto !important; min-width: 0 !important; flex: none !important; padding: 4px 0;
+	}
+	body[data-page="admin-system-package-manager"] #packages .td[data-title]::before {
+		content: attr(data-title); flex: 0 0 auto; color: var(--faint);
+		font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+	}
+	body[data-page="admin-system-package-manager"] #packages .td[data-title="Description"] { display: block; }
+	body[data-page="admin-system-package-manager"] #packages .td.cbi-section-actions { justify-content: flex-end; margin-top: 6px; }
+	body[data-page="admin-system-package-manager"] #packages .td.cbi-section-actions::before { content: none; }
+}
 
 /* ==================================================================
  * FOOTSTRAP: standalone data tables -> rounded card (Startup,
@@ -4250,6 +4306,37 @@ body[data-page="admin-system-package-manager"] #packages .td .btn { border-radiu
 	.cbi-section-table .td select,
 	.cbi-section-table .td input[type="text"] { width: auto; min-width: 150px; flex: 0 1 auto; }
 	.cbi-section-table .td .zone-forwards { width: 100%; }
+}
+
+/* ==================================================================
+ * Responsive standalone data tables — DHCP/DHCPv6 leases, Processes,
+ * Startup init scripts, wireless Associated Stations, etc. These are plain
+ * <table class="table"> with a .tr.table-titles header and td[data-title],
+ * NOT .cbi-section-table and NOT inside .cbi-map, so the block above never
+ * reaches them (they overflow to ~800px on a phone). #view is their query
+ * container; stack each row into label/value pairs below 820px (820 clears
+ * the widest natural table width measured, the DHCPv6 leases at 807px).
+ * ================================================================== */
+#view { container-type: inline-size; }
+
+@container (max-width: 820px) {
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .tr.table-titles { display: none; }
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .tr { display: block; padding: 10px 16px; }
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .td {
+		display: flex; align-items: baseline; justify-content: space-between;
+		gap: 14px; padding: 5px 0; border: 0; text-align: right; min-width: 0; width: auto;
+	}
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .td[data-title]::before {
+		content: attr(data-title); flex: 0 0 auto; text-align: left;
+		font-size: 10px; font-weight: 700; letter-spacing: .05em;
+		text-transform: uppercase; color: var(--faint); white-space: nowrap;
+	}
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .td.cbi-section-actions {
+		justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+	}
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .td.cbi-section-actions::before,
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .td:not([data-title])::before,
+	#view table.table:has(.tr.table-titles):not(.cbi-section-table) .td[data-title=""]::before { content: none; }
 }
 
 /* ==================================================================

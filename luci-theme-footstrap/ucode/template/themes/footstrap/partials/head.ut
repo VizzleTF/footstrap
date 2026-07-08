@@ -37,6 +37,7 @@
 			(function() {
 				try {
 					var p = localStorage.getItem('fs-palette');
+					if (p === 'roman') { p = 'rvht'; localStorage.setItem('fs-palette', p); }	/* legacy rename */
 					if (p) document.querySelector(':root').setAttribute('data-palette', p);
 				} catch (e) {}
 			})();

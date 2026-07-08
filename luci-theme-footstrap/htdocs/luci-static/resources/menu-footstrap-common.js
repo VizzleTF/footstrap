@@ -80,7 +80,8 @@ function currentMode() {
 }
 function currentPalette() {
 	const s = lsGet('fs-palette');
-	return (s === 'github' || s === 'roman') ? s : 'footstrap';
+	if (s === 'roman') return 'rvht';	/* legacy name */
+	return (s === 'github' || s === 'rvht') ? s : 'footstrap';
 }
 function applyMode(val) {
 	const root = document.querySelector(':root');
@@ -132,7 +133,7 @@ function wireAppearance() {
 			segControl(currentPalette(), [
 				{ val: 'footstrap', label: 'Footstrap' },
 				{ val: 'github',    label: 'GitHub' },
-				{ val: 'roman',     label: 'Roman' }
+				{ val: 'rvht',      label: 'Rvht' }
 			], applyPalette)
 		])
 	]);

@@ -37,6 +37,9 @@ def main():
     ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router"))
     ap.add_argument("--out", default=os.environ.get("FOOTSTRAP_OUT",
                     "/tmp/claude-1000/footstrap-preview"))
+    ap.add_argument("--width", type=int, default=1440)
+    ap.add_argument("--height", type=int, default=900)
+    ap.add_argument("--palette", default="", help="fs-palette value, e.g. roman/github")
     args = ap.parse_args()
     pages = list(args.pages or [])
     if args.pages_file:
@@ -67,10 +70,12 @@ def main():
                 sh(args.ssh_host, f"uci set luci.main.mediaurlbase={LAYOUTS[layout]}; "
                                   f"uci commit luci; rm -f /tmp/luci-indexcache*")
                 for mode in modes:
-                    ctx = browser.new_context(viewport={"width": 1440, "height": 900},
+                    ctx = browser.new_context(viewport={"width": args.width, "height": args.height},
                                               device_scale_factor=2, ignore_https_errors=True)
+                    _pal = (f"try{{localStorage.setItem('fs-palette','{args.palette}')}}catch(e){{}}"
+                            if args.palette else "")
                     ctx.add_init_script(
-                        f"try{{localStorage.setItem('fs-darkmode','{'true' if mode=='dark' else 'false'}')}}catch(e){{}}")
+                        f"try{{localStorage.setItem('fs-darkmode','{'true' if mode=='dark' else 'false'}')}}catch(e){{}}{_pal}")
                     # authenticate via the API (cookie is shared with the context's pages)
                     ctx.request.post(f"{base}/cgi-bin/luci/",
                                      form={"luci_username": user, "luci_password": pw})
