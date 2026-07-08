@@ -3305,10 +3305,13 @@ body[data-page='admin-status-overview'] .cbi-title .label.notice {
 
 /* Inactive tab panes: the base [data-tab-title] rule sets height:0/overflow:hidden,
  * but that only collapses the content box — padding/border/margin still render as
- * empty bars. Apps that put data-tab-active straight on .cbi-section (e.g. podkop)
- * keep the section's 18px/22px padding + 16px margin, showing phantom strips.
- * Collapse the whole box for the inactive pane. */
-.cbi-section[data-tab-active="false"] {
+ * empty bars. Apps that put data-tab-active straight on .cbi-section (e.g. podkop,
+ * Network → Interfaces) keep the section's 18px/22px padding + 16px margin,
+ * showing phantom strips. Collapse the whole box for any pane that is not the
+ * active one — :not([data-tab-active="true"]) also covers the first-render state
+ * where LuCI has set active="true" on the shown tab but left the others with no
+ * data-tab-active attribute yet (huge gaps until you switch tabs). */
+.cbi-section[data-tab-title]:not([data-tab-active="true"]) {
 	padding: 0;
 	margin: 0;
 	border: 0;
