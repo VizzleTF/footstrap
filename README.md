@@ -3,6 +3,17 @@
 Собственная тема LuCI для OpenWrt **25.12+** (старые версии не поддерживаются).
 База — `luci-theme-bootstrap` (master).
 
+## Установка
+
+На роутере (SSH) — одной строкой, ставит последний релиз `.apk`:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/VizzleTF/footstrap/main/install.sh | sh
+```
+
+Закрепить версию: `... | sh -s v0.2.1`. После — выбрать тему в **System → System →
+Language and Style** (поле «Design»). Скрипт: [`install.sh`](install.sh).
+
 ## Тема
 
 [`luci-theme-footstrap/`](luci-theme-footstrap/) — пакет темы (форк bootstrap на
