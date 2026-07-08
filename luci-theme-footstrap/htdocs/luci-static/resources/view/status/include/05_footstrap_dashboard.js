@@ -343,7 +343,6 @@ return baseclass.extend({
 		box.innerHTML = `
 			<div class="fs-dashhead">
 				<div class="fs-dashhead-title">${_('Overview')}</div>
-				<div class="fs-dashhead-sub">${esc(board.hostname || board.model || 'OpenWrt')}</div>
 			</div>
 			<div class="fs-cols">
 				<div class="fs-card"><div class="fs-card-title">${_('System')}</div><div class="fs-kvs">${sysRows}</div></div>
