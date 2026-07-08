@@ -6,8 +6,19 @@
 
 include $(TOPDIR)/rules.mk
 
+PKG_NAME:=luci-theme-footstrap
+
+# Version is git-derived locally; CI injects FOOTSTRAP_VERSION from the tag
+# (the SDK build has no .git so it can't derive one).
+FOOTSTRAP_VERSION?=
+ifneq ($(FOOTSTRAP_VERSION),)
+PKG_VERSION:=$(FOOTSTRAP_VERSION)
+PKG_RELEASE:=1
+endif
+
 LUCI_TITLE:=Footstrap Theme
 LUCI_DEPENDS:=+luci-base
+LUCI_PKGARCH:=all
 
 PKG_LICENSE:=Apache-2.0
 
@@ -24,6 +35,6 @@ define Package/luci-theme-footstrap/postrm
 }
 endef
 
-include ../../luci.mk
+include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature

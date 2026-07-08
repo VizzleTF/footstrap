@@ -1,8 +1,8 @@
 name: Build LuCI theme apk
 
-# LuCI themes are architecture-independent (noarch): a single SDK build
-# produces a package that installs on ANY OpenWrt 25.12+ target, so no
-# per-arch matrix is needed. Trigger on version tags or manually.
+# luci-theme-footstrap targets OpenWrt 25.12+ (apk only) and is noarch
+# (LUCI_PKGARCH:=all), so a single SNAPSHOT-SDK build produces a package that
+# installs on every 25.12+ target — no per-arch matrix needed.
 on:
   push:
     tags: ['v*']
@@ -19,20 +19,52 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build package via OpenWrt SDK
-        uses: openwrt/gh-action-sdk@main
-        env:
-          # SNAPSHOT SDK ships the apk toolchain used by 25.12+.
-          ARCH: x86-64-SNAPSHOT
-          FEEDNAME: footstrap
-          PACKAGES: luci-theme-footstrap
-          NO_REFRESH_CHECK: 1
-
-      - name: Collect apk
+      - name: Resolve package version
         run: |
-          mkdir -p dist
-          find bin/ -name 'luci-theme-footstrap*.apk' -exec cp {} dist/ \;
-          ls -l dist/
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "FOOTSTRAP_VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+          else
+            echo "FOOTSTRAP_VERSION=0.$(date +%y%m%d).${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install host tools
+        run: sudo apt-get update && sudo apt-get install -y zstd rsync
+
+      - name: Download OpenWrt SDK (snapshot, apk)
+        run: |
+          set -euo pipefail
+          BASE="https://downloads.openwrt.org/snapshots/targets/x86/64"
+          SDK_FILE="$(curl -sfL "$BASE/" | grep -oE 'openwrt-sdk-[^"<]+\.tar\.zst' | head -n1)"
+          [ -n "$SDK_FILE" ] || { echo "SDK filename not found"; exit 1; }
+          echo "Using SDK: $SDK_FILE"
+          curl -fL "$BASE/$SDK_FILE" -o "$RUNNER_TEMP/sdk.tar.zst"
+          tar --zstd -xf "$RUNNER_TEMP/sdk.tar.zst" -C "$RUNNER_TEMP"
+          SDK_DIR="$(find "$RUNNER_TEMP" -maxdepth 1 -type d -name 'openwrt-sdk*' | head -n1)"
+          [ -n "$SDK_DIR" ] || { echo "SDK dir not found"; exit 1; }
+          echo "SDK_DIR=$SDK_DIR" >> "$GITHUB_ENV"
+
+      - name: Build package
+        working-directory: ${{ env.SDK_DIR }}
+        run: |
+          set -euo pipefail
+          # copy just the package dir (preserving the theme's symlinks) into the SDK
+          mkdir -p package/luci-theme-footstrap
+          rsync -a --delete "$GITHUB_WORKSPACE/luci-theme-footstrap/" package/luci-theme-footstrap/
+
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+          cat >> .config <<'CFG'
+          CONFIG_PACKAGE_luci-theme-footstrap=m
+          CONFIG_USE_APK=y
+          CFG
+          make defconfig
+          make package/luci-theme-footstrap/compile V=s FOOTSTRAP_VERSION="$FOOTSTRAP_VERSION"
+
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          find bin/ -type f -name 'luci-theme-footstrap-*.apk' -exec cp {} "$GITHUB_WORKSPACE/dist/" \;
+          ls -lah "$GITHUB_WORKSPACE/dist"
+          [ -n "$(ls -A "$GITHUB_WORKSPACE/dist")" ] || { echo "no apk produced"; exit 1; }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -42,7 +74,14 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.apk
+          body: |
+            luci-theme-footstrap ${{ github.ref_name }} — LuCI theme for OpenWrt 25.12+ (noarch).
+
+            Install (any 25.12+ router):
+            ```sh
+            apk add --allow-untrusted luci-theme-footstrap-*.apk
+            ```
