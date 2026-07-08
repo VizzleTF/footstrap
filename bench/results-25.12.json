@@ -1,0 +1,122 @@
+{
+  "router": "http://10.11.12.1",
+  "runs": 5,
+  "total_bootstrap_ms": 4383.9,
+  "total_footstrap_ms": 2297.9,
+  "total_speedup": 1.91,
+  "median_speedup": 2.28,
+  "pages": [
+    {
+      "page": "admin/system/system",
+      "view": "system/system",
+      "title": "System",
+      "bootstrap_ms": 336.5,
+      "footstrap_ms": 169.4,
+      "speedup": 1.99
+    },
+    {
+      "page": "admin/system/startup",
+      "view": "system/startup",
+      "title": "Startup",
+      "bootstrap_ms": 1131.6,
+      "footstrap_ms": 1000.4,
+      "speedup": 1.13
+    },
+    {
+      "page": "admin/system/crontab",
+      "view": "system/crontab",
+      "title": "Scheduled Tasks",
+      "bootstrap_ms": 147.8,
+      "footstrap_ms": 64.1,
+      "speedup": 2.31
+    },
+    {
+      "page": "admin/system/leds",
+      "view": "system/leds",
+      "title": "LED Configuration",
+      "bootstrap_ms": 216.4,
+      "footstrap_ms": 116.7,
+      "speedup": 1.85
+    },
+    {
+      "page": "admin/system/flash",
+      "view": "system/flash",
+      "title": "Backup / Flash Firmware",
+      "bootstrap_ms": 201.3,
+      "footstrap_ms": 85.0,
+      "speedup": 2.37
+    },
+    {
+      "page": "admin/system/reboot",
+      "view": "system/reboot",
+      "title": "Reboot",
+      "bootstrap_ms": 148.9,
+      "footstrap_ms": 65.8,
+      "speedup": 2.26
+    },
+    {
+      "page": "admin/status/routesj",
+      "view": "status/routesj",
+      "title": "Routing",
+      "bootstrap_ms": 186.9,
+      "footstrap_ms": 104.1,
+      "speedup": 1.8
+    },
+    {
+      "page": "admin/status/nftables",
+      "view": "status/nftables",
+      "title": "Firewall",
+      "bootstrap_ms": 208.4,
+      "footstrap_ms": 94.8,
+      "speedup": 2.2
+    },
+    {
+      "page": "admin/status/processes",
+      "view": "status/processes",
+      "title": "Processes",
+      "bootstrap_ms": 260.6,
+      "footstrap_ms": 177.8,
+      "speedup": 1.47
+    },
+    {
+      "page": "admin/network/network",
+      "view": "network/interfaces",
+      "title": "Interfaces",
+      "bootstrap_ms": 376.1,
+      "footstrap_ms": 97.1,
+      "speedup": 3.87
+    },
+    {
+      "page": "admin/network/routes",
+      "view": "network/routes",
+      "title": "Routing",
+      "bootstrap_ms": 334.3,
+      "footstrap_ms": 91.2,
+      "speedup": 3.66
+    },
+    {
+      "page": "admin/network/dhcp",
+      "view": "network/dhcp",
+      "title": "DHCP",
+      "bootstrap_ms": 277.2,
+      "footstrap_ms": 98.0,
+      "speedup": 2.83
+    },
+    {
+      "page": "admin/network/dns",
+      "view": "network/dns",
+      "title": "DNS",
+      "bootstrap_ms": 359.2,
+      "footstrap_ms": 105.2,
+      "speedup": 3.41
+    },
+    {
+      "page": "admin/network/diagnostics",
+      "view": "network/diagnostics",
+      "title": "Diagnostics",
+      "bootstrap_ms": 198.7,
+      "footstrap_ms": 28.1,
+      "speedup": 7.07
+    }
+  ]
+}
