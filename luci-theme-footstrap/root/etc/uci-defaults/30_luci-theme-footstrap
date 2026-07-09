@@ -13,15 +13,46 @@ done
 uci set luci.themes.FootstrapSidebar=/luci-static/footstrap
 uci set luci.themes.FootstrapOnTop=/luci-static/footstrap-top
 
-# Normalise the active theme: collapse any footstrap dark/light variant onto its
-# base layout (so upgrading users keep their layout), and default a fresh
-# install to the sidebar layout. Non-footstrap themes are left untouched.
+# Normalise the active theme. The six pre-consolidation media paths below are no
+# longer registered in luci.themes: an install left pointing at one is stranded on
+# a theme the Design page does not list, so it cannot be switched away from
+# through the UI. Map each explicitly onto its surviving layout; the trailing
+# glob then catches any other footstrap-* path (typo, future variant, dead
+# symlink). Non-footstrap themes are left untouched, and a fresh install defaults
+# to the sidebar layout.
 cur=$(uci -q get luci.main.mediaurlbase)
+new=$cur
 case "$cur" in
-	/luci-static/footstrap-top*) uci set luci.main.mediaurlbase=/luci-static/footstrap-top ;;
-	/luci-static/footstrap*)     uci set luci.main.mediaurlbase=/luci-static/footstrap ;;
-	"") [ "$PKG_UPGRADE" != 1 ] && uci set luci.main.mediaurlbase=/luci-static/footstrap ;;
+	# legacy six -> two layouts
+	/luci-static/footstrap-top|\
+	/luci-static/footstrap-top-dark|\
+	/luci-static/footstrap-top-light) new=/luci-static/footstrap-top ;;
+	/luci-static/footstrap|\
+	/luci-static/footstrap-dark|\
+	/luci-static/footstrap-light)     new=/luci-static/footstrap ;;
+	# anything else footstrap-ish
+	/luci-static/footstrap-top*)      new=/luci-static/footstrap-top ;;
+	/luci-static/footstrap*)          new=/luci-static/footstrap ;;
+	"") [ "$PKG_UPGRADE" = 1 ] || new=/luci-static/footstrap ;;
 esac
 
+# Last-resort guard against a blank UI: whatever stays active must actually be on
+# disk — both its media dir and its ucode template. If a partial upgrade or a
+# hand-edited mediaurlbase points at neither, fall back to the stock bootstrap
+# theme; a plain UI beats no UI. Skipped when bootstrap itself is not installed.
+theme=${new##*/}
+if [ -n "$theme" ] && { [ ! -d "/www/luci-static/$theme" ] ||
+                        [ ! -f "/usr/share/ucode/luci/template/themes/$theme/header.ut" ]; }; then
+	[ -d /www/luci-static/bootstrap ] && new=/luci-static/bootstrap
+fi
+
+[ "$new" = "$cur" ] || uci set luci.main.mediaurlbase="$new"
+
 uci commit luci
+
+# the dispatch/menu caches embed theme paths — drop them so the switch applies on
+# the next request rather than after a reboot
+rm -f /tmp/luci-indexcache* 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
+
 exit 0

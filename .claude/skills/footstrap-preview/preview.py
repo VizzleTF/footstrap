@@ -40,6 +40,10 @@ def main():
     ap.add_argument("--width", type=int, default=1440)
     ap.add_argument("--height", type=int, default=900)
     ap.add_argument("--palette", default="", help="fs-palette value, e.g. roman/github")
+    ap.add_argument("--ls", action="append", default=[], metavar="KEY=VALUE",
+                    help="extra localStorage entry set before load, repeatable (e.g. --ls fs-rail=true)")
+    ap.add_argument("--hover", default="", help="CSS selector to hover before the shot (flyouts/dropdowns)")
+    ap.add_argument("--viewport-only", action="store_true", help="shoot the viewport instead of the full page")
     args = ap.parse_args()
     pages = list(args.pages or [])
     if args.pages_file:
@@ -74,8 +78,11 @@ def main():
                                               device_scale_factor=2, ignore_https_errors=True)
                     _pal = (f"try{{localStorage.setItem('fs-palette','{args.palette}')}}catch(e){{}}"
                             if args.palette else "")
+                    _extra = "".join(
+                        f"try{{localStorage.setItem('{k}','{v}')}}catch(e){{}}"
+                        for k, _, v in (e.partition("=") for e in args.ls))
                     ctx.add_init_script(
-                        f"try{{localStorage.setItem('fs-darkmode','{'true' if mode=='dark' else 'false'}')}}catch(e){{}}{_pal}")
+                        f"try{{localStorage.setItem('fs-darkmode','{'true' if mode=='dark' else 'false'}')}}catch(e){{}}{_pal}{_extra}")
                     # authenticate via the API (cookie is shared with the context's pages)
                     ctx.request.post(f"{base}/cgi-bin/luci/",
                                      form={"luci_username": user, "luci_password": pw})
@@ -89,10 +96,16 @@ def main():
                         except Exception:
                             pass
                         time.sleep(1.2)
+                        if args.hover:
+                            try:
+                                page.hover(args.hover, timeout=3000)
+                                time.sleep(0.4)
+                            except Exception as e:
+                                print(f"hover {args.hover!r} failed: {e}")
                         slug = path.replace('/', '-')[:120]
                         name = f"{layout}__{mode}__{slug}.png"
                         fp = outdir / name
-                        page.screenshot(path=str(fp), full_page=True)
+                        page.screenshot(path=str(fp), full_page=not args.viewport_only)
                         saved.append(str(fp))
                         print("saved", fp)
                     ctx.close()

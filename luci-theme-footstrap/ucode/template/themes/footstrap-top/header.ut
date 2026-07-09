@@ -43,7 +43,6 @@
 				<div class="fs-topbar fs-pagehead">
 					<div class="fs-title">
 						<div class="fs-title-main">{{ dispatched?.title ? _(dispatched.title) : striptags(boardinfo.hostname ?? 'OpenWrt') }}</div>
-						<div class="fs-title-sub">{{ entityencode(striptags(`${boardinfo.model ?? ''}${boardinfo.system ? ` · ${boardinfo.system}` : ''}`)) }}</div>
 					</div>
 				</div>
 

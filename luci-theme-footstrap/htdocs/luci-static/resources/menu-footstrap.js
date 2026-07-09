@@ -31,6 +31,25 @@ function iconSvg(name) {
 		'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
 }
 
+/* The sidebar shows a section's children two different ways, and `.open` means
+ * something different in each:
+ *   - expanded sidebar (desktop, no rail): an inline accordion. Several sections
+ *     may be open at once and the active one starts open.
+ *   - collapsed rail, or the mobile top bar: a flyout/popup panel. Exactly one
+ *     may be open, hover drives it on a mouse, and a tap toggles it — so `.open`
+ *     must behave like the top-nav dropdown (exclusive, cleared on outside click
+ *     and once a real mouse enters the menu). */
+function flyoutMode() {
+	return document.documentElement.getAttribute('data-rail') === 'true' ||
+	       window.matchMedia('(max-width: 900px)').matches;
+}
+
+function closeFlyouts(except) {
+	document.querySelectorAll('#topmenu > li.open').forEach((o) => {
+		if (o !== except) o.classList.remove('open');
+	});
+}
+
 /* main sections -> vertical sidebar list (#topmenu), collapsible */
 function renderMainMenu(tree, url, level) {
 	const ul = level ? E('ul', {}) : document.querySelector('#topmenu');
@@ -44,6 +63,12 @@ function renderMainMenu(tree, url, level) {
 	const idx = (level || 0) + 1;
 
 	children.forEach(child => {
+		/* the sidebar carries its own Logout entry at the bottom (header.ut), so
+		 * drop the menu tree's top-level admin/logout node — otherwise it shows up
+		 * twice. The top-nav layout has no footer link and keeps its own copy. */
+		if (!level && child.name == 'logout')
+			return;
+
 		const submenu = renderMainMenu(child, url + '/' + child.name, (level || 0) + 1);
 		const hasSub = !!submenu.firstElementChild;
 		const isActive = (L.env.dispatchpath[idx] == child.name);
@@ -58,19 +83,41 @@ function renderMainMenu(tree, url, level) {
 		link.innerHTML = (level ? '' : iconSvg(child.name)) + '<span class="fs-label"></span>' + chevron;
 		link.querySelector('.fs-label').textContent = _(child.title);
 
+		/* collapsed rail: the label is hidden, so carry it as an attribute — CSS
+		 * renders it as the flyout's heading (sections) or as a tooltip (leaves). */
+		if (!level) {
+			link.setAttribute('data-label', _(child.title));
+			if (hasSub)
+				submenu.setAttribute('data-title', _(child.title));
+		}
+
 		const li = E('li', {
 			'class': [
 				isActive ? 'active' : '',
 				hasSub ? 'has-sub' : '',
-				(hasSub && isActive) ? 'open' : ''
+				/* pre-opening the active section is an accordion affordance; in
+				 * flyout mode it would pop a panel open on page load */
+				(hasSub && isActive && !flyoutMode()) ? 'open' : ''
 			].join(' ').trim()
 		}, [ link, submenu ]);
 
-		if (hasSub)
+		if (hasSub) {
 			link.addEventListener('click', (ev) => {
 				ev.preventDefault();
-				li.classList.toggle('open');
+				const open = li.classList.contains('open');
+				if (flyoutMode()) closeFlyouts();
+				li.classList.toggle('open', !open);
 			});
+
+			/* hybrid devices: once a real MOUSE enters the menu, drop the tap-opened
+			 * panel so hover is authoritative and two panels never stack. Guarded on
+			 * pointerType — a touch tap fires pointerenter (type 'touch') before the
+			 * click, and clearing there would break tap-to-close. */
+			li.addEventListener('pointerenter', (ev) => {
+				if (ev.pointerType === 'mouse' && flyoutMode())
+					closeFlyouts();
+			});
+		}
 
 		ul.appendChild(li);
 	});
@@ -81,5 +128,16 @@ function renderMainMenu(tree, url, level) {
 return baseclass.extend({
 	__init__() {
 		common.bootstrap(renderMainMenu);
+
+		/* close an open flyout when clicking outside the menu, and drop stale
+		 * `.open` state whenever the two meanings swap (rail toggled, window
+		 * crossing the mobile breakpoint) — an accordion left open would otherwise
+		 * come back as a popup panel stuck on screen. */
+		document.addEventListener('click', (ev) => {
+			if (flyoutMode() && !ev.target.closest('#topmenu > li.has-sub'))
+				closeFlyouts();
+		});
+		document.getElementById('fs-rail-toggle')?.addEventListener('click', () => closeFlyouts());
+		window.matchMedia('(max-width: 900px)').addEventListener('change', () => closeFlyouts());
 	}
 });

@@ -45,6 +45,16 @@
 				} catch (e) {}
 			})();
 		</script>
+		<script>
+			/* footstrap: apply the collapsed-sidebar (icon rail) preference before
+			   paint, so a reload doesn't flash the full-width sidebar first. */
+			(function() {
+				try {
+					if (localStorage.getItem('fs-rail') === 'true')
+						document.querySelector(':root').setAttribute('data-rail', 'true');
+				} catch (e) {}
+			})();
+		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="darkreader-lock">
 		{# preload above-the-fold fonts so they don't wait for the full cascade.css

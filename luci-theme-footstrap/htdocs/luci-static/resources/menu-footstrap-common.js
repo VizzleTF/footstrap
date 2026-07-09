@@ -455,6 +455,32 @@ function wireVisibility() {
 	});
 }
 
+/* Place the popover next to its trigger and keep it inside the viewport.
+ * It is position:fixed and lives on <body> — the sidebar is `overflow-y: auto`
+ * (which computes overflow-x to `auto` too), so an absolutely-positioned popover
+ * parented to the Appearance row was clipped/scrolled off the sidebar edge.
+ * Top-nav opens downward from the right edge of the button; the sidebar opens
+ * sideways out of the rail. Both are then clamped to the viewport. */
+function placePopover(btn, pop) {
+	const gap = 8, r = btn.getBoundingClientRect();
+	const w = pop.offsetWidth, h = pop.offsetHeight;
+	const vw = document.documentElement.clientWidth;
+	const vh = document.documentElement.clientHeight;
+	const top_layout = document.body.classList.contains('fs-top');
+
+	let left = top_layout ? (r.right - w) : (r.right + gap);
+	let top  = top_layout ? (r.bottom + gap) : (r.bottom - h);
+
+	/* sidebar: if there is no room to the right, fall back above the trigger */
+	if (!top_layout && left + w > vw - gap) {
+		left = r.left;
+		top = r.top - h - gap;
+	}
+
+	pop.style.left = Math.max(gap, Math.min(left, vw - w - gap)) + 'px';
+	pop.style.top  = Math.max(gap, Math.min(top,  vh - h - gap)) + 'px';
+}
+
 function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
@@ -477,25 +503,58 @@ function wireAppearance() {
 			], applyPalette)
 		])
 	]);
-	btn.parentNode.classList.add('fs-appearance-wrap');
-	btn.parentNode.appendChild(pop);
+	document.body.appendChild(pop);
 
 	function outside(e) { if (!pop.contains(e.target) && !btn.contains(e.target) && e.target !== btn) close(); }
 	function esc(e) { if (e.key === 'Escape') { close(); btn.focus(); } }
+	function reposition() { placePopover(btn, pop); }
 	function open() {
 		pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+		reposition();
 		document.addEventListener('click', outside, true);
 		document.addEventListener('keydown', esc);
+		window.addEventListener('resize', reposition);
+		window.addEventListener('scroll', reposition, true);
 	}
 	function close() {
 		pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
 		document.removeEventListener('click', outside, true);
 		document.removeEventListener('keydown', esc);
+		window.removeEventListener('resize', reposition);
+		window.removeEventListener('scroll', reposition, true);
 	}
 
 	btn.setAttribute('aria-haspopup', 'dialog');
 	btn.setAttribute('aria-expanded', 'false');
 	btn.addEventListener('click', (e) => { e.stopPropagation(); pop.hidden ? open() : close(); });
+}
+
+/* Sidebar rail toggle: collapse the sidebar to an icon-only strip. The state
+ * lives on <html data-rail> (head.ut re-applies it before paint on a full load)
+ * and in localStorage. Everything else — flyout submenus, hidden labels — is CSS
+ * keyed off that attribute. */
+function wireRail() {
+	const btn = document.getElementById('fs-rail-toggle');
+	if (!btn) return;
+
+	const root = document.documentElement;
+
+	function sync() {
+		const on = root.getAttribute('data-rail') === 'true';
+		btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+		const label = on ? _('Expand menu') : _('Collapse menu');
+		btn.setAttribute('aria-label', label);
+		btn.setAttribute('title', label);
+	}
+
+	btn.addEventListener('click', () => {
+		const on = root.getAttribute('data-rail') !== 'true';
+		if (on) { root.setAttribute('data-rail', 'true'); lsSet('fs-rail', 'true'); }
+		else { root.removeAttribute('data-rail'); lsDel('fs-rail'); }
+		sync();
+	});
+
+	sync();
 }
 
 return baseclass.extend({
@@ -508,6 +567,7 @@ return baseclass.extend({
 
 			renderChrome();
 			wireAppearance();
+			wireRail();
 			wireRouter();
 			wireVisibility();
 		});

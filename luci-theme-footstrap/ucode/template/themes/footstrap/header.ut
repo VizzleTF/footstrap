@@ -21,12 +21,17 @@
 		{% if (!blank_page): %}
 		<div class="fs-shell">
 			<aside class="fs-sidebar">
-				<a class="fs-brand" href="{{ dispatcher.build_url() }}">
-					<span class="fs-logo">
-						<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="#fff" stroke="none"/></svg>
-					</span>
-					<span class="fs-wordmark">{{ striptags(boardinfo.hostname ?? 'OpenWrt') }}</span>
-				</a>
+				<div class="fs-brandrow">
+					<a class="fs-brand" href="{{ dispatcher.build_url() }}">
+						<span class="fs-logo">
+							<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="#fff" stroke="none"/></svg>
+						</span>
+						<span class="fs-wordmark">{{ striptags(boardinfo.hostname ?? 'OpenWrt') }}</span>
+					</a>
+					<button type="button" class="fs-railtoggle" id="fs-rail-toggle" aria-label="{{ _('Collapse menu') }}" title="{{ _('Collapse menu') }}">
+						<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+					</button>
+				</div>
 
 				<div class="fs-navlabel">{{ _('Menu') }}</div>
 				<ul class="nav" id="topmenu"></ul>
@@ -35,18 +40,16 @@
 				<div class="fs-spacer"></div>
 
 				{% if (!darkpref): %}
-				<div class="fs-themerow">
-					<span>{{ _('Appearance') }}</span>
-					<button type="button" class="fs-appearance-btn" id="fs-appearance" aria-label="{{ _('Appearance') }}">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
-					</button>
-				</div>
+				<button type="button" class="fs-themerow" id="fs-appearance" title="{{ _('Appearance') }}">
+					<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
+					<span class="fs-label">{{ _('Appearance') }}</span>
+				</button>
 				{% endif %}
 
 				{% if (dispatcher.lookup("admin/logout")): %}
-				<a class="fs-logout" href="{{ dispatcher.build_url('admin/logout') }}">
+				<a class="fs-logout" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ _('Logout') }}">
 					<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 12H3m0 0 3-3m-3 3 3 3"/></svg>
-					{{ _('Logout') }}
+					<span class="fs-label">{{ _('Logout') }}</span>
 				</a>
 				{% endif %}
 			</aside>
@@ -55,7 +58,6 @@
 				<div class="fs-topbar">
 					<div class="fs-title">
 						<div class="fs-title-main">{{ dispatched?.title ? _(dispatched.title) : striptags(boardinfo.hostname ?? 'OpenWrt') }}</div>
-						<div class="fs-title-sub">{{ entityencode(striptags(`${boardinfo.model ?? ''}${boardinfo.system ? ` · ${boardinfo.system}` : ''}`)) }}</div>
 					</div>
 					<div id="indicators" class="fs-indicators"></div>
 				</div>

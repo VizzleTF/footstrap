@@ -12,8 +12,7 @@ Theme selection: `uci luci.main.mediaurlbase` → `basename` → template dir `t
 
 ## Two layouts, one stylesheet
 
-Registered in `luci.themes` (System → System → Language and Style), 6 entries:
-`Footstrap` / `FootstrapDark` / `FootstrapLight` (sidebar) and `FootstrapTop` / `…Dark` / `…Light` (top-nav). dark/light differ only by name **suffix**; `header.ut` derives mode via `match(theme, /-dark$/|/-light$/)`, else auto (client `data-darkmode` from `localStorage`/`prefers-color-scheme`).
+Registered in `luci.themes` (System → System → Language and Style), **2 entries**: `FootstrapSidebar` (`/luci-static/footstrap`) and `FootstrapOnTop` (`/luci-static/footstrap-top`). Mode (auto/light/dark) and palette are **client-side** toggles in the Appearance popover, not theme entries. The six legacy entries (`Footstrap`, `…Dark`, `…Light`, `FootstrapTop`, …) are deleted and their `mediaurlbase` collapsed onto the base layout by `uci-defaults`. `header.ut` still derives a forced mode from a `-dark`/`-light` name suffix (the media/template symlinks are kept so a stale `mediaurlbase` never 404s), else auto (client `data-darkmode` from `localStorage`/`prefers-color-scheme`).
 
 - `ucode/template/themes/footstrap/` — sidebar templates (real dir); `footstrap-top/` — top-nav templates (real dir). `-dark`/`-light` are **symlinks** to their base template dir.
 - `htdocs/luci-static/footstrap/` — the only real media dir (holds `cascade.css`, `fonts/`, logos). `footstrap-dark|light|top|top-dark|top-light` are **symlinks → footstrap**, so every variant serves the same `cascade.css`.
@@ -41,8 +40,8 @@ Rules when editing CSS:
 
 ## Package / registration
 
-- `Makefile`: `include ../../luci.mk`, `LUCI_DEPENDS:=+luci-base`; `luci.mk` auto-installs `ucode/→/usr/share/ucode/luci`, `htdocs/→/www`, `root/→/`. `postrm` deletes all 6 `luci.themes.*` entries.
-- `root/etc/uci-defaults/30_luci-theme-footstrap` registers the 6 theme entries (only on fresh install; guarded by `PKG_UPGRADE`).
+- `Makefile`: `include ../../luci.mk`, `LUCI_DEPENDS:=+luci-base`; `luci.mk` auto-installs `ucode/→/usr/share/ucode/luci`, `htdocs/→/www`, `root/→/`. `postrm` deletes every `luci.themes.*` entry (current + legacy names). `postinst` re-runs the uci-defaults script, so it executes on **upgrade** too (apk maps `postinst` to both `post-install` and `post-upgrade`).
+- `root/etc/uci-defaults/30_luci-theme-footstrap` is the single source of truth for registration: deletes all legacy names, registers the 2 layouts, migrates `luci.main.mediaurlbase` (legacy `-dark`/`-light` → base layout; a dangling path → `bootstrap`), and drops the index/module caches. Fresh installs default to the sidebar layout (`PKG_UPGRADE` guard). **Never register themes anywhere else** — `dev-sync.sh` runs this same script.
 - Version is git-derived; don't set `PKG_VERSION`. 25.12 packages are **apk** (`apk add --allow-untrusted *.apk`), not opkg/ipk.
 
 ## Development workflow (no build — deploy to a live router)
