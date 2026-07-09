@@ -3131,7 +3131,7 @@ footer.fs-footer a:hover { color: var(--accent); }
  * so the rules are restated here against the sidebar's own classes rather than
  * shared with .fs-topnav.
  * ================================================================== */
-@media (max-width: 900px) {
+@media (max-width: 600px) {
 	.fs-shell { flex-direction: column; }
 	.fs-sidebar {
 		width: 100%; height: auto;
@@ -3161,12 +3161,16 @@ footer.fs-footer a:hover { color: var(--accent); }
 	.fs-sidebar ul.nav > li > a .fs-ico,
 	.fs-sidebar ul.nav > li > a .fs-chevron { display: none; }
 
-	/* submenu = popup card spanning the bar, like .fs-topnav .dropdown-menu */
+	/* submenu = popup card anchored under the bar. Sized to its content (max-content)
+	 * rather than spanning the full bar width, so the items aren't stretched edge to
+	 * edge — just a compact dropdown. Capped to the viewport so a long label wraps
+	 * instead of overflowing. */
 	.fs-sidebar ul.nav ul,
 	.fs-sidebar ul.nav > li.open > ul {
 		display: none;
-		position: absolute; left: 16px; right: 16px; top: calc(100% + 8px); z-index: 60;
-		margin: 0; padding: 6px; min-width: 0;
+		position: absolute; left: 16px; right: auto; top: calc(100% + 8px); z-index: 60;
+		width: max-content; min-width: 180px; max-width: calc(100vw - 32px);
+		margin: 0; padding: 6px;
 		background: var(--panel); border: 1px solid var(--border);
 		border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.28);
 	}
@@ -3324,6 +3328,23 @@ footer.fs-footer a:hover { color: var(--accent); }
 	.fs-main > .alert-message { margin: 12px 16px 0; }
 }
 
+/* Phone: alerts (e.g. the "New Firmware Available" sysupgrade banner, injected by
+ * ui.addNotification as a `.fs-main > .alert-message` — a SIBLING of #view, not a
+ * child) lay their action buttons in a nowrap flex row, so on a ~344px screen the
+ * trailing Dismiss button was shoved past the panel and clipped by .fs-main's
+ * overflow-x:clip. Scope to .fs-main so it covers both those top-level alerts and
+ * any inside #view; let the row wrap and drop margin pushes so buttons stack. */
+@media (max-width: 600px) {
+	.fs-main .alert-message { flex-wrap: wrap; }
+	.fs-main .alert-message > * { min-width: 0; margin-left: 0; }
+	/* the action row (Stop showing… + Dismiss) is a nested flex that stayed nowrap,
+	 * so the first button's label got clipped when Dismiss sat beside it. Wrap the
+	 * inner rows and let button labels break instead of truncate. */
+	.fs-main .alert-message div { flex-wrap: wrap; min-width: 0; }
+	.fs-main .alert-message .btn,
+	.fs-main .alert-message button { white-space: normal; max-width: 100%; }
+}
+
 /* ==================================================================
  * FOOTSTRAP section toggle (Hide/Show) — override stock overview rules
  * (base `.label` + body[data-page=...] .cbi-title .label leak uppercase,
@@ -3441,8 +3462,15 @@ body[data-page='admin-status-overview'] .cbi-title .label[data-indicator='poll-s
  * showing phantom strips. Collapse the whole box for any pane that is not the
  * active one — :not([data-tab-active="true"]) also covers the first-render state
  * where LuCI has set active="true" on the shown tab but left the others with no
- * data-tab-active attribute yet (huge gaps until you switch tabs). */
+ * data-tab-active attribute yet (huge gaps until you switch tabs).
+ *
+ * display:none, not just height:0 — a height:0/overflow:hidden pane STILL inflates
+ * documentElement.scrollHeight by its (clipped) content, so multi-tab pages like
+ * Network → Interfaces scrolled ~585px past the footer into blank space. Taking
+ * the pane out of flow entirely is the only thing that removes that phantom
+ * scroll. The active pane keeps its own [data-tab-active="true"] rules. */
 .cbi-section[data-tab-title]:not([data-tab-active="true"]) {
+	display: none;
 	padding: 0;
 	margin: 0;
 	border: 0;
@@ -3890,6 +3918,31 @@ select, select.cbi-input-select, .cbi-value-field select {
 select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
 select option { background: var(--panel); color: var(--text); }
 
+/* Native <select> drop list: the OS renders it, so `select option` colours above
+ * are ignored on most platforms (a stock white list on a dark theme — see the
+ * Log facility/severity and System timezone selects). Modern Chromium exposes the
+ * customisable-select model (`appearance: base-select`), which renders the picker
+ * in the DOM so we can theme it like the .cbi-dropdown menu. Progressive: gated on
+ * @supports, so browsers without it keep the styled closed control + native list.
+ * The closed control keeps its existing bg-image chevron; ::picker-icon hidden. */
+@supports (appearance: base-select) {
+	select, select.cbi-input-select, .cbi-value-field select { appearance: base-select; }
+	select::picker-icon { display: none; }
+	::picker(select) {
+		appearance: base-select;
+		background: var(--panel); border: 1px solid var(--border);
+		border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.28);
+		padding: 6px; margin-top: 6px;
+	}
+	select option {
+		padding: 8px 11px; border-radius: 8px; font-size: 13px;
+		color: var(--text); background: transparent; min-height: 0;
+	}
+	select option::checkmark { display: none; }
+	select option:hover, select option:focus-visible { background: var(--panel2); }
+	select option:checked { color: var(--accent); background: var(--accent-soft); }
+}
+
 /* spinner / loading */
 .spinning, .cbi-value em, em.spinning { color: var(--dim); }
 .spinning::before {
@@ -3955,6 +4008,15 @@ select option { background: var(--panel); color: var(--text); }
 .cbi-dropdown[open] > ul.dropdown > li {
 	border-radius: 8px !important; padding: 9px 11px !important;
 	border-left: 0 !important; color: var(--text) !important;
+	position: relative;
+	/* the base rule puts a border-bottom on the li; on a border-radius:8px box that
+	 * border curls up at the corners. Drop it and draw a straight inset strip via
+	 * ::after instead, so the divider is a plain line and the hover pill stays rounded. */
+	border-bottom: 0 !important;
+}
+.cbi-dropdown[open] > ul.dropdown > li:not(:last-child)::after {
+	content: ""; position: absolute; left: 11px; right: 11px; bottom: 0;
+	height: 1px; background: var(--border);
 }
 .cbi-dropdown[open] > ul.dropdown > li:hover,
 .cbi-dropdown[open] > ul.dropdown > li.focus { background: var(--panel2) !important; }
@@ -4235,6 +4297,15 @@ ul.cbi-tabmenu.mode > li > a:hover { color: var(--text); }
 	#view table.fs-dt .td.cbi-section-actions::before,
 	#view table.fs-dt .td:not([data-title])::before,
 	#view table.fs-dt .td[data-title=""]::before { content: none; }
+	/* let the value side shrink and wrap instead of forcing the row wider than the
+	 * viewport — on a phone the assoclist value cells (an .ifacebadge with a long
+	 * "Access Point … (phyN-apM)" caption, a MAC + IPv6 pair, the signal SVG) are
+	 * intrinsically ~250px and, with min-width:auto flex items, were clipped on the
+	 * right by .fs-main's overflow-x:clip. flex-wrap drops an oversized value below
+	 * its label; min-width:0/max-width:100% + overflow-wrap break the content. */
+	#view table.fs-dt .td { flex-wrap: wrap; overflow-wrap: anywhere; }
+	#view table.fs-dt .td > *,
+	#view table.fs-dt .td .ifacebadge { min-width: 0; max-width: 100%; }
 }
 
 /* #packages (apk Software page) is a cbi-section-table with a
@@ -4441,9 +4512,12 @@ body[data-page='admin-status-overview'] #maincontent h2[name='content'] { displa
 	 * at the same bottom edge — equal height regardless of which has more rows */
 	margin-bottom: 16px;			/* match stock .cbi-section spacing below the grid */
 }
-.fs-ovl > .fs-ovl-sys { grid-column: 1; grid-row: 1 / 3; margin: 0; }
-.fs-ovl > .fs-ovl-mem { grid-column: 2; grid-row: 1; margin: 0; }
-.fs-ovl > .fs-ovl-sto { grid-column: 2; grid-row: 2; margin: 0; }
+/* min-width:0 so a grid item shrinks to its track instead of to its content's
+ * min-width (default auto) — otherwise a long System value (model/firmware
+ * string) blew the single-column track past a ~344px phone and clipped. */
+.fs-ovl > .fs-ovl-sys { grid-column: 1; grid-row: 1 / 3; margin: 0; min-width: 0; }
+.fs-ovl > .fs-ovl-mem { grid-column: 2; grid-row: 1; margin: 0; min-width: 0; }
+.fs-ovl > .fs-ovl-sto { grid-column: 2; grid-row: 2; margin: 0; min-width: 0; }
 /* hide our own empty stock wrapper — the include renders only .fs-ovl-marker,
  * which index.js nests inside the section's inner container (not a direct
  * child), so match it anywhere in the descendants, not with `>`. */
@@ -4758,3 +4832,41 @@ ul.cbi-tabmenu.mode > li.cbi-tab,
 .table:has(.cbi-dropdown),
 .table:has(.cbi-dynlist) { overflow: visible; }
 .cbi-dropdown[open] { z-index: 1100; }
+
+/* ==================================================================
+ * FOOTSTRAP phone overflow safety net (≤600px = below the sidebar→top-bar
+ * breakpoint). .fs-main uses overflow-x:clip, so any element wider than the
+ * viewport is silently CUT on the right rather than scrolled to. A device sweep
+ * (iPhone/Samsung/Pixel/iPad presets) found the offenders below; each fix lets
+ * the offending control/table shrink or wrap so nothing is clipped. Tablets
+ * (≥768px) were already clean and keep the roomier desktop layout.
+ * ================================================================== */
+.cbi-dropdown { max-width: 100%; }
+@media (max-width: 600px) {
+	/* apk Software page: stack each labeled control; base gives its labels a
+	 * min-width:250px that overflowed a ~360px screen. Label on its own line,
+	 * button/input rows wrap. Scoped via #disk-space-label (this page only). */
+	#view:has(#disk-space-label) .controls > div { display: block; min-width: 0; margin-bottom: 8px; }
+	#view:has(#disk-space-label) .controls label { display: block; min-width: 0; white-space: normal; margin-bottom: 4px; }
+	#view:has(#disk-space-label) .controls .control-group { display: flex; flex-wrap: wrap; min-width: 0; gap: 8px; }
+	#view:has(#disk-space-label) .controls .control-group input { flex: 1 1 140px; min-width: 0; max-width: 100%; }
+
+	/* Diagnostics tool (input + method select + button in one <table> row) has no
+	 * id and no .cbi-section-table, so nothing stacks it — a fixed table layout
+	 * stayed ~365px wide. Break its rows/cells to blocks on a phone. */
+	body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table),
+	body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table) .tr,
+	body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table) .td { display: block; width: auto; }
+
+	/* fs-dt data tables (System→Startup init.d list, leases, processes): the row
+	 * stacking already runs via @container, but the <table> box itself stayed
+	 * display:table and could keep an intrinsic min-width. Block it so its width
+	 * can't exceed the column. */
+	#view table.fs-dt { display: block; width: 100%; }
+
+	/* generic caps: a dropdown/input/select must never exceed its field, and long
+	 * key/value strings in the Overview System/Memory/Storage cards must break. */
+	#view .cbi-dropdown { min-width: 0; max-width: 100%; }
+	#view .cbi-value-field input, #view .cbi-value-field select, #view .cbi-value-field .cbi-dropdown { max-width: 100%; }
+	#view .fs-ovl .table .td, #view .fs-ovl .table .th { overflow-wrap: anywhere; min-width: 0; }
+}

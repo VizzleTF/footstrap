@@ -41,7 +41,7 @@ function iconSvg(name) {
  *     and once a real mouse enters the menu). */
 function flyoutMode() {
 	return document.documentElement.getAttribute('data-rail') === 'true' ||
-	       window.matchMedia('(max-width: 900px)').matches;
+	       window.matchMedia('(max-width: 600px)').matches;
 }
 
 function closeFlyouts(except) {
@@ -49,6 +49,15 @@ function closeFlyouts(except) {
 		if (o !== except) o.classList.remove('open');
 	});
 }
+
+/* Which top-level sections are unfolded, by node name. renderChrome() wipes and
+ * rebuilds #topmenu on every SPA nav, so without this a section the user opened
+ * (Keep open mode) would refold the moment they switch tab — only the active
+ * section, re-derived from the path, would stay open. We remember the accordion
+ * state here and restore it in renderMainMenu. Only consulted in the expanded
+ * sidebar with auto-collapse off; flyouts and auto-collapse are exclusive by
+ * design and re-open just the active one. */
+const _openSections = new Set();
 
 /* main sections -> vertical sidebar list (#topmenu), collapsible */
 function renderMainMenu(tree, url, level) {
@@ -72,6 +81,16 @@ function renderMainMenu(tree, url, level) {
 		const submenu = renderMainMenu(child, url + '/' + child.name, (level || 0) + 1);
 		const hasSub = !!submenu.firstElementChild;
 		const isActive = (L.env.dispatchpath[idx] == child.name);
+
+		/* expanded sidebar, Keep open: a section starts open if it is the active
+		 * one OR it was left open before this re-render. Remembered so the state
+		 * survives a SPA nav (renderChrome rebuilds #topmenu). Auto-collapse and
+		 * flyout mode ignore the remembered set — they only ever open the active. */
+		const keepOpen = hasSub && !level && !flyoutMode() && !common.autoCollapse();
+		const startOpen = hasSub && !flyoutMode() &&
+			(isActive || (keepOpen && _openSections.has(child.name)));
+		if (keepOpen && startOpen)
+			_openSections.add(child.name);
 		const chevron = hasSub
 			? '<svg class="fs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 			: '';
@@ -97,7 +116,7 @@ function renderMainMenu(tree, url, level) {
 				hasSub ? 'has-sub' : '',
 				/* pre-opening the active section is an accordion affordance; in
 				 * flyout mode it would pop a panel open on page load */
-				(hasSub && isActive && !flyoutMode()) ? 'open' : ''
+				startOpen ? 'open' : ''
 			].join(' ').trim()
 		}, [ link, submenu ]);
 
@@ -107,8 +126,12 @@ function renderMainMenu(tree, url, level) {
 				const open = li.classList.contains('open');
 				/* flyout panels are always exclusive; the expanded-sidebar accordion
 				 * folds the others back only when asked (Appearance -> Submenus) */
-				if (flyoutMode() || common.autoCollapse()) closeFlyouts();
+				if (flyoutMode() || common.autoCollapse()) { closeFlyouts(); _openSections.clear(); }
 				li.classList.toggle('open', !open);
+				/* remember the accordion state so a SPA nav restores it (Keep open) */
+				if (flyoutMode()) return;
+				if (!open) _openSections.add(child.name);
+				else _openSections.delete(child.name);
 			});
 
 			/* hybrid devices: once a real MOUSE enters the menu, drop the tap-opened
@@ -140,6 +163,6 @@ return baseclass.extend({
 				closeFlyouts();
 		});
 		document.getElementById('fs-rail-toggle')?.addEventListener('click', () => closeFlyouts());
-		window.matchMedia('(max-width: 900px)').addEventListener('change', () => closeFlyouts());
+		window.matchMedia('(max-width: 600px)').addEventListener('change', () => closeFlyouts());
 	}
 });
