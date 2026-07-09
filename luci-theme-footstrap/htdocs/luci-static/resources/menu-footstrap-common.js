@@ -345,6 +345,16 @@ function navigate(pathname, push) {
 	L.env.pathinfo     = '/' + segs.join('/');
 	L.env.nodespec     = { satisfied: true, action: node.action, title: node.title, depends: node.depends };
 
+	/* Keep <body data-page> in sync with the route. The server template stamps
+	 * `data-page="{{ join('-', request_path) }}"` on every full load, and LuCI's
+	 * page-scoped CSS (and any per-page hook) keys off it. A SPA nav swaps the
+	 * view without reloading, so — like requestpath/dispatchpath/title above —
+	 * the router must re-stamp it, or the incoming page keeps the previous page's
+	 * data-page and its scoped styles silently don't apply. This is route-state
+	 * sync the router already owns, not a per-page patch: it fixes every
+	 * body[data-page=…] rule at once. */
+	document.body.setAttribute('data-page', segs.join('-'));
+
 	if (push)
 		history.pushState({ fsnav: true }, '', pathname);
 
