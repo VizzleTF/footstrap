@@ -4349,6 +4349,12 @@ form:has(> .cbi-map input[name="luci_username"]) .cbi-section,
 form:has(> .cbi-map input[name="luci_username"]) .cbi-section-node {
 	background: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important;
 }
+/* the login card IS the panel — the generic "heading gets its own card" rule
+ * would draw a second frame inside it */
+form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2,
+form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr {
+	background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0;
+}
 form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2 {
 	font-size: 21px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 6px;
 }
@@ -4367,8 +4373,11 @@ form:has(> .cbi-map input[name="luci_username"]) .cbi-value-field input {
 	width: 100% !important; margin: 0 !important; box-sizing: border-box;
 }
 form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: 10px; }
+/* a column, not a block: some auth plugins add a second action (Reset) and the
+ * full-width buttons below carry margin:0, so they ended up glued together */
 form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions {
-	display: block !important; background: none !important; border: 0 !important;
+	display: flex !important; flex-direction: column; gap: 10px;
+	background: none !important; border: 0 !important;
 	padding: 0 !important; margin: 6px 0 0 !important; text-align: left;
 }
 form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn,
