@@ -1901,7 +1901,7 @@ body.modal-overlay-active #modal_overlay {
 	border-radius: 3px;
 	position: relative;
 	min-width: 170px;
-	height: 8px;
+	height: 10px;
 	margin: 1.4em 0 4px 0;
 	background: var(--background-color-medium);
 }
@@ -2990,29 +2990,34 @@ legend, .cbi-section > h3:first-child { font-size: 14px; font-weight: 700; }
 .cbi-value-title { color: var(--dim); font-size: 13px; font-weight: 500; }
 .cbi-value-field, .cbi-value-field * { font-family: var(--font-mono); }
 
-/* progress bars -> footstrap "pill meter" (holds LuCI title text) */
+/* progress bars -> thin footstrap meter. One general rule for every
+ * .cbi-progressbar (overview Memory/Storage/Network, Software disk space, package
+ * manager, …): a slim rounded track with an accent fill, and the LuCI title
+ * value floated just above the bar's right edge (mono/dim) instead of stuffed
+ * inside a fat pill. No per-page overrides. */
 .cbi-progressbar {
 	position: relative;
-	height: 20px;
+	height: 10px;
 	background: var(--track);
-	border: 1px solid var(--border);
+	border: 0;
 	border-radius: 99px;
-	overflow: hidden;
-	min-width: 160px;
+	overflow: visible;
+	min-width: 120px;
+	margin: 0;
 }
 .cbi-progressbar > div {
 	height: 100%;
 	background: var(--accent);
-	border-radius: 99px 0 0 99px;
+	border-radius: 99px;
 	transition: width .4s ease;
 }
+/* base bootstrap ::before also prints the title (top-left) — hide the duplicate */
+.cbi-progressbar::before { display: none; }
 .cbi-progressbar::after {
 	content: attr(title);
-	position: absolute; inset: 0;
-	display: flex; align-items: center; justify-content: center;
+	position: absolute; right: 0; bottom: calc(100% + 4px); top: auto; left: auto;
 	font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-	color: var(--text); white-space: nowrap;
-	text-shadow: 0 1px 2px var(--panel);
+	color: var(--dim); white-space: nowrap; text-shadow: none;
 }
 
 /* buttons */
@@ -4092,6 +4097,32 @@ ul.cbi-tabmenu.mode > li > a:hover { color: var(--text); }
 	#view table.fs-dt .td[data-title=""]::before { content: none; }
 }
 
+/* #packages (apk Software page) is a cbi-section-table with a
+ * .cbi-section-table-titles header, so neither the .fs-dt tagging nor the
+ * general stacking above reaches it — on a phone it overflows to ~1000px and
+ * gets clipped. Stack it into label/value rows the same way below 820px.
+ * Keyed off the unique #packages id, so it needs no page scope (works under
+ * SPA and full load alike). */
+@container (max-width: 820px) {
+	#packages .tr.cbi-section-table-titles { display: none; }
+	#packages .tr { display: block; padding: 12px 16px; }
+	#packages .td {
+		display: flex; align-items: baseline; justify-content: space-between;
+		gap: 14px; padding: 5px 0; border: 0; text-align: right;
+		min-width: 0; width: auto; flex: none;
+	}
+	#packages .td[data-title]::before {
+		content: attr(data-title); flex: 0 0 auto; text-align: left;
+		font-size: 10px; font-weight: 700; letter-spacing: .05em;
+		text-transform: uppercase; color: var(--faint); white-space: nowrap;
+	}
+	#packages .td[data-title="Description"] { display: block; text-align: left; overflow-wrap: anywhere; word-break: break-word; }
+	#packages .td[data-title="Description"]::before { display: block; margin-bottom: 3px; }
+	#packages .td.cbi-section-actions { justify-content: flex-end; margin-top: 6px; }
+	#packages .td.cbi-section-actions::before,
+	#packages .td:not([data-title])::before { content: none; }
+}
+
 /* ==================================================================
  * FOOTSTRAP fixes: .hidden must win over the .cbi-value flex row rule
  * (CBI dependency hiding was leaking podkop conditional fields); and
@@ -4347,14 +4378,14 @@ body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifa
 }
 
 /* ---------------------------------------------------------------------------
- * Memory / Storage (stock 20_memory.js, 25_storage.js) reskin — restyle the
- * stock <table>.table rows into the old-dashboard meter look: label + value on
- * one line, a thin NEUTRAL (no accent colour) bar below. Value comes from the
- * .cbi-progressbar title attr (kept in ::after, moved above the bar). Scoped to
- * our .fs-ovl-mem / .fs-ovl-sto wrappers so the global pill-meter is untouched.
+ * Overview meter rows — any stock <table>.table row that carries a
+ * .cbi-progressbar (Memory, Storage, CPU load, Network active connections, …)
+ * becomes the meter look: label + value on one line, thin bar below. Keyed off
+ * the progressbar itself (:has), so it covers every such row uniformly instead
+ * of per-section. The bar + value styling is the general .cbi-progressbar rule.
  * --------------------------------------------------------------------------- */
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table { display: block; }
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .tr {
+body[data-page='admin-status-overview'] .cbi-section .table:has(.cbi-progressbar) { display: block; }
+body[data-page='admin-status-overview'] .cbi-section .table .tr:has(.cbi-progressbar) {
 	display: grid;
 	grid-template-columns: 1fr auto;
 	gap: 5px 10px;
@@ -4362,47 +4393,22 @@ body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .tr {
 	border: 0;
 	position: relative;
 }
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .tr:last-child { padding-bottom: 2px; }
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .td {
+body[data-page='admin-status-overview'] .cbi-section .table .tr:has(.cbi-progressbar):last-child { padding-bottom: 2px; }
+body[data-page='admin-status-overview'] .cbi-section .table .tr:has(.cbi-progressbar) .td {
 	display: block;
 	width: auto !important;
 	padding: 0 !important;
 	border: 0 !important;
 }
 /* label — row 1, left */
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .td:first-child {
+body[data-page='admin-status-overview'] .cbi-section .table .tr:has(.cbi-progressbar) .td:first-child {
 	grid-column: 1; grid-row: 1;
 	align-self: center;
 	font-size: 12px; font-weight: 600; color: var(--text);
 }
 /* bar cell — spans full width on row 2 */
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .td:nth-child(2) {
+body[data-page='admin-status-overview'] .cbi-section .table .tr:has(.cbi-progressbar) .td:nth-child(2) {
 	grid-column: 1 / -1; grid-row: 2;
-}
-/* thin neutral track + grey fill (no accent colour) */
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-progressbar {
-	position: static;					/* ::after then anchors to the .tr */
-	height: 7px; min-width: 0;
-	margin: 0;							/* base .cbi-progressbar has margin:1.4em 0 4px — huge top gap */
-	background: var(--track);
-	border: 0; border-radius: 99px; overflow: hidden;
-}
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-progressbar > div {
-	background: var(--accent);
-	border-radius: 99px;
-}
-/* kill the base bootstrap ::before (also content:attr(title), top:-1.4em left:0)
- * — it duplicates the value on the left; we render it once via ::after below */
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-progressbar::before { display: none; }
-/* value (title) floated onto the label line, right-aligned, mono/dim */
-body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-progressbar::after {
-	content: attr(title);
-	position: absolute;
-	top: 9px; right: 0; left: auto; bottom: auto;	/* reset base inset:0 */
-	display: block;
-	font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-	color: var(--dim); text-shadow: none;
-	white-space: nowrap;
 }
 
 /* System / Memory / Storage cards: drop the per-row border-bottom dividers
@@ -4412,3 +4418,27 @@ body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .th
 body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-value { border-bottom: 0 !important; }
 /* System key/value table draws its dividers on .tr (not .td) — remove those too */
 body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .tr { border-bottom: 0 !important; }
+
+/* ---------------------------------------------------------------------------
+ * Software (package-manager) disk-space bar -> match the overview Memory/Storage
+ * meter: "Disk space" label + value on one line, thin accent bar below. The
+ * value comes from the .cbi-progressbar title (moved out of the bar via ::after).
+ * Scoped to #view:has(#disk-space-label) so it only hits this page (works under
+ * SPA and full load alike — no body[data-page] dependency).
+ * --------------------------------------------------------------------------- */
+#view:has(#disk-space-label) .controls > div:first-child { position: relative; display: block; flex: 1 1 100%; width: 100%; margin: 0 0 6px; }
+#view:has(#disk-space-label) #disk-space-label {
+	display: block; margin: 0; font-size: 12px; font-weight: 600; color: var(--dim);
+}
+
+/* pager (pagination row: « prev · text · » next) — generic component, not page
+ * scoped: any .pager gets an inline centred row with compact square buttons. */
+.pager.center { display: flex !important; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 10px; padding: 14px 0; }
+.pager .text { flex: 0 0 auto; font-size: 12px; color: var(--dim); }
+.pager .btn.prev, .pager .btn.next {
+	flex: 0 0 auto; width: 40px; min-width: 40px; height: 34px; padding: 0;
+	border-radius: 9px; border: 1px solid var(--border);
+	background: var(--panel2); color: var(--text);
+	display: inline-flex; align-items: center; justify-content: center;
+}
+.pager .btn.prev:hover, .pager .btn.next:hover { border-color: var(--accent); color: var(--accent); }
