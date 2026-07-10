@@ -507,13 +507,16 @@ function placePopover(btn, pop) {
  * version. On release builds it is the real version; a plain source checkout
  * (never stamped) stays 'dev' and skips the update check.
  *
- * The update check hits the GitHub Releases API from the BROWSER (CORS-open),
- * once per page load — memoised in _fsUpdatePromise so re-opening the popover
- * (or a second layout) reuses the same result; a full reload re-checks. No
- * router backend, no rpcd ACL: it is a pure client fetch that fails silent
- * (offline / rate-limited -> no badge, version still shows). */
+ * The ROUTER asks GitHub, not the browser (`footstrap-selfupdate.sh check`, the
+ * same ACL-gated script the Update button runs). A LAN client frequently has no
+ * route to the internet while the router does, and this keeps the check off the
+ * user's own IP rate limit. The script caches the answer for an hour, and the
+ * result is memoised here in _fsUpdatePromise for the page load, so re-opening
+ * the popover (or a second layout) costs nothing. Fails silent: no reachable
+ * API -> no badge, the version still shows. */
 const FS_VERSION = '0.0.0-dev';
 const FS_REPO = 'VizzleTF/luci-theme-footstrap';
+const FS_UPDATE_SCRIPT = '/usr/libexec/footstrap-selfupdate.sh';
 let _fsUpdatePromise = null;
 
 /* opt-out toggle for the GitHub update check (Appearance -> Updates). Default on;
@@ -541,11 +544,14 @@ function checkFootstrapUpdate() {
 	if (_fsUpdatePromise) return _fsUpdatePromise;
 	if (!fsVersionReal() || !currentUpdateCheck())
 		return (_fsUpdatePromise = Promise.resolve({ current: FS_VERSION, latest: null, hasUpdate: false }));
-	_fsUpdatePromise = fetch('https://api.github.com/repos/' + FS_REPO + '/releases/latest',
-			{ headers: { 'Accept': 'application/vnd.github+json' } })
-		.then(r => r.ok ? r.json() : null)
-		.then(j => {
-			const latest = (j && j.tag_name) ? j.tag_name : null;
+	_fsUpdatePromise = L.require('fs')
+		.then(fs => fs.exec(FS_UPDATE_SCRIPT, [ 'check' ]))
+		.then(res => {
+			/* "v1.2.3" on success, "ERR: …" when the router could not reach the
+			 * API — and "ERR: unknown argument" from a pre-check script, i.e. the
+			 * installed backend is older than this JS. All three mean: no badge. */
+			const out = String((res && res.stdout) || '').trim();
+			const latest = /^v?\d/.test(out) ? out : null;
 			return { current: FS_VERSION, latest, hasUpdate: !!(latest && fsVerCmp(latest, FS_VERSION) > 0) };
 		})
 		.catch(() => ({ current: FS_VERSION, latest: null, hasUpdate: false }));
@@ -645,7 +651,6 @@ function wireAppearance() {
 	 * `L.env.rpctimeout` (20 s) and rpcd kills the exec'd process after its own
 	 * `timeout` (30 s). So the script only spawns a detached worker and returns
 	 * STARTED; we poll `status` until it flips to OK or ERR. */
-	const FS_UPDATE_SCRIPT = '/usr/libexec/footstrap-selfupdate.sh';
 	const FS_UPDATE_POLL_MS = 2000;
 	const FS_UPDATE_LIMIT_MS = 300000;
 
@@ -664,6 +669,23 @@ function wireAppearance() {
 			])
 		]);
 
+		/* The package's postinst restarts rpcd (it must: a reload would leave stale
+		 * ACLs and a half-updated backend). rpcd keeps sessions in memory, so the
+		 * restart logs this browser out and every further RPC answers "Login
+		 * session is expired" / "Access denied". That is the SUCCESS path, not a
+		 * failure: postinst only runs once the package installed. Say so and offer
+		 * a fresh login — a full reload also re-fetches the new CSS/JS, whose
+		 * cache-buster changed with the install. */
+		const sessionGone = (m) =>
+			/session is expired|Access denied|-32002|\b403\b/i.test(String(m));
+		const relogin = () => modal([
+			E('p', {}, _('Update installed. The router restarted its session service, so you have been logged out — sign in again to load the new theme.')),
+			E('div', { 'class': 'right' }, E('button', {
+				'class': 'btn cbi-button-action',
+				'click': () => location.reload()
+			}, _('Log in again')))
+		]);
+
 		function poll(fs, deadline) {
 			if (Date.now() > deadline)
 				return fail(_('timed out waiting for the installer'));
@@ -679,7 +701,7 @@ function wireAppearance() {
 					return fail(out);
 				/* RUNNING, or IDLE if the worker has not written the file yet */
 				window.setTimeout(() => poll(fs, deadline), FS_UPDATE_POLL_MS);
-			}).catch(e => fail(e && e.message || e));
+			}).catch(e => sessionGone(e && e.message || e) ? relogin() : fail(e && e.message || e));
 		}
 
 		function doUpdate() {

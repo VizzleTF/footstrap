@@ -18,11 +18,17 @@
 # Protocol (stdout, one line):
 #   <no args>  -> STARTED | RUNNING            (spawn worker / already running)
 #   status     -> RUNNING | OK | ERR: <reason> | IDLE
+#   check      -> v<tag> | ERR: <reason>       (latest release, cached)
 # Exit code is 0 for all of the above except a failed spawn; the client reads the
 # keyword, not the code.
 
 STATUS=/tmp/footstrap-update.status
 WORKER=/tmp/footstrap-update-run.sh
+CACHE=/tmp/footstrap-latest
+
+# how long a `check` result stays good. GitHub allows 60 unauthenticated API
+# calls per hour per source IP; without a cache every page load would spend one.
+CACHE_TTL=3600
 
 REPO="VizzleTF/luci-theme-footstrap"
 API="https://api.github.com/repos/${REPO}/releases/latest"
@@ -57,6 +63,24 @@ do_update() {
 }
 
 case "$1" in
+check)
+	# The router asks GitHub, not the browser: a LAN client often has no route to
+	# the internet, and a browser fetch is also subject to CORS and to the user's
+	# own rate limit. Cached in /tmp (tmpfs), so a reboot re-checks.
+	now=$(date +%s)
+	if [ -f "$CACHE" ]; then
+		read -r ts tag < "$CACHE"
+		if [ -n "$tag" ] && [ $((now - ts)) -lt "$CACHE_TTL" ] 2>/dev/null; then
+			echo "$tag"; exit 0
+		fi
+	fi
+
+	tag="$(curl -fsSL --max-time 10 "$API" 2>/dev/null | jsonfilter -e '@.tag_name' 2>/dev/null)"
+	[ -n "$tag" ] || { echo "ERR: cannot reach the GitHub release API"; exit 1; }
+	echo "$now $tag" > "$CACHE"
+	echo "$tag"
+	exit 0
+	;;
 status)
 	[ -f "$STATUS" ] && cat "$STATUS" || echo "IDLE"
 	exit 0

@@ -8,6 +8,26 @@
  * (composed via common.bootstrap). Only renderMainMenu is layout-specific.
  * Spec: docs/10-realizatsiya-topnav.md */
 
+/* Each dropdown hangs off its own item (CSS anchors it at left:0 of the li), so
+ * an item near the right edge would push its panel past the viewport. Nudge it
+ * back inside. Measured after a frame: on pointerenter the :hover rule that
+ * reveals the panel has not been applied yet, so it still measures 0x0. */
+const EDGE_GAP = 8;
+function clampDropdown(li) {
+	const menu = li.querySelector(':scope > .dropdown-menu');
+	if (!menu) return;
+
+	window.requestAnimationFrame(() => {
+		menu.style.left = '0px';
+		const r = menu.getBoundingClientRect();
+		if (!r.width) return;			/* still hidden — nothing to place */
+
+		const overflowRight = r.right - (window.innerWidth - EDGE_GAP);
+		if (overflowRight > 0)
+			menu.style.left = -Math.min(overflowRight, r.left - EDGE_GAP) + 'px';
+	});
+}
+
 /* main sections -> horizontal top menu with one level of dropdowns */
 function renderMainMenu(tree, url, level) {
 	const ul = level ? E('ul', { 'class': 'dropdown-menu' }) : document.querySelector('#topmenu');
@@ -35,7 +55,7 @@ function renderMainMenu(tree, url, level) {
 				ev.preventDefault();
 				const open = li.classList.contains('open');
 				ul.querySelectorAll('li.open').forEach((o) => o.classList.remove('open'));
-				if (!open) li.classList.add('open');
+				if (!open) { li.classList.add('open'); clampDropdown(li); }
 			});
 			/* hybrid devices (desktop + touch): once a real MOUSE enters the
 			 * menu, drop any tap-opened .open so hover becomes authoritative and
@@ -46,6 +66,7 @@ function renderMainMenu(tree, url, level) {
 			li.addEventListener('pointerenter', (ev) => {
 				if (ev.pointerType === 'mouse')
 					ul.querySelectorAll('li.open').forEach((o) => o.classList.remove('open'));
+				clampDropdown(li);
 			});
 		}
 
@@ -63,6 +84,11 @@ return baseclass.extend({
 		document.addEventListener('click', (ev) => {
 			if (!ev.target.closest('.fs-mainmenu > li.dropdown'))
 				document.querySelectorAll('.fs-mainmenu > li.open').forEach((o) => o.classList.remove('open'));
+		});
+		/* a nudge computed for the old width is wrong at the new one; drop it and
+		 * let the next hover/tap recompute */
+		window.addEventListener('resize', () => {
+			document.querySelectorAll('.fs-mainmenu .dropdown-menu').forEach((m) => { m.style.left = ''; });
 		});
 	}
 });

@@ -3723,11 +3723,17 @@ body.fs-top { display: block; }
 @media (max-width: 900px) {
 	.fs-topnav { flex-wrap: wrap; height: auto; padding: 10px 16px; gap: 10px; }
 	.fs-topnav .fs-mainmenu { order: 3; flex: 1 1 100%; flex-wrap: wrap; }
-	/* dropdown as a full-width popup card below the nav bar (not an inline
-	 * accordion that reflows the wrapped menu). li goes static so the absolute
-	 * menu anchors to the sticky .fs-topnav, spanning its width. */
-	.fs-topnav .fs-mainmenu > li.dropdown { position: static; }
-	.fs-topnav .fs-mainmenu .dropdown-menu { left: 16px; right: 16px; min-width: 0; top: calc(100% + 8px); }
+	/* The dropdown stays anchored to its own item (li keeps position:relative),
+	 * exactly as on desktop. It used to go static so the panel spanned the whole
+	 * bar — but once the menu wraps onto a second row, a bar-wide panel hanging
+	 * below the bar covers that row: moving the pointer down to an item there
+	 * left the first item and closed its panel before you could reach anything.
+	 * menu-footstrap-top.js nudges the panel left when it would leave the
+	 * viewport (items near the right edge). */
+	.fs-topnav .fs-mainmenu .dropdown-menu {
+		left: 0; right: auto; top: calc(100% + 6px);
+		max-width: calc(100vw - 32px);
+	}
 	.fs-topnav .fs-mainmenu > li.dropdown > a.menu::after { display: none; }
 	.fs-topnav-right { margin-left: auto; }
 }
@@ -4903,4 +4909,26 @@ ul.cbi-tabmenu.mode > li.cbi-tab,
 	#view .cbi-dropdown { min-width: 0; max-width: 100%; }
 	#view .cbi-value-field input, #view .cbi-value-field select, #view .cbi-value-field .cbi-dropdown { max-width: 100%; }
 	#view .fs-ovl .table .td, #view .fs-ovl .table .th { overflow-wrap: anywhere; min-width: 0; }
+}
+
+/* ==================================================================
+ * Dropdown list: anchored to its widget, never full-bleed
+ *
+ * ui.js has a touch branch (`'ontouchstart' in window`) that stretches the open
+ * list across the viewport with inline styles:
+ *     ul.style.left  = `${-rect.left}px`
+ *     ul.style.right = `${rect.right - vpWidth}px`
+ * Those offsets assume the list's containing block is the viewport. It is not:
+ * .cbi-dropdown is position:relative, so a negative `left` drags the list off to
+ * the side and clips the labels — which is what a phone actually rendered.
+ * An author `!important` outranks an inline declaration, so pin it back under
+ * the widget and size it to its content. Harmless on desktop, where ui.js sets
+ * only top/bottom/max-height and left/right were already at their initial value.
+ * ================================================================== */
+.cbi-dropdown[open] > ul.dropdown {
+	left: 0 !important;
+	right: auto !important;
+	min-width: 100% !important;
+	width: max-content !important;
+	max-width: min(92vw, 420px) !important;
 }
