@@ -26,9 +26,16 @@ STATUS=/tmp/footstrap-update.status
 WORKER=/tmp/footstrap-update-run.sh
 CACHE=/tmp/footstrap-latest
 
-# how long a `check` result stays good. GitHub allows 60 unauthenticated API
+# How long a `check` result stays good. GitHub allows 60 unauthenticated API
 # calls per hour per source IP; without a cache every page load would spend one.
-CACHE_TTL=3600
+#
+# 5 minutes, not an hour: the cache is only refreshed by this timer, so its TTL
+# is exactly how long a freshly published release stays invisible. An hour meant
+# the badge could lag a release by most of an hour with no way to tell whether
+# the check was broken or merely stale. At 300 s the worst case is 12 calls per
+# hour even if the admin sits reloading the page, well inside the 60-call budget
+# — and the browser memoises the answer for the page load on top of that.
+CACHE_TTL=300
 
 REPO="VizzleTF/luci-theme-footstrap"
 API="https://api.github.com/repos/${REPO}/releases/latest"
