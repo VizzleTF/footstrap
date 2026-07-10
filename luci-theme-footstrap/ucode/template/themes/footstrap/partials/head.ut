@@ -34,12 +34,19 @@
 			   'github' = GitHub Primer variant; empty/absent = footstrap default. */
 			(function() {
 				try {
-					var p = localStorage.getItem('fs-palette');
-					if (p === 'roman') { p = 'rvht'; localStorage.setItem('fs-palette', p); }	/* legacy */
-					if (p === 'github') { p = null; localStorage.removeItem('fs-palette'); }	/* github is now the default */
-					var root = document.querySelector(':root');
+					var root = document.querySelector(':root'),
+					    p = localStorage.getItem('fs-palette');
+					/* legacy 'rvht'/'roman' = default colours + cats wallpaper -> migrate
+					   to the default palette + the separate wallpaper axis. */
+					if (p === 'rvht' || p === 'roman') {
+						localStorage.setItem('fs-wallpaper', 'cats');
+						localStorage.removeItem('fs-palette'); p = null;
+					}
+					if (p === 'github') { localStorage.removeItem('fs-palette'); p = null; }	/* github = default */
 					if (p === 'hicontrast') root.removeAttribute('data-palette');
-					else root.setAttribute('data-palette', p || 'footstrap');
+					else root.setAttribute('data-palette', 'footstrap');
+					if (localStorage.getItem('fs-wallpaper') === 'cats')
+						root.setAttribute('data-wallpaper', 'cats');
 				} catch (e) {}
 			})();
 		</script>

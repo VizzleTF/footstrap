@@ -72,6 +72,45 @@ function renderTabMenu(tree, url, level) {
 	return ul;
 }
 
+/* ---- tab-strip auto-fit -------------------------------------------------
+ * A tab strip (section tabs in #tabmenu, or a view's own .cbi-tabmenu) can carry
+ * ~11 pills (e.g. luci-app-justclash) that overflow one row on a normal screen.
+ * Rather than wrap to a second line, shrink the pills to fit: step through two
+ * density classes (styles/theme/40-tabs.css) that trim padding, then gap+font,
+ * until the strip fits one row — floored so a pill never gets tighter than its
+ * label or loses its gap; past the floor the strip is allowed to wrap. Runs on
+ * render, on resize, and when a view renders its own tabs (works in both layouts
+ * and as the page narrows). */
+function stripFitsOneRow(ul) {
+	const first = ul.firstElementChild, last = ul.lastElementChild;
+	/* one row iff first and last item share a top edge */
+	return !first || !last || first.offsetTop === last.offsetTop;
+}
+function fitTabStrips() {
+	document.querySelectorAll('#tabmenu ul.tabs, .tabs, .cbi-tabmenu, .fs-topnav .fs-mainmenu').forEach((ul) => {
+		ul.classList.remove('fs-dense1', 'fs-dense2');
+		if (ul.children.length < 2 || stripFitsOneRow(ul)) return;
+		ul.classList.add('fs-dense1');
+		if (stripFitsOneRow(ul)) return;
+		ul.classList.remove('fs-dense1');
+		ul.classList.add('fs-dense2');	/* floor: leave wrapped if it still overflows */
+	});
+}
+let _tabFitPending = false;
+function scheduleTabFit() {
+	if (_tabFitPending) return;
+	_tabFitPending = true;
+	requestAnimationFrame(() => { _tabFitPending = false; fitTabStrips(); });
+}
+let _tabFitWired = false;
+function wireTabFit() {
+	if (_tabFitWired) return;
+	_tabFitWired = true;
+	window.addEventListener('resize', scheduleTabFit);
+	/* catch a view rendering its own .cbi-tabmenu after navigation */
+	new MutationObserver(scheduleTabFit).observe(document.body, { childList: true, subtree: true });
+}
+
 /* modes -> #modemenu; drives the injected renderMainMenu for the active mode */
 function renderModeMenu(tree, renderMainMenu) {
 	const ul = document.querySelector('#modemenu');
@@ -110,9 +149,19 @@ function currentMode() {
 }
 function currentPalette() {
 	const s = lsGet('fs-palette');
+	/* legacy 'rvht'/'roman' were the default colours + the cats wallpaper — head.ut
+	 * migrates them to fs-wallpaper=cats + the default palette before paint, so here
+	 * they read as the default. */
 	if (s === 'hicontrast') return 'hicontrast';
-	if (s === 'rvht' || s === 'roman') return 'rvht';	/* roman = legacy name */
-	return 'footstrap';	/* default = GitHub colors; legacy 'github'/null map here */
+	return 'footstrap';	/* default = GitHub colors; legacy 'github'/'rvht'/null map here */
+}
+/* Wallpaper is a separate axis from the palette: the cats pattern composes with
+ * either palette. data-wallpaper="cats" on :root drives styles/theme/15-wallpaper.css. */
+function currentWallpaper() { return lsGet('fs-wallpaper') === 'cats' ? 'cats' : 'off'; }
+function applyWallpaper(val) {
+	const root = document.querySelector(':root');
+	if (val === 'cats') { lsSet('fs-wallpaper', 'cats'); root.setAttribute('data-wallpaper', 'cats'); }
+	else { lsDel('fs-wallpaper'); root.removeAttribute('data-wallpaper'); }
 }
 function applyMode(val) {
 	const root = document.querySelector(':root');
@@ -124,11 +173,10 @@ function applyMode(val) {
 }
 function applyPalette(val) {
 	const root = document.querySelector(':root');
-	/* hicontrast = the base :root tokens (no data-palette attr); footstrap
-	 * (default, GitHub colors) and rvht set an explicit attr. */
+	/* hicontrast = the base :root tokens (no data-palette attr); footstrap (default,
+	 * GitHub colors) sets the explicit attr. Only these two remain. */
 	if (val === 'hicontrast') { lsSet('fs-palette', 'hicontrast'); root.removeAttribute('data-palette'); }
-	else if (val === 'footstrap') { lsDel('fs-palette'); root.setAttribute('data-palette', 'footstrap'); }
-	else { lsSet('fs-palette', val); root.setAttribute('data-palette', val); }
+	else { lsDel('fs-palette'); root.setAttribute('data-palette', 'footstrap'); }
 }
 
 /* Sidebar accordion behaviour: with auto-collapse on, opening a section folds
@@ -216,6 +264,8 @@ function renderChrome() {
 		if (node)
 			renderTabMenu(node, url);
 	}
+
+	scheduleTabFit();
 }
 
 /* /cgi-bin/luci/admin/status/overview -> ['admin','status','overview'] */
@@ -562,6 +612,9 @@ function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
 
+	/* Popover axes: Theme, Palette, Wallpaper, plus Submenus (sidebar) and Updates.
+	 * Palette dropped its third "Rvht" option — it set no colours, only the cats
+	 * wallpaper, which is now its own Wallpaper axis (composes with either palette). */
 	const groups = [
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Theme') ]),
@@ -575,9 +628,15 @@ function wireAppearance() {
 			E('div', { 'class': 'fs-ap-label' }, [ _('Palette') ]),
 			segControl(currentPalette(), [
 				{ val: 'footstrap',  label: 'Footstrap' },
-				{ val: 'hicontrast', label: 'Hi-Contrast' },
-				{ val: 'rvht',       label: 'Rvht' }
+				{ val: 'hicontrast', label: 'Hi-Contrast' }
 			], applyPalette)
+		]),
+		E('div', { 'class': 'fs-ap-group' }, [
+			E('div', { 'class': 'fs-ap-label' }, [ _('Wallpaper') ]),
+			segControl(currentWallpaper(), [
+				{ val: 'off',  label: _('Off') },
+				{ val: 'cats', label: _('Cats') }
+			], applyWallpaper)
 		])
 	];
 
@@ -791,6 +850,7 @@ return baseclass.extend({
 			wireRail();
 			wireRouter();
 			wireVisibility();
+			wireTabFit();
 		});
 	}
 });

@@ -8,9 +8,8 @@
 	 * *-rgb bridge values need explicit re-mapping.
 	 * Specificity: [data-palette][data-darkmode] (0,3,0) wins over the base blocks.
 	 * ============================================================ */
-	:root[data-palette="footstrap"],
-	:root[data-palette="rvht"] {
-		/* GitHub — LIGHT (Rvht reuses these colours; only its background differs) */
+	:root[data-palette="footstrap"] {
+		/* GitHub — LIGHT */
 		--bg: #f6f8fa;
 		--panel: #ffffff;
 		--panel2: #f6f8fa;
@@ -29,8 +28,7 @@
 		--success-color-high-rgb: 26, 127, 55;
 	}
 
-	:root[data-palette="footstrap"][data-darkmode="true"],
-	:root[data-palette="rvht"][data-darkmode="true"] {
+	:root[data-palette="footstrap"][data-darkmode="true"] {
 		/* GitHub — DARK (dimmed) */
 		--bg: #1c2128;
 		--panel: #22272e;

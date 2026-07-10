@@ -41,7 +41,7 @@
 	.cbi-dropdown:not(.btn):not(.cbi-button):hover { border-color: var(--dim); }
 	.cbi-dropdown:focus, .cbi-dropdown[open] {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px var(--accent-soft);
+		box-shadow: var(--fs-focus-ring);
 		outline: none;
 	}
 	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li {
@@ -82,7 +82,7 @@
 		background: var(--panel);
 		border: 1px solid var(--border);
 		border-radius: 12px;
-		box-shadow: 0 12px 34px rgba(0,0,0,.32);
+		box-shadow: var(--fs-shadow-pop);
 		padding: 6px;
 		margin-top: 6px;
 	}

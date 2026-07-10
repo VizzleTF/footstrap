@@ -1,16 +1,17 @@
 @layer theme {
-	/* Rvht = GitHub colours + a doodle-cats wallpaper behind the content area.
-	 * Cards sit on --panel and cover it, so the cats show through the gaps. The
-	 * pattern fill is a low-opacity neutral grey, so it reads on both the light and
-	 * dark GitHub backgrounds. */
-	:root[data-palette="rvht"] .fs-main,
-	:root[data-palette="rvht"] .fs-topwrap {
+	/* Wallpaper axis (data-wallpaper="cats"): a doodle-cats pattern behind the
+	 * content area, composable with any palette (it was the old "Rvht" palette,
+	 * which only ever added this wallpaper on the default colours). Cards sit on
+	 * --panel and cover it, so the cats show through the gaps; the pattern fill is
+	 * a low-opacity neutral grey, so it reads on both light and dark backgrounds. */
+	:root[data-wallpaper="cats"] .fs-main,
+	:root[data-wallpaper="cats"] .fs-topwrap {
 		background-image: url(cats.svg);
 		background-repeat: repeat;
 		background-size: 520px auto;
 	}
 	/* let the cats show through the footer too */
-	:root[data-palette="rvht"] footer.fs-footer { background: transparent; }
+	:root[data-wallpaper="cats"] footer.fs-footer { background: transparent; }
 
 	/* A CBI form (firewall/interfaces) has dozens of .btn/.cbi-button; a
 	 * backdrop-filter on each is a live backdrop-sampling layer over the cats.svg
@@ -18,7 +19,7 @@
 	 * has an opaque --default-btn-background (or a solid colour for apply/remove).
 	 * So the blur is dropped from buttons entirely. Closed dropdowns keep the frost:
 	 * there are few of them and their body can show the wallpaper through. */
-	:root[data-palette="rvht"] .cbi-dropdown:not([open]) {
+	:root[data-wallpaper="cats"] .cbi-dropdown:not([open]) {
 		backdrop-filter: blur(6px);
 		-webkit-backdrop-filter: blur(6px);
 	}

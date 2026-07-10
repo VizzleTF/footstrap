@@ -51,4 +51,27 @@
 	.dropdown-menu li { display: block; position: relative; }
 	/* wins over `ul.nav a` above: the popup sets its own denser rhythm */
 	ul.nav .dropdown-menu a, .dropdown-menu a { line-height: 18px; }
+
+	/* Menu item hover / active — one look, both layouts. Every menu surface (the
+	 * sidebar main list + submenu, the top-nav main list + dropdown, the mode menu
+	 * and the Appearance trigger row) hovers to panel2/text and marks the active
+	 * item with the accent-soft/accent pill. The selectors differ because the
+	 * markup differs (sidebar `ul.nav`, top-nav `.fs-mainmenu`), but the bodies are
+	 * identical, so they are grouped here instead of copied into each layout file. */
+	.fs-sidebar ul.nav > li > a:hover,
+	.fs-sidebar ul.nav ul a:hover,
+	.fs-themerow:hover,
+	.fs-topnav .fs-mainmenu > li > a:hover,
+	.fs-topnav .fs-mainmenu .dropdown-menu li > a:hover {
+		background: var(--panel2); color: var(--text); opacity: 1;
+	}
+	.fs-sidebar ul.nav > li.active > a,
+	.fs-sidebar ul.nav > li > a.active,
+	.fs-sidebar ul.nav ul a.active,
+	.fs-themerow[aria-expanded="true"],
+	.fs-topnav .fs-mainmenu > li.active > a,
+	.fs-topnav .fs-mainmenu .dropdown-menu li.active > a,
+	.fs-modemenu-top li.active a {
+		background: var(--accent-soft); color: var(--accent);
+	}
 }

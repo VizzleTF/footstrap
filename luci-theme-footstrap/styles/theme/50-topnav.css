@@ -38,8 +38,14 @@
 		display: block; padding: 6px 11px; border-radius: 9px;
 		color: var(--dim); font-size: 15px; font-weight: 600; white-space: nowrap;
 	}
-	.fs-topnav .fs-mainmenu > li > a:hover { color: var(--text); background: var(--panel2); opacity: 1; }
-	.fs-topnav .fs-mainmenu > li.active > a { color: var(--accent); background: var(--accent-soft); }
+	/* auto-fit: menu-footstrap-common.js adds .fs-dense1/.fs-dense2 when the bar's
+	 * items would wrap, shrinking the pills to keep the menu on one row before it
+	 * drops to its own line. Padding is trimmed hard first, the font barely (15->14
+	 * only at the d2 floor); the 2px gap stays, so a pill never gets tighter than
+	 * its label. Specificity beats the base rule above. */
+	.fs-topnav .fs-mainmenu.fs-dense1 > li > a { padding: 4px 8px; }
+	.fs-topnav .fs-mainmenu.fs-dense2 > li > a { padding: 3px 6px; font-size: 14px; }
+	/* hover/active grouped for both layouts in theme/10-chrome.css */
 
 	/* dropdowns — a translucent popover in the design language */
 	.fs-topnav .fs-mainmenu .dropdown-menu {
@@ -48,7 +54,7 @@
 		list-style: none;
 		border: 1px solid var(--border);
 		border-radius: 12px;
-		box-shadow: 0 12px 34px rgba(0,0,0,.32);
+		box-shadow: var(--fs-shadow-pop);
 		background: color-mix(in srgb, var(--panel) 96%, transparent);
 		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 	}
@@ -67,8 +73,7 @@
 		display: block; padding: 9px 12px; border-radius: 9px;
 		color: var(--dim); font-size: 13px; font-weight: 500; white-space: nowrap;
 	}
-	.fs-topnav .fs-mainmenu .dropdown-menu li > a:hover { color: var(--text); background: var(--panel2); opacity: 1; }
-	.fs-topnav .fs-mainmenu .dropdown-menu li.active > a { color: var(--accent); background: var(--accent-soft); }
+	/* dropdown-menu link hover/active grouped in theme/10-chrome.css */
 	.fs-topnav .fs-mainmenu > li.dropdown > a.menu::after { content: none; display: none; }
 
 	/* right controls */
@@ -81,7 +86,7 @@
 		background: var(--panel); border-bottom: 1px solid var(--border);
 	}
 	.fs-modemenu-top li a { color: var(--dim); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 8px; }
-	.fs-modemenu-top li.active a { color: var(--accent); background: var(--accent-soft); }
+	/* .fs-modemenu-top li.active a grouped in theme/10-chrome.css */
 
 	/* responsive: wrap menu */
 	@media (max-width: 900px) {

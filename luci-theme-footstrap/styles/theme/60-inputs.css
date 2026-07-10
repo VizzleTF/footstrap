@@ -1,6 +1,12 @@
 @layer theme {
 	/* value rows */
-	.cbi-value { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; margin: 0; border-bottom: 1px solid var(--border); }
+	/* align-items:baseline (not center): a row's field can be taller than its control
+	 * because a `.cbi-value-description` sits under it (podkop, many app forms). center
+	 * then pushed the label to the middle of control+description — visibly below the
+	 * control. baseline lines the label up with the field's FIRST line (the control),
+	 * ignoring the description, so label and control read on one level for every
+	 * widget (select, dropdown, toggle, dynlist, textarea's first row). */
+	.cbi-value { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 8px 0; margin: 0; border-bottom: 1px solid var(--border); }
 	/* stacked controls in a field (e.g. Local Time: date input + Sync buttons)
 	 * need breathing room — the raw <br> collapses them together otherwise.
 	 * Exclude the password reveal group (it must stay seamless: no gap). */
@@ -9,6 +15,8 @@
 		display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center;
 	}
 	.cbi-value:last-child { border-bottom: 0; }
+	/* keep the base padding-top:6px — it is tuned for align-items:baseline (restored
+	 * on .cbi-value above), the same as stock bootstrap. */
 	.cbi-value-title { color: var(--dim); font-size: 13px; font-weight: 500; }
 	/* Mono is for the *values* a field holds. A field also holds buttons (Sync
 	 * with browser, Start/Restart/Stop) and those are chrome, not data. Exclude
@@ -64,11 +72,11 @@
 		background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238b95a7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
 		background-repeat: no-repeat; background-position: right 12px center; background-size: 12px;
 		padding: 8px 34px 8px 12px;
-		border: 1px solid var(--border); border-radius: 9px;
+		border: 1px solid var(--border); border-radius: 10px;
 		color: var(--text); font-family: var(--font-sans); font-size: 13px;
-		line-height: 1.3; min-height: 36px; cursor: pointer;
+		line-height: 1.3; min-height: 38px; cursor: pointer;
 	}
-	select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
+	select:focus { border-color: var(--accent); box-shadow: var(--fs-focus-ring); outline: none; }
 	select option { background: var(--panel); color: var(--text); }
 
 	/* Native <select> drop list: the OS renders it, so `select option` colours above
@@ -84,7 +92,7 @@
 		::picker(select) {
 			appearance: base-select;
 			background: var(--panel); border: 1px solid var(--border);
-			border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.28);
+			border-radius: 12px; box-shadow: var(--fs-shadow-pop);
 			padding: 6px; margin-top: 6px;
 		}
 		select option {
@@ -133,7 +141,7 @@
 	input[type="tel"]:focus, input[type="date"]:focus, input[type="time"]:focus,
 	textarea:focus {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px var(--accent-soft);
+		box-shadow: var(--fs-focus-ring);
 		outline: none;
 	}
 
@@ -175,7 +183,7 @@
 		border-radius: 8px; overflow: hidden;
 		transition: border-color .15s, box-shadow .15s;
 	}
-	.cbi-dynlist > .add-item:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+	.cbi-dynlist > .add-item:focus-within { border-color: var(--accent); box-shadow: var(--fs-focus-ring); }
 	.cbi-dynlist > .add-item > input,
 	.cbi-dynlist > .add-item > .cbi-input-text {
 		flex: 1 1 auto; min-width: 0;
@@ -199,7 +207,7 @@
 	}
 	.control-group:has(> .cbi-input-password):focus-within {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px var(--accent-soft);
+		box-shadow: var(--fs-focus-ring);
 	}
 	/* the base pulls .cbi-section-create up 3px to hug a table border; that glues the
 	 * "Add" button to the last row — give it a real gap instead. */
@@ -232,7 +240,7 @@
 		background: var(--accent); border: 2px solid var(--panel); cursor: pointer;
 	}
 	input[type="range"]::-moz-range-track { background: var(--track); height: 6px; border-radius: 99px; }
-	input[type="range"]:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+	input[type="range"]:focus { box-shadow: var(--fs-focus-ring); }
 	.cbi-range-slider { display: inline-flex; align-items: center; gap: 12px; width: 100%; max-width: 100%; }
 	.cbi-range-slider-value {
 		background: var(--panel2); border: 1px solid var(--border); border-radius: 8px;

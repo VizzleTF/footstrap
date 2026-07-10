@@ -30,11 +30,14 @@
 	 * WITHOUT an id; data tables (DHCP leases, wifi) render WITH an id
 	 * (e.g. id="status_leases"). Style each kind on its own. */
 
-	/* A table inside a card is not itself a card: no frame, no clip. `.table .table`
-	 * and `.cbi-value .table` are the nested cases; `.cbi-modal .table` is the
-	 * config-diff dialog. This used to live in theme/60-inputs.css. */
-	.cbi-section .table, .cbi-section-node .table, .cbi-modal .table,
-	.table .table, .cbi-value .table {
+	/* A KEY/VALUE table inside a card is not itself a card: no frame, no clip. But a
+	 * DATA table (has an id, or the JS-tagged .fs-dt: leases, processes, routes,
+	 * assoclist, …) keeps the `.table` frame below so it reads as its own rounded box
+	 * inside the section. `.table .table` and `.cbi-value .table` are the nested
+	 * cases; `.cbi-modal .table` is the config-diff dialog. */
+	.cbi-section .table:not([id]):not(.fs-dt),
+	.cbi-section-node .table:not([id]):not(.fs-dt),
+	.cbi-modal .table, .table .table, .cbi-value .table {
 		border: 0; border-radius: 0; overflow: visible; background: none;
 	}
 	.cbi-section .table { margin: 0; width: 100%; }
@@ -58,10 +61,44 @@
 		text-transform: uppercase; letter-spacing: .04em;
 	}
 
-	/* --- DATA tables (with id): leases, wifi, ... --- */
+	/* --- DATA tables (with id or JS-tagged .fs-dt): leases, wifi, processes, … ---
+	 * Symmetric horizontal padding so cells clear the table's own contour (below). */
+	.cbi-section .table[id] .td, .cbi-section .table[id] .th,
+	#view table.fs-dt .td, #view table.fs-dt .th { padding: 10px 11px; }
 	.cbi-section .table[id] .td { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+	/* A many-column data table can be a touch wider than its section. Rather than
+	 * clip the last column or wrap every value mid-string, let the table scroll
+	 * horizontally inside its own row: overflow-x on the wrapper, the table free to
+	 * exceed it. Narrow screens still get the fs-dt card stacking (@container), so
+	 * the scroll only appears on a wide screen where a big table truly overflows. */
+	#view :has(> .table[id]), #view :has(> .table.fs-dt) { overflow-x: auto; }
 	.cbi-section .table[id] .tr:not(.table-titles):hover .td { background: var(--panel2); }
 	.cbi-section .table[id] .tr.table-titles .th { border-bottom-color: var(--border); }
+	/* Contour around the whole data table (leases, wifi, processes, …). A real
+	 * <table> needs border-collapse:separate for the radius to take (collapse
+	 * silently drops border-radius); harmless on the div-based tables. */
+	.cbi-section .table[id],
+	.cbi-section .table.fs-dt, .cbi-section table.fs-dt {
+		border-collapse: separate; border-spacing: 0;
+		border: 1px solid var(--border); border-radius: 12px;
+		/* no overflow:hidden — it clipped the last column when a wide table (many
+		 * columns) was a touch too wide for its section. The four corner cells
+		 * (below) round the frame instead, and long values wrap (further below) so
+		 * the table shrinks to fit rather than overflow. */
+	}
+	/* A real <table>'s overflow:hidden does NOT clip its cell backgrounds to the
+	 * border-radius, so the square corner cells poked past the rounded frame. Round
+	 * only the four OUTER corner cells to match — the header row's end cells (top)
+	 * and the last row's end cells (bottom). This is the frame's corners, not a
+	 * per-row pill. */
+	.cbi-section .table[id] .tr.table-titles .th:first-child,
+	#view table.fs-dt .tr.table-titles .th:first-child { border-top-left-radius: 12px; }
+	.cbi-section .table[id] .tr.table-titles .th:last-child,
+	#view table.fs-dt .tr.table-titles .th:last-child { border-top-right-radius: 12px; }
+	.cbi-section .table[id] .tr:last-child .td:first-child,
+	#view table.fs-dt .tr:last-child .td:first-child { border-bottom-left-radius: 12px; }
+	.cbi-section .table[id] .tr:last-child .td:last-child,
+	#view table.fs-dt .tr:last-child .td:last-child { border-bottom-right-radius: 12px; }
 	.cbi-section .table[id] .tr.placeholder .td { color: var(--dim); font-family: var(--font-sans); }
 
 	/* --- KEY/VALUE tables: system, memory ---
@@ -104,7 +141,6 @@
 		margin: 0;
 		border: 0;
 	}
-	.tr.drag-over-above, .tr.drag-over-below { border-color: var(--accent); }
 	.cbi-section-error { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--panel)); color: var(--text); }
 	.cbi-section-error ul li { color: var(--danger); }
 

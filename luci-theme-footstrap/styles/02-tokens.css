@@ -29,6 +29,14 @@
 		--warn: #e08a1e;
 		--danger: #e04f4f;
 		--fs-shadow: 0 1px 3px rgba(15,23,37,.08);
+		/* drop shadow for floating pop surfaces (menus, dropdown lists, the
+		 * appearance popover, the native select picker). One value replaces the
+		 * .28/.30/.32 literals that had drifted apart across those components. */
+		--fs-shadow-pop: 0 12px 34px rgba(0,0,0,.30);
+		/* focus ring shared by every field (input, select, cbi-dropdown, range,
+		 * dynlist add-item). The invalid state swaps the colour for --danger and
+		 * keeps its own literal. */
+		--fs-focus-ring: 0 0 0 3px var(--accent-soft);
 		--knob-x: 3px;
 		--fs-content-max: 1040px;	/* content column cap (matches design mock) */
 

@@ -91,4 +91,14 @@
 		font-size: 13px;
 		line-height: 1.5;
 	}
+
+	/* Action-button row (a `.right` wrapper holding an Add/Save button) that sits
+	 * directly under a field had no gap above it — the apk "Repo Public Keys ->
+	 * Add key" paste box, and the same paste-a-value-then-submit layout elsewhere,
+	 * pinned the button to the textarea. Give it a top gap. Scoped to a `.right`
+	 * that immediately follows a form control so it never touches right-aligned
+	 * text/table cells. */
+	#view :is(textarea, input[type="text"], input[type="password"], .cbi-dropdown) + .right {
+		margin-top: 10px;
+	}
 }

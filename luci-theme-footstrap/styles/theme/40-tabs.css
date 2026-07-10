@@ -98,6 +98,23 @@
 		font-weight: 700;
 	}
 
+	/* Density steps for a crowded strip. menu-footstrap-common.js measures whether
+	 * the tabs wrap to a second row and, if so, adds .fs-dense1 then .fs-dense2.
+	 * Padding is trimmed hard first (9/14 -> 5/9 -> 3/7), the font only at the d2
+	 * floor (13 -> 12) and the gap only there too (4 -> 3, still not touching), so a
+	 * pill never gets tighter than its label; past the floor the strip may wrap. The
+	 * id in the first selector matches the #tabmenu base rule's specificity. */
+	#tabmenu ul.tabs.fs-dense1 > li > a,
+	.tabs.fs-dense1 > li > a,
+	.cbi-tabmenu.fs-dense1 > li > a { padding: 5px 9px; }
+
+	#tabmenu ul.tabs.fs-dense2,
+	.tabs.fs-dense2,
+	.cbi-tabmenu.fs-dense2 { gap: 3px; }
+	#tabmenu ul.tabs.fs-dense2 > li > a,
+	.tabs.fs-dense2 > li > a,
+	.cbi-tabmenu.fs-dense2 > li > a { padding: 3px 7px; font-size: 12px; }
+
 	/* map-level tabs keep the body font size instead of base's 16.5px/bold */
 	.cbi-tabmenu.map > li { font-size: 13px; font-weight: 600; }
 	/* the little "n errors" badge on a tab */

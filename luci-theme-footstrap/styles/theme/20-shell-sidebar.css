@@ -77,16 +77,7 @@
 		font-weight: 600; font-size: 14px;
 		line-height: 1.1;
 	}
-	.fs-sidebar ul.nav > li > a:hover {
-		opacity: 1;
-		background: var(--panel2);
-		color: var(--text);
-	}
-	.fs-sidebar ul.nav > li.active > a,
-	.fs-sidebar ul.nav > li > a.active {
-		background: var(--accent-soft);
-		color: var(--accent);
-	}
+	/* hover + active states are grouped for both layouts in theme/10-chrome.css */
 	.fs-sidebar ul.nav .fs-ico { width: 17px; height: 17px; flex: 0 0 auto; }
 	.fs-sidebar ul.nav > li > a .fs-label { flex: 1 1 auto; }
 
@@ -110,8 +101,7 @@
 		display: block; padding: 7px 11px; border-radius: 8px;
 		color: var(--dim); font-size: 13px; font-weight: 500;
 	}
-	.fs-sidebar ul.nav ul a:hover { color: var(--text); background: var(--panel2); opacity: 1; }
-	.fs-sidebar ul.nav ul a.active { color: var(--accent); background: var(--accent-soft); }
+	/* hover/active grouped in theme/10-chrome.css */
 
 	.fs-modemenu { margin-top: 4px; }
 	.fs-modemenu:empty, .fs-modemenu.single { display: none; }
@@ -126,8 +116,7 @@
 		font: inherit; font-weight: 600; font-size: 14px; line-height: 1.1;
 		text-align: left; cursor: pointer;
 	}
-	.fs-themerow:hover { background: var(--panel2); color: var(--text); }
-	.fs-themerow[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
+	/* .fs-themerow:hover / [aria-expanded] grouped in theme/10-chrome.css */
 	.fs-themerow .fs-ico { width: 17px; height: 17px; flex: 0 0 auto; }
 	.fs-themerow .fs-label { flex: 1 1 auto; }
 
@@ -151,7 +140,7 @@
 		position: fixed; z-index: 1000; left: 0; top: 0;
 		min-width: 216px; padding: 12px;
 		background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-		box-shadow: 0 12px 34px rgba(0,0,0,.30);
+		box-shadow: var(--fs-shadow-pop);
 		display: flex; flex-direction: column; gap: 12px;
 		animation: fs-fade .16s ease;
 	}
@@ -264,7 +253,7 @@
 			margin-left: 10px; z-index: 70;
 			padding: 6px 10px; border-radius: 8px;
 			background: var(--panel); border: 1px solid var(--border);
-			box-shadow: 0 12px 34px rgba(0,0,0,.30);
+			box-shadow: var(--fs-shadow-pop);
 			color: var(--text); font-size: 13px; font-weight: 600; white-space: nowrap;
 			opacity: 0; pointer-events: none; transition: opacity .12s ease;
 		}
@@ -279,7 +268,7 @@
 			position: absolute; left: 100%; top: -8px; margin: 0 0 0 10px;
 			min-width: 196px; padding: 8px; z-index: 70;
 			background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-			box-shadow: 0 12px 34px rgba(0,0,0,.30);
+			box-shadow: var(--fs-shadow-pop);
 			animation: fs-fade .14s ease;
 		}
 		:root[data-rail="true"] .fs-sidebar ul.nav > li.has-sub.open > ul { display: flex; }
@@ -402,7 +391,7 @@
 			width: max-content; min-width: 180px; max-width: calc(100vw - 32px);
 			margin: 0; padding: 6px;
 			background: var(--panel); border: 1px solid var(--border);
-			border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.28);
+			border-radius: 12px; box-shadow: var(--fs-shadow-pop);
 		}
 		/* hover only on real pointer devices — a tap leaves :hover stuck on mobile
 		 * browsers and would block the tap-to-close (same guard as .fs-topnav) */

@@ -14,8 +14,7 @@
 	 * (base `.label` + body[data-page=...] .cbi-title .label leak uppercase,
 	 * margins and a colored-badge look). Make them clean theme pills.
 	 * ================================================================== */
-	.cbi-title .label,
-	body[data-page='admin-status-overview'] .cbi-title .label {
+	.cbi-title .label {
 		text-transform: none;
 		letter-spacing: 0;
 		font-size: 11px;
@@ -31,14 +30,12 @@
 		box-shadow: none;
 		cursor: pointer;
 	}
-	.cbi-title .label:hover,
-	body[data-page='admin-status-overview'] .cbi-title .label:hover {
+	.cbi-title .label:hover {
 		color: var(--text);
 		border-color: var(--dim);
 		opacity: 1;
 	}
-	.cbi-title .label.notice,
-	body[data-page='admin-status-overview'] .cbi-title .label.notice {
+	.cbi-title .label.notice {
 		opacity: 1;
 		color: var(--accent);
 		background: var(--accent-soft);
@@ -50,8 +47,7 @@
 	 * inactive, collapsed = active. Hide the text (font-size:0) and draw a chevron
 	 * with ::after borders: up = "will collapse" (expanded), down = "will expand"
 	 * (collapsed). data-indicator='poll-status' is unique to these toggles. */
-	.cbi-title .label[data-indicator='poll-status'],
-	body[data-page='admin-status-overview'] .cbi-title .label[data-indicator='poll-status'] {
+	.cbi-title .label[data-indicator='poll-status'] {
 		font-size: 0;
 		width: 26px;
 		height: 26px;
@@ -61,8 +57,7 @@
 		justify-content: center;
 		border-radius: 8px;
 	}
-	.cbi-title .label[data-indicator='poll-status']::after,
-	body[data-page='admin-status-overview'] .cbi-title .label[data-indicator='poll-status']::after {
+	.cbi-title .label[data-indicator='poll-status']::after {
 		content: '';
 		width: 7px;
 		height: 7px;
@@ -73,8 +68,7 @@
 		margin-top: -2px;					/* optical centring of the down chevron */
 		transition: transform .15s ease;
 	}
-	.cbi-title .label[data-indicator='poll-status'][data-style='inactive']::after,
-	body[data-page='admin-status-overview'] .cbi-title .label[data-indicator='poll-status'][data-style='inactive']::after {
+	.cbi-title .label[data-indicator='poll-status'][data-style='inactive']::after {
 		transform: rotate(-135deg);			/* expanded / Hide -> chevron up */
 		margin-top: 2px;
 	}
@@ -242,4 +236,5 @@
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-value { border-bottom: 0 !important; }
 	/* System key/value table draws its dividers on .tr (not .td) — remove those too */
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .tr { border-bottom: 0 !important; }
+
 }
