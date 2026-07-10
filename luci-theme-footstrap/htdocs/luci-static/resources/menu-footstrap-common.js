@@ -639,7 +639,16 @@ function wireAppearance() {
 	 * file.exec (fs.exec). It downloads the latest release .apk/.ipk and installs
 	 * it with apk (25.12) or opkg (24.10); on success the page reloads onto the
 	 * new theme. No user input reaches the script — the ACL grants exec of that
-	 * fixed path only, so there is nothing to inject. */
+	 * fixed path only, and the two arguments below are literals.
+	 *
+	 * The install outlives the RPC path: rpc.js aborts the XHR after
+	 * `L.env.rpctimeout` (20 s) and rpcd kills the exec'd process after its own
+	 * `timeout` (30 s). So the script only spawns a detached worker and returns
+	 * STARTED; we poll `status` until it flips to OK or ERR. */
+	const FS_UPDATE_SCRIPT = '/usr/libexec/footstrap-selfupdate.sh';
+	const FS_UPDATE_POLL_MS = 2000;
+	const FS_UPDATE_LIMIT_MS = 300000;
+
 	function runSelfUpdate() {
 		close();
 		const modal = (body) => ui.showModal(_('Update Footstrap'), body);
@@ -654,18 +663,34 @@ function wireAppearance() {
 				E('button', { 'class': 'btn cbi-button-action', 'click': doUpdate }, _('Update'))
 			])
 		]);
+
+		function poll(fs, deadline) {
+			if (Date.now() > deadline)
+				return fail(_('timed out waiting for the installer'));
+
+			return fs.exec(FS_UPDATE_SCRIPT, [ 'status' ]).then(res => {
+				const out = String((res && res.stdout) || '').trim();
+				if (/^OK$/.test(out)) {
+					modal([ E('p', {}, _('Updated. Reloading…')) ]);
+					window.setTimeout(() => location.reload(), 1200);
+					return;
+				}
+				if (/^ERR:/.test(out))
+					return fail(out);
+				/* RUNNING, or IDLE if the worker has not written the file yet */
+				window.setTimeout(() => poll(fs, deadline), FS_UPDATE_POLL_MS);
+			}).catch(e => fail(e && e.message || e));
+		}
+
 		function doUpdate() {
 			modal([ E('p', { 'class': 'spinning' }, _('Downloading and installing…')) ]);
 			L.require('fs')
-				.then(fs => fs.exec('/usr/libexec/footstrap-selfupdate.sh'))
-				.then(res => {
-					if (res && res.code === 0 && /(^|\n)OK\s*$/.test(String(res.stdout || ''))) {
-						modal([ E('p', {}, _('Updated. Reloading…')) ]);
-						window.setTimeout(() => location.reload(), 1200);
-					} else {
-						fail((res && (res.stderr || res.stdout)) || '');
-					}
-				})
+				.then(fs => fs.exec(FS_UPDATE_SCRIPT).then(res => {
+					const out = String((res && res.stdout) || '').trim();
+					if (!/^(STARTED|RUNNING)$/.test(out))
+						return fail((res && (res.stderr || res.stdout)) || '');
+					poll(fs, Date.now() + FS_UPDATE_LIMIT_MS);
+				}))
 				.catch(e => fail(e && e.message || e));
 		}
 	}

@@ -39,14 +39,18 @@ scp -q  "$D"/root/usr/share/rpcd/acl.d/luci-theme-footstrap.json "$R":/usr/share
 ssh "$R" "chmod +x /usr/libexec/footstrap-selfupdate.sh; /etc/init.d/rpcd reload 2>/dev/null; rm -f /tmp/luci-indexcache*"
 
 ssh "$R" "
+# -n is load-bearing: without it, a re-run sees the existing symlink-to-directory
+# as a directory and drops the new link INSIDE it (themes/footstrap/footstrap).
 # media symlinks (dark/light + top share the footstrap assets dir)
 cd /www/luci-static
-ln -sf $N $N-dark; ln -sf $N $N-light
-ln -sf $N $N-top; ln -sf $N $N-top-dark; ln -sf $N $N-top-light
+rm -f $N/$N $N-top/$N-top 2>/dev/null   # clean up strays left by an older run
+ln -sfn $N $N-dark; ln -sfn $N $N-light
+ln -sfn $N $N-top; ln -sfn $N $N-top-dark; ln -sfn $N $N-top-light
 # template symlinks (dark/light reuse base templates per layout)
 cd /usr/share/ucode/luci/template/themes
-ln -sf $N $N-dark; ln -sf $N $N-light
-ln -sf $N-top $N-top-dark; ln -sf $N-top $N-top-light
+rm -f $N/$N $N-top/$N-top 2>/dev/null
+ln -sfn $N $N-dark; ln -sfn $N $N-light
+ln -sfn $N-top $N-top-dark; ln -sfn $N-top $N-top-light
 touch /lib/apk/db/installed
 rm -f /tmp/luci-indexcache*"
 

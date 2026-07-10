@@ -2936,9 +2936,12 @@ body {
  * head.ut. Labels collapse away; a section's submenu becomes a flyout panel
  * anchored to the right of its icon, opened on hover (desktop) or on focus,
  * which is what a tap on the <a href="#"> section link produces on touch.
- * Desktop only: below 901px the sidebar is already a horizontal top bar.
+ * Applies wherever the sidebar is still vertical. That cut-off is 600px (see
+ * the mobile top-bar block below) — it must track that breakpoint exactly, and
+ * the JS one in menu-footstrap.js:flyoutMode(), or the collapse button sets
+ * data-rail with no rule to match it and nothing happens.
  * ================================================================== */
-@media (min-width: 901px) {
+@media (min-width: 601px) {
 	:root[data-rail="true"] .fs-sidebar {
 		width: 68px; padding: 22px 10px;
 		/* the default `overflow-y: auto` computes overflow-x to `auto` as well,
@@ -4421,42 +4424,15 @@ input[type="range"]:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
 .table .td { padding-top: 7px; padding-bottom: 7px; }
 
 /* ==================================================================
- * FOOTSTRAP login — centered card (rendered by view/footstrap/sysauth.js).
+ * LOGIN — the stock, server-rendered sysauth.ut, restyled as a centered card.
+ * Neither layout forks that template: a theme-local sysauth.ut used to hide the
+ * form in a <section hidden> and reveal it from a view module, which cannot
+ * work before a session exists (every RPC answers "Access denied", the promise
+ * rejects, render() never runs) — a blank page with no way to log in. So both
+ * layouts fall back to the stock one, which also gives the login page the theme
+ * chrome and the palette wallpaper for free.
+ * Scoped by the username field so nothing else on the site is affected.
  * ================================================================== */
-.fs-login-wrap { display: flex; justify-content: center; padding: 7vh 16px 40px; }
-.fs-login {
-	width: 100%; max-width: 400px;
-	background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-	padding: 26px 26px 24px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
-}
-.fs-login-title { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--text); margin-bottom: 20px; }
-.fs-login .cbi-map, .fs-login .cbi-section, .fs-login .cbi-section-node {
-	background: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important;
-}
-.fs-login .cbi-value {
-	display: block !important; border: 0 !important; padding: 0 0 15px !important; margin: 0 !important;
-}
-/* `label.cbi-value-title` (not the bare class) — the base rule
- * `.cbi-value label.cbi-value-title` is right-aligned and outranks a
- * class-only selector, which pushed the field labels to the right. */
-.fs-login .cbi-value label.cbi-value-title,
-.fs-login .cbi-value-title {
-	display: block; text-align: left; width: auto; max-width: none; padding: 0 0 6px;
-	flex: none;
-	font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
-}
-.fs-login .cbi-value-field { width: 100%; }
-.fs-login .cbi-value-field input { width: 100%; }
-.fs-login .alert-message { margin: 2px 0 14px; border-radius: 10px; }
-.fs-login button.important, .fs-login button.cbi-button-positive, .fs-login .cbi-button-positive {
-	width: 100%; min-height: 44px; margin-top: 6px; border-radius: 12px !important;
-	background: var(--accent) !important; color: var(--on-accent) !important;
-	border: 0 !important; font-weight: 700; font-size: 14px;
-}
-.fs-login button.cbi-button-positive:hover { filter: brightness(1.06); }
-
-/* base luci sysauth.ut form (server-rendered) -> same centered card.
- * Scoped by the username field so nothing else on the site is affected. */
 form:has(> .cbi-map input[name="luci_username"]) {
 	max-width: 400px; margin: 7vh auto 40px;
 	background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
