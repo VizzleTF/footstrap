@@ -4033,17 +4033,28 @@ select option { background: var(--panel); color: var(--text); }
 .cbi-dropdown:not(.btn):not(.cbi-button) > ul > li[display]:not([display="0"]) { border-left: 0 !important; }
 .cbi-dropdown > ul > li[placeholder] { color: var(--faint, var(--dim)) !important; }
 
-/* custom chevron in the toggle (hide the stock text/svg arrow) */
+/* Custom chevron in the toggle (hide the stock text/svg arrow).
+ *
+ * `.open` is the only hit target that opens the list — on a button dropdown
+ * (.cbi-dropdown.btn, e.g. Diagnostics) a click anywhere else RUNS the button.
+ * `font-size: 0` collapsed the stock `line-height: 2em` to zero, so the span
+ * measured 28x0 and the chevron, drawn by an absolutely positioned ::after, sat
+ * outside its own box: aiming at it hit the button instead. Give it a real box —
+ * full widget height, comfortable width — and centre the chevron inside it. */
 .cbi-dropdown > .open {
-	font-size: 0 !important; border: 0 !important;
-	position: relative; padding: 0 24px 0 4px !important;
+	font-size: 0 !important; line-height: 0 !important; border: 0 !important;
+	position: relative; padding: 0 !important;
+	align-self: stretch;
+	min-width: 34px; min-height: 30px;
+	display: flex; align-items: center; justify-content: center;
+	cursor: pointer;
 }
 .cbi-dropdown > .open > * { display: none !important; }
 .cbi-dropdown > .open::after {
-	content: ""; position: absolute; top: 50%; right: 13px;
+	content: ""; position: absolute; inset: 0; margin: auto;
 	width: 7px; height: 7px;
 	border-right: 2px solid var(--dim); border-bottom: 2px solid var(--dim);
-	transform: translateY(-70%) rotate(45deg);
+	transform: translateY(-2px) rotate(45deg);	/* optical centre of a "v" */
 }
 
 /* open list -> design popover */
