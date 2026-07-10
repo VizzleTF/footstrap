@@ -4869,8 +4869,18 @@ ul.cbi-tabmenu.mode > li.cbi-tab,
  * Drop the clip on any table that hosts a widget, and lift the open widget
  * over the following (unpositioned) cards.
  * ================================================================== */
+/* A real <table> inherits `border-collapse: collapse`, and a collapsed border
+ * model ignores border-radius: the rounded corners of the card were coming from
+ * `overflow: hidden` clipping the background, not from the border. Dropping the
+ * clip therefore squared the frame off. Restore the separated border model —
+ * with zero spacing it lays out identically, and the radius now applies to the
+ * border itself. */
 .table:has(.cbi-dropdown),
-.table:has(.cbi-dynlist) { overflow: visible; }
+.table:has(.cbi-dynlist) {
+	overflow: visible;
+	border-collapse: separate;
+	border-spacing: 0;
+}
 .cbi-dropdown[open] { z-index: 1100; }
 
 /* ==================================================================
