@@ -27,10 +27,10 @@
 
 	/* Round the popup itself to match the theme's cards (base is only 3px), plus
 	 * small rounding on the diff boxes and legend swatches for a cohesive look. */
-	#modal_overlay .modal { border-radius: 12px; }
+	#modal_overlay .modal { border-radius: var(--radius-lg); }
 	#modal_overlay .uci-dialog div > ins,
 	#modal_overlay .uci-dialog div > del,
-	#modal_overlay .uci-dialog div > var { border-radius: 8px; }
+	#modal_overlay .uci-dialog div > var { border-radius: var(--radius-sm); }
 	#modal_overlay .uci-change-legend-label > ins,
 	#modal_overlay .uci-change-legend-label > del,
 	#modal_overlay .uci-change-legend-label > var { border-radius: 4px; overflow: hidden; }

@@ -45,7 +45,7 @@
 	.fs-railtoggle {
 		display: inline-flex; align-items: center; justify-content: center;
 		width: 28px; height: 28px; padding: 0; flex: 0 0 auto;
-		border: 1px solid transparent; border-radius: 8px;
+		border: 1px solid transparent; border-radius: var(--radius-sm);
 		background: transparent; color: var(--faint); cursor: pointer;
 		transition: color .15s, background .15s, border-color .15s;
 	}
@@ -72,7 +72,7 @@
 	.fs-sidebar ul.nav > li > a {
 		display: flex; align-items: center; gap: 11px;
 		padding: 10px 11px;
-		border-radius: 10px;
+		border-radius: var(--radius);
 		color: var(--dim);
 		font-weight: 600; font-size: 14px;
 		line-height: 1.1;
@@ -98,7 +98,7 @@
 	}
 	.fs-sidebar ul.nav > li.open > ul { display: flex; margin: 2px 0 6px 28px; }
 	.fs-sidebar ul.nav ul a {
-		display: block; padding: 7px 11px; border-radius: 8px;
+		display: block; padding: 7px 11px; border-radius: var(--radius-sm);
 		color: var(--dim); font-size: 13px; font-weight: 500;
 	}
 	/* hover/active grouped in theme/10-chrome.css */
@@ -111,7 +111,7 @@
 	/* theme toggle row — the whole row is the Appearance trigger (a <button>) */
 	.fs-themerow {
 		display: flex; align-items: center; gap: 11px;
-		width: 100%; padding: 10px 11px; border: 0; border-radius: 10px;
+		width: 100%; padding: 10px 11px; border: 0; border-radius: var(--radius);
 		background: transparent; color: var(--dim);
 		font: inherit; font-weight: 600; font-size: 14px; line-height: 1.1;
 		text-align: left; cursor: pointer;
@@ -128,7 +128,7 @@
 	.fs-appearance-btn {
 		display: inline-flex; align-items: center; justify-content: center;
 		width: 34px; height: 34px; padding: 0; flex: 0 0 auto;
-		border: 1px solid var(--border); border-radius: 9px;
+		border: 1px solid var(--border); border-radius: var(--radius);
 		background: var(--panel2); color: var(--dim); cursor: pointer;
 		transition: color .15s, border-color .15s, background .15s;
 	}
@@ -139,7 +139,7 @@
 	.fs-appearance-pop {
 		position: fixed; z-index: 1000; left: 0; top: 0;
 		min-width: 216px; padding: 12px;
-		background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+		background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
 		box-shadow: var(--fs-shadow-pop);
 		display: flex; flex-direction: column; gap: 12px;
 		animation: fs-fade .16s ease;
@@ -162,14 +162,14 @@
 		display: block; width: 100%; padding: 8px 12px;
 		font-size: 12px; font-weight: 600; cursor: pointer;
 		color: var(--on-accent, #fff); background: var(--good);
-		border: 1px solid transparent; border-radius: 9px;
+		border: 1px solid transparent; border-radius: var(--radius);
 		transition: filter .15s;
 	}
 	.fs-ap-update:hover { filter: brightness(1.08); }
 	.fs-ap-update[hidden] { display: none; }
 	.fs-ap-badge {
 		font-size: 11px; font-weight: 600; white-space: nowrap; text-decoration: none;
-		color: var(--good); padding: 2px 9px; border-radius: 999px;
+		color: var(--good); padding: 2px 9px; border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--good) 15%, transparent);
 		border: 1px solid color-mix(in srgb, var(--good) 40%, transparent);
 	}
@@ -187,10 +187,10 @@
 	}
 	.fs-seg {
 		display: flex; gap: 4px; padding: 3px;
-		background: var(--panel2); border: 1px solid var(--border); border-radius: 9px;
+		background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius);
 	}
 	.fs-seg button {
-		flex: 1; padding: 6px 8px; border: 0; border-radius: 7px;
+		flex: 1; padding: 6px 8px; border: 0; border-radius: var(--radius-sm);
 		background: transparent; color: var(--dim);
 		font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2;
 		cursor: pointer; white-space: nowrap; transition: background .15s, color .15s;
@@ -198,9 +198,32 @@
 	.fs-seg button:hover { color: var(--text); }
 	.fs-seg button.active { background: var(--accent); color: var(--on-accent, #fff); }
 
+	/* Rounding axis = a range slider + live px readout (segControl's sibling in the
+	 * popover). Track/thumb are styled on both WebKit and Firefox pseudo-elements. */
+	.fs-rangewrap { display: flex; align-items: center; gap: 10px; }
+	.fs-range {
+		flex: 1 1 auto; min-width: 0; height: 4px; margin: 6px 0;
+		-webkit-appearance: none; appearance: none;
+		background: var(--track); border-radius: var(--radius-pill); cursor: pointer;
+	}
+	.fs-range::-webkit-slider-thumb {
+		-webkit-appearance: none; appearance: none;
+		width: 15px; height: 15px; border-radius: 50%;
+		background: var(--accent); border: 2px solid var(--panel); box-shadow: var(--fs-shadow);
+	}
+	.fs-range::-moz-range-thumb {
+		width: 15px; height: 15px; border-radius: 50%;
+		background: var(--accent); border: 2px solid var(--panel); box-shadow: var(--fs-shadow);
+	}
+	.fs-range:focus-visible { outline: none; box-shadow: var(--fs-focus-ring); }
+	.fs-range-val {
+		flex: 0 0 auto; min-width: 34px; text-align: right;
+		font-size: 11px; font-weight: 600; color: var(--dim); font-variant-numeric: tabular-nums;
+	}
+
 	/* a sidebar row, not a bare icon: gap + hit area + a hover plate */
 	.fs-logout {
-		gap: 11px; padding: 10px 11px; border-radius: 10px;
+		gap: 11px; padding: 10px 11px; border-radius: var(--radius);
 		font-weight: 600; font-size: 14px;
 	}
 	.fs-logout:hover { background: var(--panel2); }
@@ -251,7 +274,7 @@
 			content: attr(data-label);
 			position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
 			margin-left: 10px; z-index: 70;
-			padding: 6px 10px; border-radius: 8px;
+			padding: 6px 10px; border-radius: var(--radius-sm);
 			background: var(--panel); border: 1px solid var(--border);
 			box-shadow: var(--fs-shadow-pop);
 			color: var(--text); font-size: 13px; font-weight: 600; white-space: nowrap;
@@ -267,7 +290,7 @@
 			display: none;
 			position: absolute; left: 100%; top: -8px; margin: 0 0 0 10px;
 			min-width: 196px; padding: 8px; z-index: 70;
-			background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+			background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
 			box-shadow: var(--fs-shadow-pop);
 			animation: fs-fade .14s ease;
 		}
@@ -297,20 +320,23 @@
 		background: var(--bg);
 		overflow-x: clip;
 	}
+	/* The sidebar topbar used to be a full-width divider strip carrying the page
+	 * title. That title just repeats the page's own card heading, so the strip is
+	 * dropped: no border, no min-height, no vertical padding, title hidden. What
+	 * stays is #indicators (unsaved-changes / poll status), which LuCI targets by
+	 * id — it floats top-right and only claims vertical space when non-empty. Inner
+	 * padding still clears the centered content column so indicators line up with
+	 * the cards below. */
 	.fs-topbar {
-		min-height: 48px;
 		flex: 0 0 auto;
-		/* full-width divider, but inner content aligned to the centered content column:
-		 * .fs-content is centered at --fs-content-max and adds 28px of side padding,
-		 * so the title/indicators must clear both to line up with the cards below */
-		padding-top: 7px; padding-bottom: 7px;
 		padding-left: max(28px, calc((100% - var(--fs-content-max)) / 2 + 28px));
 		padding-right: max(28px, calc((100% - var(--fs-content-max)) / 2 + 28px));
-		display: flex; align-items: center; justify-content: space-between;
+		display: flex; align-items: center; justify-content: flex-end;
 		gap: 16px;
-		border-bottom: 1px solid var(--border);
 		background: var(--bg);
 	}
+	.fs-topbar .fs-title { display: none; }
+	.fs-topbar .fs-indicators:not(:empty) { margin: 10px 0 2px; }
 	.fs-title-main { font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
 	.fs-indicators { flex-wrap: wrap; justify-content: flex-end; }
 
@@ -321,7 +347,7 @@
 	.fs-pill {
 		display: inline-flex; align-items: center; gap: 8px;
 		background: var(--panel); border: 1px solid var(--border);
-		border-radius: 99px; padding: 6px 13px;
+		border-radius: var(--radius-pill); padding: 6px 13px;
 		font-size: 12px; color: var(--dim);
 	}
 	.fs-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: 0 0 auto; }
@@ -374,7 +400,7 @@
 		}
 		.fs-sidebar ul.nav > li.has-sub { position: static; }
 		.fs-sidebar ul.nav > li > a {
-			padding: 6px 11px; border-radius: 9px;
+			padding: 6px 11px; border-radius: var(--radius);
 			font-size: 15px; white-space: nowrap;
 		}
 		.fs-sidebar ul.nav > li > a .fs-ico,
@@ -391,7 +417,7 @@
 			width: max-content; min-width: 180px; max-width: calc(100vw - 32px);
 			margin: 0; padding: 6px;
 			background: var(--panel); border: 1px solid var(--border);
-			border-radius: 12px; box-shadow: var(--fs-shadow-pop);
+			border-radius: var(--radius-lg); box-shadow: var(--fs-shadow-pop);
 		}
 		/* hover only on real pointer devices — a tap leaves :hover stuck on mobile
 		 * browsers and would block the tap-to-close (same guard as .fs-topnav) */
@@ -407,7 +433,7 @@
 		.fs-themerow, .fs-logout {
 			flex: 0 0 auto;
 			width: 34px; height: 34px; padding: 0; justify-content: center;
-			border: 1px solid var(--border); border-radius: 9px;
+			border: 1px solid var(--border); border-radius: var(--radius);
 			background: var(--panel2);
 		}
 		/* both sit on the brand row (order 2) — the menu wraps below it at order 3 */
@@ -417,7 +443,7 @@
 		.fs-themerow .fs-ico, .fs-logout .fs-ico { width: 18px; height: 18px; }
 
 		.fs-content { padding: 16px; }
-		.fs-topbar { padding: 12px 16px; }
+		.fs-topbar { padding: 0 16px; }
 	}
 
 	/* ==================================================================
@@ -471,7 +497,7 @@
 		background: var(--panel2); background-image: none;
 		border: 1px solid var(--border);
 		color: var(--dim);
-		border-radius: 99px; padding: 4px 11px; box-shadow: none;
+		border-radius: var(--radius-pill); padding: 4px 11px; box-shadow: none;
 	}
 	.fs-indicators [data-indicator][data-style="active"],
 	#indicators [data-indicator][data-style="active"] { color: var(--good); }

@@ -23,7 +23,7 @@
 		margin: 0;
 		padding: 4px 12px;
 		min-width: 0;
-		border-radius: 99px;
+		border-radius: var(--radius-pill);
 		background: var(--panel2);
 		border: 1px solid var(--border);
 		color: var(--dim);
@@ -55,7 +55,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 8px;
+		border-radius: var(--radius-sm);
 	}
 	.cbi-title .label[data-indicator='poll-status']::after {
 		content: '';
@@ -136,7 +136,7 @@
 		text-align: left;
 		background: var(--panel2);
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		padding: 12px 14px;
 		display: flex;
 		flex-direction: column;

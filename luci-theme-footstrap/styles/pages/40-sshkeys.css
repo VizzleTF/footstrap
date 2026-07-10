@@ -1,0 +1,18 @@
+@layer page {
+	/* System → Administration → SSH-Keys (admin/system/admin/sshkeys) renders its
+	 * whole view — heading, description, key list and the add-key row — as a single
+	 * bare <div> straight in #view, with no .cbi-section wrapper. So on the cats
+	 * wallpaper the text sat frameless, unlike every other page whose .cbi-section
+	 * paints an opaque --panel. There is no section markup to hook, so costyl the
+	 * page by id: give that lone wrapper the same panel card a .cbi-section gets
+	 * (mirrors theme/30-tables.css `.cbi-section` — --panel, 1px border, r12,
+	 * --fs-shadow, 18px/22px padding). SPA re-stamps body[data-page] on tab nav,
+	 * so the id resolves when you land on the SSH-Keys tab. */
+	body[data-page="admin-system-admin-sshkeys"] #view > div {
+		background: var(--panel);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--fs-shadow);
+		padding: 18px 22px;
+	}
+}

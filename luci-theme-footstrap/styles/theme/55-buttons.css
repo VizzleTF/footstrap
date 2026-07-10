@@ -28,7 +28,7 @@
 		color: var(--text);
 		background: var(--panel2);
 		border: 1px solid var(--border);
-		border-radius: 9px;
+		border-radius: var(--radius);
 		box-shadow: none; text-shadow: none;
 		cursor: pointer;
 	}
@@ -53,7 +53,7 @@
 	.cbi-section .table[id] .td .btn,
 	.cbi-section .table[id] .td .cbi-button { padding: 4px 10px; font-size: 12px; }
 	.alert-message .btn, .alert-message .cbi-button {
-		border-radius: 9px; padding: 7px 13px; font-weight: 600;
+		border-radius: var(--radius); padding: 7px 13px; font-weight: 600;
 		background: var(--panel2); border: 1px solid var(--border); color: var(--text);
 	}
 	.alert-message .btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -82,7 +82,7 @@
 	.cbi-page-actions .btn {
 		min-height: 40px;
 		padding: 0 18px;
-		border-radius: 9px;
+		border-radius: var(--radius);
 		font-weight: 600;
 		display: inline-flex; align-items: center; justify-content: center;
 		vertical-align: middle;
@@ -100,7 +100,7 @@
 		margin-right: 12px; padding: 8px 14px;
 		font-family: var(--font-sans); font-size: 12px; font-weight: 600;
 		color: var(--text); background: var(--panel2);
-		border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+		border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
 	}
 	input[type="file"]::file-selector-button:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -201,7 +201,7 @@
 	.control-group:has(> .cbi-input-password) > button.cbi-button-neutral:hover { color: var(--accent); }
 	.pager .btn.prev, .pager .btn.next {
 		flex: 0 0 auto; width: 40px; min-width: 40px; height: 34px; padding: 0;
-		border-radius: 9px; border: 1px solid var(--border);
+		border-radius: var(--radius); border: 1px solid var(--border);
 		background: var(--panel2); color: var(--text);
 		display: inline-flex; align-items: center; justify-content: center;
 	}

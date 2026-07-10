@@ -47,6 +47,11 @@
 					else root.setAttribute('data-palette', 'footstrap');
 					if (localStorage.getItem('fs-wallpaper') === 'cats')
 						root.setAttribute('data-wallpaper', 'cats');
+					/* Rounding: base corner radius (0-20px). 12 = default, no override.
+					   styles/02-tokens derives control/chip radii from --fs-radius-base. */
+					var r = parseInt(localStorage.getItem('fs-radius'), 10);
+					if (r >= 0 && r <= 20 && r !== 12)
+						root.style.setProperty('--fs-radius-base', r + 'px');
 				} catch (e) {}
 			})();
 		</script>

@@ -179,6 +179,22 @@ function applyPalette(val) {
 	else { lsDel('fs-palette'); root.setAttribute('data-palette', 'footstrap'); }
 }
 
+/* Corner-radius axis: one base value (the card radius, 0–20px) set as an inline
+ * --fs-radius-base on :root; styles/02-tokens derives the control/chip radii from
+ * it so every surface rounds in step. Default 12 clears the override entirely.
+ * head.ut pre-paints it before first paint (no reflow on load). */
+const FS_RADIUS_DEFAULT = 12;
+function currentRadius() {
+	const s = parseInt(lsGet('fs-radius'), 10);
+	return (s >= 0 && s <= 20) ? s : FS_RADIUS_DEFAULT;
+}
+function applyRadius(px) {
+	const root = document.querySelector(':root');
+	const v = Math.max(0, Math.min(20, px | 0));
+	if (v === FS_RADIUS_DEFAULT) { lsDel('fs-radius'); root.style.removeProperty('--fs-radius-base'); }
+	else { lsSet('fs-radius', String(v)); root.style.setProperty('--fs-radius-base', v + 'px'); }
+}
+
 /* Sidebar accordion behaviour: with auto-collapse on, opening a section folds
  * every other one back (one open at a time); off (default, and the historical
  * behaviour) they stack. Only meaningful for the expanded sidebar — the rail
@@ -215,6 +231,21 @@ function segControl(current, opts, onPick) {
 		wrap.appendChild(b);
 	});
 	return wrap;
+}
+
+/* a range slider with a live px readout; onInput fires continuously as it drags */
+function sliderControl(current, min, max, onInput) {
+	const out = E('span', { 'class': 'fs-range-val' }, [ current + 'px' ]);
+	const input = E('input', {
+		'type': 'range', 'class': 'fs-range',
+		'min': String(min), 'max': String(max), 'step': '1', 'value': String(current)
+	});
+	input.addEventListener('input', () => {
+		const v = parseInt(input.value, 10);
+		out.firstChild.data = v + 'px';
+		onInput(v);
+	});
+	return E('div', { 'class': 'fs-rangewrap' }, [ input, out ]);
 }
 
 /* ---- SPA client router (variant C) ---------------------------------------
@@ -637,6 +668,10 @@ function wireAppearance() {
 				{ val: 'off',  label: _('Off') },
 				{ val: 'cats', label: _('Cats') }
 			], applyWallpaper)
+		]),
+		E('div', { 'class': 'fs-ap-group' }, [
+			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding') ]),
+			sliderControl(currentRadius(), 0, 20, applyRadius)
 		])
 	];
 

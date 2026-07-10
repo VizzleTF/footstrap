@@ -7,7 +7,7 @@
 	/* Split "Save & Apply" dropdown: a plain dropdown in the action bar carries no
 	 * frame of its own. */
 	.cbi-page-actions .cbi-dropdown {
-		border: 0; border-radius: 9px; background: transparent;
+		border: 0; border-radius: var(--radius); background: transparent;
 	}
 	/* …except that the split control's outer div IS the apply button — ui.js emits
 	 * `.cbi-dropdown.btn.cbi-button.cbi-button-apply` — so the rule above would
@@ -33,7 +33,7 @@
 		background: var(--panel2);
 		background-image: none;
 		border: 1px solid var(--border);
-		border-radius: 10px;
+		border-radius: var(--radius);
 		color: var(--text);
 		min-height: 38px;
 		transition: border-color .15s, box-shadow .15s;
@@ -81,16 +81,16 @@
 	.cbi-dropdown[open] > ul.dropdown {
 		background: var(--panel);
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		box-shadow: var(--fs-shadow-pop);
 		padding: 6px;
 		margin-top: 6px;
 	}
 	.cbi-dropdown[open] > ul.dropdown > li {
-		border-radius: 8px; padding: 9px 11px;
+		border-radius: var(--radius-sm); padding: 9px 11px;
 		border-left: 0; color: var(--text);
 		position: relative;
-		/* the base rule puts a border-bottom on the li; on a border-radius:8px box that
+		/* the base rule puts a border-bottom on the li; on a border-radius: var(--radius-sm) box that
 		 * border curls up at the corners. Drop it and draw a straight inset strip via
 		 * ::after instead, so the divider is a plain line and the hover pill stays rounded. */
 		border-bottom: 0;
@@ -108,7 +108,7 @@
 	/* The "add item" field of a dropdown is a text input and gets the same 10px
 	 * radius as every other one (theme/60-inputs.css). It used to say 8px here and
 	 * win or lose depending on which block was written last. */
-	.cbi-dropdown .create-item-input { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); }
+	.cbi-dropdown .create-item-input { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
 	/* dropdown add-item (e.g. Community Lists) — the .cbi-dropdown styles itself,
 	 * so the wrapper is transparent, no double frame. */
 	.cbi-dynlist > .add-item:has(> .cbi-dropdown) {
@@ -135,7 +135,7 @@
 		.cbi-section-table .tr.cbi-section-table-row,
 		.cbi-section-table .tbody .tr {
 			border: 1px solid var(--border);
-			border-radius: 12px;
+			border-radius: var(--radius-lg);
 			background: var(--panel2);
 			padding: 8px 14px;
 			margin-bottom: 12px;

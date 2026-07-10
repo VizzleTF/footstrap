@@ -40,6 +40,19 @@
 		--knob-x: 3px;
 		--fs-content-max: 1040px;	/* content column cap (matches design mock) */
 
+		/* Corner-radius scale. One user-tunable base — Appearance → Rounding slider,
+		 * 0–20px, persisted as localStorage `fs-radius` and pre-painted as an inline
+		 * --fs-radius-base on :root (partials/head.ut) before first paint. The three
+		 * semantic radii scale from it proportionally so every surface rounds in step;
+		 * pills/toggles stay fully round. Defaults at base 12: card 12, control 10,
+		 * chip 8. Every border-radius in theme/pages references one of these — grep
+		 * shows no bare px radius left except 0 / 50% / hairline insets. */
+		--fs-radius-base: 12px;
+		--radius-lg: var(--fs-radius-base);				/* cards, panels, modals, table frame, popovers */
+		--radius: calc(var(--fs-radius-base) * 5 / 6);	/* controls: inputs, buttons, dropdowns, tabs (10 @12) */
+		--radius-sm: calc(var(--fs-radius-base) * 2 / 3);	/* chips, code, small insets, rail toggle (8 @12) */
+		--radius-pill: 999px;					/* pills, toggles, badges — always round */
+
 		--font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 		--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 

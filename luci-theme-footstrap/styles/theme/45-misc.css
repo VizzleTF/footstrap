@@ -60,7 +60,7 @@
 	#view > h2 {
 		background: var(--panel);
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		box-shadow: var(--fs-shadow);
 		margin: 0 0 16px;
 		padding: 16px 22px;
@@ -73,7 +73,7 @@
 	.cbi-map > h2:has(+ .cbi-map-descr),
 	#view > h2:has(+ .cbi-map-descr) {
 		border-bottom: 0;
-		border-radius: 12px 12px 0 0;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 		padding-bottom: 4px;
 		margin-bottom: 0;
 		box-shadow: none;
@@ -83,7 +83,7 @@
 		background: var(--panel);
 		border: 1px solid var(--border);
 		border-top: 0;
-		border-radius: 0 0 12px 12px;
+		border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 		box-shadow: var(--fs-shadow);
 		margin: 0 0 16px;
 		padding: 0 22px 16px;

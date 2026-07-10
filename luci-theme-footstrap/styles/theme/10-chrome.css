@@ -19,7 +19,7 @@
 	.fs-brand:hover { opacity: 1; }
 
 	.fs-logo {
-		width: 30px; height: 30px; border-radius: 9px;
+		width: 30px; height: 30px; border-radius: var(--radius);
 		background: linear-gradient(135deg, var(--accent), var(--accent-lt));
 		display: flex; align-items: center; justify-content: center;
 		flex: 0 0 auto;

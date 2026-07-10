@@ -11,7 +11,7 @@
 	 * ================================================================== */
 	.alert-message {
 		padding: 14px 16px;
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		border: 1px solid var(--border);
 		border-left: 3px solid var(--accent);
 		background: var(--panel);
@@ -43,7 +43,7 @@
 	 * added because packages use it. See docs/gallery.html.
 	 * ================================================================== */
 	.label {
-		display: inline-block; padding: 3px 9px; border-radius: 99px;
+		display: inline-block; padding: 3px 9px; border-radius: var(--radius-pill);
 		font-size: 11px; font-weight: 600; line-height: 1.4;
 		background: var(--panel2); border: 1px solid var(--border);
 		color: var(--dim); text-shadow: none; text-transform: none;
@@ -58,7 +58,7 @@
 	/* the show/hide toggles in a section title are .label pills too, but clickable */
 	.cbi-title .label {
 		font-size: 11px; font-weight: 600;
-		padding: 3px 10px; border-radius: 99px;
+		padding: 3px 10px; border-radius: var(--radius-pill);
 		background: var(--panel2); border: 1px solid var(--border);
 		color: var(--dim); cursor: pointer; line-height: 1.4;
 	}

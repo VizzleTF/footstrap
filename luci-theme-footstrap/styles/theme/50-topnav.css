@@ -35,7 +35,7 @@
 	}
 	.fs-topnav .fs-mainmenu > li { position: relative; }
 	.fs-topnav .fs-mainmenu > li > a {
-		display: block; padding: 6px 11px; border-radius: 9px;
+		display: block; padding: 6px 11px; border-radius: var(--radius);
 		color: var(--dim); font-size: 15px; font-weight: 600; white-space: nowrap;
 	}
 	/* auto-fit: menu-footstrap-common.js adds .fs-dense1/.fs-dense2 when the bar's
@@ -53,7 +53,7 @@
 		min-width: 200px; padding: 7px; margin: 0;
 		list-style: none;
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		box-shadow: var(--fs-shadow-pop);
 		background: color-mix(in srgb, var(--panel) 96%, transparent);
 		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -70,7 +70,7 @@
 	/* tap/click toggle (.open) works on every device; second tap removes it */
 	.fs-topnav .fs-mainmenu > li.dropdown.open > .dropdown-menu { display: block; }
 	.fs-topnav .fs-mainmenu .dropdown-menu li > a {
-		display: block; padding: 9px 12px; border-radius: 9px;
+		display: block; padding: 9px 12px; border-radius: var(--radius);
 		color: var(--dim); font-size: 13px; font-weight: 500; white-space: nowrap;
 	}
 	/* dropdown-menu link hover/active grouped in theme/10-chrome.css */
@@ -85,7 +85,7 @@
 		display: flex; gap: 4px; list-style: none; margin: 0; padding: 8px 24px;
 		background: var(--panel); border-bottom: 1px solid var(--border);
 	}
-	.fs-modemenu-top li a { color: var(--dim); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 8px; }
+	.fs-modemenu-top li a { color: var(--dim); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-sm); }
 	/* .fs-modemenu-top li.active a grouped in theme/10-chrome.css */
 
 	/* responsive: wrap menu */

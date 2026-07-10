@@ -3,7 +3,7 @@
 	.cbi-section, .cbi-map > .cbi-section-node, fieldset.cbi-section, .panel {
 		background: var(--panel);
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		box-shadow: var(--fs-shadow);
 	}
 	.cbi-section { padding: 18px 22px; margin-bottom: 16px; }
@@ -80,7 +80,7 @@
 	.cbi-section .table[id],
 	.cbi-section .table.fs-dt, .cbi-section table.fs-dt {
 		border-collapse: separate; border-spacing: 0;
-		border: 1px solid var(--border); border-radius: 12px;
+		border: 1px solid var(--border); border-radius: var(--radius-lg);
 		/* no overflow:hidden — it clipped the last column when a wide table (many
 		 * columns) was a touch too wide for its section. The four corner cells
 		 * (below) round the frame instead, and long values wrap (further below) so
@@ -92,13 +92,13 @@
 	 * and the last row's end cells (bottom). This is the frame's corners, not a
 	 * per-row pill. */
 	.cbi-section .table[id] .tr.table-titles .th:first-child,
-	#view table.fs-dt .tr.table-titles .th:first-child { border-top-left-radius: 12px; }
+	#view table.fs-dt .tr.table-titles .th:first-child { border-top-left-radius: var(--radius-lg); }
 	.cbi-section .table[id] .tr.table-titles .th:last-child,
-	#view table.fs-dt .tr.table-titles .th:last-child { border-top-right-radius: 12px; }
+	#view table.fs-dt .tr.table-titles .th:last-child { border-top-right-radius: var(--radius-lg); }
 	.cbi-section .table[id] .tr:last-child .td:first-child,
-	#view table.fs-dt .tr:last-child .td:first-child { border-bottom-left-radius: 12px; }
+	#view table.fs-dt .tr:last-child .td:first-child { border-bottom-left-radius: var(--radius-lg); }
 	.cbi-section .table[id] .tr:last-child .td:last-child,
-	#view table.fs-dt .tr:last-child .td:last-child { border-bottom-right-radius: 12px; }
+	#view table.fs-dt .tr:last-child .td:last-child { border-bottom-right-radius: var(--radius-lg); }
 	.cbi-section .table[id] .tr.placeholder .td { color: var(--dim); font-family: var(--font-sans); }
 
 	/* --- KEY/VALUE tables: system, memory ---
@@ -119,7 +119,7 @@
 
 	/* generic links/labels inside cards */
 	.cbi-section a { color: var(--accent); }
-	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: 10px; }
+	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: var(--radius); }
 
 	/* Inactive tab panes: the base [data-tab-title] rule sets height:0/overflow:hidden,
 	 * but that only collapses the content box — padding/border/margin still render as
@@ -163,7 +163,7 @@
 	 * ================================================================== */
 	.table {
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		overflow: hidden;
 		background: var(--panel);
 	}

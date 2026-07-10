@@ -11,7 +11,7 @@
 	 * ================================================================== */
 	form:has(> .cbi-map input[name="luci_username"]) {
 		max-width: 400px; margin: 7vh auto 40px;
-		background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+		background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
 		padding: 26px 26px 24px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map,
@@ -42,7 +42,7 @@
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-field input {
 		width: 100%; margin: 0; box-sizing: border-box;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: 10px; }
+	form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: var(--radius); }
 	/* a column, not a block: some auth plugins add a second action (Reset) and the
 	 * full-width buttons below carry margin:0, so they ended up glued together */
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions {
@@ -52,7 +52,7 @@
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn,
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions input[type="submit"] {
-		width: 100%; box-sizing: border-box; min-height: 44px; margin: 0; border-radius: 12px;
+		width: 100%; box-sizing: border-box; min-height: 44px; margin: 0; border-radius: var(--radius-lg);
 		background: var(--accent); color: var(--on-accent);
 		border: 0; font-weight: 700; font-size: 14px;
 	}

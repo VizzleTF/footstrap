@@ -30,7 +30,7 @@
 	select[multiple] { background-color: var(--panel2); color: var(--text); }
 	.td.cbi-value-field var { color: var(--accent); }
 	.td.cbi-value-field var.cbi-tooltip-container { border-bottom-color: var(--accent); }
-	.cbi-filebrowser { border-color: var(--border); background: var(--panel); border-radius: 12px; }
+	.cbi-filebrowser { border-color: var(--border); background: var(--panel); border-radius: var(--radius-lg); }
 	.cbi-filebrowser > * { border-bottom-color: var(--border); }
 	.cbi-filebrowser > ul > li:hover { background: var(--panel2); }
 	.cbi-filebrowser .upload { border-top-color: var(--border); }
@@ -45,7 +45,7 @@
 	.cbi-checkbox > input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
 	.cbi-checkbox > label {
 		display: inline-block; position: relative; margin: 0;
-		width: 40px; height: 22px; border-radius: 99px;
+		width: 40px; height: 22px; border-radius: var(--radius-pill);
 		background: var(--track); border: 1px solid var(--border);
 		cursor: pointer; transition: background .2s, border-color .2s; vertical-align: middle;
 	}
@@ -72,7 +72,7 @@
 		background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238b95a7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
 		background-repeat: no-repeat; background-position: right 12px center; background-size: 12px;
 		padding: 8px 34px 8px 12px;
-		border: 1px solid var(--border); border-radius: 10px;
+		border: 1px solid var(--border); border-radius: var(--radius);
 		color: var(--text); font-family: var(--font-sans); font-size: 13px;
 		line-height: 1.3; min-height: 38px; cursor: pointer;
 	}
@@ -92,11 +92,11 @@
 		::picker(select) {
 			appearance: base-select;
 			background: var(--panel); border: 1px solid var(--border);
-			border-radius: 12px; box-shadow: var(--fs-shadow-pop);
+			border-radius: var(--radius-lg); box-shadow: var(--fs-shadow-pop);
 			padding: 6px; margin-top: 6px;
 		}
 		select option {
-			padding: 8px 11px; border-radius: 8px; font-size: 13px;
+			padding: 8px 11px; border-radius: var(--radius-sm); font-size: 13px;
 			color: var(--text); background: transparent; min-height: 0;
 		}
 		select option::checkmark { display: none; }
@@ -120,7 +120,7 @@
 	textarea {
 		background: var(--panel2);
 		border: 1px solid var(--border);
-		border-radius: 10px;
+		border-radius: var(--radius);
 		color: var(--text);
 		padding: 8px 11px;
 		min-height: 38px;
@@ -166,7 +166,7 @@
 	.cbi-dynlist > .item {
 		background: var(--panel);
 		border: 1px solid var(--border);
-		border-radius: 8px;
+		border-radius: var(--radius-sm);
 		color: var(--text);
 		box-shadow: none;
 		margin: 0;
@@ -174,13 +174,13 @@
 	.cbi-dynlist > .item::after {
 		border-color: var(--border);
 		color: var(--danger);
-		border-radius: 0 8px 8px 0;
+		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 	}
 	/* text add-item = one bordered input group (input + + button attached) */
 	.cbi-dynlist > .add-item {
 		display: flex; align-items: stretch;
 		background: var(--panel2); border: 1px solid var(--border);
-		border-radius: 8px; overflow: hidden;
+		border-radius: var(--radius-sm); overflow: hidden;
 		transition: border-color .15s, box-shadow .15s;
 	}
 	.cbi-dynlist > .add-item:focus-within { border-color: var(--accent); box-shadow: var(--fs-focus-ring); }
@@ -196,7 +196,7 @@
 		display: inline-flex; align-items: stretch;
 		background: var(--panel2);
 		border: 1px solid var(--border);
-		border-radius: 10px;
+		border-radius: var(--radius);
 		overflow: hidden;
 		transition: border-color .15s, box-shadow .15s;
 	}
@@ -226,7 +226,7 @@
 	input[type="range"] {
 		-webkit-appearance: none; appearance: none;
 		width: 100%; height: 6px; min-height: 0; padding: 0;
-		background: var(--track); border: 0; border-radius: 99px;
+		background: var(--track); border: 0; border-radius: var(--radius-pill);
 		outline: none; box-shadow: none; cursor: pointer;
 	}
 	input[type="range"]::-webkit-slider-thumb {
@@ -239,11 +239,11 @@
 		width: 16px; height: 16px; border-radius: 50%;
 		background: var(--accent); border: 2px solid var(--panel); cursor: pointer;
 	}
-	input[type="range"]::-moz-range-track { background: var(--track); height: 6px; border-radius: 99px; }
+	input[type="range"]::-moz-range-track { background: var(--track); height: 6px; border-radius: var(--radius-pill); }
 	input[type="range"]:focus { box-shadow: var(--fs-focus-ring); }
 	.cbi-range-slider { display: inline-flex; align-items: center; gap: 12px; width: 100%; max-width: 100%; }
 	.cbi-range-slider-value {
-		background: var(--panel2); border: 1px solid var(--border); border-radius: 8px;
+		background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius-sm);
 		padding: 4px 9px; color: var(--accent); font-family: var(--font-mono);
 		font-weight: 600; font-size: 12px; white-space: nowrap;
 	}
