@@ -60,6 +60,23 @@
     docs/13. Это НЕ проявляется в dev-цикле (dev-sync копирует файлы как есть) —
     только в собранном пакете.
 
+14. **Неактивные вкладки-панели → фантомный скролл.** Вкладочные формы (Network →
+    DNS/Interfaces/DHCP, Firewall, Flash…) рендерят КАЖДУЮ вкладку как панель
+    `<… data-tab-title>` в DOM сразу; активную помечают `data-tab-active="true"`.
+    Bootstrap-база гасит неактивные `[data-tab-title] { height:0; opacity:0;
+    overflow:hidden }`. В footstrap этого мало: панель схлопывается в 0, но её
+    (клиппнутый) контент всё равно раздувает `document.documentElement.scrollHeight`
+    — страница листается на сотни px в пустоту ниже футера (DNS: +792px, Interfaces:
+    +585px). Причём панель бывает БЕЗ класса `.cbi-section` — dnsmasq рендерит
+    вкладки плоским `<div data-tab-title>`, поэтому узкий селектор
+    `.cbi-section[data-tab-title]` их пропускал. Лечение (styles/theme/30-tables.css):
+    `[data-tab-title]:not([data-tab-active="true"]) { display:none; padding:0;
+    margin:0; border:0 }` — вынести неактивную панель из потока целиком. Безопасно:
+    пункты меню вкладок несут `data-tab`, но НЕ `data-tab-title`, так что бар не
+    задет; переключение работает (клик → LuCI ставит `data-tab-active="true"` →
+    `:not()` раскрывает). Симптом ловится не скриншотом, а `scrollHeight − footer.bottom`
+    на любой вкладочной странице (должно быть ~0).
+
 ## Чек-лист файлов новой темы `luci-theme-mytheme`
 
 ```

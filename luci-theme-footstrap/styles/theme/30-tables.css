@@ -134,8 +134,14 @@
 	 * documentElement.scrollHeight by its (clipped) content, so multi-tab pages like
 	 * Network → Interfaces scrolled ~585px past the footer into blank space. Taking
 	 * the pane out of flow entirely is the only thing that removes that phantom
-	 * scroll. The active pane keeps its own [data-tab-active="true"] rules. */
-	.cbi-section[data-tab-title]:not([data-tab-active="true"]) {
+	 * scroll. The active pane keeps its own [data-tab-active="true"] rules.
+	 *
+	 * Match ANY [data-tab-title] pane, not just .cbi-section ones: Network → DNS
+	 * (dnsmasq) renders each tab as a plain <div data-tab-title> with no .cbi-section
+	 * class, so the narrower rule missed it and its inactive panes (the Host-records
+	 * table etc.) inflated the page ~750px past the footer. Tab-menu <li>s carry
+	 * data-tab but never data-tab-title, so the bar itself is untouched. */
+	[data-tab-title]:not([data-tab-active="true"]) {
 		display: none;
 		padding: 0;
 		margin: 0;
