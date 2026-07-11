@@ -8,7 +8,7 @@
 	:root[data-wallpaper="cats"] .fs-topwrap {
 		background-image: url(cats.svg);
 		background-repeat: repeat;
-		background-size: 520px auto;
+		background-size: 440px auto;
 	}
 	/* let the cats show through the footer too */
 	:root[data-wallpaper="cats"] footer.fs-footer { background: transparent; }
