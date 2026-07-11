@@ -85,23 +85,32 @@
 	 * customisable-select model (`appearance: base-select`), which renders the picker
 	 * in the DOM so we can theme it like the .cbi-dropdown menu. Progressive: gated on
 	 * @supports, so browsers without it keep the styled closed control + native list.
-	 * The closed control keeps its existing bg-image chevron; ::picker-icon hidden. */
+	 * The closed control keeps its existing bg-image chevron; ::picker-icon hidden.
+	 *
+	 * Scoped to `.cbi-value-field select` (LuCI form fields) ONLY, not every <select>:
+	 * a third-party app can mount a raw <select> outside the CBI form and drive it its
+	 * own way (podkop-plus's connection monitor rebuilds its device filter via
+	 * select.replaceChildren). Chrome's customizable-select ::picker is new (~Chrome
+	 * 135) and early builds mis-render such a select as a single-item list — the app's
+	 * dropdown then looks broken. Those app selects sit outside .cbi-value-field, so
+	 * this scope leaves them native (reliable, exactly like the bootstrap baseline);
+	 * the theme's own form selects keep the themed picker. */
 	@supports (appearance: base-select) {
-		select, select.cbi-input-select, .cbi-value-field select { appearance: base-select; }
-		select::picker-icon { display: none; }
+		.cbi-value-field select { appearance: base-select; }
+		.cbi-value-field select::picker-icon { display: none; }
 		::picker(select) {
 			appearance: base-select;
 			background: var(--panel); border: 1px solid var(--border);
 			border-radius: var(--radius-lg); box-shadow: var(--fs-shadow-pop);
 			padding: 6px; margin-top: 6px;
 		}
-		select option {
+		.cbi-value-field select option {
 			padding: 8px 11px; border-radius: var(--radius-sm); font-size: 13px;
 			color: var(--text); background: transparent; min-height: 0;
 		}
-		select option::checkmark { display: none; }
-		select option:hover, select option:focus-visible { background: var(--panel2); }
-		select option:checked { color: var(--accent); background: var(--accent-soft); }
+		.cbi-value-field select option::checkmark { display: none; }
+		.cbi-value-field select option:hover, .cbi-value-field select option:focus-visible { background: var(--panel2); }
+		.cbi-value-field select option:checked { color: var(--accent); background: var(--accent-soft); }
 	}
 
 	/* spinner / loading */
