@@ -31,6 +31,10 @@ DEV=0
 for a in "$@"; do
 	case "$a" in
 		--dev) DEV=1 ;;
+		# An unknown option used to fall through to `OUT="$a"` — so a typo like
+		# `--devv` silently made the script write the stylesheet to a file called
+		# "--devv" (and `dirname --devv` then died under set -e). Fail on it.
+		-*) echo "build-css: unknown option: $a" >&2; exit 1 ;;
 		*) OUT="$a" ;;
 	esac
 done
@@ -41,7 +45,8 @@ for d in styles styles/base styles/theme styles/pages; do
 done
 
 TMP="$OUT.tmp.$$"
-trap 'rm -f "$TMP"' EXIT
+# $TMP.min too: an awk failure used to leave it behind next to the real output.
+trap 'rm -f "$TMP" "$TMP.min"' EXIT
 mkdir -p "$(dirname "$OUT")"
 
 # glob expands in filename order
@@ -50,36 +55,123 @@ cat "$D"/styles/*.css \
     "$D"/styles/theme/*.css \
     "$D"/styles/pages/*.css > "$TMP"
 
-if [ "$DEV" -eq 0 ]; then
+# Strip /* ... */ comments, keeping /*! ... */ (the licence banner), and drop
+# indentation and blank lines.
+#
+# STRING-AWARE, deliberately. The old scanner just hunted for the next "/*" — it
+# had no idea what a string was, so `content: "/*"` would have opened a comment and
+# eaten every rule up to the next "*/". Nothing in the tree does that today, which
+# is exactly why it was worth fixing before something does: the only guard was the
+# brace counter below, and two such literals can balance each other and let whole
+# rules disappear in silence. url(...) data-URIs (quoted, full of punctuation) run
+# through here on every build, so this path has to be correct, not lucky.
+strip_comments() {
 	awk '
-		# Strip /* ... */ comments, keeping /*! ... */ (the license banner).
-		# CSS has no comment nesting and no string can contain */ in this
-		# stylesheet, so a character scan is enough.
-		BEGIN { inc = 0 }
+		BEGIN { inc = 0; q = "" }
 		{
-			line = $0; out = ""
-			while (length(line)) {
-				if (inc) {
-					p = index(line, "*/")
-					if (p == 0) { line = ""; break }
-					line = substr(line, p + 2); inc = 0
-					continue
+			line = $0; out = ""; i = 1; n = length(line)
+			while (i <= n) {
+				c = substr(line, i, 1)
+				if (inc) {                                  # inside /* ... */
+					if (c == "*" && substr(line, i + 1, 1) == "/") { inc = 0; i += 2; continue }
+					i++; continue
 				}
-				p = index(line, "/*")
-				if (p == 0) { out = out line; line = ""; break }
-				out = out substr(line, 1, p - 1)
-				# keep the banner from the marker on — appending the WHOLE line
-				# here (as this used to) duplicated any text before a mid-line /*!
-				if (substr(line, p + 2, 1) == "!") { out = out substr(line, p); line = ""; break }
-				line = substr(line, p + 2); inc = 1
+				if (q != "") {                              # inside a "..." or '"'"'...'"'"' string
+					out = out c
+					if (c == "\\") { out = out substr(line, i + 1, 1); i += 2; continue }
+					if (c == q) q = ""
+					i++; continue
+				}
+				if (c == "\"" || c == "'"'"'") { q = c; out = out c; i++; continue }
+				if (c == "/" && substr(line, i + 1, 1) == "*") {
+					# the banner: keep it, and everything after it on this line
+					if (substr(line, i + 2, 1) == "!") { out = out substr(line, i); break }
+					inc = 1; i += 2; continue
+				}
+				out = out c; i++
 			}
 			sub(/^[ \t]+/, "", out)
 			sub(/[ \t]+$/, "", out)
 			if (length(out)) print out
 		}
-	' "$TMP" > "$TMP.min"
-	mv "$TMP.min" "$TMP"
-fi
+	' "$1"
+}
+
+# Squeeze the whitespace the comment stripper leaves behind. uhttpd does not
+# compress, so every one of these bytes is a wire byte AND a flash byte.
+#
+# WHAT IS REMOVED (all of it mechanical, none of it clever):
+#   - the space after `:` in `color: red`
+#   - spaces either side of `{ } ; ,`
+#   - the last `;` before `}`
+#   - the newline after every declaration (one line per RULE, not per declaration)
+# Worth ~9.5 KB on this sheet. A real minifier (lightningcss) gets ~13 KB, but the
+# extra 3.5 KB comes from rewriting colours and merging rules — transforms that can
+# change behaviour. These cannot: they only delete whitespace that CSS ignores.
+#
+# WHAT IS DELIBERATELY LEFT ALONE:
+#   - a single space between selectors: `.a .b` is a DESCENDANT combinator, and
+#     `.a.b` is a different selector entirely. Runs of whitespace collapse to one
+#     space; that last space stays.
+#   - spaces inside calc(): `calc(var(--x) * 5 / 6)` REQUIRES them around `*` and
+#     `/`, and `calc(100% - 8px)` around the `-`. Nothing here touches those.
+#   - `>` `+` `~` keep their spaces. Stripping them is safe but buys ~200 bytes.
+#   - anything inside a string. This scanner is string-aware, like the comment one:
+#     every data-URI in the tree is quoted and full of `:`, `;` and spaces.
+#   - one newline after `}`, so the shipped file is still greppable and a devtools
+#     line number still means something.
+squeeze() {
+	awk '
+		BEGIN { q = ""; ban = 0 }
+		{
+			line = $0
+			# The /*! ... */ licence banner is the one comment strip_comments keeps, and
+			# it must survive BYTE FOR BYTE: it is an Apache-2.0 attribution notice, not
+			# formatting. Squeezing it turned "Twitter, Inc" into "Twitter,Inc" and glued
+			# every line together. Copy it out untouched, newlines and all.
+			if (ban) { print line; if (index(line, "*/")) ban = 0; next }
+			if (substr(line, 1, 3) == "/*!") {
+				print line
+				if (!index(substr(line, 4), "*/")) ban = 1
+				next
+			}
+			out = ""; i = 1; n = length(line)
+			while (i <= n) {
+				c = substr(line, i, 1)
+				if (q != "") {                       # inside a string: copy verbatim
+					out = out c
+					if (c == "\\") { out = out substr(line, i + 1, 1); i += 2; continue }
+					if (c == q) q = ""
+					i++; continue
+				}
+				if (c == "\"" || c == "'"'"'") { q = c; out = out c; i++; continue }
+				if (c == " " || c == "\t") {         # collapse a run of whitespace to one space
+					while (i <= n && (substr(line, i, 1) == " " || substr(line, i, 1) == "\t")) i++
+					prev = (length(out) ? substr(out, length(out), 1) : "")
+					nxt  = (i <= n ? substr(line, i, 1) : "")
+					# drop it entirely next to a delimiter; otherwise it may be a combinator
+					if (prev == "" || prev == "{" || prev == "}" || prev == ";" || prev == "," || prev == ":")
+						continue
+					if (nxt == "{" || nxt == "}" || nxt == ";" || nxt == "," || nxt == "")
+						continue
+					out = out " "
+					continue
+				}
+				out = out c; i++
+			}
+			printf "%s", out
+			# a newline only after a closing brace — keeps rules on their own lines
+			if (length(out) && substr(out, length(out), 1) == "}") printf "\n"
+		}
+		END { printf "\n" }
+	' "$1" | sed 's/;}/}/g'
+}
+
+# The brace check runs on a COMMENT-STRIPPED copy, always — including in --dev,
+# where comments survive into the output. It used to count braces in the raw file,
+# so a comment containing a stray "{" (prose, an example) failed the build on
+# perfectly valid CSS.
+strip_comments "$TMP" > "$TMP.min"
 
 # Fail loudly rather than ship a stylesheet with an unbalanced block. The braces
 # are matched as bracket expressions: a bare /{/ is an interval-expression
@@ -87,8 +179,30 @@ fi
 awk '{ o += gsub(/[{]/, "&"); c += gsub(/[}]/, "&") } END {
 	if (o != c) { printf "build-css: unbalanced braces (%d { vs %d })\n", o, c > "/dev/stderr"; exit 1 }
 	if (o < 100) { print "build-css: suspiciously few rules" > "/dev/stderr"; exit 1 }
-}' "$TMP"
+}' "$TMP.min"
+
+if [ "$DEV" -eq 0 ]; then
+	# comments gone; now squeeze the whitespace CSS ignores
+	squeeze "$TMP.min" > "$TMP"
+	rm -f "$TMP.min"
+else
+	# --dev keeps comments AND formatting: this output is for reading, not shipping
+	rm -f "$TMP.min"
+fi
 
 mv "$TMP" "$OUT"
 trap - EXIT
-echo "build-css: $(wc -c < "$OUT" | tr -d ' ') bytes -> $OUT"
+
+SIZE=$(wc -c < "$OUT" | tr -d ' ')
+echo "build-css: $SIZE bytes -> $OUT"
+
+# SIZE BUDGET. uhttpd ships no compression at all (there is no gzip code in it —
+# docs/18), so every byte here is a byte on the wire, on a device whose whole point
+# is to be small. The gate is deliberately checked only for the real minified build.
+# Raise it consciously, or not at all.
+BUDGET=${FS_CSS_BUDGET:-117760}   # 115 KB — the sheet is ~108 KB, so this is real headroom, not slack
+if [ "$DEV" -eq 0 ] && [ "$SIZE" -gt "$BUDGET" ]; then
+	echo "build-css: cascade.css is $SIZE bytes, over the $BUDGET-byte budget." >&2
+	echo "build-css: uhttpd cannot compress it, so this is $SIZE bytes on the wire." >&2
+	exit 1
+fi

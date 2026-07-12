@@ -24,11 +24,26 @@ LUCI_TITLE:=Footstrap Theme
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
 
-# Ship CSS/JS verbatim — the LuCI minifier mangles modern CSS (:has(),
-# color-mix(), nested calc()) and ES syntax, which breaks the layout. The CSS is
-# minified by build-css.sh instead, which only drops comments and indentation.
+# CSS: ship verbatim. luci.mk would run it through csstidy, which is old enough to
+# mangle modern CSS (:has(), color-mix(), nested calc()) and break the layout. The
+# stylesheet is minified by build-css.sh instead, which only drops comments and
+# indentation and understands strings.
 LUCI_MINIFY_CSS:=0
-LUCI_MINIFY_JS:=0
+#
+# JS: DO let luci.mk minify it (LUCI_MINIFY_JS defaults to 1, so this is the absence
+# of an opt-out, not an opt-in). That is jsmin, built from luci-base/src/jsmin.c —
+# already on the buildbot, since luci-base/host is a build dependency — and it is what
+# every other LuCI package uses. Half of this theme's JS is comments (~41 KB of 83 KB),
+# and uhttpd serves /www with NO compression, so those are wire bytes AND flash bytes.
+# jsmin takes the shipped JS from 83 KB to 35 KB, comments stay in git.
+#
+# The catch, and why the gates exist: jsmin decides `/` = regex-or-division from a
+# ONE-character lookback, and `n` (from `return`) and `>` (from `=>`) are not on its
+# allow-list — so `return /re/` can make it eat the rest of the file AND EXIT 0
+# (openwrt/luci#8299). Two things stop that reaching a release:
+#   - eslint `wrap-regex` forbids writing the hazardous shape at all;
+#   - tools/jsmin-verify.mjs proves jsmin's output is TOKEN-IDENTICAL to the source.
+# Both run in CI. See CLAUDE.md.
 
 PKG_LICENSE:=Apache-2.0
 
@@ -60,6 +75,10 @@ define Package/luci-theme-footstrap/postrm
 				uci set luci.main.mediaurlbase=/luci-static/bootstrap ;;
 	esac
 	uci commit luci
+	# The "have we been installed before" marker that uci-defaults writes (it is what
+	# tells a fresh install from an upgrade). Removing it here means an uninstall
+	# followed by a reinstall is correctly treated as fresh again.
+	rm -rf /usr/share/luci-theme-footstrap >/dev/null 2>&1 || true
 	rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/* >/dev/null 2>&1 || true
 	/etc/init.d/rpcd restart >/dev/null 2>&1 || true
 }

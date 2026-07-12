@@ -1,5 +1,24 @@
 #!/bin/sh
 
+# HAVE WE BEEN INSTALLED BEFORE?
+#
+# The rule is: a FRESH install may make its sidebar layout the active theme; an
+# UPGRADE must never change whatever theme the user is currently using. That was
+# expressed as `[ "$PKG_UPGRADE" = 1 ]`, and in production PKG_UPGRADE is never set
+# — apk does not export it and the package's postinst does not either, so only
+# dev-sync.sh (which sets it by hand) ever took the upgrade branch. On a real router
+# the guard was dead, and an upgrade that happened to find an empty mediaurlbase
+# would activate this theme behind the user's back.
+#
+# A marker file on the rootfs is the state that actually distinguishes the two:
+# it exists if and only if this script has completed at least once.
+FS_MARKER=/usr/share/luci-theme-footstrap/.installed
+if [ "$PKG_UPGRADE" = 1 ] || [ -f "$FS_MARKER" ]; then
+	PKG_UPGRADE=1
+else
+	PKG_UPGRADE=0
+fi
+
 # Remove any previously registered footstrap theme entries. Older versions
 # registered six dark/light variants — mode (dark/light) and palette are now
 # client-side toggles (Appearance popover), so only the layout needs a
@@ -55,5 +74,10 @@ uci commit luci
 # the next request rather than after a reboot
 rm -f /tmp/luci-indexcache* 2>/dev/null
 rm -rf /tmp/luci-modulecache 2>/dev/null
+
+# Drop the marker LAST, so a run that dies half-way is still treated as a fresh
+# install next time rather than as an upgrade.
+mkdir -p "$(dirname "$FS_MARKER")" 2>/dev/null
+: > "$FS_MARKER" 2>/dev/null
 
 exit 0

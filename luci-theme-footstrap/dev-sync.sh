@@ -56,9 +56,16 @@ cd /www/luci-static
 ln -sfn $N $N-top
 # The six pre-consolidation variant names are gone. Sweep any left by an older
 # run of this script, or the router keeps serving a theme LuCI no longer lists.
-rm -f $N/$N $N-top/$N-top $N-dark $N-light $N-top-dark $N-top-light 2>/dev/null
+#
+# rm -rf, not rm -f: the legacy variants are DIRECTORIES (/www/luci-static/
+# footstrap-dark/, and the matching template dirs). `rm -f` refuses to remove a
+# directory, the error was swallowed by 2>/dev/null, and this block runs without
+# set -e — so the sweep silently did nothing and the router went on serving media
+# for a theme that is no longer in luci.themes. Every path here is a literal built
+# from $N; there is no glob and no user input.
+rm -rf $N/$N $N-top/$N-top $N-dark $N-light $N-top-dark $N-top-light
 cd /usr/share/ucode/luci/template/themes
-rm -f $N/$N $N-top/$N-top $N-dark $N-light $N-top-dark $N-top-light 2>/dev/null
+rm -rf $N/$N $N-top/$N-top $N-dark $N-light $N-top-dark $N-top-light
 touch /lib/apk/db/installed
 rm -f /tmp/luci-indexcache*"
 
