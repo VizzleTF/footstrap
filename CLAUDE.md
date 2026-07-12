@@ -159,6 +159,7 @@ the OpenWrt buildbot has no node. Run them before pushing:
 npm run lint         # eslint (theme JS) + stylelint (styles/ tree)
 npm run a11y         # axe-core, WCAG 2.2 AA, over docs/gallery.html
 npm run export-tier  # the --*-color-* contract with third-party luci-app-*
+npm run i18n         # the .pot is current and every string is translated
 ```
 
 - **eslint** needs `ecmaFeatures.globalReturn` — a LuCI resource file is evaluated inside a
@@ -186,6 +187,26 @@ npm run export-tier  # the --*-color-* contract with third-party luci-app-*
   a fill, and that `high`/`medium`/`low` are three *different* colours — see the ramp note in
   `02-tokens.css`. That last check exists because they were once three aliases of one token
   and **a flat colour passes every contrast threshold there is**; only a spread check fails on it.
+
+## i18n — a `_()` with no catalogue is silently English
+
+Strings are wrapped in `_()` in the theme JS and the `.ut` templates, and `partials/head.ut`
+already loads LuCI's client-side catalogue (`admin/translations/<lang>`). But `luci.mk`
+derives `LUCI_LANGUAGES` from **`po/*`**, so with no `po/` directory no language package was
+ever built and every `_()` fell through to its English msgid — the Appearance popover said
+"Palette"/"Rounding"/"Cats" on a Russian LuCI and nothing reported a thing. **A missing
+translation cannot fail loudly by construction; that is why `--check` is a CI gate.**
+
+- `luci-theme-footstrap/update-po.sh` rescans and merges; `--check` fails if the `.pot` is
+  stale or any msgstr is empty. Run it after adding or changing **any** `_()` string.
+- It uses LuCI's own `build/i18n-scan.pl`, which knows how to lex a `.ut` (it rewrites the
+  template into JS before xgettext) and also picks up the `rpcd` ACL title. A grep for `_('…')`
+  would miss the ACL string and choke on any apostrophe.
+- **Nothing to add to the Makefile**: `LUCI_TYPE`/`LUCI_BASENAME` resolve to `theme`/`footstrap`,
+  `LUCI_LANG.ru` is already defined in `luci.mk`, and it runs `po2lmo` itself → the package
+  `luci-i18n-footstrap-ru` appears as soon as `po/ru/footstrap.po` exists.
+- Verified end-to-end on the router (compiled `.lmo` → `uci set luci.main.lang=ru`), not
+  merely by `msgfmt` exiting 0.
 
 ## Build the .apk (distribution)
 

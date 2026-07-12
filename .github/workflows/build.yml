@@ -55,6 +55,15 @@ jobs:
       - name: CSS/JS audit (undefined vars, shadowed rules, stray !important, colour literals)
         run: python3 .claude/skills/footstrap-audit/audit.py --strict
 
+      # A string wrapped in _() that has no translation renders in ENGLISH, silently —
+      # which is how the whole Appearance popover stayed English on a Russian LuCI while
+      # every string in it was already marked translatable. Fails if the .pot is stale
+      # (a string was added without rerunning update-po.sh) or if any msgstr is empty.
+      - name: i18n (translation catalogue current and complete)
+        run: |
+          sudo apt-get update && sudo apt-get install -y gettext
+          luci-theme-footstrap/update-po.sh --check
+
   # npm-based gates. These live HERE and nowhere else: the OpenWrt buildbot has no
   # node, and luci.mk never needs one — it copies htdocs/ and ucode/ verbatim. Nothing
   # in package.json is shipped.

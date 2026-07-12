@@ -1,0 +1,216 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:888
+#: ucode/template/themes/footstrap/partials/appearance.ut:11
+#: ucode/template/themes/footstrap/partials/appearance.ut:13
+#: ucode/template/themes/footstrap/partials/appearance.ut:16
+msgid "Appearance"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:820
+msgid "Auto"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:852
+msgid "Auto-collapse"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:938
+msgid "Cancel"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:836
+msgid "Cats"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:870
+msgid "Check"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:933
+msgid "Close"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1064
+#: ucode/template/themes/footstrap/header.ut:48
+msgid "Collapse menu"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:822
+msgid "Dark"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:936
+msgid ""
+"Download and install the latest Footstrap release from GitHub? The page "
+"reloads when done."
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:986
+msgid "Downloading and installing…"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1064
+msgid "Expand menu"
+msgstr ""
+
+#: root/usr/share/rpcd/acl.d/luci-theme-footstrap.json:3
+msgid "Footstrap theme self-update (install the latest release)"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:26
+msgid "Go to firmware upgrade..."
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:16
+msgid "Go to password configuration..."
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:33
+msgid "JavaScript required!"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:851
+msgid "Keep open"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:821
+msgid "Light"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:957
+msgid "Log in again"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/logout.ut:11
+#: ucode/template/themes/footstrap/partials/logout.ut:13
+#: ucode/template/themes/footstrap/partials/logout.ut:16
+msgid "Logout"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/footer.ut:35
+msgid "Lua compatibility mode active"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:27
+msgid "Memory"
+msgstr ""
+
+#: ucode/template/themes/footstrap-top/header.ut:36
+#: ucode/template/themes/footstrap/header.ut:45
+#: ucode/template/themes/footstrap/header.ut:57
+msgid "Menu"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:863
+#: htdocs/luci-static/resources/menu-footstrap-common.js:904
+msgid "New version available"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:24
+msgid ""
+"No changes to settings will be stored and are lost after rebooting. This "
+"mode should only be used to install a firmware upgrade"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:13
+msgid "No password set!"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:835
+#: htdocs/luci-static/resources/menu-footstrap-common.js:871
+msgid "Off"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:826
+#: htdocs/luci-static/resources/menu-footstrap-common.js:830
+msgid "Palette"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:840
+#: htdocs/luci-static/resources/menu-footstrap-common.js:841
+msgid "Rounding"
+msgstr ""
+
+#: ucode/template/themes/footstrap-top/header.ut:24
+#: ucode/template/themes/footstrap/header.ut:37
+msgid "Skip to content"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:27
+msgid "Storage"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:849
+#: htdocs/luci-static/resources/menu-footstrap-common.js:853
+msgid "Submenus"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:27
+msgid "System"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:23
+msgid "System running in recovery (initramfs) mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:818
+#: htdocs/luci-static/resources/menu-footstrap-common.js:823
+msgid "Theme"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:14
+msgid ""
+"There is no password set on this router. Please configure a root password to "
+"protect the web interface."
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:939
+msgid "Update"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:930
+msgid "Update Footstrap"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:932
+msgid "Update failed"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:953
+msgid ""
+"Update installed. The router restarted its session service, so you have been "
+"logged out — sign in again to load the new theme."
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:864
+msgid "Update now"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:970
+msgid "Updated. Reloading…"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:868
+#: htdocs/luci-static/resources/menu-footstrap-common.js:872
+msgid "Updates"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:833
+#: htdocs/luci-static/resources/menu-footstrap-common.js:837
+msgid "Wallpaper"
+msgstr ""
+
+#: ucode/template/themes/footstrap/partials/notices.ut:34
+msgid ""
+"You must enable JavaScript in your browser or LuCI will not work properly."
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:963
+msgid "timed out waiting for the installer"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:932
+msgid "unknown error"
+msgstr ""

@@ -7,7 +7,8 @@
     "lint:js": "eslint luci-theme-footstrap/htdocs",
     "lint:css": "stylelint \"luci-theme-footstrap/styles/**/*.css\"",
     "a11y": "node tools/a11y-gallery.mjs",
-    "export-tier": "node tools/export-tier.mjs"
+    "export-tier": "node tools/export-tier.mjs",
+    "i18n": "luci-theme-footstrap/update-po.sh --check"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
