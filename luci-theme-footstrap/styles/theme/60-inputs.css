@@ -24,8 +24,12 @@
 	 * them here instead of relying on theme/55-buttons.css being concatenated later.
 	 * :where() keeps the exclusion at zero specificity, so the native <select>
 	 * rule further down still wins its own font. */
+	/* .cbi-value-description is LuCI's inline HELP SENTENCE, and it lives INSIDE
+	 * .cbi-value-field — so this rule was setting prose in JetBrains Mono. Values are
+	 * monospace; the sentence explaining them is not. */
 	.cbi-value-field,
-	.cbi-value-field *:where(:not(.btn, .cbi-button)) { font-family: var(--font-mono); }
+	.cbi-value-field *:where(:not(.btn, .cbi-button, .cbi-value-description)) { font-family: var(--font-mono); }
+	.cbi-value-description { font-family: var(--font-sans); }
 
 	/* --- live components that bypassed the theme --- */
 	select[multiple] { background-color: var(--panel2); color: var(--text); }
@@ -53,10 +57,22 @@
 	.cbi-checkbox > label::after {
 		content: ""; position: absolute; top: 2px; left: 2px;
 		width: 16px; height: 16px; border-radius: 50%;
-		background: var(--dim); transition: left .22s cubic-bezier(.4,0,.2,1), background .2s;
+		background: var(--dim);
+		/* transform, not `left`: `left` is a layout property, so the knob re-laid out
+		 * the row on every frame of the slide. translateX is composited. */
+		transform: translateX(0);
+		transition: transform .22s cubic-bezier(.4,0,.2,1), background .2s;
 	}
 	.cbi-checkbox > input[type="checkbox"]:checked + label { background: var(--accent); border-color: transparent; }
-	.cbi-checkbox > input[type="checkbox"]:checked + label::after { left: 20px; background: var(--on-accent); }
+	.cbi-checkbox > input[type="checkbox"]:checked + label::after { transform: translateX(18px); background: var(--on-accent); }
+	/* The real checkbox is `opacity: 0; width: 0; height: 0` above, so base's
+	 * `input[type=checkbox]:focus::before` glow paints on a 0x0 box — invisible. The
+	 * <label> IS the switch, so the ring has to go there. Without this, the single
+	 * most common control in LuCI showed nothing at all under keyboard focus. */
+	.cbi-checkbox > input[type="checkbox"]:focus-visible + label {
+		border-color: var(--accent);
+		box-shadow: var(--fs-focus-ring);
+	}
 	.cbi-checkbox > input[type="checkbox"]:disabled + label { opacity: .5; cursor: not-allowed; }
 
 	/* native file input */
@@ -245,7 +261,7 @@
 		-webkit-appearance: none; appearance: none;
 		width: 16px; height: 16px; border-radius: 50%;
 		background: var(--accent); border: 2px solid var(--panel);
-		box-shadow: 0 1px 3px rgba(0,0,0,.3); cursor: pointer;
+		box-shadow: var(--fs-shadow); cursor: pointer;
 	}
 	input[type="range"]::-moz-range-thumb {
 		width: 16px; height: 16px; border-radius: 50%;

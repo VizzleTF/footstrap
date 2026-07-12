@@ -21,43 +21,65 @@ function isFootstrapTheme() {
 	return String(L.env.media || '').indexOf('footstrap') >= 0;
 }
 
-/* section title -> grid role. Titles via _() to match the stock locale. */
-function roleMap() {
-	return { [_('System')]: 'sys', [_('Memory')]: 'mem', [_('Storage')]: 'sto' };
-}
+/* section title -> grid role. Titles via _() to match the stock locale. Built once
+ * at module load: it used to be rebuilt on every call, i.e. an object allocation
+ * plus three _() lookups on every poll tick. */
+const ROLES = { [_('System')]: 'sys', [_('Memory')]: 'mem', [_('Storage')]: 'sto' };
 
 function sectionTitle(sec) {
 	const h = sec.querySelector('.cbi-title h3');
 	return (h && h.firstChild) ? String(h.firstChild.nodeValue || '').trim() : '';
 }
 
+/* the wrapper we built, so the poll-tick fast path costs one property read */
+let wrapEl = null;
+
 function arrange() {
 	/* the theme's SPA nav can leave this observer wired while another page
 	 * renders into #view — detach as soon as the route stops being the overview,
 	 * instead of re-running on every mutation of every subsequent page. Both the
-	 * server template and the SPA router stamp body[data-page]. */
+	 * server template and the SPA router stamp body[data-page] with the DISPATCH
+	 * path, so /admin/status (firstchild -> overview) matches too. */
 	if ((document.body.getAttribute('data-page') || '') !== 'admin-status-overview') {
 		stopWatch();
 		return;
 	}
 	const view = document.getElementById('view');
 	if (!view) return;
-	const map = roleMap(), found = {};
+
+	/* Fast path — this is where the poll lands, once a second, forever.
+	 *
+	 * The stock poll updates each section IN PLACE (dom.content) and never
+	 * rebuilds the .cbi-section wrappers, so our grid survives untouched and there
+	 * is nothing to do. Proving that used to cost a querySelectorAll over #view's
+	 * children plus a sectionTitle() DOM dig per section, every tick, before
+	 * reaching the "already wrapped" bail-out at the bottom. Now it costs an
+	 * isConnected check. Deliberately NOT a disconnect(): if some future
+	 * luci-mod-status ever DOES rebuild a section, the wrapper loses its children
+	 * and the slow path below rebuilds the grid — the layout self-heals instead of
+	 * being permanently broken by a stale assumption. */
+	if (wrapEl && wrapEl.isConnected && wrapEl.parentElement === view && wrapEl.children.length === 3)
+		return;
+
+	const found = {};
 	view.querySelectorAll(':scope > .cbi-section').forEach((sec) => {
-		const r = map[sectionTitle(sec)];
+		const r = ROLES[sectionTitle(sec)];
 		if (r && !found[r]) found[r] = sec;
 	});
 	/* wait until all three stock sections exist */
 	if (!(found.sys && found.mem && found.sto)) return;
-	/* already wrapped? nothing to do (poll re-render lands here every time) */
-	if (found.sys.parentElement && found.sys.parentElement.classList.contains('fs-ovl'))
+	/* already wrapped? (first tick after a rebuild re-finds the existing grid) */
+	if (found.sys.parentElement && found.sys.parentElement.classList.contains('fs-ovl')) {
+		wrapEl = found.sys.parentElement;
 		return;
+	}
 	const wrap = document.createElement('div');
 	wrap.className = 'fs-ovl';
 	found.sys.parentNode.insertBefore(wrap, found.sys);
 	found.sys.classList.add('fs-ovl-sys'); wrap.appendChild(found.sys);
 	found.mem.classList.add('fs-ovl-mem'); wrap.appendChild(found.mem);
 	found.sto.classList.add('fs-ovl-sto'); wrap.appendChild(found.sto);
+	wrapEl = wrap;
 }
 
 /* Stock sections render/re-render async (they sort after us and repaint every
@@ -72,6 +94,7 @@ function stopWatch() {
 	if (observer) observer.disconnect();
 	observer = null;
 	observedView = null;
+	wrapEl = null;	/* the grid belongs to the #view we are leaving */
 }
 function watch() {
 	const view = document.getElementById('view');

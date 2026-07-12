@@ -7,7 +7,11 @@
 -#}
 <a class="fs-brand" href="{{ dispatcher.build_url() }}">
 	<span class="fs-logo">
-		<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="#fff" stroke="none"/></svg>
+		{# currentColor, not a baked #fff: .fs-logo sets `color: var(--on-accent)`, so the
+		   glyph is the same ink every other thing sitting on an accent fill uses, and it
+		   follows the palette and the light/dark mode like everything else. This was the
+		   only icon in the theme that could not. #}
+		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="currentColor" stroke="none"/></svg>
 	</span>
-	<span class="fs-wordmark">{{ striptags(boardinfo.hostname ?? 'OpenWrt') }}</span>
+	<span class="fs-wordmark">{{ entityencode(striptags(boardinfo.hostname ?? 'OpenWrt'), true) }}</span>
 </a>

@@ -56,7 +56,7 @@ function renderTabMenu(tree, url, level) {
 	let activeNode = null;
 
 	children.forEach(child => {
-		const isActive = (L.env.dispatchpath[3 + (level || 0)] == child.name);
+		const isActive = (L.env.dispatchpath[3 + (level || 0)] === child.name);
 		ul.appendChild(E('li', { 'class': 'tabmenu-item-%s %s'.format(child.name, isActive ? 'active' : '') }, [
 			E('a', { 'href': L.url(url, child.name) }, [ _(child.title) ])
 		]));
@@ -64,7 +64,7 @@ function renderTabMenu(tree, url, level) {
 			activeNode = child;
 	});
 
-	if (ul.children.length == 0)
+	if (ul.children.length === 0)
 		return E([]);
 
 	container.appendChild(ul);
@@ -127,13 +127,35 @@ function scheduleTabFit() {
 	_tabFitPending = true;
 	requestAnimationFrame(() => { _tabFitPending = false; fitTabStrips(); });
 }
+/* Did this batch of mutations actually add or remove a tab strip?
+ *
+ * The observer below exists for exactly one reason — to catch a view that renders
+ * its own .cbi-tabmenu after navigation. But it used to fire fitTabStrips() on
+ * ANY mutation, and LuCI's poll rewrites page content once a second, so on a
+ * polled page (Overview, Processes) we measured every strip on the page every
+ * second: getClientRects() and offsetTop are layout reads, i.e. a forced synchronous
+ * reflow per strip per tick, to discover the tabs had not moved. Nothing here
+ * depends on content, only on strips appearing; width changes are covered by the
+ * resize listener above. */
+function tabStripTouched(mutations) {
+	const SEL = '.tabs, .cbi-tabmenu';
+	for (const m of mutations)
+		for (const list of [ m.addedNodes, m.removedNodes ])
+			for (const n of list) {
+				if (n.nodeType !== 1) continue;
+				if (n.matches(SEL) || n.querySelector(SEL)) return true;
+			}
+	return false;
+}
 let _tabFitWired = false;
 function wireTabFit() {
 	if (_tabFitWired) return;
 	_tabFitWired = true;
 	window.addEventListener('resize', scheduleTabFit);
 	/* catch a view rendering its own .cbi-tabmenu after navigation */
-	new MutationObserver(scheduleTabFit).observe(document.body, { childList: true, subtree: true });
+	new MutationObserver((mutations) => {
+		if (tabStripTouched(mutations)) scheduleTabFit();
+	}).observe(document.body, { childList: true, subtree: true });
 }
 
 /* modes -> #modemenu; drives the injected renderMainMenu for the active mode */
@@ -193,14 +215,19 @@ function applyWallpaper(val) {
 	if (val === 'cats') { lsSet('fs-wallpaper', 'cats'); root.setAttribute('data-wallpaper', 'cats'); }
 	else { lsDel('fs-wallpaper'); root.removeAttribute('data-wallpaper'); }
 }
+const _mqDark = window.matchMedia('(prefers-color-scheme: dark)');
 function applyMode(val) {
 	const root = document.querySelector(':root');
 	if (val === 'auto') lsDel('fs-darkmode');
 	else lsSet('fs-darkmode', val === 'dark' ? 'true' : 'false');
-	const dark = (val === 'dark') ||
-		(val === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+	const dark = (val === 'dark') || (val === 'auto' && _mqDark.matches);
 	root.setAttribute('data-darkmode', dark ? 'true' : 'false');
 }
+/* "Auto" means "follow the OS" — but it only did so at page load, so an OS that
+ * flips to dark on its own schedule left the open page in light until a reload. */
+_mqDark.addEventListener('change', () => {
+	if (currentMode() === 'auto') applyMode('auto');
+});
 function applyPalette(val) {
 	const root = document.querySelector(':root');
 	/* footstrap (GitHub colours) is the default = bare :root, no attr; hicontrast is
@@ -243,36 +270,61 @@ function applyAutoCollapse(val) {
 		document.querySelectorAll('#topmenu > li.open:not(.active)')
 			.forEach(li => li.classList.remove('open'));
 	}
+
+	/* This file can only reach the DOM. The sidebar layout owns two other pieces of
+	 * the same state — the remembered "Keep open" set (localStorage) and the
+	 * aria-expanded flag on each trigger — and neither is visible from here, so
+	 * folding the sections above left them behind: the next navigation re-rendered
+	 * the menu from the stale remembered set and unfolded everything again. Tell the
+	 * layout instead of reaching across into it. */
+	document.dispatchEvent(new CustomEvent('fs-autocollapse', { detail: { on } }));
 }
 
-/* one segmented control; highlights the active option, calls onPick on change */
-function segControl(current, opts, onPick) {
-	const wrap = E('div', { 'class': 'fs-seg', 'role': 'group' });
+/* One segmented control; highlights the active option, calls onPick on change.
+ *
+ * `label` is not decoration: the visible caption is a sibling <div class="fs-ap-label">
+ * that nothing associated with the control, and the selected option was carried by
+ * a CSS class alone. A screen reader got an unnamed group of unrelated buttons with
+ * no indication of which one was in effect. This is a radio group — say so. */
+function segControl(current, opts, onPick, label) {
+	const wrap = E('div', { 'class': 'fs-seg', 'role': 'radiogroup', 'aria-label': label || '' });
 	opts.forEach(o => {
+		const active = (o.val === current);
 		const b = E('button', {
 			'type': 'button',
-			'class': o.val === current ? 'active' : '',
+			'class': active ? 'active' : '',
+			'role': 'radio',
+			'aria-checked': active ? 'true' : 'false',
 			'data-val': o.val
 		}, [ o.label ]);
 		b.addEventListener('click', () => {
 			onPick(o.val);
-			wrap.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+			wrap.querySelectorAll('button').forEach(x => {
+				const on = (x === b);
+				x.classList.toggle('active', on);
+				x.setAttribute('aria-checked', on ? 'true' : 'false');
+			});
 		});
 		wrap.appendChild(b);
 	});
 	return wrap;
 }
 
-/* a range slider with a live px readout; onInput fires continuously as it drags */
-function sliderControl(current, min, max, onInput) {
+/* A range slider with a live px readout; onInput fires continuously as it drags.
+ * Without the label and valuetext a screen reader announced a bare "slider, 12" —
+ * no idea what it adjusts, and no unit. */
+function sliderControl(current, min, max, onInput, label) {
 	const out = E('span', { 'class': 'fs-range-val' }, [ current + 'px' ]);
 	const input = E('input', {
 		'type': 'range', 'class': 'fs-range',
-		'min': String(min), 'max': String(max), 'step': '1', 'value': String(current)
+		'min': String(min), 'max': String(max), 'step': '1', 'value': String(current),
+		'aria-label': label || '',
+		'aria-valuetext': current + 'px'
 	});
 	input.addEventListener('input', () => {
 		const v = parseInt(input.value, 10);
 		out.firstChild.data = v + 'px';
+		input.setAttribute('aria-valuetext', v + 'px');
 		onInput(v);
 	});
 	return E('div', { 'class': 'fs-rangewrap' }, [ input, out ]);
@@ -280,7 +332,8 @@ function sliderControl(current, min, max, onInput) {
 
 /* ---- SPA client router (variant C) ---------------------------------------
  *
- * Kills the full page reload for `view`-type menu nodes (~89% of pages). LuCI
+ * Kills the full page reload for `view`-type menu nodes — measured on the dev router,
+ * 54 of 74 menu leaves (~73%); the rest are `call`/`function`/`template`. LuCI
  * already renders every page client-side into #view (LuCI.view.__init__ →
  * load()→render()); only *navigation* is server-dispatched. So we intercept
  * link clicks, and instead of a full GET we re-instantiate the target view in
@@ -310,6 +363,12 @@ let _navGen = 0;
  * setInterval is hooked above), so navigate() must be able to cancel it — or it
  * keeps firing fs.exec RPCs and can pop its modal onto an unrelated page. */
 let _updTimer = null;
+/* ...but clearing the timer is not enough on its own. If the user navigates while
+ * an fs.exec('status') is ALREADY in flight (rpctimeout is 20 s, so that window is
+ * wide), there is no timer to clear — and when the RPC resolves it schedules the
+ * next tick and can throw its modal over whatever page the user is now looking at.
+ * A generation token kills the chain at the point where it would resurrect itself. */
+let _updGen = 0;
 
 /* rebuild mode menu + main menu + section tabs from the current L.env; called
  * on first load and after every SPA navigation. Clears the containers first so
@@ -405,6 +464,10 @@ function prefetchView(pathname) {
  * singleton, not the bare module-`L` this factory receives (the two-L trap,
  * docs/14). `E`/`String`/`.format` are true globals so they need no change. */
 function ensureOverviewHelpers() {
+	/* eslint-disable no-var -- these three bodies are copied VERBATIM from LuCI's
+	   admin_status/index.ut so they can be diffed against upstream when it changes.
+	   Modernising the `var`s would silently break that property, which is the whole
+	   reason the copies are safe to carry. */
 	if (typeof window.progressbar != 'function')
 		window.progressbar = function(query, value, max, byte) {
 			var pg = document.querySelector(query),
@@ -435,6 +498,7 @@ function ensureOverviewHelpers() {
 				window.L.itemlist(E('span'), [].slice.call(arguments, 2))
 			]);
 		};
+	/* eslint-enable no-var */
 }
 
 /* Attempt an in-place navigation to `pathname`. Returns true if handled as a
@@ -480,6 +544,7 @@ function navigate(pathname, push) {
 	 * L.Poll's own tick alive. */
 	clearViewIntervals();
 	if (_updTimer) { window.clearTimeout(_updTimer); _updTimer = null; }
+	_updGen++;	/* and disown any fs.exec already in flight (see _updGen) */
 	try { if (typeof ui.hideModal == 'function') ui.hideModal(); } catch (e) {}
 
 	/* point the runtime env at the new node so views, tabs and highlighting read
@@ -489,9 +554,12 @@ function navigate(pathname, push) {
 	L.env.pathinfo     = '/' + segs.join('/');
 	L.env.nodespec     = { satisfied: true, action: node.action, title: node.title, depends: node.depends };
 
-	/* Keep <body data-page> in sync with the route. The server template stamps
-	 * `data-page="{{ join('-', request_path) }}"` on every full load, and LuCI's
-	 * page-scoped CSS (and any per-page hook) keys off it. A SPA nav swaps the
+	/* Keep <body data-page> in sync with the route. The server template stamps the
+	 * dispatch path (`ctx.path`) on every full load, and LuCI's
+	 * page-scoped CSS (and any per-page hook) keys off it. `segs` here is the
+	 * resolved leaf path, so the two agree — which is the point: a firstchild URL
+	 * like /admin/status must produce the same "admin-status-overview" whether it
+	 * arrives as a full load or as a client-side nav. A SPA nav swaps the
 	 * view without reloading, so — like requestpath/dispatchpath/title above —
 	 * the router must re-stamp it, or the incoming page keeps the previous page's
 	 * data-page and its scoped styles silently don't apply. This is route-state
@@ -539,7 +607,13 @@ function navigate(pathname, push) {
 		if (!(view instanceof RT.view))
 			throw new TypeError('Loaded class ' + className + ' is not a view');
 		new view.constructor();
-	}).catch(() => { if (gen === _navGen) window.location = pathname; });
+	}).catch((e) => {
+		/* The full-page reload is a correct fallback, but swallowing the reason made
+		 * every SPA-router regression look like "the page is just slow to load"
+		 * instead of an error. Log, then fall back. */
+		console.error('footstrap: SPA nav to ' + className + ' failed, falling back to a full load', e);
+		if (gen === _navGen) window.location = pathname;
+	});
 
 	return true;
 }
@@ -580,12 +654,23 @@ function wireRouter() {
 			ev.preventDefault();
 	}, false);
 
-	/* warm the view module cache when the pointer enters a nav link */
+	/* Warm the view module cache when the pointer enters a nav link.
+	 *
+	 * `pointerover` bubbles from EVERY element the pointer crosses — dragging the
+	 * mouse across the process table fires it hundreds of times — and each one used
+	 * to run closest(), build a URL and walk the menu tree before prefetchView()
+	 * finally deduplicated it. Bail on the element first: the same <a> re-fires this
+	 * for every child span it contains, and a non-link target is the overwhelmingly
+	 * common case. */
+	let lastHovered = null;
 	document.addEventListener('pointerover', (ev) => {
+		const a = ev.target.closest?.('a[href]');
+		if (!a || a === lastHovered) return;
+		lastHovered = a;
 		const url = linkUrlFrom(ev);
 		if (url)
 			prefetchView(url.pathname);
-	}, false);
+	}, { passive: true });
 
 	window.addEventListener('popstate', () => {
 		/* an entry carrying a query belongs to a full load (we only ever push bare
@@ -686,7 +771,14 @@ function applyUpdateCheck(val) {
 	if (typeof window.__fsUpdateApply == 'function') window.__fsUpdateApply();
 }
 
-function fsVersionReal() { return /^\d+\.\d+/.test(FS_VERSION) && FS_VERSION !== '0.0.0-dev'; }
+/* The parentheses around the regex are load-bearing — do not "tidy" them away.
+ * luci.mk minifies this file with jsmin, whose regex-vs-division test is a ONE
+ * character lookback against a fixed allow-list. `n` (the last letter of `return`)
+ * is not on it, so `return /re/` makes jsmin read the regex as a division and, if
+ * the regex body contains `//` or `/*`, silently swallow the rest of the file —
+ * exiting 0 while doing it (openwrt/luci#8299). `(` IS on the allow-list.
+ * tools/jsmin-verify.mjs is the gate that catches this; this is the fix. */
+function fsVersionReal() { return ((/^\d+\.\d+/).test(FS_VERSION)) && FS_VERSION !== '0.0.0-dev'; }
 function fsParseVer(s) { return String(s).replace(/^v/, '').split(/[.\-+]/).map(n => parseInt(n, 10) || 0); }
 function fsVerCmp(a, b) {
 	a = fsParseVer(a); b = fsParseVer(b);
@@ -700,14 +792,14 @@ function checkFootstrapUpdate() {
 	if (_fsUpdatePromise) return _fsUpdatePromise;
 	if (!fsVersionReal() || !currentUpdateCheck())
 		return (_fsUpdatePromise = Promise.resolve({ current: FS_VERSION, latest: null, hasUpdate: false }));
-	_fsUpdatePromise = L.require('fs')
+	_fsUpdatePromise = window.L.require('fs')	/* window.L, not the module L — see the two-L note above */
 		.then(fs => fs.exec(FS_UPDATE_SCRIPT, [ 'check' ]))
 		.then(res => {
 			/* "v1.2.3" on success, "ERR: …" when the router could not reach the
 			 * API — and "ERR: unknown argument" from a pre-check script, i.e. the
 			 * installed backend is older than this JS. All three mean: no badge. */
 			const out = String((res && res.stdout) || '').trim();
-			const latest = /^v?\d/.test(out) ? out : null;
+			const latest = (/^v?\d/).test(out) ? out : null;
 			return { current: FS_VERSION, latest, hasUpdate: !!(latest && fsVerCmp(latest, FS_VERSION) > 0) };
 		})
 		.catch(() => ({ current: FS_VERSION, latest: null, hasUpdate: false }));
@@ -728,25 +820,25 @@ function wireAppearance() {
 				{ val: 'auto',  label: _('Auto') },
 				{ val: 'light', label: _('Light') },
 				{ val: 'dark',  label: _('Dark') }
-			], applyMode)
+			], applyMode, _('Theme'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Palette') ]),
 			segControl(currentPalette(), [
 				{ val: 'footstrap',  label: 'Footstrap' },
 				{ val: 'hicontrast', label: 'Hi-Contrast' }
-			], applyPalette)
+			], applyPalette, _('Palette'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Wallpaper') ]),
 			segControl(currentWallpaper(), [
 				{ val: 'off',  label: _('Off') },
 				{ val: 'cats', label: _('Cats') }
-			], applyWallpaper)
+			], applyWallpaper, _('Wallpaper'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding') ]),
-			sliderControl(currentRadius(), 0, 20, applyRadius)
+			sliderControl(currentRadius(), 0, 20, applyRadius, _('Rounding'))
 		])
 	];
 
@@ -758,7 +850,7 @@ function wireAppearance() {
 			segControl(currentAutoCollapse() ? 'on' : 'off', [
 				{ val: 'off', label: _('Keep open') },
 				{ val: 'on',  label: _('Auto-collapse') }
-			], applyAutoCollapse)
+			], applyAutoCollapse, _('Submenus'))
 		]));
 	}
 
@@ -777,7 +869,7 @@ function wireAppearance() {
 		segControl(currentUpdateCheck() ? 'on' : 'off', [
 			{ val: 'on',  label: _('Check') },
 			{ val: 'off', label: _('Off') }
-		], applyUpdateCheck)
+		], applyUpdateCheck, _('Updates'))
 	]));
 
 	groups.push(E('div', { 'class': 'fs-ap-footer' }, [
@@ -829,8 +921,13 @@ function wireAppearance() {
 	const FS_UPDATE_LIMIT_MS = 300000;
 
 	function runSelfUpdate() {
-		close();
-		const modal = (body) => ui.showModal(_('Update Footstrap'), body);
+		close(false);	/* the modal takes focus from here */
+		/* Everything below belongs to THIS run. navigate() bumps _updGen, so a
+		 * resolved RPC from a run the user has navigated away from does nothing
+		 * instead of rescheduling itself and popping a modal over the new page. */
+		const gen = ++_updGen;
+		const stale = () => gen !== _updGen;
+		const modal = (body) => { if (!stale()) ui.showModal(_('Update Footstrap'), body); };
 		const fail = (msg) => modal([
 			E('p', {}, _('Update failed') + ': ' + String(msg || _('unknown error')).replace(/^ERR:\s*/, '').trim()),
 			E('div', { 'class': 'right' }, E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Close')))
@@ -851,7 +948,7 @@ function wireAppearance() {
 		 * a fresh login — a full reload also re-fetches the new CSS/JS, whose
 		 * cache-buster changed with the install. */
 		const sessionGone = (m) =>
-			/session is expired|Access denied|-32002|\b403\b/i.test(String(m));
+			(/session is expired|Access denied|-32002|\b403\b/i).test(String(m));
 		const relogin = () => modal([
 			E('p', {}, _('Update installed. The router restarted its session service, so you have been logged out — sign in again to load the new theme.')),
 			E('div', { 'class': 'right' }, E('button', {
@@ -861,60 +958,94 @@ function wireAppearance() {
 		]);
 
 		function poll(fs, deadline) {
+			if (stale()) return;
 			if (Date.now() > deadline)
 				return fail(_('timed out waiting for the installer'));
 
 			return fs.exec(FS_UPDATE_SCRIPT, [ 'status' ]).then(res => {
+				/* the RPC was in flight while the user navigated: drop it on the floor */
+				if (stale()) return;
 				const out = String((res && res.stdout) || '').trim();
-				if (/^OK$/.test(out)) {
+				if ((/^OK$/).test(out)) {
 					modal([ E('p', {}, _('Updated. Reloading…')) ]);
 					window.setTimeout(() => location.reload(), 1200);
 					return;
 				}
-				if (/^ERR:/.test(out))
+				if ((/^ERR:/).test(out))
 					return fail(out);
 				/* RUNNING, or IDLE if the worker has not written the file yet.
 				 * Tracked in _updTimer so navigate() can cancel the chain. */
 				_updTimer = window.setTimeout(() => poll(fs, deadline), FS_UPDATE_POLL_MS);
-			}).catch(e => sessionGone(e && e.message || e) ? relogin() : fail(e && e.message || e));
+			}).catch(e => {
+				if (stale()) return;
+				return sessionGone(e && e.message || e) ? relogin() : fail(e && e.message || e);
+			});
 		}
 
 		function doUpdate() {
 			modal([ E('p', { 'class': 'spinning' }, _('Downloading and installing…')) ]);
-			L.require('fs')
+			window.L.require('fs')
 				.then(fs => fs.exec(FS_UPDATE_SCRIPT).then(res => {
+					if (stale()) return;
 					const out = String((res && res.stdout) || '').trim();
-					if (!/^(STARTED|RUNNING)$/.test(out))
+					if (!(/^(STARTED|RUNNING)$/).test(out))
 						return fail((res && (res.stderr || res.stdout)) || '');
 					poll(fs, Date.now() + FS_UPDATE_LIMIT_MS);
 				}))
-				.catch(e => fail(e && e.message || e));
+				.catch(e => { if (!stale()) fail(e && e.message || e); });
 		}
 	}
 	updateBtn.addEventListener('click', runSelfUpdate);
 
-	function outside(e) { if (!pop.contains(e.target) && !btn.contains(e.target) && e.target !== btn) close(); }
-	function esc(e) { if (e.key === 'Escape') { close(); btn.focus(); } }
+	/* Clicking outside means the user is going somewhere else — closing must not
+	 * yank their focus back to the trigger. Escape and the trigger itself do. */
+	function outside(e) { if (!pop.contains(e.target) && !btn.contains(e.target) && e.target !== btn) close(false); }
 	function reposition() { placePopover(btn, pop); }
+
+	/* role="dialog" is a promise about keyboard behaviour, and the popover was not
+	 * keeping it: focus stayed on the page behind, Tab walked straight out of the
+	 * open dialog into the view underneath, and a click-outside close dropped focus
+	 * on the floor instead of handing it back to the trigger. */
+	const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+	function keydown(e) {
+		if (e.key === 'Escape') { close(); return; }
+		if (e.key !== 'Tab') return;
+		const items = [...pop.querySelectorAll(FOCUSABLE)].filter((el) => !el.disabled && el.offsetParent !== null);
+		if (!items.length) return;
+		const first = items[0], last = items[items.length - 1];
+		/* wrap at both ends so focus cannot leave an open dialog */
+		if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+		else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+	}
 	function open() {
 		pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
 		reposition();
+		pop.querySelector(FOCUSABLE)?.focus();
 		document.addEventListener('click', outside, true);
-		document.addEventListener('keydown', esc);
+		document.addEventListener('keydown', keydown);
 		window.addEventListener('resize', reposition);
 		window.addEventListener('scroll', reposition, true);
 	}
-	function close() {
+	function close(returnFocus = true) {
+		if (pop.hidden) return;
 		pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
 		document.removeEventListener('click', outside, true);
-		document.removeEventListener('keydown', esc);
+		document.removeEventListener('keydown', keydown);
 		window.removeEventListener('resize', reposition);
 		window.removeEventListener('scroll', reposition, true);
+		if (returnFocus) btn.focus();
 	}
 
+	pop.id = 'fs-appearance-pop';
 	btn.setAttribute('aria-haspopup', 'dialog');
 	btn.setAttribute('aria-expanded', 'false');
-	btn.addEventListener('click', (e) => { e.stopPropagation(); pop.hidden ? open() : close(); });
+	btn.setAttribute('aria-controls', pop.id);
+	/* NO stopPropagation here. It was not needed — outside() is registered in the
+	 * CAPTURE phase and already excludes clicks on btn — and it actively broke the
+	 * sidebar: menu-footstrap.js closes an open flyout from a bubble-phase click
+	 * listener on document, which never saw this event, so opening Appearance from
+	 * a collapsed rail left the flyout panel hanging open underneath it. */
+	btn.addEventListener('click', () => { pop.hidden ? open() : close(); });
 }
 
 /* Sidebar rail toggle: collapse the sidebar to an icon-only strip. The state
@@ -962,6 +1093,11 @@ return baseclass.extend({
 			wireRouter();
 			wireVisibility();
 			wireTabFit();
-		});
+		/* This file warns about exactly this in renderTabMenu ("an unhandled
+		 * rejection here kills every menu") and then left the root chain bare: a
+		 * throw anywhere in the six calls above took out the menu, the router and
+		 * the Appearance popover together, silently. It still fails — there is no
+		 * sane partial recovery — but it fails loudly. */
+		}).catch((e) => console.error('footstrap: chrome init failed', e));
 	}
 });

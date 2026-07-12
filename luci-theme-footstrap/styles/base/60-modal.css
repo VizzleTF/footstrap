@@ -6,7 +6,7 @@
 		top: 0;
 		bottom: 0;
 		background: rgba(0, 0, 0, 0.7);
-		z-index: 900;
+		z-index: var(--z-overlay);
 		overflow: auto;
 		transition: opacity .125s ease-in;
 		opacity: 0;
@@ -55,7 +55,7 @@
 
 	body.modal-overlay-active {
 		overflow: hidden;
-		height: 100vh;
+		height: 100dvh;	/* dvh: 100vh includes the mobile URL bar, which cropped the modal */
 	}
 
 	body.modal-overlay-active #modal_overlay {

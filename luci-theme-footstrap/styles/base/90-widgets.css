@@ -16,7 +16,7 @@
 
 	.cbi-tooltip {
 		position: absolute;
-		z-index: 1000;
+		z-index: var(--z-tooltip);
 		left: -10000px;
 		box-shadow: 0 0 2px var(--border-color-high);
 		border-radius: 3px;
@@ -51,7 +51,7 @@
 
 	.zonebadge .cbi-tooltip > * {
 		margin: 1px;
-		z-index: 2;
+		z-index: var(--z-raise);
 		position: relative;
 	}
 

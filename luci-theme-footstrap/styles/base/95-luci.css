@@ -12,7 +12,7 @@
 		width: 100%;
 		color: var(--text-color-highest);
 		margin-bottom: 18px;
-		font-family: monospace;
+		font-family: var(--font-mono);
 	}
 
 	.cbi-section-table .tr:hover .td,
@@ -84,7 +84,9 @@
 	.td.cbi-section-actions > :not(.cbi-dropdown) > *,
 	.td.cbi-section-actions > * > form > * {
 		flex: 1 1 4em;
-		margin: 0 1px;
+		/* 1px apart put adjacent row actions inside each other's 24px target circle
+		 * (WCAG 2.2 SC 2.5.8) — see the min-height in theme/55-buttons.css. */
+		margin: 0 4px;
 	}
 
 	.td.cbi-section-actions > * > form {
@@ -131,7 +133,10 @@
 	.cbi-section-error {
 		border: 1px solid var(--error-color-high);
 		border-radius: 3px;
-		background-color: rgba(var(--error-color-high-rgb), .12);
+		/* .06: the bold text inside is --error-color-high ON a tint of ITSELF, so the tint
+		 * eats its own contrast — .12 measured 4.4:1. At 6% every palette clears 4.5
+		 * (4.87 / 4.95 / 5.28 / 6.09). */
+		background-color: rgba(var(--error-color-high-rgb), .06);
 		padding: 5px;
 		margin-bottom: 18px;
 	}
@@ -174,6 +179,17 @@
 		color: var(--on-primary-color);
 	}
 
+	/* NO FALLBACK on --zone-color-rgb, and that is load-bearing — do not "fix" it.
+	 *
+	 * LuCI sets the var inline only on elements that HAVE a zone colour. On the others
+	 * (the overview's .ifacebox-head, which carries a plain inline background-color),
+	 * the var is missing, the declaration is invalid at computed-value time, and —
+	 * because it is !important — it resolves to `unset`, wiping that inline background.
+	 * That is the DESIRED outcome: in dark mode, a bright colour baked into an inline
+	 * style by luci-mod-status is exactly what we do not want to paint. Adding a
+	 * fallback grey makes the rule apply to those elements instead, tinting five
+	 * interface boxes on the overview that today correctly show the panel behind them.
+	 * Measured with cssdiff.py — a fallback CHANGES rendering; leaving it out does not. */
 	[data-darkmode="true"] .zonebadge[style],
 	[data-darkmode="true"] .ifacebox-head[style] {
 		background: linear-gradient(rgba(var(--zone-color-rgb), .4), rgba(var(--zone-color-rgb), .3)) !important;
@@ -386,7 +402,7 @@
 	.uci-dialog ins,
 	.uci-dialog var {
 		text-decoration: none;
-		font-family: monospace;
+		font-family: var(--font-mono);
 		font-style: normal;
 		color: var(--text-color-high);
 		display: block;
@@ -448,8 +464,15 @@
 		padding-left: 32px !important;
 	}
 
+	/* The rotation used to live INSIDE the data-URI, as a SMIL <animateTransform> on
+	 * the arc. That animation runs in the SVG's own document, where the outer page's
+	 * `prefers-reduced-motion` cannot reach it — the one spinner on the page that a
+	 * motion-sensitive user could not turn off. Same glyph, rotated by CSS instead,
+	 * so theme/95-reduced-motion.css can stop it like everything else. The static
+	 * circle underneath is rotationally symmetric, so spinning the whole box looks
+	 * identical to spinning just the arc. */
 	.spinning::before {
-		--spinner-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' stroke='%23000' stroke-width='3' fill='none'><circle cx='10' cy='10' r='8' stroke-opacity='.5'/><path d='M10 2c4 0 8 4 8 8'><animateTransform attributeName='transform' type='rotate' dur='1s' from='0 10 10' to='360 10 10' repeatCount='indefinite'/></path></svg>");
+		--spinner-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' stroke='%23000' stroke-width='3' fill='none'><circle cx='10' cy='10' r='8' stroke-opacity='.5'/><path d='M10 2c4 0 8 4 8 8'/></svg>");
 
 		position: absolute;
 		top: calc(50% - 10px);
@@ -460,7 +483,12 @@
 		background: var(--on-color, #000);
 		mask: var(--spinner-icon) center/cover no-repeat;
 		-webkit-mask: var(--spinner-icon) center/cover no-repeat;
+		animation: fs-spin 1s linear infinite;
 	}
+
+	/* One definition, two users: this spinner and the sidebar's update spinner
+	 * (theme/20-shell-sidebar.css). Keyframe names resolve document-wide. */
+	@keyframes fs-spin { to { transform: rotate(360deg); } }
 
 	[data-darkmode="true"] .spinning::before {
 		background: var(--on-color, #fff);

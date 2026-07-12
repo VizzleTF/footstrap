@@ -5,7 +5,7 @@
 	header {
 		position: sticky;
 		top: 0;
-		z-index: 800;
+		z-index: var(--z-header);
 		overflow: visible;
 		color: var(--text-color-medium);
 		display: flex;
@@ -44,7 +44,7 @@
 	.cbi-tab-disabled[data-errors]::after {
 		content: attr(data-errors);
 		background: var(--error-color-high);
-		color: var(--on-accent);
+		color: var(--on-error-color);
 		height: 16px;
 		min-width: 16px;
 		border-radius: 8px;

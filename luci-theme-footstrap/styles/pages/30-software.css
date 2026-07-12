@@ -17,7 +17,7 @@
 	 * same container breakpoint every other card-stacking rule uses (30-tables,
 	 * 20-overview, 50-leases). Keyed off the unique #packages id, so it needs no
 	 * page scope (works under SPA and full load alike). */
-	@container (max-width: 800px) {
+	@container fs-view (max-width: 800px) {
 		#packages .tr.cbi-section-table-titles { display: none; }
 		#packages .tr { display: block; padding: 12px 16px; }
 		#packages .td {

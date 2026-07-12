@@ -17,14 +17,36 @@
 
 {% include('themes/footstrap/partials/head', { boardinfo }) %}
 
-	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', length(ctx.request_path) ? ctx.request_path : ctx.path), true) }}">
+	{#
+		data-page carries the DISPATCH path (ctx.path), not the request path. They
+		differ on a firstchild route: /admin/status renders the overview but its
+		request_path is only ['admin','status'], so data-page came out
+		"admin-status" and every `body[data-page='admin-status-overview']` rule —
+		plus the overview layout include, which gates on the same attribute —
+		silently did not apply on that URL. The SPA router stamps the resolved leaf
+		path (menu-footstrap-common.js), so ctx.path is also what keeps a full load
+		and a client-side nav agreeing on the same value.
+	#}
+	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', length(ctx.path) ? ctx.path : ctx.request_path), true) }}">
 		{% if (!blank_page): %}
+		{#
+			Skip link: the first thing a keyboard or screen-reader user reaches, so they
+			can jump the whole menu instead of tabbing through every section on every
+			page. Visually hidden until focused (.fs-skip, theme/10-chrome.css).
+		#}
+		<a class="fs-skip" href="#maincontent">{{ _('Skip to content') }}</a>
 		<div class="fs-shell">
-			<aside class="fs-sidebar">
+			{#
+				<nav>, not <aside>. This column IS the site navigation — an <aside> gets
+				role="complementary", so a screen reader could not jump to the menu by
+				landmark at all, and the shell had no navigation landmark anywhere. The
+				CSS keys off .fs-sidebar, never the tag name, so the swap is free.
+			#}
+			<nav class="fs-sidebar" aria-label="{{ _('Menu') }}">
 				<div class="fs-brandrow">
 					{% include('themes/footstrap/partials/brand', { boardinfo }) %}
 					<button type="button" class="fs-railtoggle" id="fs-rail-toggle" aria-label="{{ _('Collapse menu') }}" title="{{ _('Collapse menu') }}">
-						<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+						<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
 					</button>
 				</div>
 
@@ -40,9 +62,19 @@
 
 				{% include('themes/footstrap/partials/appearance', { with_label: true }) %}
 				{% include('themes/footstrap/partials/logout', { with_label: true }) %}
-			</aside>
+			</nav>
 
-			<main class="fs-main" id="maincontent">
+			<main class="fs-main" id="maincontent" tabindex="-1">
+				{# The document's <h1>. LuCI views start their content at <h2>, so without
+				   this the page had no h1 at all and the heading outline began mid-way
+				   down. Visually hidden (the container is [hidden]) — the sidebar shows
+				   the page title in the menu, not as a banner — and the SPA router keeps
+				   its text in sync on navigation (it queries .fs-title-main). Same markup
+				   as the top-nav layout, so one router branch serves both. #}
+				<div class="fs-title" hidden>
+					<h1 class="fs-title-main">{{ entityencode(striptags(dispatched?.title ? _(dispatched.title) : (boardinfo.hostname ?? 'OpenWrt')), true) }}</h1>
+				</div>
+
 				<div class="fs-content">
 					{% include('themes/footstrap/partials/notices', { boardinfo, empty_password }) %}
 		{% endif %}

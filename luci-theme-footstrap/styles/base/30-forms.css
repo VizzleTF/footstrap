@@ -34,6 +34,10 @@
 	.cbi-value-field {
 		margin-left: 20px;
 		flex: 1;
+		/* a flex item defaults to min-width:auto, i.e. it refuses to shrink below its
+		 * content's min-content width — a wide nested table or one long unbreakable
+		 * value then pushed the whole row out of the card. */
+		min-width: 0;
 	}
 
 	.cbi-value label.cbi-value-title {
@@ -250,7 +254,10 @@
 
 	select[multiple] {
 		height: inherit;
-		background-color: var(--on-accent);
+		/* was var(--on-accent), i.e. the ink meant for accent FILLS — which resolved
+		 * to plain white and painted a white listbox in dark mode. This is a surface,
+		 * so it takes a surface token. */
+		background-color: var(--background-color-high);
 	}
 
 	input[type="checkbox"],
@@ -339,8 +346,9 @@
 	input[type="checkbox"]::before,
 	input[type="radio"]::before,
 	input, button, textarea, select {
-		transition: border linear 0.2s, box-shadow linear 0.2s;
-		box-shadow: inset 0 1px 3px color-mix(in srgb, var(--border) 1%, transparent);
+		/* border-COLOR, not `border`: the shorthand also animates border-width, so every
+		 * hover on any input or button ran a layout animation instead of a paint one. */
+		transition: border-color linear 0.2s, box-shadow linear 0.2s;
 	}
 
 	.item:hover::after,
@@ -366,7 +374,9 @@
 
 		outline: 0;
 		border-color: rgba(var(--focus-color-rgb), 0.8);
-		box-shadow: inset 0 1px 3px color-mix(in srgb, var(--border) 1%, transparent), 0 0 8px rgba(var(--focus-color-rgb), 0.6);
+		/* the inset half used to be color-mix(--border 1%), i.e. alpha 0.01 — it drew
+		 * literally nothing and was transitioned on every widget. Just the focus glow. */
+		box-shadow: 0 0 8px rgba(var(--focus-color-rgb), 0.6);
 		text-decoration: none;
 	}
 

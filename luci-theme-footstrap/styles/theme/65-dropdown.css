@@ -81,7 +81,7 @@
 
 	/* open list -> design popover. This used to be stated four times over; the
 	 * values below are the ones that were winning. */
-	.cbi-dropdown[open] { z-index: 1100; }
+	.cbi-dropdown[open] { z-index: var(--z-dropdown); }
 	.cbi-dropdown[open] > ul.dropdown {
 		background: var(--panel);
 		border: 1px solid var(--border);
@@ -129,7 +129,7 @@
 	}
 
 	/* Below ~960px of available width the multi-dropdown row no longer fits — stack. */
-	@container (max-width: 960px) {
+	@container fs-content (max-width: 960px) {
 		.cbi-section-table,
 		.cbi-section-table .thead,
 		.cbi-section-table .tbody,

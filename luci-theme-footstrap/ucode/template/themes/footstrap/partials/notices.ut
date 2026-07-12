@@ -10,7 +10,7 @@
 -#}
 {% if (empty_password): %}
 	<div class="alert-message warning">
-		<h4>{{ _('No password set!') }}</h4>
+		<h2>{{ _('No password set!') }}</h2>
 		<p>{{ _('There is no password set on this router. Please configure a root password to protect the web interface.') }}</p>
 		{% if (dispatcher.lookup("admin/system/admin")): %}
 		  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/admin") }}">{{ _('Go to password configuration...') }}</a></div>
@@ -20,7 +20,7 @@
 
 {% if (boardinfo.rootfs_type == "initramfs"): %}
 	<div class="alert-message warning">
-		<h4>{{ _('System running in recovery (initramfs) mode.') }}</h4>
+		<h2>{{ _('System running in recovery (initramfs) mode.') }}</h2>
 		<p>{{ _('No changes to settings will be stored and are lost after rebooting. This mode should only be used to install a firmware upgrade') }}</p>
 		{% if (dispatcher.lookup("admin/system/flash")): %}
 		  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/flash") }}">{{ _('Go to firmware upgrade...') }}</a></div>
@@ -30,7 +30,7 @@
 
 <noscript>
 	<div class="alert-message warning">
-		<h4>{{ _('JavaScript required!') }}</h4>
+		<h2>{{ _('JavaScript required!') }}</h2>
 		<p>{{ _('You must enable JavaScript in your browser or LuCI will not work properly.') }}</p>
 	</div>
 </noscript>

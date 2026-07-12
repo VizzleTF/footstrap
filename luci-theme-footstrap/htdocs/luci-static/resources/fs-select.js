@@ -28,12 +28,23 @@ function choicesKey(sel) {
 	return Array.prototype.map.call(sel.options, (o) => o.value + '\u0000' + o.textContent).join('\u0001');
 }
 
-/* undo enhance(): drop the widget, unhide the native select */
+/* undo enhance(): drop the widget, unhide the native select, and — critically —
+ * cut every listener enhance() installed.
+ *
+ * The `change` listener on the native select used to survive teardown, and
+ * resync() calls teardown()+enhance() every time a script rebuilds the option
+ * list (CBI dependencies do this constantly on the firewall/network forms). So
+ * the select accumulated one live listener per rebuild, each closing over a dead
+ * ui.Dropdown and its detached subtree: a leak that grew with every interaction,
+ * and N redundant handlers firing on every change. AbortController is the only
+ * way to drop an anonymous listener without keeping a reference to it. */
 function teardown(sel) {
+	if (sel._fsAbort) sel._fsAbort.abort();
 	if (sel._fsNode && sel._fsNode.parentNode)
 		sel._fsNode.parentNode.removeChild(sel._fsNode);
 	delete sel.dataset.fsSelect;
-	sel._fsDd = sel._fsNode = sel._fsKey = null;
+	sel._fsDd = sel._fsNode = sel._fsKey = sel._fsAbort = null;
+	sel.removeAttribute('aria-hidden');
 	sel.style.display = '';
 }
 
@@ -58,8 +69,13 @@ function resync(sel) {
 }
 
 function enhance(sel) {
-	if (sel.multiple || sel.dataset.fsSelect || sel.disabled) return;
-	if (!sel.closest('.cbi-value-field, .td.cbi-value-field, .cbi-value')) return;
+	if (sel.dataset.fsSelect || sel.disabled) return;	/* disabled: NOT marked — it may be enabled later */
+	/* `multiple` and "not in a CBI field" are permanent properties of this element,
+	 * so mark it and stop re-testing it on every single scan. */
+	if (sel.multiple || !sel.closest('.cbi-value-field, .td.cbi-value-field, .cbi-value')) {
+		sel.dataset.fsSelect = 'skip';
+		return;
+	}
 
 	const choices = readChoices(sel);
 
@@ -72,11 +88,20 @@ function enhance(sel) {
 	} catch (e) { return; }
 
 	const node = dd.render();
+	const ac = new AbortController();
 	sel.dataset.fsSelect = '1';
 	sel.style.display = 'none';
+	/* The <select> is hidden, so the CBI <label for=…> now points at something no
+	 * screen reader will announce, and the visible widget has no accessible name.
+	 * Move the name onto the widget and take the dead select out of the a11y tree. */
+	const title = sel.closest('.cbi-value')?.querySelector('.cbi-value-title');
+	if (title && title.textContent.trim())
+		node.setAttribute('aria-label', title.textContent.trim());
+	sel.setAttribute('aria-hidden', 'true');
 	sel._fsDd = dd;
 	sel._fsNode = node;
 	sel._fsKey = choicesKey(sel);
+	sel._fsAbort = ac;
 
 	/* AFTER the select: it must stay frameEl.firstChild for ui.Select to read
 	 * its value on save. */
@@ -94,7 +119,7 @@ function enhance(sel) {
 		sel.value = v;
 		sel.dispatchEvent(new Event('change', { bubbles: true }));
 		syncing = false;
-	});
+	}, { signal: ac.signal });
 
 	/* native select -> our widget (a script/CBI dependency changed & dispatched
 	 * change on the select) — keep the visible widget from going stale. */
@@ -102,7 +127,7 @@ function enhance(sel) {
 		if (syncing) return;
 		if (dd.getValue() !== sel.value)
 			dd.setValue(sel.value);
-	});
+	}, { signal: ac.signal });
 }
 
 /* Tag standalone data tables so the responsive (&lt;820px) stacking rules can key
@@ -117,18 +142,46 @@ function tagDataTables() {
 	});
 }
 
+/* Does this batch of mutations contain anything we could possibly care about?
+ *
+ * Without this test, EVERY mutation scheduled a full scan — and LuCI's poll
+ * rewrites page content once a second via dom.content(), so on Overview,
+ * Processes or Leases we ran three document-wide querySelectorAll plus a
+ * choicesKey() over every option of every enhanced select (thousands of
+ * characters on the firewall page) every second, forever, to discover that
+ * nothing had changed. The interesting mutations are: a <select> (or a subtree
+ * containing one) appearing, a data table appearing, or one of the watched
+ * attributes flipping on a <select>. Everything else is someone else's text. */
+function relevant(mutations) {
+	for (const m of mutations) {
+		if (m.type === 'attributes') {
+			/* attributeFilter narrows the ATTRIBUTE, not the element: `value` and
+			 * `disabled` live on inputs and buttons too, and a poll rewriting an
+			 * input's value would otherwise wake the whole scan. */
+			if (m.target.tagName === 'SELECT') return true;
+			continue;
+		}
+		for (const n of m.addedNodes) {
+			if (n.nodeType !== 1) continue;
+			if (n.matches('select.cbi-input-select, table.table')) return true;
+			if (n.querySelector('select.cbi-input-select, table.table')) return true;
+		}
+	}
+	return false;
+}
+
 return baseclass.extend({
 	__init__() {
 		const scan = () => {
 			document.querySelectorAll('select.cbi-input-select:not([data-fs-select])').forEach(enhance);
-			document.querySelectorAll('select.cbi-input-select[data-fs-select]').forEach(resync);
+			document.querySelectorAll('select.cbi-input-select[data-fs-select="1"]').forEach(resync);
 			tagDataTables();
 		};
 		scan();
 
 		let pending = false;
-		new MutationObserver(() => {
-			if (pending) return;
+		new MutationObserver((mutations) => {
+			if (pending || !relevant(mutations)) return;
 			pending = true;
 			requestAnimationFrame(() => { pending = false; scan(); });
 		}).observe(document.body, {

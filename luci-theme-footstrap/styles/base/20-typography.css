@@ -11,7 +11,9 @@
 		min-height: 100%;
 		display: flex;
 		flex-direction: column;
-		overflow-y: scroll;
+		/* stable gutter, not a permanent scrollbar: same no-reflow guarantee, without
+		 * a dead scrollbar drawn down the side of every short page. */
+		scrollbar-gutter: stable;
 	}
 
 	a {
@@ -192,7 +194,10 @@
 	}
 
 	code {
-		background-color: var(--border-color-low);
+		/* was --border-color-low: in dark that is #444c56, and --text on it measures
+		 * 4.40:1 — under AA. The panel2 surface <pre> already uses gives 6.45 and still
+		 * reads as a chip. */
+		background-color: var(--background-color-low);
 		color: var(--text-color-high);
 		padding: 1px 3px;
 	}

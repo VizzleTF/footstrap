@@ -4,21 +4,23 @@
 	 * Active only under body.fs-top. Horizontal menu + dropdowns.
 	 * ================================================================== */
 	body.fs-top { display: block; }
-	.fs-topwrap { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); overflow-x: clip; }
+	.fs-topwrap { min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); overflow-x: clip; }
 
 	/* top bar */
 	.fs-topnav {
-		position: sticky; top: 0; z-index: 50;
+		position: sticky; top: 0; z-index: var(--z-sticky);
 		display: flex; align-items: center; gap: 12px;
-		height: 46px;
+		height: var(--fs-bar-h);
 		/* the bar is a <header>; keep it at margin 0 explicitly — its spacing to
 		 * the content below comes from .fs-main-top .fs-content padding, never
 		 * from a header margin */
 		margin: 0;
 		/* the bar is a <header>, and its drop shadow used to come from a navbar
 		 * rule the theme no longer carries. Own the shadow here. */
+		/* the inset hairline was mixed at 1% (alpha 0.01) — invisible. Match the 25%
+		 * of the drop shadow beside it so it actually draws. */
 		box-shadow: 0 1px 3px color-mix(in srgb, var(--border) 25%, transparent),
-		            inset 0 -1px 0 color-mix(in srgb, var(--border) 1%, transparent);
+		            inset 0 -1px 0 color-mix(in srgb, var(--border) 25%, transparent);
 		/* align the nav content to the .fs-content inner column (container centered
 		 * at --fs-content-max, plus its 28px side padding) so the logo/menu line up
 		 * with the headings and cards below */
@@ -47,7 +49,7 @@
 
 	/* dropdowns — a translucent popover in the design language */
 	.fs-topnav .fs-mainmenu .dropdown-menu {
-		display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
+		display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: var(--z-flyout);
 		min-width: 200px; padding: 7px; margin: 0;
 		list-style: none;
 		border: 1px solid var(--border);
@@ -73,6 +75,11 @@
 	}
 	/* dropdown-menu link hover/active grouped in theme/10-chrome.css */
 	.fs-topnav .fs-mainmenu > li.dropdown > a.menu::after { content: none; display: none; }
+
+	/* The <nav> landmark wrapping #topmenu (footstrap-top/header.ut). display:contents
+	 * removes its box entirely, so the <ul> stays a direct flex item of the bar and the
+	 * layout is byte-for-byte what it was before the landmark existed. */
+	.fs-topnav > .fs-navwrap { display: contents; }
 
 	/* right controls */
 	.fs-topnav-right { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; margin-left: auto; }

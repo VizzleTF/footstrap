@@ -21,11 +21,11 @@ const ICONS = {
 function iconSvg(name) {
 	const key = String(name || '').toLowerCase();
 	const body = ICONS[key]
-		|| (/vpn|wireguard|openvpn/.test(key) ? ICONS.vpn : null)
-		|| (/dock|container|lxc/.test(key) ? ICONS.docker : null)
-		|| (/net|wifi|wireless|firewall|dhcp/.test(key) ? ICONS.network : null)
-		|| (/serv|dnsmasq|cron/.test(key) ? ICONS.services : null)
-		|| (/stat|overview|dash/.test(key) ? ICONS.status : null)
+		|| ((/vpn|wireguard|openvpn/).test(key) ? ICONS.vpn : null)
+		|| ((/dock|container|lxc/).test(key) ? ICONS.docker : null)
+		|| ((/net|wifi|wireless|firewall|dhcp/).test(key) ? ICONS.network : null)
+		|| ((/serv|dnsmasq|cron/).test(key) ? ICONS.services : null)
+		|| ((/stat|overview|dash/).test(key) ? ICONS.status : null)
 		|| ICONS._default;
 	return '<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
 		'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
@@ -49,9 +49,35 @@ function flyoutMode() {
 	       _mqMobile.matches;
 }
 
+/* `.open` is the only thing that told a sighted user a section was unfolded, and
+ * it told a screen-reader user nothing: the trigger announced itself as a link
+ * (href="#"), with no indication that it controlled a panel or what state that
+ * panel was in. Every open/close now goes through here so the class and
+ * aria-expanded cannot drift apart. */
+function setOpen(li, on) {
+	li.classList.toggle('open', on);
+	li.querySelector(':scope > a')?.setAttribute('aria-expanded', on ? 'true' : 'false');
+}
+
 function closeFlyouts(except) {
 	document.querySelectorAll('#topmenu > li.open').forEach((o) => {
-		if (o !== except) o.classList.remove('open');
+		if (o !== except) setOpen(o, false);
+	});
+}
+
+/* Restore the accordion after LEAVING flyout mode (rail expanded, or the window
+ * grew past the phone breakpoint).
+ *
+ * closeFlyouts() alone used to run on both transitions, which was right going IN
+ * (a stuck popup panel is worse than a folded one) and wrong coming OUT: it
+ * stripped `.open` from every section, and since the markup is not rebuilt on a
+ * rail toggle, the remembered set was never re-applied. Expanding the rail folded
+ * everything the user had open and "Keep open" quietly stopped meaning anything. */
+function restoreAccordion() {
+	const auto = common.autoCollapse();
+	document.querySelectorAll('#topmenu > li.has-sub').forEach((li) => {
+		const name = li.dataset.name || '';
+		setOpen(li, li.classList.contains('active') || (!auto && _openSections.has(name)));
 	});
 }
 
@@ -85,7 +111,7 @@ function renderMainMenu(tree, url, level) {
 	const ul = level ? E('ul', {}) : document.querySelector('#topmenu');
 	const children = ui.menu.getChildren(tree);
 
-	if (!ul || children.length == 0 || level > 1)
+	if (!ul || children.length === 0 || level > 1)
 		return E([]);
 
 	/* dispatchpath = [mode, section, subsection, …]; sections sit at
@@ -96,12 +122,12 @@ function renderMainMenu(tree, url, level) {
 		/* the sidebar carries its own Logout entry at the bottom (header.ut), so
 		 * drop the menu tree's top-level admin/logout node — otherwise it shows up
 		 * twice. The top-nav layout has no footer link and keeps its own copy. */
-		if (!level && child.name == 'logout')
+		if (!level && child.name === 'logout')
 			return;
 
 		const submenu = renderMainMenu(child, url + '/' + child.name, (level || 0) + 1);
 		const hasSub = !!submenu.firstElementChild;
-		const isActive = (L.env.dispatchpath[idx] == child.name);
+		const isActive = (L.env.dispatchpath[idx] === child.name);
 
 		/* expanded sidebar, Keep open: a section starts open if it is the active
 		 * one OR it was left open before this re-render. Remembered so the state
@@ -142,8 +168,21 @@ function renderMainMenu(tree, url, level) {
 				startOpen ? 'open' : ''
 			].join(' ').trim()
 		}, [ link, submenu ]);
+		/* the node name, for restoreAccordion(): the markup is not rebuilt on a rail
+		 * toggle, so the remembered set has to be matched back to live <li>s */
+		if (!level) li.dataset.name = child.name;
 
 		if (hasSub) {
+			/* W3C APG disclosure-navigation pattern: a section header is a BUTTON that
+			 * owns a panel, not a link to "#". Deliberately not role="menu" — APG is
+			 * explicit that site navigation should not take on the menubar pattern's
+			 * arrow-key semantics, which users do not expect here. */
+			const subId = 'fs-sub-' + String(child.name).replace(/[^a-z0-9]+/gi, '-') + '-' + idx;
+			submenu.id = subId;
+			link.setAttribute('role', 'button');
+			link.setAttribute('aria-controls', subId);
+			link.setAttribute('aria-expanded', startOpen ? 'true' : 'false');
+
 			link.addEventListener('click', (ev) => {
 				ev.preventDefault();
 				const open = li.classList.contains('open');
@@ -153,17 +192,25 @@ function renderMainMenu(tree, url, level) {
 				 * the user's open sections after a resize back to desktop. */
 				if (flyoutMode()) {
 					closeFlyouts();
-					li.classList.toggle('open', !open);
+					setOpen(li, !open);
 					return;
 				}
 				/* the expanded-sidebar accordion folds the others back only when
 				 * asked (Appearance -> Submenus) */
 				if (common.autoCollapse()) { closeFlyouts(); _openSections.clear(); }
-				li.classList.toggle('open', !open);
+				setOpen(li, !open);
 				/* remember the accordion state so any navigation restores it (Keep open) */
 				if (!open) _openSections.add(child.name);
 				else _openSections.delete(child.name);
 				saveOpenSections();
+			});
+
+			/* <a role="button"> is given Enter by the browser but not Space; a
+			 * disclosure control must answer both. */
+			link.addEventListener('keydown', (ev) => {
+				if (ev.key !== ' ' && ev.key !== 'Spacebar') return;
+				ev.preventDefault();
+				link.click();
 			});
 
 			/* hybrid devices: once a real MOUSE enters the menu, drop the tap-opened
@@ -194,7 +241,46 @@ return baseclass.extend({
 			if (flyoutMode() && !ev.target.closest('#topmenu > li.has-sub'))
 				closeFlyouts();
 		});
-		document.getElementById('fs-rail-toggle')?.addEventListener('click', () => closeFlyouts());
-		_mqMobile.addEventListener('change', () => closeFlyouts());
+
+		/* WCAG 2.2 SC 1.4.13: a panel opened by hover or focus must be dismissible
+		 * from the keyboard, and the disclosure pattern wants focus back on the
+		 * trigger that opened it. Neither existed. */
+		document.addEventListener('keydown', (ev) => {
+			if (ev.key !== 'Escape') return;
+			const open = document.querySelector('#topmenu > li.open');
+			if (!open || !flyoutMode()) return;
+			const trigger = open.querySelector(':scope > a');
+			closeFlyouts();
+			trigger?.focus();
+		});
+
+		/* Entering flyout mode: fold everything, or a section left open as an
+		 * accordion reappears as a popup panel stuck on screen. LEAVING it: put the
+		 * accordion back the way the user had it — see restoreAccordion().
+		 *
+		 * Watch the ATTRIBUTE, not the rail button. common.wireRail() registers its
+		 * own click handler from inside the ui.menu.load() promise, i.e. after this
+		 * runs — so a click listener added here would fire FIRST and read the old
+		 * data-rail. The attribute change is the state transition itself, and it
+		 * cannot be observed too early. */
+		const modeChanged = () => { flyoutMode() ? closeFlyouts() : restoreAccordion(); };
+		new MutationObserver(modeChanged).observe(document.documentElement, {
+			attributes: true, attributeFilter: [ 'data-rail' ]
+		});
+		_mqMobile.addEventListener('change', modeChanged);
+
+		/* Appearance -> Submenus -> auto-collapse is handled in common.js, which can
+		 * only reach the DOM: the remembered set and the aria-expanded state live
+		 * here. Without this, switching auto-collapse ON folded the sections on
+		 * screen but left them in the remembered set, and the next navigation
+		 * unfolded every one of them again. */
+		document.addEventListener('fs-autocollapse', (ev) => {
+			if (ev.detail && ev.detail.on) {
+				_openSections.clear();
+				saveOpenSections();
+			}
+			document.querySelectorAll('#topmenu > li.has-sub')
+				.forEach((li) => setOpen(li, li.classList.contains('open')));
+		});
 	}
 });

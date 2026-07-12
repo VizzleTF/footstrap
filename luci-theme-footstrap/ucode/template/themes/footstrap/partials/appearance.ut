@@ -12,6 +12,6 @@
 {% else %}
 <button type="button" class="fs-appearance-btn" id="fs-appearance" aria-label="{{ _('Appearance') }}">
 {% endif %}
-	<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
+	<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
 	{% if (with_label): %}<span class="fs-label">{{ _('Appearance') }}</span>{% endif %}
 </button>

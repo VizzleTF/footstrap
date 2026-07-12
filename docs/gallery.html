@@ -94,6 +94,23 @@ uci commit network</pre>
 		<input type="submit" value="input[type=submit]">
 		<input type="reset" value="input[type=reset]">
 	</div>
+	<div class="g-row">
+		<a class="btn danger" href="#">.btn.danger</a>
+		<a class="btn error" href="#">.btn.error</a>
+		<a class="btn success" href="#">.btn.success</a>
+		<a class="btn info" href="#">.btn.info</a>
+		<a class="btn large" href="#">.btn.large</a>
+		<a class="btn small" href="#">.btn.small</a>
+	</div>
+	<p class="g-note">The colour words (<code>.danger/.error/.success/.info</code>) and size words
+		(<code>.large/.small</code>) come from <code>styles/base</code>, but the theme's plain
+		<code>.btn</code> rule sits in a LATER layer and overrides background/padding/radius —
+		so the theme has to re-state them (<code>theme/55-buttons.css</code>). They rendered as
+		neutral grey buttons, and <code>.btn.large</code> came out with small-button padding,
+		until it did. Nothing in stock LuCI emits them; a third-party <code>luci-app-*</code> can.</p>
+	<p class="g-note">Keyboard focus: <kbd>Tab</kbd> through this section. Every button must show a
+		ring — there was none at all before (base listed <code>button:hover</code>, not
+		<code>:focus</code>, and the theme's <code>box-shadow: none</code> erased the rest).</p>
 	<p class="g-note">Row-action size (inside a <code>.td</code>) is shown in the tables section.</p>
 </div>
 
@@ -116,34 +133,34 @@ uci commit network</pre>
 		<div class="cbi-section-descr">A section description, as CBI renders it.</div>
 		<div class="cbi-section-node">
 			<div class="cbi-value">
-				<label class="cbi-value-title">Text input</label>
-				<div class="cbi-value-field"><input type="text" class="cbi-input-text" value="OpenWrt"></div>
+				<label class="cbi-value-title" for="g-text">Text input</label>
+				<div class="cbi-value-field"><input id="g-text" type="text" class="cbi-input-text" value="OpenWrt"></div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Password</label>
-				<div class="cbi-value-field"><input type="password" class="cbi-input-password" value="secret"></div>
+				<label class="cbi-value-title" for="g-pass">Password</label>
+				<div class="cbi-value-field"><input id="g-pass" type="password" class="cbi-input-password" value="secret"></div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Invalid input</label>
+				<label class="cbi-value-title" for="g-inv">Invalid input</label>
 				<div class="cbi-value-field">
-					<input type="text" class="cbi-input-text cbi-input-invalid" value="not an ip">
+					<input id="g-inv" type="text" class="cbi-input-text cbi-input-invalid" value="not an ip">
 					<div class="cbi-value-description">Expecting: valid IP address</div>
 				</div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Native select</label>
+				<label class="cbi-value-title" for="g-sel">Native select</label>
 				<div class="cbi-value-field">
-					<select class="cbi-input-select"><option>alpha</option><option>beta</option></select>
+					<select id="g-sel" class="cbi-input-select"><option>alpha</option><option>beta</option></select>
 				</div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Multiple select</label>
+				<label class="cbi-value-title" for="g-msel">Multiple select</label>
 				<div class="cbi-value-field">
-					<select multiple size="3"><option selected>one</option><option>two</option><option>three</option></select>
+					<select id="g-msel" multiple size="3"><option selected>one</option><option>two</option><option>three</option></select>
 				</div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Checkbox (toggle)</label>
+				<label class="cbi-value-title" for="cb1">Checkbox (toggle)</label>
 				<div class="cbi-value-field">
 					<div class="cbi-checkbox"><input id="cb1" type="checkbox" checked><label for="cb1"></label></div>
 				</div>
@@ -156,19 +173,19 @@ uci commit network</pre>
 				</div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Textarea</label>
-				<div class="cbi-value-field"><textarea class="cbi-input-textarea" rows="3">option one
+				<label class="cbi-value-title" for="g-ta">Textarea</label>
+				<div class="cbi-value-field"><textarea id="g-ta" class="cbi-input-textarea" rows="3">option one
 option two</textarea></div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">File upload</label>
-				<div class="cbi-value-field"><input type="file"></div>
+				<label class="cbi-value-title" for="g-file">File upload</label>
+				<div class="cbi-value-field"><input id="g-file" type="file"></div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title">Range slider</label>
+				<label class="cbi-value-title" for="g-range">Range slider</label>
 				<div class="cbi-value-field">
 					<div class="cbi-range-slider">
-						<input type="range" min="0" max="100" value="40">
+						<input id="g-range" type="range" min="0" max="100" value="40">
 						<span class="cbi-range-slider-value">40</span>
 					</div>
 				</div>

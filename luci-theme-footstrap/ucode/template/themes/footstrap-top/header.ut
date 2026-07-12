@@ -17,13 +17,25 @@
 
 {% include('themes/footstrap/partials/head', { boardinfo }) %}
 
-	<body class="lang_{{ dispatcher.lang }} fs-top {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', length(ctx.request_path) ? ctx.request_path : ctx.path), true) }}">
+	{# data-page = the DISPATCH path; see the note in footstrap/header.ut #}
+	<body class="lang_{{ dispatcher.lang }} fs-top {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', length(ctx.path) ? ctx.path : ctx.request_path), true) }}">
 		{% if (!blank_page): %}
+		{# skip the menu — see the note in footstrap/header.ut #}
+		<a class="fs-skip" href="#maincontent">{{ _('Skip to content') }}</a>
 		<div class="fs-topwrap">
 			<header class="fs-topnav">
 				{% include('themes/footstrap/partials/brand', { boardinfo }) %}
 
-				<ul class="nav fs-mainmenu" id="topmenu"></ul>
+				{#
+					The menu needs a navigation landmark of its own: a <header> is `banner`,
+					not `navigation`, so without this wrapper the top layout had no way for a
+					screen reader to jump to the menu. `.fs-navwrap { display: contents }`
+					(theme/50-topnav.css) keeps the <ul> a direct flex item of the bar, so the
+					landmark costs no layout change at all.
+				#}
+				<nav class="fs-navwrap" aria-label="{{ _('Menu') }}">
+					<ul class="nav fs-mainmenu" id="topmenu"></ul>
+				</nav>
 
 				<div class="fs-topnav-right">
 					<div id="indicators" class="fs-indicators"></div>
@@ -35,12 +47,16 @@
 			</header>
 			<ul id="modemenu" class="fs-modemenu-top" style="display:none"></ul>
 
-			<main class="fs-main fs-main-top" id="maincontent">
+			<main class="fs-main fs-main-top" id="maincontent" tabindex="-1">
 				{# .fs-title-main is display:none chrome the SPA router keeps in sync
 				   (menu-footstrap-common.js navigate()); title goes through striptags
 				   like everywhere else — a third-party menu title is not trusted markup #}
+				{# <h1>, not a <div>: this is the page title, and the document had no h1 at
+				   all — the first heading a screen reader met was an <h4> inside a notice.
+				   It stays visually hidden (the container is [hidden]); the SPA router keeps
+				   its text in sync on navigation. #}
 				<div class="fs-title" hidden>
-					<div class="fs-title-main">{{ striptags(dispatched?.title ? _(dispatched.title) : (boardinfo.hostname ?? 'OpenWrt')) }}</div>
+					<h1 class="fs-title-main">{{ entityencode(striptags(dispatched?.title ? _(dispatched.title) : (boardinfo.hostname ?? 'OpenWrt')), true) }}</h1>
 				</div>
 
 				<div class="fs-content">

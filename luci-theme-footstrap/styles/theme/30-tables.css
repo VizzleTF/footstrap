@@ -93,10 +93,16 @@
 	.cbi-section .table.fs-dt, .cbi-section table.fs-dt, #view table.fs-dt {
 		border-collapse: separate; border-spacing: 0;
 		border: 1px solid var(--border); border-radius: var(--radius-lg);
-		/* no overflow:hidden — it clipped the last column when a wide table (many
-		 * columns) was a touch too wide for its section. The four corner cells
+		/* overflow:visible, EXPLICITLY. It clipped the last column when a wide table
+		 * (many columns) was a touch too wide for its section. The four corner cells
 		 * (below) round the frame instead, and long values wrap (further below) so
-		 * the table shrinks to fit rather than overflow. */
+		 * the table shrinks to fit rather than overflow.
+		 *
+		 * This has to be a real declaration, not an omission: the generic `.table`
+		 * rule further down this file still says `overflow: hidden`, and simply not
+		 * repeating it here does not stop it from applying. Leaving it out is what
+		 * kept the clipping bug alive after the comment said it was gone. */
+		overflow: visible;
 	}
 	/* A real <table>'s overflow:hidden does NOT clip its cell backgrounds to the
 	 * border-radius, so the square corner cells poked past the rounded frame. Round
@@ -179,7 +185,10 @@
 		margin: 0;
 		border: 0;
 	}
-	.cbi-section-error { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--panel)); color: var(--text); }
+	/* 6%, not 12%. The list inside is bold --danger text (next rule) on this tint OF
+	 * --danger, so the tint eats its own contrast: 12% measured 4.4:1 (axe-core). At 6%
+	 * every palette clears 4.5 (4.87 / 4.95 / 5.28 / 6.09) and the box still reads red. */
+	.cbi-section-error { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 6%, var(--panel)); color: var(--text); }
 	.cbi-section-error ul li { color: var(--danger); }
 
 	/* denser data tables (dhcp static leases, section-tables) */
@@ -226,7 +235,7 @@
 	 * narrow (≤800). Above that a wide fs-dt (DHCP leases) stays a real table and
 	 * reflows its long opaque values (DUID/IPv6, and the hostname) to fit — see the
 	 * overflow-wrap rules elsewhere; below 800 the cards read better. */
-	@container (max-width: 800px) {
+	@container fs-view (max-width: 800px) {
 		#view table.fs-dt .tr.table-titles { display: none; }
 		#view table.fs-dt .tr { display: block; padding: 10px 16px; }
 		#view table.fs-dt .td {

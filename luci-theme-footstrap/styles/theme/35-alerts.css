@@ -24,7 +24,10 @@
 	.alert-message.error, .alert-message.danger { border-color: var(--danger); }
 	.alert-message.success, .alert-message.notice { border-left-color: var(--good); }
 
-	.alert-message h4 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--text); }
+	/* h2 is what the theme's own notices now emit (the document had no heading above
+	 * h4 at all). h4 stays in the list — a third-party luci-app-* alert is free to use
+	 * it, and coverage only ever grows. */
+	.alert-message :is(h2, h3, h4) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--text); }
 	.alert-message p { margin: 4px 0; color: var(--dim); font-size: 13px; }
 	/* inner table (e.g. firmware Current/Available) — flatten so it doesn't read as
 	 * a nested card on the alert panel; subtle row dividers only */
@@ -50,10 +53,21 @@
 		/* carried over from the absorbed styles/base .label rule */
 		white-space: nowrap; margin: .125em 0 .125em .4em;
 	}
-	.label.important, .label.notice { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-	.label.warning { background: color-mix(in srgb, var(--warn) 16%, transparent); border-color: var(--warn); color: var(--warn); }
-	.label.success { background: color-mix(in srgb, var(--good) 16%, transparent); border-color: var(--good); color: var(--good); }
-	.label.danger, .label.error { background: color-mix(in srgb, var(--danger) 16%, transparent); border-color: var(--danger); color: var(--danger); }
+	/* THE VARIANTS DO NOT SET A BACKGROUND, and that is deliberate — they inherit the
+	 * opaque --panel2 from `.label` above.
+	 *
+	 * They used to paint a TRANSLUCENT tint of their own colour on top of it, i.e. text
+	 * of colour C on a tint of C. Two things went wrong. The tint always drags the
+	 * background toward the text colour, eating the contrast the text needs; and being
+	 * translucent, what it actually renders as depends on the surface underneath, so no
+	 * single percentage is safe everywhere. Measured across the palette x mode matrix
+	 * (axe-core), every variant landed at 3.4-4.4:1. Dropping the fill puts the text on
+	 * --panel2, where the palette guarantees >=4.5 by construction, and the coloured
+	 * border still carries the status just as loudly. */
+	.label.important, .label.notice { border-color: var(--accent); color: var(--accent); }
+	.label.warning { border-color: var(--warn); color: var(--warn); }
+	.label.success { border-color: var(--good); color: var(--good); }
+	.label.danger, .label.error { border-color: var(--danger); color: var(--danger); }
 	a.label:link, a.label:visited { color: var(--dim); }
 	a.label:hover { text-decoration: none; color: var(--text); }
 

@@ -10,14 +10,27 @@
 		{% if (!blank_page): %}
 				</div>{# /.fs-content #}
 
-				<footer class="fs-footer">
+				{#
+					role="contentinfo" is explicit on purpose. A <footer> only gets that role
+					IMPLICITLY when its nearest ancestor is <body>, and this one lives inside
+					<main> — where it has to stay, because both layouts lay .fs-main out as a
+					flex column and order the footer within it. The explicit role is not
+					subject to that scoping rule, so the landmark exists without touching the
+					layout.
+
+					The version strings are entityencode()d: they come from
+					/etc/openwrt_release, and while that is root-owned, an unescaped `&` in a
+					distname would still break the markup. The neighbouring disturl was
+					already encoded; these two were the only raw interpolations left.
+				#}
+				<footer class="fs-footer" role="contentinfo">
 					<span>
 						Powered by
 						<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">
-							{{ version.luciname }} ({{ version.luciversion }})</a>
+							{{ entityencode(version.luciname, true) }} ({{ entityencode(version.luciversion, true) }})</a>
 						/
 						<a href="{{ entityencode(version.disturl ?? '#', true) }}" target="_blank" rel="noreferrer">
-							{{ version.distname }} {{ version.distversion }} ({{ version.distrevision }})</a>
+							{{ entityencode(version.distname, true) }} {{ entityencode(version.distversion, true) }} ({{ entityencode(version.distrevision, true) }})</a>
 						{% if (lua_active): %}
 							/ {{ _('Lua compatibility mode active') }}
 						{% endif %}

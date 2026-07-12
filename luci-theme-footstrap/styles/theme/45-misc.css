@@ -1,4 +1,20 @@
 @layer theme {
+	/* ==================================================================
+	 * WCAG 2.2 SC 1.4.1 (Use of Color, level A): inside a block of text, a link may
+	 * not be identified by COLOUR ALONE. It needs either a non-colour cue, or 3:1
+	 * contrast against the surrounding text — and --accent against --text measures
+	 * 1.4:1 in dark mode, nowhere near it. So: underline links that sit in prose.
+	 *
+	 * Scoped to prose deliberately. Navigation links, buttons, pills and table cells
+	 * are identified by position and shape, not by being the only coloured thing in a
+	 * paragraph, and underlining them would be noise.
+	 * ================================================================== */
+	p a, dd a,
+	.cbi-value-description a,
+	.alert-message a:not(.btn):not(.cbi-button) {
+		text-decoration: underline;
+	}
+
 	/* fade-in used by overview poll */
 	.fade-in { animation: fs-fade .3s ease; }
 	@keyframes fs-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -21,7 +37,14 @@
 	 * ================================================================== */
 	/* Query the actual content width, not the viewport — the sidebar eats width, so
 	 * a viewport breakpoint would stack too late (or too early) depending on layout. */
-	.cbi-map { container-type: inline-size; }
+	/* NAMED, and the pair of names is deliberate. An unnamed @container binds to the
+	 * nearest ancestor that happens to have a container-type — so giving container-type
+	 * to any new component would silently re-target every unnamed query underneath it.
+	 *   fs-map     this element specifically (a CBI form's content column)
+	 *   fs-content "whatever content column I am in" — #view carries this name too, so
+	 *              a query for fs-content resolves to the NEAREST of the two, which is
+	 *              exactly what the unnamed queries did, only now on purpose. */
+	.cbi-map { container-type: inline-size; container-name: fs-map fs-content; }
 
 	/* ==================================================================
 	 * Responsive standalone data tables — DHCP/DHCPv6 leases, Processes,
@@ -32,7 +55,7 @@
 	 * container; stack each row into label/value pairs below 800px. On a wider column
 	 * (content-max 1280) data tables stay real tables and reflow long values.
 	 * ================================================================== */
-	#view { container-type: inline-size; }
+	#view { container-type: inline-size; container-name: fs-view fs-content; }
 
 	/* pager (pagination row: « prev · text · » next) — generic component, not page
 	 * scoped: any .pager gets an inline centred row with compact square buttons. */

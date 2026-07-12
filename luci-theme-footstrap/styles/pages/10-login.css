@@ -12,7 +12,9 @@
 	form:has(> .cbi-map input[name="luci_username"]) {
 		max-width: 400px; margin: 7vh auto 40px;
 		background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
-		padding: 26px 26px 24px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
+		/* --fs-shadow-pop, not a 45%-black 60px halo: that literal ignored the palette
+		 * and drew a heavy grey cloud under a white card in light mode. */
+		padding: 26px 26px 24px; box-shadow: var(--fs-shadow-pop);
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map,
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-section,
@@ -26,7 +28,7 @@
 		background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0;
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2 {
-		font-size: 21px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 6px;
+		font-size: 21px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px;
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr { color: var(--dim); font-size: 13px; margin: 0 0 20px; }
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-value {

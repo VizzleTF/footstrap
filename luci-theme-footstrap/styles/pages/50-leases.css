@@ -18,7 +18,7 @@
 	 * not leak into that phone layout. It sits in @layer page so it wins over the
 	 * theme's general overflow-wrap. Target this one table here rather than in the
 	 * shared theme file, so other fs-dt tables keep the plain break-to-fit behaviour. */
-	@container (min-width: 801px) {
+	@container fs-view (min-width: 801px) {
 		#view table.fs-dt:is(.leases, .leases6) .td { white-space: nowrap; }
 		#view table.fs-dt:is(.leases, .leases6) .td[data-title="DUID"],
 		#view table.fs-dt:is(.leases, .leases6) .td[data-title="IPv6 addresses"] {

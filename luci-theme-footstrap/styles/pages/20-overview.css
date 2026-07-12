@@ -74,7 +74,7 @@
 	 * child), so match it anywhere in the descendants, not with `>`. */
 	#view > .cbi-section:has(.fs-ovl-marker) { display: none; }
 
-	@container (max-width: 800px) {
+	@container fs-view (max-width: 800px) {
 		.fs-ovl { grid-template-columns: 1fr; }
 		.fs-ovl > .fs-ovl-sys,
 		.fs-ovl > .fs-ovl-mem,
@@ -114,7 +114,7 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-lg);
 		padding: 9px 11px;
-		container-type: inline-size;
+		container-type: inline-size; container-name: fs-port;
 		display: grid;
 		grid-template-columns: 1fr auto;
 		column-gap: 8px; row-gap: 3px;
@@ -164,7 +164,7 @@
 	 * so the nowrap traffic figures never spill past the card edge. Container query
 	 * on the card itself (container-type above) — keys off the CARD width, so it
 	 * follows the auto-fit shrink, not the viewport. */
-	@container (max-width: 158px) {
+	@container fs-port (max-width: 158px) {
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2),
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { grid-column: 1 / -1; }
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4),

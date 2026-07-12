@@ -9,7 +9,11 @@
 <html lang="{{ dispatcher.lang }}">
 	<head>
 		<meta charset="utf-8">
-		<title>{{ striptags(`${boardinfo.hostname ?? 'OpenWrt'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`) }}</title>
+		{# entityencode AROUND striptags. striptags removes tags but does NOT escape `&`
+		   or quotes (checked against the ucode html module on the router), so a hostname
+		   containing `&` produced broken entity parsing here. No XSS either way — the
+		   context is text and the tags are gone — but the markup has to be well-formed. #}
+		<title>{{ entityencode(striptags(`${boardinfo.hostname ?? 'OpenWrt'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`), true) }}</title>
 		<script>
 			/* footstrap: saved client preference wins, else follow OS. */
 			(function() {
@@ -71,21 +75,39 @@
 		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="darkreader-lock">
-		{# preload above-the-fold fonts so they don't wait for the full cascade.css
-		   download+parse; crossorigin is required even same-origin or the fetch is
-		   duplicated. body text = Manrope 600, headings = 700, mono values = JBM 400. #}
-		<link rel="preload" href="{{ media }}/fonts/manrope-600.woff2" as="font" type="font/woff2" crossorigin>
-		<link rel="preload" href="{{ media }}/fonts/manrope-700.woff2" as="font" type="font/woff2" crossorigin>
-		<link rel="preload" href="{{ media }}/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+		{# Preload the two faces that paint the chrome itself (menu, headings, brand)
+		   so they don't wait for cascade.css to download and parse. crossorigin is
+		   required even same-origin, or the preload is discarded and the font is
+		   fetched twice.
+
+		   The LATIN subsets specifically (styles/01-fonts.css splits every face by
+		   unicode-range): they are the ones every UI needs, whatever its language,
+		   because digits and ASCII appear on every page.
+
+		   JetBrains Mono is deliberately NOT preloaded. It only renders inside table
+		   cells and values, which the client-side view paints well after first paint,
+		   so preloading 19 KB of it just competed with the CSS for bandwidth — and
+		   Chrome duly warned that the preload went unused. #}
+		<link rel="preload" href="{{ media }}/fonts/manrope-600-latin.woff2" as="font" type="font/woff2" crossorigin>
+		<link rel="preload" href="{{ media }}/fonts/manrope-700-latin.woff2" as="font" type="font/woff2" crossorigin>
 		<link rel="stylesheet" href="{{ media }}/cascade.css?v={{ pkgs_update_time }}">
 		<link rel="icon" href="{{ media }}/logo_48.png" sizes="48x48">
 		<link rel="icon" href="{{ media }}/logo.svg" sizes="any">
 		{% if (node?.css): %}
-		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
+		{# uhttpd sends no Cache-Control at all, so without a version key the browser
+		   applies HEURISTIC freshness and can serve a stale app stylesheet for days
+		   after an upgrade. Same key as cascade.css. #}
+		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}?v={{ pkgs_update_time }}">
 		{% endif %}
 		{% if (css): %}
-		<style title="text/css">{{ css }}</style>
+		{# no `title` attribute: on a <style> that is not the MIME type, it names a
+		   STYLE SHEET SET, which turns this into a "preferred" alternate sheet the
+		   user can switch off in Firefox's View -> Page Style. #}
+		<style>{{ css }}</style>
 		{% endif %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
-		<script src="{{ resource }}/cbi.js"></script>
+		{# cbi.js was the one asset with no cache key — stock LuCI busts it. It must
+		   stay SYNCHRONOUS and un-deferred: luci.js captures `window.cbi_init` in its
+		   constructor, so cbi.js has to have run by then. #}
+		<script src="{{ resource }}/cbi.js?v={{ pkgs_update_time }}"></script>
 	</head>

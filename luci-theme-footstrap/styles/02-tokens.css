@@ -17,9 +17,15 @@
 		 * per colourway × light/dark, and the default (footstrap) also fills bare
 		 * :root there. Add a colourway = add a block there, nothing to touch here.
 		 * Everything in this file is palette-INDEPENDENT: shadows, radius, fonts, the
-		 * var()-based bridge (auto-follows whatever palette is active), and the shared
-		 * HSL-component bridge (both palettes resolve fine off it). */
-		--on-accent: #fff;	/* text/knob on accent/good/danger fills (all palettes/modes) */
+		 * z-index scale, and the var()-based bridge (auto-follows whatever palette is
+		 * active). The HSL-component bridge this used to mention is GONE — see the note
+		 * at the bottom of the file. */
+		/* The inks that go ON the accent/good/warn/danger fills (--on-accent &c.) are
+		 * NOT here either: they are palette- AND mode-dependent, so they live in the
+		 * palette blocks next to the fills they have to be legible against. A dark
+		 * palette has light fills and therefore needs a DARK ink — the single global
+		 * `--on-accent: #fff` that used to sit here put white text on every fill in
+		 * every mode and failed WCAG AA on seven of the eight dark-palette fills. */
 		--fs-shadow: 0 1px 3px rgba(15,23,37,.08);
 		/* drop shadow for floating pop surfaces (menus, dropdown lists, the
 		 * appearance popover, the native select picker). One value replaces the
@@ -38,6 +44,10 @@
 		 * phone bar are the same component in two markups; one token keeps their
 		 * glass tint identical. */
 		--fs-bar-bg: color-mix(in srgb, var(--panel) 88%, transparent);
+		/* height of that bar. Also the scroll-margin every anchor target needs in order
+		 * to clear it (base/10-reset.css) — the two must not drift, or an in-page jump
+		 * lands under the sticky bar. */
+		--fs-bar-h: 46px;
 
 		/* Corner-radius scale. One user-tunable base — Appearance → Rounding slider,
 		 * 0–20px, persisted as localStorage `fs-radius` and pre-painted as an inline
@@ -54,6 +64,32 @@
 
 		--font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 		--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+		/* ---- Stacking scale ----------------------------------------------------
+		 * Every z-index in the theme comes from here. There used to be nine bare
+		 * numbers (2, 40, 50, 60, 70, 800, 900, 1000, 1100) spread across seven
+		 * files, and nothing recorded what was supposed to sit above what — so the
+		 * Appearance popover (1000) painted OVER an open modal (#modal_overlay, 900),
+		 * which no one intended. Written as an ordered list, that bug is obvious.
+		 *
+		 * Ordering, bottom to top:
+		 *   raise     in-flow child that must clear its siblings (zonebadge tooltip)
+		 *   sticky    the sticky bars: top-nav, sidebar phone bar
+		 *   flyout    nav panels: rail flyouts, top-nav dropdowns, rail tooltips
+		 *   header    base's sticky <header> (above content, below any popup)
+		 *   popover   the Appearance popover — ABOVE the chrome, BELOW a modal
+		 *   overlay   #modal_overlay: a modal is modal, it covers the chrome
+		 *   tooltip   .cbi-tooltip — must read over modal content
+		 *   dropdown  an OPEN .cbi-dropdown list — over everything, including inside a modal
+		 * ------------------------------------------------------------------------ */
+		--z-raise: 2;
+		--z-sticky: 50;
+		--z-flyout: 70;
+		--z-header: 800;
+		--z-popover: 850;
+		--z-overlay: 900;
+		--z-tooltip: 1000;
+		--z-dropdown: 1100;
 
 		/* bridge: the conventional LuCI theme vars -> footstrap tokens */
 		--background-color-high: var(--panel);
@@ -77,17 +113,17 @@
 		--error-color-high: var(--danger);
 		--error-color-medium: var(--danger);
 		--error-color-low: var(--danger);
-		--on-error-color: var(--on-accent);
+		--on-error-color: var(--on-danger);
 
 		--success-color-high: var(--good);
 		--success-color-medium: var(--good);
 		--success-color-low: var(--good);
-		--on-success-color: var(--on-accent);
+		--on-success-color: var(--on-good);
 
 		--warn-color-high: var(--warn);
 		--warn-color-medium: var(--warn);
 		--warn-color-low: var(--warn);
-		--on-warn-color: var(--on-accent);
+		--on-warn-color: var(--on-warn);
 
 		--disabled-opacity: .6;
 		color-scheme: light;

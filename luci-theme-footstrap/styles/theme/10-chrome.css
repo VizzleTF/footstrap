@@ -14,18 +14,57 @@
 
 	.fs-brand {
 		display: flex; align-items: center; gap: 10px;
-		color: var(--text); font-weight: 800;
+		color: var(--text); font-weight: 700;
 	}
 
 	.fs-logo {
 		width: 30px; height: 30px; border-radius: var(--radius);
 		background: linear-gradient(135deg, var(--accent), var(--accent-lt));
+		/* the glyph inherits this (brand.ut uses currentColor) — same ink as every other
+		 * thing drawn on an accent fill, so it follows palette and mode */
+		color: var(--on-accent);
 		display: flex; align-items: center; justify-content: center;
 		flex: 0 0 auto;
 	}
 	.fs-logo svg { width: 17px; height: 17px; }
 
-	.fs-wordmark { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
+	/* 700, not 800: the 800 face is no longer shipped (it drew six elements for 18 KB —
+	 * styles/01-fonts.css), so 800 silently resolved to 700 anyway. Say so. */
+	.fs-wordmark { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+
+	/* ==================================================================
+	 * Skip link (both layouts). The first tab stop on the page: it lets a keyboard
+	 * or screen-reader user jump the entire menu instead of tabbing through every
+	 * section, on every single page. Off-screen until focused — never `display:none`
+	 * or `visibility:hidden`, which would take it out of the tab order and defeat
+	 * the purpose. It sits above everything, including an open popover.
+	 * ================================================================== */
+	.fs-skip {
+		position: fixed; top: 8px; left: 8px; z-index: var(--z-dropdown);
+		padding: 10px 16px; border-radius: var(--radius);
+		background: var(--accent); color: var(--on-accent);
+		font-weight: 700; font-size: 13px; text-decoration: none;
+		box-shadow: var(--fs-shadow-pop);
+	}
+	/* Clipped, not merely translated off-screen. Sliding it up with a transform left
+	 * its DROP SHADOW behind: --fs-shadow-pop is offset 12px and blurred 34px, so with
+	 * the box parked at -68px the shadow still reached ~16px INTO the viewport and
+	 * smudged the top-left corner of every page. clip-path clips the shadow too.
+	 * Never display:none / visibility:hidden here — that would take the link out of the
+	 * tab order, which is the one thing it exists for. */
+	.fs-skip:not(:focus) {
+		clip-path: inset(50%);
+		width: 1px; height: 1px;
+		padding: 0; overflow: hidden; white-space: nowrap;
+	}
+	.fs-skip:focus {
+		outline: 2px solid var(--panel); outline-offset: 2px;
+	}
+	/* the <main> the skip link targets carries tabindex="-1" so the browser will
+	 * actually MOVE focus there (Safari and Chrome refuse on a non-focusable target,
+	 * scrolling but leaving focus behind in the menu) — but it must not then paint a
+	 * focus ring around the whole page. */
+	#maincontent:focus { outline: none; }
 
 	.fs-logout { display: flex; align-items: center; color: var(--dim); }
 	.fs-logout:hover { color: var(--danger); }

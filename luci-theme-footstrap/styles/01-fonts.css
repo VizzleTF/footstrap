@@ -1,5 +1,49 @@
-@font-face{font-family:'Manrope';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/manrope-600.woff2) format('woff2')}
-@font-face{font-family:'Manrope';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/manrope-700.woff2) format('woff2')}
-@font-face{font-family:'Manrope';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/manrope-800.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-600.woff2) format('woff2')}
+/* Self-hosted webfonts. Unlayered on purpose: @font-face declares a resource, it
+ * is not a style rule, so a cascade layer would mean nothing here.
+ *
+ * SPLIT BY SCRIPT, and that split is the whole point of this file.
+ * uhttpd serves /www/luci-static/* with NO compression of any kind (there is no
+ * gzip code anywhere in it — docs/18), so bytes on disk are bytes on the wire, and
+ * the fonts are the most expensive thing the theme ships. Each face used to be ONE
+ * file carrying Latin AND Cyrillic together (19-25 KB), so an English UI paid for
+ * every Cyrillic glyph it would never draw, and a Russian one for the reverse.
+ * With unicode-range the browser fetches only the subsets whose codepoints the
+ * page actually contains:
+ *
+ *   Latin UI:   manrope 600/700 + mono 400/600, latin only     ~66 KB
+ *   Russian UI: + the four cyrillic subsets                    ~90 KB
+ *   before:     all five faces, unconditionally               ~105 KB
+ *
+ * latin-ext is ~1 KB per face and is fetched only when a page actually shows an
+ * accented character outside Latin-1 — it costs nothing to keep and it stops a
+ * silent fallback to a system font mid-word.
+ *
+ * THERE IS NO WEIGHT 400, and that is deliberate. The lightest Manrope face here
+ * is 600, so `font-weight: normal` resolves onto it through CSS font matching —
+ * body text renders semibold, which is how the theme has always looked. Adding a
+ * real 400 would cost ~13 KB and restyle every page: a design decision, not a
+ * cleanup.
+ *
+ * Weight 800 is gone. Measured in-browser across six pages, it drew SIX elements
+ * (the brand lockup and the login h2) and cost 18 KB. They resolve to 700 now,
+ * which at those sizes is indistinguishable. */
+
+/* ---- Manrope 600 — body, labels, buttons (and the 400 that maps onto it) ---- */
+@font-face{font-family:'Manrope';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/manrope-600-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/manrope-600-latinext.woff2) format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/manrope-600-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+
+/* ---- Manrope 700 — headings, active tabs, brand (and the 800 that maps onto it) ---- */
+@font-face{font-family:'Manrope';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/manrope-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/manrope-700-latinext.woff2) format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/manrope-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+
+/* ---- JetBrains Mono 400 — values, table cells, logs ---- */
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400-latinext.woff2) format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+
+/* ---- JetBrains Mono 600 — bold values/headers (and the 700 that maps onto it) ---- */
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-600-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-600-latinext.woff2) format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-600-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}

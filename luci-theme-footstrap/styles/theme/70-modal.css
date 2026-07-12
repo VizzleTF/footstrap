@@ -1,5 +1,5 @@
 @layer theme {
-	.zonebadge .cbi-tooltip { box-shadow: 0 6px 20px rgba(0,0,0,.28); }
+	.zonebadge .cbi-tooltip { box-shadow: var(--fs-shadow-pop); }
 
 	/* ==================================================================
 	 * "Configuration / Changes" (uci changes) modal — soften the stock

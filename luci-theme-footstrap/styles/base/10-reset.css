@@ -6,11 +6,12 @@
 	 * assumes are already there; styles/theme/ paints over them and always wins,
 	 * because a later layer outranks an earlier one whatever the specificity. */
 
-	* {
-		scroll-margin-top: 40px;
-	}
-
+	/* Anchor targets must clear the sticky bar, or an in-page jump lands underneath it
+	 * (this is also WCAG 2.2 SC 2.4.11, Focus Not Obscured). The old value was a bare
+	 * 40px, which matched no bar the theme actually draws — the top-nav is 46px — and
+	 * it sat in a SECOND universal selector next to this one. One rule, one token. */
 	*, *::before, *::after {
+		scroll-margin-top: var(--fs-bar-h);
 		margin: 0;
 		padding: 0;
 		border: 0;
@@ -91,7 +92,9 @@
 
 	input[type="search"] {
 		appearance: textfield;
-		box-sizing: content-box;
+		/* NO box-sizing: content-box here. It contradicted the universal border-box a
+		 * few rules above, and since the theme sizes fields by padding, a search box
+		 * came out ~22px wider than every input beside it. */
 	}
 
 	input[type="search"]::-webkit-search-decoration {
@@ -101,7 +104,7 @@
 	textarea {
 		overflow: auto;
 		vertical-align: top;
-		font-family: monospace;
+		font-family: var(--font-mono);
 	}
 
 	.control-group {

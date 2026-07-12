@@ -34,13 +34,47 @@
 	.cbi-button:hover, .btn:hover,
 	input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover { border-color: var(--dim); }
 
+	/* Keyboard focus. This rule is not optional decoration — without it a button
+	 * shows NOTHING on focus. base/30-forms.css lists `button:hover` (not :focus)
+	 * in its focus block, so a <button> never had a ring there to begin with; and
+	 * for the native input types, whose :focus IS matched there, the `box-shadow:
+	 * none` above wins anyway — theme beats base regardless of specificity — while
+	 * base's `outline: 0` has already removed the UA ring. Save, Save & Apply,
+	 * Reset, every row action and the login submit were all untabbable-looking.
+	 * Same ring as every field (--fs-focus-ring), so focus looks like one thing. */
+	.cbi-button:focus-visible, .btn:focus-visible,
+	input[type="button"]:focus-visible, input[type="submit"]:focus-visible, input[type="reset"]:focus-visible {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: var(--fs-focus-ring);
+	}
+	/* Solid variants sit ON --accent/--good/--danger, so an --accent-tinted ring is
+	 * invisible against them: ring in the surface colour with an accent halo. */
+	.cbi-button-positive:focus-visible, .cbi-button-action:focus-visible,
+	.cbi-button-negative:focus-visible, .cbi-button-remove:focus-visible,
+	.cbi-button-apply:focus-visible, .cbi-button-save:focus-visible,
+	.btn.primary:focus-visible, .btn.danger:focus-visible,
+	.btn.error:focus-visible, .btn.success:focus-visible, .btn.info:focus-visible {
+		outline: none;
+		border-color: transparent;
+		box-shadow: 0 0 0 2px var(--panel), 0 0 0 5px var(--accent-soft);
+	}
+
+	/* Pressed state. base/90-widgets.css gives `.btn.active, .btn:active` an inset
+	 * shadow, which the `box-shadow: none` above erases — reclaim it here so a
+	 * press still reads. */
+	.cbi-button:active, .btn:active, .btn.active,
+	input[type="button"]:active, input[type="submit"]:active, input[type="reset"]:active {
+		box-shadow: inset 0 2px 4px color-mix(in srgb, var(--border) 40%, transparent);
+	}
+
 	/* solid variants */
-	.cbi-button-positive { background: var(--good); border-color: transparent; color: var(--on-accent); }
+	.cbi-button-positive { background: var(--good); border-color: transparent; color: var(--on-good); }
 	.cbi-button-action, .btn.primary, .cbi-button-action.important {
 		background: var(--accent); border-color: transparent; color: var(--on-accent);
 	}
 	.cbi-button-negative, .cbi-button-remove, .cbi-button-negative.important {
-		background: var(--danger); border-color: transparent; color: var(--on-accent);
+		background: var(--danger); border-color: transparent; color: var(--on-danger);
 	}
 	/* This hover must stay ahead of the page-action Save rule below: at equal
 	 * specificity its `border-color: transparent` would otherwise erase Save's
@@ -48,6 +82,28 @@
 	.cbi-button-positive:hover, .cbi-button-action:hover, .cbi-button-apply:hover,
 	.cbi-button-save:hover, .cbi-button-negative:hover { filter: brightness(1.08); border-color: transparent; }
 	.cbi-button-reset, .cbi-button-link { background: transparent; border-color: var(--border); color: var(--dim); }
+
+	/* The .btn colour words. base/60-modal.css paints .btn.danger/.error/.success/
+	 * .info with gradients over the bridge vars, but the plain `.btn` rule above
+	 * sets background/border/color in a LATER layer, which wins regardless of
+	 * specificity — so all four rendered as neutral grey buttons with no colour
+	 * cue at all. Coverage is a contract: the theme must claim them, not drop them.
+	 * Flat fills to match the .cbi-button-* variants above; :hover/:focus-visible/
+	 * :active are already covered by the shared rules. */
+	.btn.danger, .btn.error { background: var(--danger); border-color: transparent; color: var(--on-danger); }
+	.btn.success { background: var(--good); border-color: transparent; color: var(--on-good); }
+	.btn.info { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+	.btn.danger:hover, .btn.error:hover, .btn.success:hover, .btn.info:hover {
+		filter: brightness(1.08); border-color: transparent;
+	}
+
+	/* Size words. base/90-widgets.css gives .btn.large/.btn.small a font-size AND a
+	 * padding/border-radius, but the `.btn` rule above re-sets padding and radius
+	 * from the token scale in a later layer — so only the font-size survived and a
+	 * .btn.large came out with small-button padding. Re-state the geometry here, on
+	 * the radius scale rather than base's hardcoded 6px. */
+	.btn.large { font-size: 15px; min-height: 42px; padding: 9px 16px; border-radius: var(--radius); }
+	.btn.small { font-size: 11px; min-height: 28px; padding: 5px 10px; border-radius: var(--radius-sm); }
 
 	.cbi-section .table[id] .td .btn,
 	.cbi-section .table[id] .td .cbi-button { padding: 4px 10px; font-size: 12px; }
@@ -111,9 +167,13 @@
 	 * out on hover, and only an !important on their colours hid that. Same
 	 * specificity, so a variant hover has to be written after it.
 	 * ================================================================== */
+	/* WCAG 2.2 SC 2.5.8 (Target Size, Minimum, AA): a pointer target must be at least
+	 * 24x24 CSS px, or spaced so that 24px circles centred on adjacent targets do not
+	 * overlap. These row actions were 28px tall with a 1px margin either side, so the
+	 * circles DID overlap and the exemption did not apply. 32px clears it outright. */
 	.td .cbi-button, .td .btn, .cbi-section-actions .cbi-button, .cbi-section-actions .btn,
 	.cbi-section-table .cbi-button {
-		min-height: 28px; padding: 0 12px; font-size: 12px;
+		min-height: 32px; padding: 0 12px; font-size: 12px;
 	}
 	.td .cbi-button, .cbi-section-actions .cbi-button, .cbi-section-table .cbi-button {
 		background: transparent; background-image: none;

@@ -1,7 +1,7 @@
 @layer base {
 	/* The .cbi-dropdown widget. ui.js drives it purely through attributes —
 	 * [open], [multiple], [empty], [more], [display], [selected] — and the rules
-	 * below are what turn those attributes into a working combobox. The eleven
+	 * below are what turn those attributes into a working combobox. The eight
 	 * !important flags here are load-bearing: they carry the widget's internal
 	 * display/padding, and dropping them collapses the popup. See docs/17. */
 	.cbi-dropdown {
@@ -126,7 +126,7 @@
 		border: 1px solid var(--border-color-high);
 		box-shadow: 0 0 4px var(--border-color-high);
 		position: absolute;
-		z-index: 1100;
+		z-index: var(--z-dropdown);
 		max-width: none;
 		min-width: 100%;
 		width: auto;
