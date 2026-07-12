@@ -5,8 +5,19 @@ newest first. Format follows [Keep a Changelog](https://keepachangelog.com/1.1.0
 the project uses [Conventional Commits](https://www.conventionalcommits.org/) and
 [SemVer](https://semver.org/).
 
+A Russian mirror lives in [CHANGELOG_ru.md](CHANGELOG_ru.md) — the two are edited in
+the same commit and must not drift apart.
+
 Sections used: **Added** · **Changed** · **Fixed** · **Removed** · **Security** ·
 **Performance**.
+
+Every commit writes into `[Unreleased]`; cutting a tag renames that heading to the
+version.
+
+## [Unreleased]
+
+### Added
+- This changelog, and its Russian mirror.
 
 ## [0.7.15] — 2026-07-12
 
@@ -315,6 +326,7 @@ Sections used: **Added** · **Changed** · **Fixed** · **Removed** · **Securit
 - `audit.py` checks for declarations shadowed within a layer, so the stylesheet cannot
   drift back into a changelog.
 
+[Unreleased]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.15...HEAD
 [0.7.15]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.14...v0.7.15
 [0.7.14]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.13...v0.7.14
 [0.7.13]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.12...v0.7.13

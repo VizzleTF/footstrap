@@ -220,18 +220,25 @@ Via OpenWrt SDK: symlink the package into `feeds/luci/themes/`, `./scripts/feeds
 
 Conventional Commits, message in English. **Never commit without an explicit instruction.** No co-author / "Generated with" / any AI attribution trailers.
 
-## CHANGELOG.md — every tag gets an entry, written before the tag is pushed
+## CHANGELOG — every commit writes into `## [Unreleased]`, and a tag renames it
 
-`CHANGELOG.md` is the human-readable record of what shipped, in English, newest first, one
-`## [x.y.z] — YYYY-MM-DD` section per **released tag** (Keep a Changelog format; sections
-`Added` / `Changed` / `Fixed` / `Removed` / `Security` / `Performance`). A tag with no entry
-is a release nobody can read: the git log is a list of commits, not a list of *changes*, and
-a user upgrading from the previous `.apk` reads this file, not `git log`.
+Two files, kept in lockstep: **`CHANGELOG.md`** (English) and **`CHANGELOG_ru.md`** (Russian
+mirror). Keep a Changelog format, newest first, sections `Added` / `Changed` / `Fixed` /
+`Removed` / `Security` / `Performance`. **Both are edited in the same commit** — a mirror that
+lags is worse than no mirror, because the reader cannot tell which one is stale.
 
-**Cutting a release is three steps, in this order**: write the entry → commit it → tag that
-commit. Never tag first — the tag must point at a commit that already contains its own entry,
-otherwise the release page and the tarball describe a version whose changelog does not exist
-yet. Add the `compare/` link at the bottom in the same commit.
+**Every substantive commit adds its entry to the `## [Unreleased]` section at the top**, above
+the newest tagged version — in the same commit as the code, never as a follow-up. A changelog
+written later is written from the diff, and the diff is exactly the thing that does not know
+*why*. Commits that change nothing a user or a maintainer could observe (a typo in a comment,
+a CI-only refactor with identical behaviour) do not need an entry; when unsure, write one.
+
+**Cutting a release is three steps, in this order**: rename `## [Unreleased]` to
+`## [x.y.z] — YYYY-MM-DD` and add the `compare/` link at the bottom (in both files) → commit
+that → tag **that** commit. Never tag first: the tag must point at a commit that already
+contains its own entry, otherwise the release page and the tarball describe a version whose
+changelog does not exist yet. A fresh empty `## [Unreleased]` goes back on top with the next
+commit that has something to say.
 
 What goes in an entry:
 - **Write the effect, not the diff.** "Buttons had no focus indicator at all" beats "changed
@@ -244,5 +251,5 @@ What goes in an entry:
 - **Say what a rule protects against when it is non-obvious**, in one clause. Half of this
   theme's invariants exist because the obvious alternative was tried and measured worse; an
   entry that omits the reason invites the next person to undo it.
-- Group several commits under one version when they shipped under one tag — the section is per
-  *release*, not per commit.
+- Several commits may land under one heading — the released section is per *release*, not per
+  commit, and `[Unreleased]` accumulates until it is renamed.
