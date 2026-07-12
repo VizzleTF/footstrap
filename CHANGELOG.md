@@ -10,6 +10,31 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Performance
+- **The overview showed nothing at all until its slowest section answered.** Stock
+  `view.status.index` calls `poll_status()` with a `Promise.all` over every include's
+  `load()`, and `render()` does not return its tree until that settles — so `#view`
+  stays empty for the whole wait. Measured on the dev router (warm, in-place nav):
+  229 ms before the first section appeared, while System, CPU, Memory, Storage, DHCP
+  and Network had their data at 88 ms and were held back by `29_ports` and `60_wifi`
+  (180 ms each). Sections now paint as soon as **their own** data lands: first
+  section **229 → 91 ms**, everything filled 243 → 191 ms.
+- **The overview fetched all of its data twice on every visit.** Stock registers the
+  poller only after the first load completes, and `Poll.add()` steps immediately — so
+  the page re-ran every include's `load()` right after painting, ~250 ms of ubus work
+  for data it had just fetched. An in-flight guard folds that second run into the one
+  already running: **9 → 5 ubus requests per navigation**.
+  Both come from replacing `poll_status` from the theme's own overview include, which
+  loads inside `index.load()` — after the view instance exists and before `render()`
+  is called, the one window where the swap is safe, and it covers a full page load and
+  an in-place nav alike. The section frames, the includes, their `render()` output and
+  the Hide/Show toggles all stay upstream's; `fillSection()` is a transcription of
+  stock's own loop, kept in the same order so it can be diffed against `index.js` when
+  luci-mod-status changes. If the shape it expects is not there, the patch is skipped
+  and the page runs stock.
+
 ## [0.7.16] — 2026-07-12
 
 ### Added

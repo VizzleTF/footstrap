@@ -1,5 +1,7 @@
 'use strict';
 'require baseclass';
+'require dom';
+'require network';
 
 /* Footstrap overview LAYOUT-only include.
  *
@@ -111,6 +113,114 @@ function watch() {
 	});
 	observer.observe(view, { childList: true, subtree: true });
 }
+
+/* ---- progressive paint -----------------------------------------------------
+ *
+ * The overview is the slowest page in LuCI, and almost none of that is rendering.
+ * Stock `view.status.index` builds the section frames, then calls
+ * poll_status(first_load=true), which does `Promise.all` over EVERY include's
+ * load() and only resolves when the last one answers — and render() does not
+ * return the tree until then. So #view stays **empty** for the duration of the
+ * slowest include. Measured on the dev router (warm, SPA nav): 182 ms of blank
+ * page, of which System / CPU / Memory / Storage / DHCP / Network were ready at
+ * 88 ms and were simply waiting on 29_ports and 60_wifi (180 ms each).
+ *
+ * Two things this changes, both by replacing poll_status:
+ *
+ * 1. Each section paints as soon as ITS OWN data lands, instead of the whole page
+ *    waiting for the slowest one. Time to first content halves (182 -> ~90 ms);
+ *    ports and wifi fill in place a beat later. The frames are already in the DOM
+ *    by then — they were built before poll_status is ever called — so nothing
+ *    jumps: a section switches from hidden to filled, exactly as it does on a
+ *    stock poll tick.
+ *
+ * 2. The redundant immediate re-fetch is gone. Stock adds the poller only after
+ *    the first load completes, and `Poll.add()` steps at once — so the overview
+ *    fetched EVERYTHING a second time, ~250 ms of ubus work, immediately after
+ *    the first paint. An in-flight guard collapses that second run into the one
+ *    already running. Nothing is lost: the data it would have fetched is the data
+ *    the first run is already fetching.
+ *
+ * Deliberately NOT a re-implementation of the overview: the section frames, the
+ * hide/show toggles, the includes and their render() output all stay upstream's.
+ * fillSection() is a transcription of stock's own loop, kept in the same order so
+ * it can be diffed against index.js when luci-mod-status changes. If the shape it
+ * expects is not there, the patch is skipped and the page runs stock. */
+function fillSection(inc, container, res) {
+	if (inc.failed)
+		return;
+	let content = null;
+	if (typeof inc.render === 'function')
+		content = inc.render(res);
+	else if (inc.content != null)
+		content = inc.content;
+	if (typeof inc.oneshot === 'function') {
+		inc.oneshot(res);
+		inc.oneshot = null;
+	}
+	if (content != null) {
+		container.parentNode.style.display = '';
+		container.parentNode.classList.add('fade-in');
+		if (!inc.hide)
+			dom.content(container, content);
+	}
+}
+
+let inflight = null;
+
+function pollProgressive(includes, containers, first_load) {
+	/* A run is already fetching exactly this data — join it instead of starting a
+	 * second stampede of the same RPCs. This is what kills the duplicate load. */
+	if (inflight)
+		return first_load ? Promise.resolve() : inflight;
+
+	const run = network.flushCache().then(() => Promise.all(
+		includes.map((inc, i) => {
+			if (inc.hide && !first_load)
+				return null;
+			const loaded = (typeof inc.load === 'function')
+				? Promise.resolve(inc.load()).catch(() => { inc.failed = true; })
+				: Promise.resolve(null);
+			/* the point of the whole patch: fill THIS section the moment ITS data is
+			 * here, rather than at the end of a Promise.all over all of them */
+			return loaded.then((res) => {
+				try { fillSection(inc, containers[i], res); }
+				catch (e) { console.error('footstrap: overview section failed', e); }
+			});
+		}).filter(Boolean)
+	)).then(() => {
+		const ssi = document.querySelector('div.includes');
+		if (ssi) { ssi.style.display = ''; ssi.classList.add('fade-in'); }
+	});
+
+	inflight = run.finally(() => { inflight = null; });
+
+	/* On the first load, resolve NOW so index.render() returns its tree and the
+	 * frames reach #view immediately; the sections above fill themselves. On a poll
+	 * tick, resolve when the data is in — that is what the poller expects. */
+	return first_load ? Promise.resolve() : inflight;
+}
+
+/* Patch the stock overview view. Runs while index.load() is requiring its includes
+ * — i.e. after the instance exists and before render() is called, which is the one
+ * window where replacing poll_status is safe. Applies on a full page load and on a
+ * SPA nav alike, because both go through index.load(). */
+function patchOverview() {
+	L.require('view.status.index').then((idx) => {
+		const proto = idx ? Object.getPrototypeOf(idx) : null;
+		if (!proto || proto.__fsProgressive || typeof proto.poll_status !== 'function')
+			return;
+		proto.__fsProgressive = true;
+		proto.poll_status = function(includes, containers, first_load) {
+			return pollProgressive(includes, containers, first_load);
+		};
+	}).catch((e) => console.error('footstrap: overview progressive paint not applied', e));
+}
+
+/* At module-evaluation time, which is inside index.load() — before render(). Doing
+ * it from render() would be too late: poll_status has already been called by then. */
+if (isFootstrapTheme())
+	patchOverview();
 
 return baseclass.extend({
 	title: '',            /* no section title -> stock renders an empty wrapper */
