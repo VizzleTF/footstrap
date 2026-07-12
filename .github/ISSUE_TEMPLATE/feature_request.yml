@@ -1,0 +1,75 @@
+name: 💡 Предложение / Feature request
+description: Идея, улучшение вёрстки, поддержка стороннего пакета / Idea, design improvement, third-party package support
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Тема стилизует **общие виджеты LuCI**, а не отдельные страницы. Чем точнее укажете, какой виджет
+        или какая страница выглядит плохо, тем выше шанс, что правка почините заодно десяток других страниц.
+
+        The theme styles **generic LuCI widgets**, not individual pages. The more precisely you name the widget
+        or page, the more likely one fix covers a dozen other pages too.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Проверки / Pre-flight
+      options:
+        - label: Поискал среди [существующих issue](https://github.com/VizzleTF/luci-theme-footstrap/issues?q=is%3Aissue) — такого предложения нет / I searched existing issues, no duplicate
+          required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Тип предложения / Kind of request
+      options:
+        - Улучшить вёрстку/стиль существующей страницы / Improve the styling of an existing page
+        - Поддержать сторонний luci-app, который выглядит плохо / Support a third-party luci-app that looks broken
+        - Новая палитра / тема оформления / New palette or color scheme
+        - Новая возможность темы / New theme feature
+        - Другое / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решаем / What problem does this solve
+      description: Опишите ситуацию, а не сразу решение. / Describe the situation, not just the fix you have in mind.
+      placeholder: "На странице X виджет Y занимает половину экрана, из-за чего…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Что предлагаете / Proposed change
+    validations:
+      required: true
+
+  - type: input
+    id: page-path
+    attributes:
+      label: Адрес страницы / Page path
+      description: Где это видно / Where it can be seen
+      placeholder: "/cgi-bin/luci/admin/status/nftables"
+
+  - type: input
+    id: package-link
+    attributes:
+      label: Ссылка на сторонний пакет / Third-party package link
+      description: Обязательно, если речь про сторонний `luci-app-*` — иначе нечем воспроизвести виджет. / Required if this is about a third-party `luci-app-*` — otherwise the widget cannot be reproduced.
+      placeholder: "luci-app-podkop — https://github.com/itdoginfo/podkop"
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Скриншоты, макеты, референсы / Screenshots, mockups, references
+      description: Как выглядит сейчас и как должно / How it looks now and how it should look. Drag & drop images here.
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Что-нибудь ещё / Anything else

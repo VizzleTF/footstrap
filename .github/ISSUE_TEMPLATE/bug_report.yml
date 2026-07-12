@@ -1,0 +1,243 @@
+name: 🐞 Баг / Bug report
+description: Что-то сломано или выглядит неправильно / Something is broken or looks wrong
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за отчёт! Заполните форму как можно полнее — без версии, адреса страницы и скриншота
+        визуальный баг почти невозможно воспроизвести.
+
+        Thanks for the report! Please fill in as much as you can — without the version, the page path and
+        a screenshot a visual bug is nearly impossible to reproduce.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Проверки перед отправкой / Pre-flight checks
+      description: Отметьте всё, что сделали. Пункты 1–3 обязательны. / Tick everything you did. Items 1–3 are required.
+      options:
+        - label: Поискал среди [существующих issue](https://github.com/VizzleTF/luci-theme-footstrap/issues?q=is%3Aissue) — дубликата нет / I searched existing issues, no duplicate
+          required: true
+        - label: Стоит последняя версия темы из [релизов](https://github.com/VizzleTF/luci-theme-footstrap/releases) / I am on the latest release
+          required: true
+        - label: Сделал жёсткую перезагрузку страницы (Ctrl+Shift+R / Cmd+Shift+R) — баг остался / I did a hard reload, the bug is still there
+          required: true
+        - label: Проверил в приватном окне / чистом профиле — баг остался / Reproduced in a private window / clean profile
+        - label: Отключил расширения браузера (uBlock, Dark Reader, Stylus…) — баг остался / Disabled browser extensions, bug persists
+
+  - type: input
+    id: theme-version
+    attributes:
+      label: Версия темы / Theme version
+      description: |
+        `apk info luci-theme-footstrap` (OpenWrt 25.12+) или / or `opkg list-installed | grep footstrap` (24.10)
+      placeholder: "0.3.8"
+    validations:
+      required: true
+
+  - type: textarea
+    id: board
+    attributes:
+      label: OpenWrt и роутер / OpenWrt & router
+      description: "Вывод команды / Output of: `ubus call system board`"
+      placeholder: |
+        {
+          "kernel": "6.6.x",
+          "hostname": "OpenWrt",
+          "model": "GL.iNet GL-MT6000",
+          "board_name": "glinet,gl-mt6000",
+          "release": { "distribution": "OpenWrt", "version": "25.12.2", "target": "mediatek/filogic" }
+        }
+      render: json
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Как установлена тема / How the theme was installed
+      options:
+        - install.sh (одной строкой / one-liner)
+        - .apk вручную / manually (25.12+)
+        - .ipk вручную / manually (24.10)
+        - Собрал из исходников / Built from source (SDK / ImageBuilder)
+        - Другое / Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layout
+    attributes:
+      label: Раскладка / Layout
+      description: System → System → Language and Style → Design
+      options:
+        - FootstrapSidebar (боковое меню / sidebar)
+        - FootstrapOnTop (верхнее меню / top nav)
+        - Обе / Both
+        - Не знаю / Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: palette
+    attributes:
+      label: Палитра и режим / Palette & mode
+      description: Меняются в шапке (Appearance) / Set in the header (Appearance popover)
+      multiple: true
+      options:
+        - "Палитра / Palette: Footstrap"
+        - "Палитра / Palette: Hi-Contrast"
+        - "Палитра / Palette: Rvht (коты / cats)"
+        - "Режим / Mode: Auto"
+        - "Режим / Mode: Светлый / Light"
+        - "Режим / Mode: Тёмный / Dark"
+    validations:
+      required: true
+
+  - type: input
+    id: page-path
+    attributes:
+      label: Адрес страницы / Page path
+      description: Путь, на котором виден баг / The path where the bug shows up
+      placeholder: "/cgi-bin/luci/admin/status/nftables"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: page-origin
+    attributes:
+      label: Страница стоковая или из стороннего пакета? / Stock page or third-party package?
+      options:
+        - Стоковая страница LuCI / Stock LuCI page (luci-mod-*)
+        - Сторонний пакет / Third-party package (luci-app-*)
+        - Не знаю / Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: package-link
+    attributes:
+      label: Ссылка на сторонний пакет / Third-party package link
+      description: Если страница из стороннего `luci-app-*` — ссылка на его репозиторий и имя пакета. Без исходников виджет нечем воспроизвести. / If the page comes from a third-party `luci-app-*`, link its repository and give the package name — the widget cannot be reproduced without its source.
+      placeholder: "luci-app-podkop — https://github.com/itdoginfo/podkop"
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Описание проблемы / What's wrong
+      description: Что видите и что ожидали увидеть / What you see and what you expected to see
+      placeholder: |
+        Вижу: таблица правил уезжает за правый край, появляется горизонтальный скролл.
+        Ожидал: таблица сворачивается в карточки, как на других страницах.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги для воспроизведения / Steps to reproduce
+      placeholder: |
+        1. Зайти в LuCI, выбрать тему FootstrapSidebar
+        2. Открыть /cgi-bin/luci/admin/status/nftables
+        3. Сузить окно до ~380px (или открыть с телефона)
+        4. Проскроллить вниз до таблицы «Rules»
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Скриншоты / Screenshots
+      description: |
+        Перетащите картинки прямо в это поле. Для вёрстки скриншот обязателен — по описанию баг не воспроизвести.
+        Если можете — приложите такой же скриншот на стоковой теме `luci-theme-bootstrap` для сравнения.
+
+        Drag & drop images here. A screenshot is required for layout bugs. If you can, add the same screenshot
+        on the stock `luci-theme-bootstrap` for comparison.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: ОС / OS
+      placeholder: "Windows 11 24H2 / macOS 15.3 / Ubuntu 24.04 / Android 15 / iOS 18.3"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Браузер и версия / Browser & version
+      description: Точная версия — `chrome://version`, `about:support` и т. п. / Exact version.
+      placeholder: "Chrome 134.0.6998.36"
+    validations:
+      required: true
+
+  - type: input
+    id: browser2
+    attributes:
+      label: Второй браузер, где баг тоже виден / Second browser where the bug also shows
+      description: Другой движок (Chromium → Firefox/Safari) сильно сужает поиск. Не проверяли — так и напишите. / A different engine narrows it down a lot. If you didn't check, say so.
+      placeholder: "Firefox 135 — воспроизводится / reproduces  •  Safari 18 — нет / no  •  Не проверял / Not checked"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: viewport
+    attributes:
+      label: Устройство / экран / Device & viewport
+      description: Мобильные брейкпоинты — отдельная ветка CSS / Mobile breakpoints are a separate CSS branch
+      multiple: true
+      options:
+        - Десктоп / Desktop (>1200px)
+        - Ноутбук / Laptop (992–1200px)
+        - Планшет / Tablet (768–992px)
+        - Телефон / Phone (<768px)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stock-theme
+    attributes:
+      label: Есть ли этот баг на стоковой теме luci-theme-bootstrap? / Does the bug also happen on stock luci-theme-bootstrap?
+      description: Если да — это, скорее всего, баг самого LuCI или пакета, а не темы. / If yes, it is most likely a LuCI/package bug, not a theme bug.
+      options:
+        - Нет, только на footstrap / No, footstrap only
+        - Да, на стоковой теме тоже / Yes, on the stock theme too
+        - Не проверял / Not checked
+    validations:
+      required: true
+
+  - type: input
+    id: regression
+    attributes:
+      label: Регрессия? / Regression?
+      description: Если раньше работало — на какой версии темы всё было хорошо / If it used to work, which theme version was the last good one
+      placeholder: "Работало на 0.3.6, сломалось в 0.3.7 / Worked in 0.3.6, broke in 0.3.7"
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Ошибки в консоли браузера / Browser console errors
+      description: F12 → Console. Скопируйте красные строки (если есть). / Copy the red lines, if any.
+      render: text
+
+  - type: input
+    id: luci-lang
+    attributes:
+      label: Язык интерфейса LuCI / LuCI UI language
+      description: Длинные подписи и RTL ломают вёрстку иначе, чем английские. / Long labels and RTL break layout differently than English.
+      placeholder: "Русский / English / 中文 …"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Что-нибудь ещё / Anything else
+      description: Кастомный CSS, `uhttpd` за реверс-прокси, необычный zoom, экзотическая тема ОС — всё, что может влиять. / Custom CSS, LuCI behind a reverse proxy, unusual browser zoom, exotic OS theme — anything that could matter.
