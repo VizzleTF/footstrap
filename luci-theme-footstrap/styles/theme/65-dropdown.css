@@ -78,6 +78,17 @@
 		border-right: 2px solid var(--fs-dim); border-bottom: 2px solid var(--fs-dim);
 		transform: translateY(-2px) rotate(45deg);	/* optical centre of a "v" */
 	}
+	/* A BUTTON dropdown (Save & Apply, Diagnostics) draws that chevron on the
+	 * button's own FILL, where --fs-dim is a grey nobody measured against it — on
+	 * the accent-filled Save & Apply it read as a smudge rather than an arrow.
+	 * currentColor takes whatever ink the variant already set (--fs-on-accent on
+	 * apply, --fs-text on a neutral one), so there is no second list of variants
+	 * to keep in sync — the same reason base draws this widget's divider
+	 * (`border-left: 1px solid`, no colour) that way. The form-control dropdown
+	 * keeps the muted chevron on purpose: there the arrow is an affordance next
+	 * to the value, not the content. */
+	.cbi-dropdown.btn > .open::after,
+	.cbi-dropdown.cbi-button > .open::after { border-color: currentColor; }
 
 	/* open list -> design popover. This used to be stated four times over; the
 	 * values below are the ones that were winning. */
