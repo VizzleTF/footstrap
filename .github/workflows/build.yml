@@ -45,7 +45,10 @@ jobs:
           # wire bytes. The faces are split by unicode-range, so a given UI fetches a
           # subset of this — but the whole set still has to stay honest.
           total=$(cat luci-theme-footstrap/htdocs/luci-static/footstrap/fonts/*.woff2 | wc -c)
-          budget=102400   # 100 KB for every subset of every face, combined
+          # A RATCHET, not a ceiling: it was 102400 while a bold mono face was shipped.
+          # That face is gone (it drew labels, see styles/01-fonts.css), the set is now
+          # 68 488 bytes, and the budget is tightened to match so it cannot drift back.
+          budget=71680   # 70 KB for every subset of every face, combined
           echo "fonts: $total bytes (budget $budget)"
           [ "$total" -le "$budget" ] || { echo "over the font budget"; exit 1; }
 

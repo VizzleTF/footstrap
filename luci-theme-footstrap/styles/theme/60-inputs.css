@@ -26,7 +26,24 @@
 	 * rule further down still wins its own font. */
 	/* .cbi-value-description is LuCI's inline HELP SENTENCE, and it lives INSIDE
 	 * .cbi-value-field — so this rule was setting prose in JetBrains Mono. Values are
-	 * monospace; the sentence explaining them is not. */
+	 * monospace; the sentence explaining them is not.
+	 *
+	 * `strong`/`b` are excluded for the same reason, and it is the single most
+	 * expensive line in this theme. LuCI writes an interface status box as
+	 * `<strong>MAC:</strong> ac:1f:6b:…` — the strong is the LABEL, the text after it
+	 * is the value. Feeding the label to the mono rule made it mono AND weight 700,
+	 * which is a face of its own: measured on the live router, 227 elements over seven
+	 * pages rendered in bold mono, and the browser fetched jetbrains-mono-600-latin
+	 * (20 KB) to draw them — 30% of the theme's entire font payload, spent on labels.
+	 * They take Manrope 700 now, which is already downloaded and costs nothing, and
+	 * label-vs-value now differs by TYPEFACE instead of by weight alone, which is what
+	 * the distinction is for. The 600 mono face is gone; see styles/01-fonts.css.
+	 *
+	 * The label rule itself is in theme/45-misc.css, and it has to ASSIGN the sans face,
+	 * not merely sit out of the :not() list below: a <strong> excluded from this rule
+	 * still INHERITS mono from .cbi-value-field. Excluding an element from a declaration
+	 * is not the same as giving it another one. Measured: excluding alone changed nothing
+	 * — all 227 still drew in bold mono. */
 	.cbi-value-field,
 	.cbi-value-field *:where(:not(.btn, .cbi-button, .cbi-value-description)) { font-family: var(--fs-font-mono); }
 	.cbi-value-description { font-family: var(--fs-font-sans); }
@@ -276,7 +293,11 @@
 	.cbi-range-slider-value {
 		background: var(--fs-panel2); border: 1px solid var(--fs-border); border-radius: var(--fs-radius-sm);
 		padding: 4px 9px; color: var(--fs-accent); font-family: var(--fs-font-mono);
-		font-weight: 600; font-size: 12px; white-space: nowrap;
+		/* NOT 600: there is no bold mono face any more (styles/01-fonts.css), so 600 here
+		 * would either drag a 20 KB file back in or be faked by the browser's synthetic
+		 * emboldening, which smears a monospace grid. The chip already reads as emphatic
+		 * from its surface, border and accent ink. */
+		font-weight: 400; font-size: 12px; white-space: nowrap;
 	}
 	.cbi-range-slider-calc, .cbi-range-slider-calc-units { color: var(--fs-dim); font-size: 12px; }
 }

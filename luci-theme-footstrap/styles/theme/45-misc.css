@@ -15,6 +15,49 @@
 		text-decoration: underline;
 	}
 
+	/* ==================================================================
+	 * A <strong>/<b> is a LABEL, and a label is UI text — so it takes the UI face, even
+	 * when it sits on a monospaced surface. LuCI builds every status readout as
+	 * `<strong>MAC:</strong> ac:1f:6b:…`: the strong names the datum, the text after it
+	 * IS the datum. The theme puts mono on those surfaces (.cbi-value-field, data-table
+	 * cells, ifacebox bodies), the strong inherited it, and <strong> also means weight
+	 * 700 — so the label asked for a BOLD MONO face that exists for no other reason.
+	 * Measured on the live router: 227 elements across seven pages, and 20 KB of
+	 * jetbrains-mono-600 fetched to draw them — 30% of the theme's whole font payload,
+	 * spent on the word "MAC:". They render in Manrope 700 now, which every page has
+	 * already downloaded, so this costs zero bytes and saves twenty thousand.
+	 *
+	 * Note it must SET the face, not just be excluded from the mono rule: an element
+	 * left out of a declaration still inherits its parent's. That was the first attempt
+	 * and it changed nothing at all.
+	 *
+	 * pre/code/#syslog/textarea are exempt: there a <strong> is part of the monospaced
+	 * CONTENT (a highlighted line of a config file, a log level), not a label for it —
+	 * and their bold resolves onto the mono 400 face, which is still shipped.
+	 * ================================================================== */
+	:is(strong, b):not(pre *, code *, #syslog *, textarea *) {
+		font-family: var(--fs-font-sans);
+	}
+
+	/* Same argument, the last two holdouts — found by measuring, not by reading:
+	 *
+	 * .ifacebadge is a BADGE (icon + interface name) — chrome, not a value. It sits in
+	 * a mono cell and .ifacebadge-active makes it bold, so the four active zone badges
+	 * on the firewall page were the last thing on the router asking for a bold mono
+	 * face. Sans keeps the active/inactive weight cue (WCAG 1.4.1 — the distinction is
+	 * not carried by colour) using faces the page already has.
+	 *
+	 * <code>/<pre> hold a LITERAL, and a literal does not inherit its container's
+	 * emphasis: `<code>/etc/ethers</code>` inside a .cbi-value-title (weight 600) was
+	 * being asked to render in bold mono for exactly one element on one page. */
+	/* The second selector is not redundant: the mono rule in theme/60-inputs.css is
+	 * `.cbi-value-field *:where(…)`, which is (0,1,0) — a tie with a bare `.ifacebadge`,
+	 * and a tie is settled by source order, which 60-inputs would win. Win on
+	 * SPECIFICITY instead (0,2,0), the way this stylesheet is supposed to. */
+	.ifacebadge,
+	.cbi-value-field .ifacebadge { font-family: var(--fs-font-sans); }
+	code, pre { font-weight: 400; }
+
 	/* fade-in used by overview poll */
 	.fade-in { animation: fs-fade .3s ease; }
 	@keyframes fs-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
