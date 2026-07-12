@@ -10,20 +10,20 @@
 	 * TO ADD A COLOURWAY "sunset":
 	 *   1. Copy the two hicontrast blocks below, rename data-palette to "sunset".
 	 *   2. Set the 14 colours. accent-lt is light-only; dark inherits it. Nothing
-	 *      else: --accent-soft and every tint/shadow in the theme are color-mix()
+	 *      else: --fs-accent-soft and every tint/shadow in the theme are color-mix()
 	 *      over these, so they follow automatically.
-	 *   3. Set the four INKS (--on-accent/--on-good/--on-warn/--on-danger) — see below.
+	 *   3. Set the four INKS (--fs-on-accent/--fs-on-good/--fs-on-warn/--fs-on-danger) — see below.
 	 *   4. Register the name: applyPalette()/currentPalette() in
 	 *      menu-footstrap-common.js and the head.ut pre-paint switch.
 	 * That's it — layout, components and the --*-color-* bridge (02-tokens) all key
 	 * off these tokens, so they repaint automatically.
 	 *
 	 * THE INKS ARE PER PALETTE AND PER MODE, and this is not a style choice.
-	 * A single global `--on-accent: #fff` used to sit on every accent/good/warn/
+	 * A single global `--fs-on-accent: #fff` used to sit on every accent/good/warn/
 	 * danger fill (solid buttons, the active tab pill, the toggle knob, .fs-seg,
 	 * the login submit). White holds up on the DARK fills of a light palette, and
 	 * nowhere else: on footstrap dark it measured 2.83–3.70:1 and on hicontrast
-	 * dark --good it was 1.69:1 — WCAG AA wants 4.5:1 for text and 3:1 for a UI
+	 * dark --fs-good it was 1.69:1 — WCAG AA wants 4.5:1 for text and 3:1 for a UI
 	 * shape like the toggle knob. Dark palettes have LIGHT fills, so their ink must
 	 * be dark. Whatever ink a new colourway picks, check it against all four of its
 	 * own fills: every pair below clears 4.5:1.
@@ -44,59 +44,59 @@
 
 	/* Native <select> closed-control chevron (theme/60-inputs.css). A data-URI
 	 * can't reference var() or currentColor, so each palette block bakes its own
-	 * --dim into the stroke — the only way the glyph can follow palette/mode. */
+	 * --fs-dim into the stroke — the only way the glyph can follow palette/mode. */
 
 	/* ---- footstrap — GitHub Primer (DEFAULT, also fills bare :root) ---- */
 	:root,
 	:root[data-palette="footstrap"] {
 		/* LIGHT */
-		--bg: #f6f8fa;
-		--panel: #ffffff;
-		--panel2: #f6f8fa;
-		--border: #d0d7de;
-		--text: #1f2328;
-		--dim: #656d76;
-		--faint: #68727e;
+		--fs-bg: #f6f8fa;
+		--fs-panel: #ffffff;
+		--fs-panel2: #f6f8fa;
+		--fs-border: #d0d7de;
+		--fs-text: #1f2328;
+		--fs-dim: #656d76;
+		--fs-faint: #68727e;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23656d76" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--accent: #0969da;
-		--accent-lt: #54aeff;	/* logo-gradient light end (both modes) */
-		/* a tint OF --accent, so mix it FROM --accent. It used to restate the accent's
+		--fs-accent: #0969da;
+		--fs-accent-lt: #54aeff;	/* logo-gradient light end (both modes) */
+		/* a tint OF --fs-accent, so mix it FROM --fs-accent. It used to restate the accent's
 		 * RGB as a literal, which goes stale silently the moment the accent is
 		 * recoloured — the same failure the *-rgb triples had, and why they are gone. */
-		--accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
-		--track: #eaeef2;
-		--good: #197c36;
-		--warn: #946300;
-		--danger: #cf222e;
+		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 10%, transparent);
+		--fs-track: #eaeef2;
+		--fs-good: #197c36;
+		--fs-warn: #946300;
+		--fs-danger: #cf222e;
 		/* ink on the fills above — white clears 4.5:1 on all four (5.19/5.08/4.87/5.36) */
-		--on-accent: #fff;
-		--on-good: #fff;
-		--on-warn: #fff;
-		--on-danger: #fff;
+		--fs-on-accent: #fff;
+		--fs-on-good: #fff;
+		--fs-on-warn: #fff;
+		--fs-on-danger: #fff;
 	}
 	:root[data-darkmode="true"],
 	:root[data-palette="footstrap"][data-darkmode="true"] {
 		/* DARK (dimmed) */
-		--bg: #1c2128;
-		--panel: #22272e;
-		--panel2: #2d333b;
-		--border: #444c56;
-		--text: #adbac7;
-		--dim: #8f9cab;
-		--faint: #959ca5;
+		--fs-bg: #1c2128;
+		--fs-panel: #22272e;
+		--fs-panel2: #2d333b;
+		--fs-border: #444c56;
+		--fs-text: #adbac7;
+		--fs-dim: #8f9cab;
+		--fs-faint: #959ca5;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238c99a8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--accent: #569df5;
-		--accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
-		--track: #373e47;
-		--good: #5aad5d;
-		--warn: #c79128;
-		--danger: #ea7a74;
+		--fs-accent: #569df5;
+		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 15%, transparent);
+		--fs-track: #373e47;
+		--fs-good: #5aad5d;
+		--fs-warn: #c79128;
+		--fs-danger: #ea7a74;
 		/* dark ink: these fills are light. White measured 2.85/2.85/2.83/3.70 — a fail
-		 * on all four. #10151c (a shade of --bg) gives 6.43/6.44/6.47/4.95. */
-		--on-accent: #10151c;
-		--on-good: #10151c;
-		--on-warn: #10151c;
-		--on-danger: #10151c;
+		 * on all four. #10151c (a shade of --fs-bg) gives 6.43/6.44/6.47/4.95. */
+		--fs-on-accent: #10151c;
+		--fs-on-good: #10151c;
+		--fs-on-warn: #10151c;
+		--fs-on-danger: #10151c;
 	}
 
 	/* ---- hicontrast — deeper, more saturated (opt-in) ---- */
@@ -104,54 +104,54 @@
 		/* LIGHT
 		 * The accent/good/warn/danger below used to be BRIGHTER than the default
 		 * palette's, which made the palette named "hicontrast" the lower-contrast
-		 * one: --good #17b978 as a label on --panel measured 2.55:1 against the
-		 * default's 5.08:1. These four are used both as text on --panel (status
+		 * one: --fs-good #17b978 as a label on --fs-panel measured 2.55:1 against the
+		 * default's 5.08:1. These four are used both as text on --fs-panel (status
 		 * labels, outline buttons, port speeds) and as fills under white ink, and
 		 * both uses have the same requirement — ≥4.5:1 against white — so darkening
 		 * the colour fixes both at once. Now 5.22/5.35/5.93/5.80, i.e. genuinely
 		 * above the default palette, which is what the name promises. */
-		--bg: #eef1f6;
-		--panel: #ffffff;
-		--panel2: #f6f8fb;
-		--border: #e4e9f1;
-		--text: #101725;
-		--dim: #5b6675;
-		--faint: #69727f;
+		--fs-bg: #eef1f6;
+		--fs-panel: #ffffff;
+		--fs-panel2: #f6f8fb;
+		--fs-border: #e4e9f1;
+		--fs-text: #101725;
+		--fs-dim: #5b6675;
+		--fs-faint: #69727f;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%235b6675" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--accent: #0b6fbd;
-		--accent-lt: #7ec8ff;	/* logo-gradient light end (both modes) */
-		--accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
-		--track: #eaeef4;
-		--good: #0f7a52;
-		--warn: #8a5a00;
-		--danger: #c02b2b;
+		--fs-accent: #0b6fbd;
+		--fs-accent-lt: #7ec8ff;	/* logo-gradient light end (both modes) */
+		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 10%, transparent);
+		--fs-track: #eaeef4;
+		--fs-good: #0f7a52;
+		--fs-warn: #8a5a00;
+		--fs-danger: #c02b2b;
 		/* white on the fills above: 5.22/5.35/5.93/5.80 */
-		--on-accent: #fff;
-		--on-good: #fff;
-		--on-warn: #fff;
-		--on-danger: #fff;
+		--fs-on-accent: #fff;
+		--fs-on-good: #fff;
+		--fs-on-warn: #fff;
+		--fs-on-danger: #fff;
 	}
 	:root[data-palette="hicontrast"][data-darkmode="true"] {
 		/* DARK */
-		--bg: #0a0d13;
-		--panel: #111620;
-		--panel2: #161c28;
-		--border: #232b3a;
-		--text: #e8edf5;
-		--dim: #9ba6b8;
-		--faint: #8f9aad;
+		--fs-bg: #0a0d13;
+		--fs-panel: #111620;
+		--fs-panel2: #161c28;
+		--fs-border: #232b3a;
+		--fs-text: #e8edf5;
+		--fs-dim: #9ba6b8;
+		--fs-faint: #8f9aad;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%239ba6b8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--accent: #3ba7ff;
-		--accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
-		--track: #1b2230;
-		--good: #43e0a0;
-		--warn: #ffb454;
-		--danger: #ff6b6b;
-		/* dark ink: white on these neons was 2.57/1.69/1.76/2.78 — --good with a white
-		 * label was effectively unreadable. #0a0d13 (= --bg) gives 7.55/11.49/11.03/7.01. */
-		--on-accent: #0a0d13;
-		--on-good: #0a0d13;
-		--on-warn: #0a0d13;
-		--on-danger: #0a0d13;
+		--fs-accent: #3ba7ff;
+		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 14%, transparent);
+		--fs-track: #1b2230;
+		--fs-good: #43e0a0;
+		--fs-warn: #ffb454;
+		--fs-danger: #ff6b6b;
+		/* dark ink: white on these neons was 2.57/1.69/1.76/2.78 — --fs-good with a white
+		 * label was effectively unreadable. #0a0d13 (= --fs-bg) gives 7.55/11.49/11.03/7.01. */
+		--fs-on-accent: #0a0d13;
+		--fs-on-good: #0a0d13;
+		--fs-on-warn: #0a0d13;
+		--fs-on-danger: #0a0d13;
 	}
 }

@@ -11,7 +11,7 @@
 	 * ================================================================== */
 	form:has(> .cbi-map input[name="luci_username"]) {
 		max-width: 400px; margin: 7vh auto 40px;
-		background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+		background: var(--fs-panel); border: 1px solid var(--fs-border); border-radius: var(--fs-radius-lg);
 		/* --fs-shadow-pop, not a 45%-black 60px halo: that literal ignored the palette
 		 * and drew a heavy grey cloud under a white card in light mode. */
 		padding: 26px 26px 24px; box-shadow: var(--fs-shadow-pop);
@@ -30,13 +30,13 @@
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2 {
 		font-size: 21px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr { color: var(--dim); font-size: 13px; margin: 0 0 20px; }
+	form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr { color: var(--fs-dim); font-size: 13px; margin: 0 0 20px; }
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-value {
 		display: block; border: 0; padding: 0 0 15px; margin: 0;
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-title {
 		display: block; text-align: left; width: auto; max-width: none; padding: 0 0 6px;
-		font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
+		font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--fs-faint);
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-field {
 		width: 100%; margin: 0; padding: 0;
@@ -44,7 +44,7 @@
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-field input {
 		width: 100%; margin: 0; box-sizing: border-box;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: var(--radius); }
+	form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: var(--fs-radius); }
 	/* a column, not a block: some auth plugins add a second action (Reset) and the
 	 * full-width buttons below carry margin:0, so they ended up glued together */
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions {
@@ -54,8 +54,8 @@
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn,
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions input[type="submit"] {
-		width: 100%; box-sizing: border-box; min-height: 44px; margin: 0; border-radius: var(--radius-lg);
-		background: var(--accent); color: var(--on-accent);
+		width: 100%; box-sizing: border-box; min-height: 44px; margin: 0; border-radius: var(--fs-radius-lg);
+		background: var(--fs-accent); color: var(--fs-on-accent);
 		border: 0; font-weight: 700; font-size: 14px;
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn:hover { filter: brightness(1.06); }

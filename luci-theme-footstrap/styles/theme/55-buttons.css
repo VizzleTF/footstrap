@@ -24,15 +24,15 @@
 		display: inline-flex; align-items: center; justify-content: center;
 		min-height: 36px;
 		padding: 7px 14px;
-		font-family: var(--font-sans); font-weight: 600; line-height: 1.1;
-		color: var(--text);
-		background: var(--panel2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
+		font-family: var(--fs-font-sans); font-weight: 600; line-height: 1.1;
+		color: var(--fs-text);
+		background: var(--fs-panel2);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
 		box-shadow: none; text-shadow: none;
 	}
 	.cbi-button:hover, .btn:hover,
-	input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover { border-color: var(--dim); }
+	input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover { border-color: var(--fs-dim); }
 
 	/* Keyboard focus. This rule is not optional decoration — without it a button
 	 * shows NOTHING on focus. base/30-forms.css lists `button:hover` (not :focus)
@@ -45,10 +45,10 @@
 	.cbi-button:focus-visible, .btn:focus-visible,
 	input[type="button"]:focus-visible, input[type="submit"]:focus-visible, input[type="reset"]:focus-visible {
 		outline: none;
-		border-color: var(--accent);
+		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 	}
-	/* Solid variants sit ON --accent/--good/--danger, so an --accent-tinted ring is
+	/* Solid variants sit ON --fs-accent/--fs-good/--fs-danger, so an --accent-tinted ring is
 	 * invisible against them: ring in the surface colour with an accent halo. */
 	.cbi-button-positive:focus-visible, .cbi-button-action:focus-visible,
 	.cbi-button-negative:focus-visible, .cbi-button-remove:focus-visible,
@@ -57,7 +57,7 @@
 	.btn.error:focus-visible, .btn.success:focus-visible, .btn.info:focus-visible {
 		outline: none;
 		border-color: transparent;
-		box-shadow: 0 0 0 2px var(--panel), 0 0 0 5px var(--accent-soft);
+		box-shadow: 0 0 0 2px var(--fs-panel), 0 0 0 5px var(--fs-accent-soft);
 	}
 
 	/* Pressed state. base/90-widgets.css gives `.btn.active, .btn:active` an inset
@@ -65,23 +65,23 @@
 	 * press still reads. */
 	.cbi-button:active, .btn:active, .btn.active,
 	input[type="button"]:active, input[type="submit"]:active, input[type="reset"]:active {
-		box-shadow: inset 0 2px 4px color-mix(in srgb, var(--border) 40%, transparent);
+		box-shadow: inset 0 2px 4px color-mix(in srgb, var(--fs-border) 40%, transparent);
 	}
 
 	/* solid variants */
-	.cbi-button-positive { background: var(--good); border-color: transparent; color: var(--on-good); }
+	.cbi-button-positive { background: var(--fs-good); border-color: transparent; color: var(--fs-on-good); }
 	.cbi-button-action, .btn.primary, .cbi-button-action.important {
-		background: var(--accent); border-color: transparent; color: var(--on-accent);
+		background: var(--fs-accent); border-color: transparent; color: var(--fs-on-accent);
 	}
 	.cbi-button-negative, .cbi-button-remove, .cbi-button-negative.important {
-		background: var(--danger); border-color: transparent; color: var(--on-danger);
+		background: var(--fs-danger); border-color: transparent; color: var(--fs-on-danger);
 	}
 	/* This hover must stay ahead of the page-action Save rule below: at equal
 	 * specificity its `border-color: transparent` would otherwise erase Save's
 	 * outline on hover. */
 	.cbi-button-positive:hover, .cbi-button-action:hover, .cbi-button-apply:hover,
 	.cbi-button-save:hover, .cbi-button-negative:hover { filter: brightness(1.08); border-color: transparent; }
-	.cbi-button-reset, .cbi-button-link { background: transparent; border-color: var(--border); color: var(--dim); }
+	.cbi-button-reset, .cbi-button-link { background: transparent; border-color: var(--fs-border); color: var(--fs-dim); }
 
 	/* The .btn colour words. base/60-modal.css paints .btn.danger/.error/.success/
 	 * .info with gradients over the bridge vars, but the plain `.btn` rule above
@@ -90,9 +90,9 @@
 	 * cue at all. Coverage is a contract: the theme must claim them, not drop them.
 	 * Flat fills to match the .cbi-button-* variants above; :hover/:focus-visible/
 	 * :active are already covered by the shared rules. */
-	.btn.danger, .btn.error { background: var(--danger); border-color: transparent; color: var(--on-danger); }
-	.btn.success { background: var(--good); border-color: transparent; color: var(--on-good); }
-	.btn.info { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+	.btn.danger, .btn.error { background: var(--fs-danger); border-color: transparent; color: var(--fs-on-danger); }
+	.btn.success { background: var(--fs-good); border-color: transparent; color: var(--fs-on-good); }
+	.btn.info { background: var(--fs-accent); border-color: transparent; color: var(--fs-on-accent); }
 	.btn.danger:hover, .btn.error:hover, .btn.success:hover, .btn.info:hover {
 		filter: brightness(1.08); border-color: transparent;
 	}
@@ -102,16 +102,16 @@
 	 * from the token scale in a later layer — so only the font-size survived and a
 	 * .btn.large came out with small-button padding. Re-state the geometry here, on
 	 * the radius scale rather than base's hardcoded 6px. */
-	.btn.large { font-size: 15px; min-height: 42px; padding: 9px 16px; border-radius: var(--radius); }
-	.btn.small { font-size: 11px; min-height: 28px; padding: 5px 10px; border-radius: var(--radius-sm); }
+	.btn.large { font-size: 15px; min-height: 42px; padding: 9px 16px; border-radius: var(--fs-radius); }
+	.btn.small { font-size: 11px; min-height: 28px; padding: 5px 10px; border-radius: var(--fs-radius-sm); }
 
 	.cbi-section .table[id] .td .btn,
 	.cbi-section .table[id] .td .cbi-button { padding: 4px 10px; font-size: 12px; }
 	.alert-message .btn, .alert-message .cbi-button {
-		border-radius: var(--radius); padding: 7px 13px; font-weight: 600;
-		background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+		border-radius: var(--fs-radius); padding: 7px 13px; font-weight: 600;
+		background: var(--fs-panel2); border: 1px solid var(--fs-border); color: var(--fs-text);
 	}
-	.alert-message .btn:hover { border-color: var(--accent); color: var(--accent); }
+	.alert-message .btn:hover { border-color: var(--fs-accent); color: var(--fs-accent); }
 
 	/* ==================================================================
 	 * FOOTSTRAP page action bar (.cbi-page-actions) — Save/Apply footer.
@@ -135,7 +135,7 @@
 	.cbi-page-actions .btn {
 		min-height: 40px;
 		padding: 0 18px;
-		border-radius: var(--radius);
+		border-radius: var(--fs-radius);
 		font-weight: 600;
 		display: inline-flex; align-items: center; justify-content: center;
 		vertical-align: middle;
@@ -143,18 +143,18 @@
 	/* reset = subtle outline, same geometry */
 	.cbi-page-actions .cbi-button-reset {
 		background: transparent;
-		border: 1px solid var(--border);
-		color: var(--dim);
+		border: 1px solid var(--fs-border);
+		color: var(--fs-dim);
 	}
-	.cbi-page-actions .cbi-button-reset:hover { border-color: var(--danger); color: var(--danger); }
+	.cbi-page-actions .cbi-button-reset:hover { border-color: var(--fs-danger); color: var(--fs-danger); }
 
 	input[type="file"]::file-selector-button {
 		margin-right: 12px; padding: 8px 14px;
-		font-family: var(--font-sans); font-size: 12px; font-weight: 600;
-		color: var(--text); background: var(--panel2);
-		border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
+		font-family: var(--fs-font-sans); font-size: 12px; font-weight: 600;
+		color: var(--fs-text); background: var(--fs-panel2);
+		border: 1px solid var(--fs-border); border-radius: var(--fs-radius-sm); cursor: pointer;
 	}
-	input[type="file"]::file-selector-button:hover { border-color: var(--accent); color: var(--accent); }
+	input[type="file"]::file-selector-button:hover { border-color: var(--fs-accent); color: var(--fs-accent); }
 
 	/* ==================================================================
 	 * Row-action buttons (Edit / Delete / Start-Stop) inside a table or a bare
@@ -177,36 +177,36 @@
 	}
 	.td .cbi-button, .cbi-section-actions .cbi-button, .cbi-section-table .cbi-button {
 		background: transparent; background-image: none;
-		border: 1px solid var(--border); color: var(--dim);
+		border: 1px solid var(--fs-border); color: var(--fs-dim);
 	}
-	.td .cbi-button:hover { border-color: var(--dim); color: var(--text); }
+	.td .cbi-button:hover { border-color: var(--fs-dim); color: var(--fs-text); }
 
 	.td .cbi-button-action, .td .cbi-button-edit, .td .cbi-button-apply,
 	.cbi-section-actions .cbi-button-edit, .cbi-section-actions .cbi-button-action {
-		color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: transparent;
+		color: var(--fs-accent); border-color: color-mix(in srgb, var(--fs-accent) 40%, transparent); background: transparent;
 	}
 	.td .cbi-button-action:hover, .td .cbi-button-edit:hover, .td .cbi-button-apply:hover,
 	.cbi-section-actions .cbi-button-action:hover {
-		background: var(--accent-soft); color: var(--accent);
-		border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+		background: var(--fs-accent-soft); color: var(--fs-accent);
+		border-color: color-mix(in srgb, var(--fs-accent) 55%, transparent);
 	}
 	/* Enabled/positive toggle in a table cell (e.g. System -> Startup) rendered as
 	 * blue text on a green fill = unreadable. Green outline instead, matching the
 	 * red-outline negative button. */
 	.td .cbi-button-positive, .cbi-section-actions .cbi-button-positive {
-		color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); background: transparent;
+		color: var(--fs-good); border-color: color-mix(in srgb, var(--fs-good) 40%, transparent); background: transparent;
 	}
 	.td .cbi-button-positive:hover, .cbi-section-actions .cbi-button-positive:hover {
-		background: color-mix(in srgb, var(--good) 12%, transparent);
+		background: color-mix(in srgb, var(--fs-good) 12%, transparent);
 	}
 	.td .cbi-button-negative, .td .cbi-button-remove,
 	.cbi-section-actions .cbi-button-remove, .cbi-section-actions .cbi-button-negative {
-		color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); background: transparent;
+		color: var(--fs-danger); border-color: color-mix(in srgb, var(--fs-danger) 40%, transparent); background: transparent;
 	}
 	.td .cbi-button-negative:hover, .td .cbi-button-remove:hover,
 	.cbi-section-actions .cbi-button-negative:hover {
-		background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger);
-		border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+		background: color-mix(in srgb, var(--fs-danger) 12%, transparent); color: var(--fs-danger);
+		border-color: color-mix(in srgb, var(--fs-danger) 55%, transparent);
 	}
 
 	/* ==================================================================
@@ -216,11 +216,11 @@
 	 * ================================================================== */
 	.cbi-page-actions .cbi-button-apply,
 	.cbi-page-actions .cbi-dropdown .cbi-button-apply {
-		background: var(--accent);
+		background: var(--fs-accent);
 		background-image: none;
 		border: 1px solid transparent;
-		color: var(--on-accent);
-		--on-color: var(--on-accent);
+		color: var(--fs-on-accent);
+		--on-color: var(--fs-on-accent);
 		text-shadow: none;
 	}
 	.cbi-page-actions .cbi-button-save,
@@ -228,12 +228,12 @@
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
 		background: transparent;
 		background-image: none;
-		border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-		color: var(--accent);
-		--on-color: var(--on-accent);
+		border: 1px solid color-mix(in srgb, var(--fs-accent) 45%, transparent);
+		color: var(--fs-accent);
+		--on-color: var(--fs-on-accent);
 		text-shadow: none;
 	}
-	.cbi-page-actions .cbi-button-save:hover { background: var(--accent-soft); filter: none; }
+	.cbi-page-actions .cbi-button-save:hover { background: var(--fs-accent-soft); filter: none; }
 
 	/* ==================================================================
 	 * Buttons that are part of a compound field widget.
@@ -242,24 +242,24 @@
 	.cbi-dynlist > .add-item > .cbi-button-add {
 		flex: 0 0 auto; width: auto; min-width: 38px;
 		min-height: 32px; padding: 0 12px; margin: 0;
-		border: 0; border-left: 1px solid var(--border);
+		border: 0; border-left: 1px solid var(--fs-border);
 		border-radius: 0;
-		background: transparent; color: var(--dim);
+		background: transparent; color: var(--fs-dim);
 	}
 	.cbi-dynlist > .add-item > button:hover,
-	.cbi-dynlist > .add-item > .cbi-button-add:hover { color: var(--accent); }
+	.cbi-dynlist > .add-item > .cbi-button-add:hover { color: var(--fs-accent); }
 	.control-group:has(> .cbi-input-password) > button.cbi-button-neutral {
 		border: 0; border-radius: 0; margin: 0;
-		background: transparent; color: var(--dim);
+		background: transparent; color: var(--fs-dim);
 		padding: 0 13px; min-height: 36px;
-		border-left: 1px solid var(--border);
+		border-left: 1px solid var(--fs-border);
 	}
-	.control-group:has(> .cbi-input-password) > button.cbi-button-neutral:hover { color: var(--accent); }
+	.control-group:has(> .cbi-input-password) > button.cbi-button-neutral:hover { color: var(--fs-accent); }
 	.pager .btn.prev, .pager .btn.next {
 		flex: 0 0 auto; width: 40px; min-width: 40px; height: 34px; padding: 0;
-		border-radius: var(--radius); border: 1px solid var(--border);
-		background: var(--panel2); color: var(--text);
+		border-radius: var(--fs-radius); border: 1px solid var(--fs-border);
+		background: var(--fs-panel2); color: var(--fs-text);
 		display: inline-flex; align-items: center; justify-content: center;
 	}
-	.pager .btn.prev:hover, .pager .btn.next:hover { border-color: var(--accent); color: var(--accent); }
+	.pager .btn.prev:hover, .pager .btn.next:hover { border-color: var(--fs-accent); color: var(--fs-accent); }
 }

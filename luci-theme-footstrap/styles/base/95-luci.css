@@ -9,15 +9,15 @@
 
 	#syslog {
 		width: 100%;
-		color: var(--text-color-highest);
+		color: var(--fs-text);
 		margin-bottom: 18px;
-		font-family: var(--font-mono);
+		font-family: var(--fs-font-mono);
 	}
 
 	.cbi-section-table .tr:hover .td,
 	.cbi-section-table .tr:hover .th,
 	.cbi-section-table .tr:hover::before {
-		background-color: var(--background-color-low);
+		background-color: var(--fs-panel2);
 	}
 
 	.cbi-section-table .tr.cbi-section-table-descr .th {
@@ -36,7 +36,7 @@
 	.cbi-section-table-titles.named::before,
 	.cbi-section-table-descr.named::before,
 	.cbi-section-table-row[data-title]::before {
-		border-top: 1px solid var(--border-color-medium);
+		border-top: 1px solid var(--fs-border);
 	}
 
 	.left { text-align: left !important; }
@@ -100,7 +100,7 @@
 	.cbi-rowstyle-2,
 	.tr.table-titles,
 	.tr.cbi-section-table-titles {
-		background: var(--background-color-medium);
+		background: var(--fs-panel2);
 	}
 
 	th[data-sortable-row] { cursor: pointer; }
@@ -122,7 +122,7 @@
 		width: 1em;
 		height: 1em;
 		margin-right: .25em;
-		background: var(--primary-color-high);
+		background: var(--fs-accent);
 		mask-image: var(--help-icon);
 		mask-size: cover;
 		-webkit-mask-image: var(--help-icon);
@@ -130,12 +130,12 @@
 	}
 
 	.cbi-section-error {
-		border: 1px solid var(--error-color-high);
+		border: 1px solid var(--fs-danger);
 		border-radius: 3px;
 		/* .06: the bold text inside is --error-color-high ON a tint of ITSELF, so the tint
 		 * eats its own contrast — .12 measured 4.4:1. At 6% every palette clears 4.5
 		 * (4.87 / 4.95 / 5.28 / 6.09). */
-		background-color: color-mix(in srgb, var(--error-color-high) 6%, transparent);
+		background-color: color-mix(in srgb, var(--fs-danger) 6%, transparent);
 		padding: 5px;
 		margin-bottom: 18px;
 	}
@@ -148,13 +148,13 @@
 	}
 
 	.ifacebox {
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		margin: 0 10px;
 		text-align: center;
 		white-space: nowrap;
 		/* the gradient surface was theme/45-misc.css's flat one — absorbed */
 		border-radius: 4px;
-		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--dim) 5%, transparent);
+		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fs-dim) 5%, transparent);
 		display: inline-flex;
 		flex-direction: column;
 		line-height: 1.2em;
@@ -162,19 +162,19 @@
 	}
 
 	.ifacebox .ifacebox-head {
-		border-bottom: 1px solid var(--border-color-high);
+		border-bottom: 1px solid var(--fs-border);
 		border-radius: 3px 3px 0 0;
 		padding: 2px;
 		/* surface + ink are theme/45-misc.css's — absorbed */
 	}
 
 	.ifacebox .ifacebox-head[style] {
-		text-shadow: 0 1px 1px color-mix(in srgb, var(--panel) 75%, transparent);
+		text-shadow: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
 	}
 
 	.ifacebox .ifacebox-head.active {
-		background: var(--primary-color-high);
-		color: var(--on-primary-color);
+		background: var(--fs-accent);
+		color: var(--fs-on-accent);
 	}
 
 	/* NO FALLBACK on --zone-color-rgb, and that is load-bearing — do not "fix" it.
@@ -209,13 +209,13 @@
 	.ifacebadge {
 		display: inline-block;
 		flex-direction: row;
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		padding: 2px;
 		/* the gradient surface is theme/45-misc.css's flat one — absorbed */
-		color: var(--text-color-high);
-		text-shadow: 0 1px 1px color-mix(in srgb, var(--panel) 75%, transparent);
+		color: var(--fs-text);
+		text-shadow: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
 		border-radius: 4px;
-		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--panel) 5%, transparent);
+		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fs-panel) 5%, transparent);
 		cursor: default;
 		line-height: 1.2em;
 	}
@@ -296,8 +296,8 @@
 		border-radius: 4px;
 		display: inline-block;
 		white-space: nowrap;
-		color: var(--text-color-high);
-		text-shadow: 0 1px 1px color-mix(in srgb, var(--panel) 75%, transparent);
+		color: var(--fs-text);
+		text-shadow: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
 	}
 
 	.zonebadge > em,
@@ -316,7 +316,7 @@
 
 	.zonebadge-empty {
 		/* dashed WIDTH/STYLE only — theme/45-misc.css owns the colour and the ink */
-		border: 1px dashed var(--border-color-high);
+		border: 1px dashed var(--fs-border);
 		font-style: italic;
 		font-size: smaller;
 	}
@@ -324,7 +324,7 @@
 	div.cbi-value var,
 	.td.cbi-value-field var {
 		font-style: italic;
-		color: var(--primary-color-high);
+		color: var(--fs-accent);
 	}
 
 	div.cbi-value var[data-tooltip],
@@ -332,14 +332,14 @@
 	div.cbi-value var.cbi-tooltip-container,
 	.td.cbi-value-field var.cbi-tooltip-container {
 		cursor: help;
-		border-bottom: 1px dotted var(--primary-color-high);
+		border-bottom: 1px dotted var(--fs-accent);
 	}
 
 	div.cbi-value var.cbi-tooltip-container,
 	.td.cbi-value-field var.cbi-tooltip-container .cbi-tooltip {
 		font-style: normal;
 		white-space: normal;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 	}
 
 	#modal_overlay > .modal.uci-dialog,
@@ -364,31 +364,31 @@
 	.uci-dialog div > ins,
 	.uci-dialog div > var {
 		margin-bottom: 2px;
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		line-height: 15px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		padding: 2px;
 		position: relative;
-		background-color: var(--background-color-low);
+		background-color: var(--fs-panel2);
 	}
 
 	.uci-dialog div > ins {
-		background-color: color-mix(in srgb, var(--success-color-high) 30%, transparent);
-		border-color: color-mix(in srgb, var(--success-color-high) 60%, transparent);
+		background-color: color-mix(in srgb, var(--fs-good) 30%, transparent);
+		border-color: color-mix(in srgb, var(--fs-good) 60%, transparent);
 	}
 
 	.uci-dialog div > del {
-		background-color: color-mix(in srgb, var(--error-color-high) 30%, transparent);
-		border-color: color-mix(in srgb, var(--error-color-high) 60%, transparent);
+		background-color: color-mix(in srgb, var(--fs-danger) 30%, transparent);
+		border-color: color-mix(in srgb, var(--fs-danger) 60%, transparent);
 	}
 
 	.uci-dialog var > ins {
-		background-color: color-mix(in srgb, var(--success-color-high) 30%, transparent);
+		background-color: color-mix(in srgb, var(--fs-good) 30%, transparent);
 	}
 
 	.uci-dialog var > del {
-		background-color: color-mix(in srgb, var(--error-color-high) 30%, transparent);
+		background-color: color-mix(in srgb, var(--fs-danger) 30%, transparent);
 	}
 
 	.uci-change-list > var > * {
@@ -400,9 +400,9 @@
 	.uci-dialog ins,
 	.uci-dialog var {
 		text-decoration: none;
-		font-family: var(--font-mono);
+		font-family: var(--fs-font-mono);
 		font-style: normal;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 		display: block;
 	}
 
@@ -509,7 +509,7 @@
 		min-width: 210px;
 		max-width: 100%;
 		/* border WIDTH/STYLE only, and the radius is theme/60-inputs.css's — absorbed */
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		display: flex;
 		flex-direction: column;
 		opacity: 0;
@@ -531,7 +531,7 @@
 		padding: 0 0 .25em 0;
 		margin: .25em .25em 0px .25em;
 		white-space: nowrap;
-		border-bottom: 1px solid var(--border-color-high);
+		border-bottom: 1px solid var(--fs-border);
 	}
 
 	.cbi-filebrowser .cbi-button-positive {
@@ -570,7 +570,7 @@
 		flex-wrap: wrap;
 		margin: 0 -.125em .25em -.125em;
 		padding: 0 0 .125em 0px;
-		border-bottom: 1px solid var(--border-color-high);
+		border-bottom: 1px solid var(--fs-border);
 	}
 
 	.cbi-filebrowser .upload > * {
@@ -645,11 +645,11 @@
 	 * .svg file) — black hairlines are invisible on a dark panel, and only an author
 	 * !important beats an inline declaration. */
 	#view div[style] > svg {
-		background-color: var(--background-color-high);
+		background-color: var(--fs-panel);
 	}
 
 	#view div[style] > svg line[style] {
-		stroke: var(--text-color-highest) !important;
+		stroke: var(--fs-text) !important;
 	}
 
 	/* The overview Hide/Show toggle pills are owned by theme/35-alerts.css

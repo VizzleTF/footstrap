@@ -6,8 +6,8 @@
 	.item::after,
 	.btn,
 	.cbi-button {
-		--default-btn-background: linear-gradient(var(--background-color-high), var(--background-color-high) 25%, var(--background-color-low));
-		--on-color: var(--text-color-high);
+		--default-btn-background: linear-gradient(var(--fs-panel), var(--fs-panel) 25%, var(--fs-panel2));
+		--on-color: var(--fs-text);
 
 		cursor: pointer;
 		display: inline-block;
@@ -16,7 +16,7 @@
 		color: var(--on-color);
 		font-size: 13px;
 		line-height: 2em;
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		border-radius: 4px;
 		white-space: pre;
 	}
@@ -25,15 +25,15 @@
 	.cbi-input-invalid.cbi-dropdown:not(.btn):not(.cbi-button),
 	.cbi-input-invalid.cbi-dropdown:not([open]) > ul > li,
 	.cbi-value-error input {
-		color: var(--error-color-high);
-		border-color: var(--error-color-medium);
+		color: var(--fs-danger);
+		border-color: var(--fs-danger);
 	}
 
 	.cbi-button-positive,
 	.cbi-button-fieldadd,
 	.cbi-button-add,
 	.cbi-button-save {
-		--on-color: var(--success-color-high);
+		--on-color: var(--fs-good);
 		border-color: var(--on-color);
 	}
 
@@ -43,7 +43,7 @@
 	.cbi-button-link,
 	.cbi-button-up,
 	.cbi-button-down {
-		color: var(--text-color-high);
+		color: var(--fs-text);
 	}
 
 	.btn.primary,
@@ -51,7 +51,7 @@
 	.cbi-button-apply,
 	.cbi-button-reload,
 	.cbi-button-edit {
-		--on-color: var(--primary-color-high);
+		--on-color: var(--fs-accent);
 		border-color: var(--on-color);
 	}
 
@@ -59,7 +59,7 @@
 	.cbi-section-remove .cbi-button,
 	.cbi-button-reset,
 	.cbi-button-remove {
-		--on-color: var(--error-color-high);
+		--on-color: var(--fs-danger);
 		border-color: var(--on-color);
 	}
 
@@ -86,25 +86,25 @@
 	.cbi-button-action.important,
 	.cbi-page-actions .cbi-button-apply,
 	.cbi-section-actions .cbi-button-edit {
-		--on-color: var(--on-primary-color);
-		border-color: var(--primary-color-high);
+		--on-color: var(--fs-on-accent);
+		border-color: var(--fs-accent);
 	}
 
 	.cbi-button-positive.important,
 	.cbi-page-actions .cbi-button-save {
-		--on-color: var(--on-success-color);
-		background: linear-gradient(var(--success-color-medium), var(--success-color-low));
-		border-color: var(--success-color-high);
+		--on-color: var(--fs-on-good);
+		background: linear-gradient(var(--fs-good), var(--fs-good));
+		border-color: var(--fs-good);
 	}
 
 	.cbi-button-negative.important {
-		--on-color: var(--on-error-color);
+		--on-color: var(--fs-on-danger);
 		/* fill + border are theme/55-buttons.css's — absorbed */
 	}
 
 	.cbi-page-actions .cbi-button-apply + .cbi-button-save,
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
-		--on-color: var(--success-color-high);
+		--on-color: var(--fs-good);
 		border-color: var(--on-color);
 		/* the neutral fill is theme/55-buttons.css's — absorbed */
 	}

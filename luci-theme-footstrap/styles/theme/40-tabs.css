@@ -28,9 +28,9 @@
 		list-style: none;
 		margin: 0 0 16px;
 		padding: 8px;
-		background: var(--panel);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
 		/* styles/base paints the folder-tab baseline as a background gradient
 		 * sized 1px x 29px; zero the size instead of restating the gradient */
@@ -41,7 +41,7 @@
 	 * (a card inside a card reads as a bug) */
 	.cbi-section .tabs,
 	.cbi-section .cbi-tabmenu:not(.mode):not(.map) {
-		background: var(--panel2);
+		background: var(--fs-panel2);
 		padding: 6px;
 		box-shadow: none;
 	}
@@ -53,8 +53,8 @@
 		height: auto; max-width: none;
 		margin: 0; padding: 0;
 		border: 0; background: none;
-		border-radius: var(--radius);
-		color: var(--dim);
+		border-radius: var(--fs-radius);
+		color: var(--fs-dim);
 	}
 
 	#tabmenu ul.tabs > li > a,
@@ -65,11 +65,11 @@
 		margin: 0;
 		padding: 9px 14px;
 		border: 0;
-		border-radius: var(--radius);
+		border-radius: var(--fs-radius);
 		line-height: 1.3;
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--dim);
+		color: var(--fs-dim);
 		transition: background .12s ease, color .12s ease;
 	}
 
@@ -77,8 +77,8 @@
 	ul.cbi-tabmenu.mode > li > a:hover,
 	.tabs > li > a:hover,
 	.cbi-tabmenu > li > a:hover {
-		background: var(--accent-soft);
-		color: var(--text);
+		background: var(--fs-accent-soft);
+		color: var(--fs-text);
 	}
 
 	/* active pill */
@@ -86,14 +86,14 @@
 	ul.cbi-tabmenu.mode > li.cbi-tab,
 	.tabs > li.active,
 	.cbi-tabmenu > li.cbi-tab {
-		color: var(--on-accent);
+		color: var(--fs-on-accent);
 	}
 	#tabmenu ul.tabs > li.active > a,
 	ul.cbi-tabmenu.mode > li.cbi-tab > a,
 	.tabs > li.active > a,
 	.cbi-tabmenu > li.cbi-tab > a {
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--fs-accent);
+		color: var(--fs-on-accent);
 		font-weight: 700;
 	}
 
@@ -117,5 +117,5 @@
 	/* map-level tabs keep the body font size instead of base's 16.5px/bold */
 	.cbi-tabmenu.map > li { font-size: 13px; font-weight: 600; }
 	/* the little "n errors" badge on a tab */
-	.cbi-tab-disabled[data-errors]::after { background: var(--danger); }
+	.cbi-tab-disabled[data-errors]::after { background: var(--fs-danger); }
 }

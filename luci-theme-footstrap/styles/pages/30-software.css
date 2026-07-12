@@ -28,7 +28,7 @@
 		#packages .td[data-title]::before {
 			content: attr(data-title); flex: 0 0 auto; text-align: left;
 			font-size: 10px; font-weight: 700; letter-spacing: .05em;
-			text-transform: uppercase; color: var(--faint); white-space: nowrap;
+			text-transform: uppercase; color: var(--fs-faint); white-space: nowrap;
 		}
 		#packages .td[data-title="Description"] { display: block; text-align: left; overflow-wrap: anywhere; word-break: break-word; }
 		#packages .td[data-title="Description"]::before { display: block; margin-bottom: 3px; }
@@ -37,6 +37,6 @@
 		#packages .td:not([data-title])::before { content: none; }
 	}
 	body[data-page='admin-system-package-manager'] #disk-space-label {
-		display: block; margin: 0; font-size: 12px; font-weight: 600; color: var(--dim);
+		display: block; margin: 0; font-size: 12px; font-weight: 600; color: var(--fs-dim);
 	}
 }

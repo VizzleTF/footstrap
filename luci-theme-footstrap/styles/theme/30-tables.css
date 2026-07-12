@@ -1,9 +1,9 @@
 @layer theme {
 	/* ---------- panels / cards (cbi) ---------- */
 	.cbi-section, .cbi-map > .cbi-section-node, fieldset.cbi-section, .panel {
-		background: var(--panel);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
 	}
 	.cbi-section { padding: 16px; margin-bottom: 16px; }
@@ -20,7 +20,7 @@
 	.cbi-section > .cbi-title h3,
 	.cbi-section > h3:first-child,
 	.cbi-section > legend {
-		font-size: 14px; font-weight: 700; color: var(--text);
+		font-size: 14px; font-weight: 700; color: var(--fs-text);
 		margin: 0; padding: 0; border: 0;
 	}
 
@@ -55,7 +55,7 @@
 	.cbi-section .table .td,
 	.cbi-section .table .th {
 		padding: 10px 16px 10px 0;
-		border: 0; border-bottom: 1px solid var(--border);
+		border: 0; border-bottom: 1px solid var(--fs-border);
 		line-height: 1.45; vertical-align: middle;
 		text-align: left;
 	}
@@ -68,7 +68,7 @@
 	.cbi-section .table .td.cbi-section-table-cell.cbi-section-actions { text-align: right; }
 	.cbi-section .table .tr:last-child .td { border-bottom: 0; }
 	.cbi-section .table .th {
-		color: var(--dim); font-weight: 700; font-size: 11px;
+		color: var(--fs-dim); font-weight: 700; font-size: 11px;
 		text-transform: uppercase; letter-spacing: .04em;
 	}
 
@@ -76,13 +76,13 @@
 	 * Symmetric horizontal padding so cells clear the table's own contour (below). */
 	.cbi-section .table[id] .td, .cbi-section .table[id] .th,
 	#view table.fs-dt .td, #view table.fs-dt .th { padding: 10px 11px; }
-	.cbi-section .table[id] .td { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+	.cbi-section .table[id] .td { font-family: var(--fs-font-mono); font-size: 12px; color: var(--fs-text); }
 	/* No horizontal-scroll wrapper: a data table reflows to fit the content column
 	 * via the overflow-wrap rule above (long opaque values break), so it never needs
 	 * to scroll or be forced into cards on desktop. Card-stacking stays for phones
 	 * only (@container ≤820, below). */
-	.cbi-section .table[id] .tr:not(.table-titles):hover .td { background: var(--panel2); }
-	.cbi-section .table[id] .tr.table-titles .th { border-bottom-color: var(--border); }
+	.cbi-section .table[id] .tr:not(.table-titles):hover .td { background: var(--fs-panel2); }
+	.cbi-section .table[id] .tr.table-titles .th { border-bottom-color: var(--fs-border); }
 	/* Contour around the whole data table (leases, wifi, processes, …). A real
 	 * <table> needs border-collapse:separate for the radius to take (collapse
 	 * silently drops border-radius); harmless on the div-based tables. Scoped to
@@ -92,7 +92,7 @@
 	.cbi-section .table[id], #view .table[id],
 	.cbi-section .table.fs-dt, .cbi-section table.fs-dt, #view table.fs-dt {
 		border-collapse: separate; border-spacing: 0;
-		border: 1px solid var(--border); border-radius: var(--radius-lg);
+		border: 1px solid var(--fs-border); border-radius: var(--fs-radius-lg);
 		/* overflow:visible, EXPLICITLY. It clipped the last column when a wide table
 		 * (many columns) was a touch too wide for its section. The four corner cells
 		 * (below) round the frame instead, and long values wrap (further below) so
@@ -114,16 +114,16 @@
 	 * corner cells must round with it — without it they poked past the frame. */
 	.cbi-section .table[id] .tr.table-titles .th:first-child,
 	#view .table[id] .tr.table-titles .th:first-child,
-	#view table.fs-dt .tr.table-titles .th:first-child { border-top-left-radius: var(--radius-lg); }
+	#view table.fs-dt .tr.table-titles .th:first-child { border-top-left-radius: var(--fs-radius-lg); }
 	.cbi-section .table[id] .tr.table-titles .th:last-child,
 	#view .table[id] .tr.table-titles .th:last-child,
-	#view table.fs-dt .tr.table-titles .th:last-child { border-top-right-radius: var(--radius-lg); }
+	#view table.fs-dt .tr.table-titles .th:last-child { border-top-right-radius: var(--fs-radius-lg); }
 	.cbi-section .table[id] .tr:last-child .td:first-child,
 	#view .table[id] .tr:last-child .td:first-child,
-	#view table.fs-dt .tr:last-child .td:first-child { border-bottom-left-radius: var(--radius-lg); }
+	#view table.fs-dt .tr:last-child .td:first-child { border-bottom-left-radius: var(--fs-radius-lg); }
 	.cbi-section .table[id] .tr:last-child .td:last-child,
 	#view .table[id] .tr:last-child .td:last-child,
-	#view table.fs-dt .tr:last-child .td:last-child { border-bottom-right-radius: var(--radius-lg); }
+	#view table.fs-dt .tr:last-child .td:last-child { border-bottom-right-radius: var(--fs-radius-lg); }
 	/* Empty data table: L.ui.Table adds a single-cell .tr.placeholder ("There are no
 	 * active leases"). In a display:table table that lone cell spans only the first
 	 * column, and the bottom-corner rounding then draws a tiny rounded box on the
@@ -136,8 +136,8 @@
 	#view .table[id] .tr.placeholder .td,
 	#view table.fs-dt .tr.placeholder .td {
 		display: block; width: 100%; text-align: left;
-		color: var(--dim); font-family: var(--font-sans);
-		border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+		color: var(--fs-dim); font-family: var(--fs-font-sans);
+		border-radius: 0 0 var(--fs-radius-lg) var(--fs-radius-lg);
 	}
 
 	/* --- KEY/VALUE tables: system, memory ---
@@ -147,17 +147,17 @@
 	 * column starved the remaining data columns (dates broke mid-token). Exclude
 	 * CBI section tables and the JS-tagged data tables (.fs-dt) explicitly. */
 	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)) .td:first-child {
-		color: var(--dim); font-weight: 600; width: 40%; white-space: nowrap;
+		color: var(--fs-dim); font-weight: 600; width: 40%; white-space: nowrap;
 	}
 	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)) .td:last-child:not(:first-child) {
-		font-family: var(--font-mono); color: var(--text); text-align: right;
+		font-family: var(--fs-font-mono); color: var(--fs-text); text-align: right;
 	}
 
 	/* remove double card when a section nests a table-only include */
 	.cbi-section .cbi-section { border: 0; box-shadow: none; padding: 0; margin: 0; background: transparent; }
 
 	/* generic links/labels inside cards */
-	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: var(--radius); }
+	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: var(--fs-radius); }
 
 	/* Inactive tab panes: the base [data-tab-title] rule sets height:0/overflow:hidden,
 	 * but that only collapses the content box — padding/border/margin still render as
@@ -185,11 +185,11 @@
 		margin: 0;
 		border: 0;
 	}
-	/* 6%, not 12%. The list inside is bold --danger text (next rule) on this tint OF
-	 * --danger, so the tint eats its own contrast: 12% measured 4.4:1 (axe-core). At 6%
+	/* 6%, not 12%. The list inside is bold --fs-danger text (next rule) on this tint OF
+	 * --fs-danger, so the tint eats its own contrast: 12% measured 4.4:1 (axe-core). At 6%
 	 * every palette clears 4.5 (4.87 / 4.95 / 5.28 / 6.09) and the box still reads red. */
-	.cbi-section-error { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 6%, var(--panel)); color: var(--text); }
-	.cbi-section-error ul li { color: var(--danger); }
+	.cbi-section-error { border-color: var(--fs-danger); background: color-mix(in srgb, var(--fs-danger) 6%, var(--fs-panel)); color: var(--fs-text); }
+	.cbi-section-error ul li { color: var(--fs-danger); }
 
 	/* denser data tables (dhcp static leases, section-tables) */
 	.cbi-section-table .th, .cbi-section-table .td,
@@ -203,26 +203,26 @@
 	 * the section card, so strip the frame there to avoid double borders.
 	 * ================================================================== */
 	.table {
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		overflow: hidden;
-		background: var(--panel);
+		background: var(--fs-panel);
 	}
 	/* descendant combinator (not >) so real <table> (browser-inserted <tbody>)
 	 * is covered too — one rule themes every data table, div- or table-based. */
 	.table .tr.table-titles, .table .tr.cbi-section-table-titles {
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--fs-border);
 		background: transparent;	/* drop the base panel2 header bar — match the dashboard's faint-label + underline look */
 	}
 	.table .tr.table-titles .th, .table .tr.cbi-section-table-titles .th {
-		color: var(--faint); font-size: 10px; font-weight: 700;
+		color: var(--fs-faint); font-size: 10px; font-weight: 700;
 		letter-spacing: .06em; text-transform: uppercase;
 		background: transparent;
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles) {
-		border-bottom: 1px solid var(--border); transition: background .12s;
+		border-bottom: 1px solid var(--fs-border); transition: background .12s;
 	}
-	.table .tr:not(.table-titles):not(.cbi-section-table-titles):hover { background: var(--panel2); }
+	.table .tr:not(.table-titles):not(.cbi-section-table-titles):hover { background: var(--fs-panel2); }
 	.table .tr:last-child { border-bottom: 0; }
 	/* keep section/modal tables flush (no forced hover-card look) */
 	.cbi-section .table > .tr, .cbi-modal .table > .tr { border-radius: 0; }
@@ -246,7 +246,7 @@
 		#view table.fs-dt .td[data-title]::before {
 			content: attr(data-title); flex: 0 0 auto; text-align: left;
 			font-size: 10px; font-weight: 700; letter-spacing: .05em;
-			text-transform: uppercase; color: var(--faint); white-space: nowrap;
+			text-transform: uppercase; color: var(--fs-faint); white-space: nowrap;
 		}
 		#view table.fs-dt .td.cbi-section-actions {
 			justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 4px;

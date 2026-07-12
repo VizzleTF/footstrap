@@ -7,7 +7,7 @@
 	 * control. baseline lines the label up with the field's FIRST line (the control),
 	 * ignoring the description, so label and control read on one level for every
 	 * widget (select, dropdown, toggle, dynlist, textarea's first row). */
-	.cbi-value { justify-content: space-between; gap: 16px; padding: 8px 0; margin: 0; border-bottom: 1px solid var(--border); }
+	.cbi-value { justify-content: space-between; gap: 16px; padding: 8px 0; margin: 0; border-bottom: 1px solid var(--fs-border); }
 	/* stacked controls in a field (e.g. Local Time: date input + Sync buttons)
 	 * need breathing room — the raw <br> collapses them together otherwise.
 	 * Exclude the password reveal group (it must stay seamless: no gap). */
@@ -18,7 +18,7 @@
 	.cbi-value:last-child { border-bottom: 0; }
 	/* keep the base padding-top:6px — it is tuned for the base align-items:baseline,
 	 * the same as stock bootstrap. */
-	.cbi-value-title { color: var(--dim); font-size: 13px; font-weight: 600; }
+	.cbi-value-title { color: var(--fs-dim); font-size: 13px; font-weight: 600; }
 	/* Mono is for the *values* a field holds. A field also holds buttons (Sync
 	 * with browser, Start/Restart/Stop) and those are chrome, not data. Exclude
 	 * them here instead of relying on theme/55-buttons.css being concatenated later.
@@ -28,20 +28,20 @@
 	 * .cbi-value-field — so this rule was setting prose in JetBrains Mono. Values are
 	 * monospace; the sentence explaining them is not. */
 	.cbi-value-field,
-	.cbi-value-field *:where(:not(.btn, .cbi-button, .cbi-value-description)) { font-family: var(--font-mono); }
-	.cbi-value-description { font-family: var(--font-sans); }
+	.cbi-value-field *:where(:not(.btn, .cbi-button, .cbi-value-description)) { font-family: var(--fs-font-mono); }
+	.cbi-value-description { font-family: var(--fs-font-sans); }
 
 	/* --- live components that bypassed the theme --- */
-	/* A SURFACE token, not an ink one. This once read var(--on-accent) — the ink meant
+	/* A SURFACE token, not an ink one. This once read var(--fs-on-accent) — the ink meant
 	 * to go ON an accent fill — which resolves to plain white and painted a white
 	 * listbox in dark mode. */
-	select[multiple] { background-color: var(--panel2); color: var(--text); }
-	.td.cbi-value-field var { color: var(--accent); }
-	.td.cbi-value-field var.cbi-tooltip-container { border-bottom-color: var(--accent); }
-	.cbi-filebrowser { border-color: var(--border); background: var(--panel); border-radius: var(--radius-lg); }
-	.cbi-filebrowser > * { border-bottom-color: var(--border); }
-	.cbi-filebrowser > ul > li:hover { background: var(--panel2); }
-	.cbi-filebrowser .upload { border-top-color: var(--border); }
+	select[multiple] { background-color: var(--fs-panel2); color: var(--fs-text); }
+	.td.cbi-value-field var { color: var(--fs-accent); }
+	.td.cbi-value-field var.cbi-tooltip-container { border-bottom-color: var(--fs-accent); }
+	.cbi-filebrowser { border-color: var(--fs-border); background: var(--fs-panel); border-radius: var(--fs-radius-lg); }
+	.cbi-filebrowser > * { border-bottom-color: var(--fs-border); }
+	.cbi-filebrowser > ul > li:hover { background: var(--fs-panel2); }
+	.cbi-filebrowser .upload { border-top-color: var(--fs-border); }
 
 	/* ==================================================================
 	 * FOOTSTRAP form widgets (variant A) — toggles, file input, uniform
@@ -53,33 +53,33 @@
 	.cbi-checkbox > input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
 	.cbi-checkbox > label {
 		display: inline-block; position: relative; margin: 0;
-		width: 40px; height: 22px; border-radius: var(--radius-pill);
-		background: var(--track); border: 1px solid var(--border);
+		width: 40px; height: 22px; border-radius: var(--fs-radius-pill);
+		background: var(--fs-track); border: 1px solid var(--fs-border);
 		cursor: pointer; transition: background .2s, border-color .2s; vertical-align: middle;
 	}
 	.cbi-checkbox > label::after {
 		content: ""; position: absolute; top: 2px; left: 2px;
 		width: 16px; height: 16px; border-radius: 50%;
-		background: var(--dim);
+		background: var(--fs-dim);
 		/* transform, not `left`: `left` is a layout property, so the knob re-laid out
 		 * the row on every frame of the slide. translateX is composited. */
 		transform: translateX(0);
 		transition: transform .22s cubic-bezier(.4,0,.2,1), background .2s;
 	}
-	.cbi-checkbox > input[type="checkbox"]:checked + label { background: var(--accent); border-color: transparent; }
-	.cbi-checkbox > input[type="checkbox"]:checked + label::after { transform: translateX(18px); background: var(--on-accent); }
+	.cbi-checkbox > input[type="checkbox"]:checked + label { background: var(--fs-accent); border-color: transparent; }
+	.cbi-checkbox > input[type="checkbox"]:checked + label::after { transform: translateX(18px); background: var(--fs-on-accent); }
 	/* The real checkbox is `opacity: 0; width: 0; height: 0` above, so base's
 	 * `input[type=checkbox]:focus::before` glow paints on a 0x0 box — invisible. The
 	 * <label> IS the switch, so the ring has to go there. Without this, the single
 	 * most common control in LuCI showed nothing at all under keyboard focus. */
 	.cbi-checkbox > input[type="checkbox"]:focus-visible + label {
-		border-color: var(--accent);
+		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 	}
 	.cbi-checkbox > input[type="checkbox"]:disabled + label { opacity: .5; cursor: not-allowed; }
 
 	/* native file input */
-	input[type="file"] { color: var(--dim); font-size: 13px; }
+	input[type="file"] { color: var(--fs-dim); font-size: 13px; }
 
 	/* ==================================================================
 	 * FOOTSTRAP polish round 2: native selects, spinners, dense tables
@@ -90,16 +90,16 @@
 	 * var()), replacing a hardcoded grey that ignored palette and dark mode. */
 	select, select.cbi-input-select, .cbi-value-field select {
 		appearance: none; -webkit-appearance: none; -moz-appearance: none;
-		background-color: var(--panel2);
+		background-color: var(--fs-panel2);
 		background-image: var(--fs-select-chevron);
 		background-repeat: no-repeat; background-position: right 12px center; background-size: 12px;
 		padding: 8px 34px 8px 12px;
-		border: 1px solid var(--border); border-radius: var(--radius);
-		color: var(--text); font-family: var(--font-sans); font-size: 13px;
+		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
+		color: var(--fs-text); font-family: var(--fs-font-sans); font-size: 13px;
 		line-height: 1.3; min-height: 38px; cursor: pointer;
 	}
-	select:focus { border-color: var(--accent); box-shadow: var(--fs-focus-ring); outline: none; }
-	select option { background: var(--panel); color: var(--text); }
+	select:focus { border-color: var(--fs-accent); box-shadow: var(--fs-focus-ring); outline: none; }
+	select option { background: var(--fs-panel); color: var(--fs-text); }
 
 	/* Native <select> drop list: the OS renders it, so `select option` colours above
 	 * are ignored on most platforms (a stock white list on a dark theme — see the
@@ -122,21 +122,21 @@
 		.cbi-value-field select::picker-icon { display: none; }
 		::picker(select) {
 			appearance: base-select;
-			background: var(--panel); border: 1px solid var(--border);
-			border-radius: var(--radius-lg); box-shadow: var(--fs-shadow-pop);
+			background: var(--fs-panel); border: 1px solid var(--fs-border);
+			border-radius: var(--fs-radius-lg); box-shadow: var(--fs-shadow-pop);
 			padding: 6px; margin-top: 6px;
 		}
 		.cbi-value-field select option {
-			padding: 8px 11px; border-radius: var(--radius-sm); font-size: 13px;
-			color: var(--text); background: transparent; min-height: 0;
+			padding: 8px 11px; border-radius: var(--fs-radius-sm); font-size: 13px;
+			color: var(--fs-text); background: transparent; min-height: 0;
 		}
 		.cbi-value-field select option::checkmark { display: none; }
-		.cbi-value-field select option:hover, .cbi-value-field select option:focus-visible { background: var(--panel2); }
-		.cbi-value-field select option:checked { color: var(--accent); background: var(--accent-soft); }
+		.cbi-value-field select option:hover, .cbi-value-field select option:focus-visible { background: var(--fs-panel2); }
+		.cbi-value-field select option:checked { color: var(--fs-accent); background: var(--fs-accent-soft); }
 	}
 
 	/* spinner / loading */
-	.spinning, .cbi-value em, em.spinning { color: var(--dim); }
+	.spinning, .cbi-value em, em.spinning { color: var(--fs-dim); }
 
 	/* ==================================================================
 	 * FOOTSTRAP text inputs & other field widgets — round + theme to match
@@ -149,10 +149,10 @@
 	input[type="email"], input[type="url"], input[type="search"],
 	input[type="tel"], input[type="date"], input[type="time"],
 	textarea {
-		background: var(--panel2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		color: var(--text);
+		background: var(--fs-panel2);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
+		color: var(--fs-text);
 		padding: 8px 11px;
 		min-height: 38px;
 		box-shadow: none;
@@ -163,7 +163,7 @@
 	.cbi-input-text:hover, .cbi-input-password:hover, .cbi-input-textarea:hover,
 	input[type="text"]:hover, input[type="password"]:hover, input[type="number"]:hover,
 	input[type="email"]:hover, input[type="url"]:hover, input[type="search"]:hover,
-	textarea:hover { border-color: var(--dim); }
+	textarea:hover { border-color: var(--fs-dim); }
 
 	.cbi-input-text:focus, .cbi-input-password:focus, .cbi-input-textarea:focus,
 	.cbi-section-create-name:focus,
@@ -171,15 +171,15 @@
 	input[type="email"]:focus, input[type="url"]:focus, input[type="search"]:focus,
 	input[type="tel"]:focus, input[type="date"]:focus, input[type="time"]:focus,
 	textarea:focus {
-		border-color: var(--accent);
+		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 		outline: none;
 	}
 
 	/* invalid state keeps the danger cue */
 	.cbi-input-invalid, input.cbi-input-invalid, textarea.cbi-input-invalid {
-		border-color: var(--danger);
-		box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
+		border-color: var(--fs-danger);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--fs-danger) 18%, transparent);
 	}
 
 	/* dynamic list: keep the layout from styles/base (inline-flex column of item
@@ -195,26 +195,26 @@
 		vertical-align: top;
 	}
 	.cbi-dynlist > .item {
-		background: var(--panel);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		color: var(--text);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-sm);
+		color: var(--fs-text);
 		box-shadow: none;
 		margin: 0;
 	}
 	.cbi-dynlist > .item::after {
-		border-color: var(--border);
-		color: var(--danger);
-		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+		border-color: var(--fs-border);
+		color: var(--fs-danger);
+		border-radius: 0 var(--fs-radius-sm) var(--fs-radius-sm) 0;
 	}
 	/* text add-item = one bordered input group (input + + button attached) */
 	.cbi-dynlist > .add-item {
 		align-items: stretch;
-		background: var(--panel2); border: 1px solid var(--border);
-		border-radius: var(--radius-sm); overflow: hidden;
+		background: var(--fs-panel2); border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-sm); overflow: hidden;
 		transition: border-color .15s, box-shadow .15s;
 	}
-	.cbi-dynlist > .add-item:focus-within { border-color: var(--accent); box-shadow: var(--fs-focus-ring); }
+	.cbi-dynlist > .add-item:focus-within { border-color: var(--fs-accent); box-shadow: var(--fs-focus-ring); }
 	.cbi-dynlist > .add-item > input,
 	.cbi-dynlist > .add-item > .cbi-input-text {
 		flex: 1 1 auto; min-width: 0;
@@ -225,9 +225,9 @@
 	/* password reveal: input + ∗ button as ONE seamless rounded group */
 	.control-group:has(> .cbi-input-password) {
 		display: inline-flex; align-items: stretch;
-		background: var(--panel2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
+		background: var(--fs-panel2);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
 		overflow: hidden;
 		transition: border-color .15s, box-shadow .15s;
 	}
@@ -237,7 +237,7 @@
 		min-height: 36px;
 	}
 	.control-group:has(> .cbi-input-password):focus-within {
-		border-color: var(--accent);
+		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 	}
 	/* the base pulls .cbi-section-create up 3px to hug a table border; that glues the
@@ -257,26 +257,26 @@
 	input[type="range"] {
 		-webkit-appearance: none; appearance: none;
 		width: 100%; height: 6px; min-height: 0; padding: 0;
-		background: var(--track); border: 0; border-radius: var(--radius-pill);
+		background: var(--fs-track); border: 0; border-radius: var(--fs-radius-pill);
 		outline: none; box-shadow: none; cursor: pointer;
 	}
 	input[type="range"]::-webkit-slider-thumb {
 		-webkit-appearance: none; appearance: none;
 		width: 16px; height: 16px; border-radius: 50%;
-		background: var(--accent); border: 2px solid var(--panel);
+		background: var(--fs-accent); border: 2px solid var(--fs-panel);
 		box-shadow: var(--fs-shadow); cursor: pointer;
 	}
 	input[type="range"]::-moz-range-thumb {
 		width: 16px; height: 16px; border-radius: 50%;
-		background: var(--accent); border: 2px solid var(--panel); cursor: pointer;
+		background: var(--fs-accent); border: 2px solid var(--fs-panel); cursor: pointer;
 	}
-	input[type="range"]::-moz-range-track { background: var(--track); height: 6px; border-radius: var(--radius-pill); }
+	input[type="range"]::-moz-range-track { background: var(--fs-track); height: 6px; border-radius: var(--fs-radius-pill); }
 	input[type="range"]:focus { box-shadow: var(--fs-focus-ring); }
 	.cbi-range-slider { display: inline-flex; align-items: center; gap: 12px; width: 100%; max-width: 100%; }
 	.cbi-range-slider-value {
-		background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-		padding: 4px 9px; color: var(--accent); font-family: var(--font-mono);
+		background: var(--fs-panel2); border: 1px solid var(--fs-border); border-radius: var(--fs-radius-sm);
+		padding: 4px 9px; color: var(--fs-accent); font-family: var(--fs-font-mono);
 		font-weight: 600; font-size: 12px; white-space: nowrap;
 	}
-	.cbi-range-slider-calc, .cbi-range-slider-calc-units { color: var(--dim); font-size: 12px; }
+	.cbi-range-slider-calc, .cbi-range-slider-calc-units { color: var(--fs-dim); font-size: 12px; }
 }

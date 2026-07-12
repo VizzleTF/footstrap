@@ -2,17 +2,17 @@
 	/* Generic .dropdown-menu popup — reaches the split "Save & Apply" menu ui.js
 	 * renders in the action bar (and any third-party use). Hover text is ACCENT on
 	 * purpose, matching the open cbi-dropdown list: this is a form control's menu.
-	 * The top-nav's NAV dropdowns share the class but hover to --text instead via
+	 * The top-nav's NAV dropdowns share the class but hover to --fs-text instead via
 	 * the more specific grouped rule in theme/10-chrome.css — that difference is
 	 * intentional (nav surfaces hover text, form menus hover accent), not drift. */
-	.dropdown-menu { background-color: var(--panel); border-color: var(--border); }
-	.dropdown-menu a { color: var(--text); text-shadow: none; }
-	.dropdown-menu a:hover { background: var(--panel2); background-image: none; color: var(--accent); }
+	.dropdown-menu { background-color: var(--fs-panel); border-color: var(--fs-border); }
+	.dropdown-menu a { color: var(--fs-text); text-shadow: none; }
+	.dropdown-menu a:hover { background: var(--fs-panel2); background-image: none; color: var(--fs-accent); }
 
 	/* Split "Save & Apply" dropdown: a plain dropdown in the action bar carries no
 	 * frame of its own. */
 	.cbi-page-actions .cbi-dropdown {
-		border: 0; border-radius: var(--radius); background: transparent;
+		border: 0; border-radius: var(--fs-radius); background: transparent;
 	}
 	/* …except that the split control's outer div IS the apply button — ui.js emits
 	 * `.cbi-dropdown.btn.cbi-button.cbi-button-apply` — so the rule above would
@@ -21,10 +21,10 @@
 	 * specificity instead. */
 	.cbi-page-actions .cbi-dropdown.cbi-button-apply,
 	.cbi-page-actions .cbi-dropdown > .cbi-button {
-		background: var(--accent);
+		background: var(--fs-accent);
 		background-image: none;
 		border: 0;
-		color: var(--on-accent);
+		color: var(--fs-on-accent);
 	}
 	.cbi-page-actions .cbi-dropdown.cbi-button-apply:hover,
 	.cbi-page-actions .cbi-dropdown > .cbi-button:hover { filter: brightness(1.08); }
@@ -35,25 +35,25 @@
 	 * focus ring) + themed open list. Native <select> is styled separately.
 	 * ================================================================== */
 	.cbi-dropdown:not(.btn):not(.cbi-button) {
-		background: var(--panel2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		color: var(--text);
+		background: var(--fs-panel2);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
+		color: var(--fs-text);
 		min-height: 38px;
 		transition: border-color .15s, box-shadow .15s;
 	}
-	.cbi-dropdown:not(.btn):not(.cbi-button):hover { border-color: var(--dim); }
+	.cbi-dropdown:not(.btn):not(.cbi-button):hover { border-color: var(--fs-dim); }
 	.cbi-dropdown:focus, .cbi-dropdown[open] {
-		border-color: var(--accent);
+		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 		outline: none;
 	}
 	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li {
-		padding: 8px 12px; color: var(--text);
-		font-family: var(--font-sans);
+		padding: 8px 12px; color: var(--fs-text);
+		font-family: var(--fs-font-sans);
 	}
 	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li[display]:not([display="0"]) { border-left: 0; }
-	.cbi-dropdown > ul > li[placeholder] { color: var(--faint, var(--dim)); }
+	.cbi-dropdown > ul > li[placeholder] { color: var(--fs-faint, var(--fs-dim)); }
 
 	/* Custom chevron in the toggle (hide the stock text/svg arrow).
 	 *
@@ -75,24 +75,24 @@
 	.cbi-dropdown > .open::after {
 		content: ""; position: absolute; inset: 0; margin: auto;
 		width: 7px; height: 7px;
-		border-right: 2px solid var(--dim); border-bottom: 2px solid var(--dim);
+		border-right: 2px solid var(--fs-dim); border-bottom: 2px solid var(--fs-dim);
 		transform: translateY(-2px) rotate(45deg);	/* optical centre of a "v" */
 	}
 
 	/* open list -> design popover. This used to be stated four times over; the
 	 * values below are the ones that were winning. */
-	.cbi-dropdown[open] { z-index: var(--z-dropdown); }
+	.cbi-dropdown[open] { z-index: var(--fs-z-dropdown); }
 	.cbi-dropdown[open] > ul.dropdown {
-		background: var(--panel);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow-pop);
 		padding: 6px;
 		margin-top: 6px;
 	}
 	.cbi-dropdown[open] > ul.dropdown > li {
-		border-radius: var(--radius-sm); padding: 9px 11px;
-		border-left: 0; color: var(--text);
+		border-radius: var(--fs-radius-sm); padding: 9px 11px;
+		border-left: 0; color: var(--fs-text);
 		position: relative;
 		/* no border-bottom divider: on a rounded box it curls up at the corners.
 		 * The straight inset strip below (::after) is the divider instead, so the
@@ -101,18 +101,18 @@
 	}
 	.cbi-dropdown[open] > ul.dropdown > li:not(:last-child)::after {
 		content: ""; position: absolute; left: 11px; right: 11px; bottom: 0;
-		height: 1px; background: var(--border);
+		height: 1px; background: var(--fs-border);
 	}
 	.cbi-dropdown[open] > ul.dropdown > li:hover,
-	.cbi-dropdown[open] > ul.dropdown > li.focus { background: var(--panel2); color: var(--accent); }
+	.cbi-dropdown[open] > ul.dropdown > li.focus { background: var(--fs-panel2); color: var(--fs-accent); }
 	/* selected is written after hover on purpose: hovering the selected row must
 	 * keep the accent tint rather than fall back to the neutral hover pill */
-	.cbi-dropdown[open] > ul.dropdown > li[selected] { background: var(--accent-soft); color: var(--accent); }
-	.cbi-dropdown[open] > ul.dropdown > li.create-item { border-top: 1px solid var(--border); margin-top: 4px; }
+	.cbi-dropdown[open] > ul.dropdown > li[selected] { background: var(--fs-accent-soft); color: var(--fs-accent); }
+	.cbi-dropdown[open] > ul.dropdown > li.create-item { border-top: 1px solid var(--fs-border); margin-top: 4px; }
 	/* The "add item" field of a dropdown is a text input and gets the same 10px
 	 * radius as every other one (theme/60-inputs.css). It used to say 8px here and
 	 * win or lose depending on which block was written last. */
-	.cbi-dropdown .create-item-input { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
+	.cbi-dropdown .create-item-input { background: var(--fs-panel2); border: 1px solid var(--fs-border); border-radius: var(--fs-radius); color: var(--fs-text); }
 	/* dropdown add-item (e.g. Community Lists) — the .cbi-dropdown styles itself,
 	 * so the wrapper is transparent, no double frame. */
 	.cbi-dynlist > .add-item:has(> .cbi-dropdown) {
@@ -138,24 +138,24 @@
 		.cbi-section-table .thead { display: none; }
 		.cbi-section-table .tr.cbi-section-table-row,
 		.cbi-section-table .tbody .tr {
-			border: 1px solid var(--border);
-			border-radius: var(--radius-lg);
-			background: var(--panel2);
+			border: 1px solid var(--fs-border);
+			border-radius: var(--fs-radius-lg);
+			background: var(--fs-panel2);
 			padding: 8px 14px;
 			margin-bottom: 12px;
 		}
-		.cbi-section-table .tbody .tr:hover { background: var(--panel2); }
+		.cbi-section-table .tbody .tr:hover { background: var(--fs-panel2); }
 		.cbi-section-table .td {
 			display: flex; align-items: center; justify-content: space-between;
 			gap: 14px; padding: 8px 0; border: 0; text-align: right;
-			border-bottom: 1px solid var(--border);
+			border-bottom: 1px solid var(--fs-border);
 		}
 		.cbi-section-table .tr .td:last-child { border-bottom: 0; }
 		.cbi-section-table .td[data-title]::before {
 			content: attr(data-title);
 			flex: 0 0 auto; text-align: left;
 			font-size: 10px; font-weight: 700; letter-spacing: .05em;
-			text-transform: uppercase; color: var(--faint);
+			text-transform: uppercase; color: var(--fs-faint);
 		}
 		.cbi-section-table .td.cbi-section-actions { justify-content: flex-end; flex-wrap: wrap; }
 		.cbi-section-table .td .cbi-dropdown,

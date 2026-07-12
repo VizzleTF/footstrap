@@ -5,9 +5,9 @@
 	header {
 		position: sticky;
 		top: 0;
-		z-index: var(--z-header);
+		z-index: var(--fs-z-header);
 		overflow: visible;
-		color: var(--text-color-medium);
+		color: var(--fs-dim);
 		display: flex;
 	}
 
@@ -44,7 +44,7 @@
 	.cbi-tab-disabled[data-errors]::after {
 		content: attr(data-errors);
 		/* the badge fill is theme/40-tabs.css's — absorbed */
-		color: var(--on-error-color);
+		color: var(--fs-on-danger);
 		height: 16px;
 		min-width: 16px;
 		border-radius: 8px;
@@ -68,24 +68,24 @@
 	}
 
 	.tabs a.menu:after, .tabs .dropdown-toggle:after {
-		border-top-color: var(--text-color-medium);
+		border-top-color: var(--fs-dim);
 		margin-top: 15px;
 		margin-left: 5px;
 	}
 
 	.tabs li.open.menu .menu, .tabs .open.dropdown .dropdown-toggle {
-		border-color: var(--border-color-high);
+		border-color: var(--fs-border);
 	}
 
 	.tabs li.open a.menu:after, .tabs .dropdown.open .dropdown-toggle:after {
-		border-top-color: var(--text-color-high);
+		border-top-color: var(--fs-text);
 	}
 
 	.breadcrumb {
 		padding: 7px 14px;
 		margin: 0 0 18px;
-		background: linear-gradient(to bottom, var(--background-color-high), var(--background-color-low));
-		border: 1px solid var(--border-color-medium);
+		background: linear-gradient(to bottom, var(--fs-panel), var(--fs-panel2));
+		border: 1px solid var(--fs-border);
 		border-radius: 3px;
 		display: flex;
 		flex: 0;
@@ -101,7 +101,7 @@
 	}
 
 	.breadcrumb .active a {
-		color: var(--text-color-medium);
+		color: var(--fs-dim);
 	}
 
 	/* Footer PAINT (padding, border, colours, link colour) is owned by the theme

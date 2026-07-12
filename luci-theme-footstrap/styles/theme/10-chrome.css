@@ -14,15 +14,15 @@
 
 	.fs-brand {
 		display: flex; align-items: center; gap: 10px;
-		color: var(--text); font-weight: 700;
+		color: var(--fs-text); font-weight: 700;
 	}
 
 	.fs-logo {
-		width: 30px; height: 30px; border-radius: var(--radius);
-		background: linear-gradient(135deg, var(--accent), var(--accent-lt));
+		width: 30px; height: 30px; border-radius: var(--fs-radius);
+		background: linear-gradient(135deg, var(--fs-accent), var(--fs-accent-lt));
 		/* the glyph inherits this (brand.ut uses currentColor) — same ink as every other
 		 * thing drawn on an accent fill, so it follows palette and mode */
-		color: var(--on-accent);
+		color: var(--fs-on-accent);
 		display: flex; align-items: center; justify-content: center;
 		flex: 0 0 auto;
 	}
@@ -40,9 +40,9 @@
 	 * the purpose. It sits above everything, including an open popover.
 	 * ================================================================== */
 	.fs-skip {
-		position: fixed; top: 8px; left: 8px; z-index: var(--z-dropdown);
-		padding: 10px 16px; border-radius: var(--radius);
-		background: var(--accent); color: var(--on-accent);
+		position: fixed; top: 8px; left: 8px; z-index: var(--fs-z-dropdown);
+		padding: 10px 16px; border-radius: var(--fs-radius);
+		background: var(--fs-accent); color: var(--fs-on-accent);
 		font-weight: 700; font-size: 13px; text-decoration: none;
 		box-shadow: var(--fs-shadow-pop);
 	}
@@ -58,7 +58,7 @@
 		padding: 0; overflow: hidden; white-space: nowrap;
 	}
 	.fs-skip:focus {
-		outline: 2px solid var(--panel); outline-offset: 2px;
+		outline: 2px solid var(--fs-panel); outline-offset: 2px;
 	}
 	/* the <main> the skip link targets carries tabindex="-1" so the browser will
 	 * actually MOVE focus there (Safari and Chrome refuse on a non-focusable target,
@@ -66,8 +66,8 @@
 	 * focus ring around the whole page. */
 	#maincontent:focus { outline: none; }
 
-	.fs-logout { display: flex; align-items: center; color: var(--dim); }
-	.fs-logout:hover { color: var(--danger); }
+	.fs-logout { display: flex; align-items: center; color: var(--fs-dim); }
+	.fs-logout:hover { color: var(--fs-danger); }
 
 	.fs-indicators { display: flex; align-items: center; gap: 8px; }
 
@@ -84,15 +84,15 @@
 	.fs-top-logout {
 		display: inline-flex; align-items: center; justify-content: center;
 		width: 34px; height: 34px; padding: 0; flex: 0 0 auto;
-		border: 1px solid var(--border); border-radius: var(--radius);
-		background: var(--panel2); color: var(--dim); cursor: pointer;
+		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
+		background: var(--fs-panel2); color: var(--fs-dim); cursor: pointer;
 		transition: color .15s, border-color .15s, background .15s;
 	}
 	.fs-appearance-btn svg,
 	.fs-top-logout svg { width: 18px; height: 18px; }
-	.fs-appearance-btn:hover { color: var(--text); border-color: var(--accent); }
-	.fs-appearance-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
-	.fs-top-logout:hover { color: var(--danger); border-color: var(--danger); }
+	.fs-appearance-btn:hover { color: var(--fs-text); border-color: var(--fs-accent); }
+	.fs-appearance-btn[aria-expanded="true"] { color: var(--fs-accent); border-color: var(--fs-accent); }
+	.fs-top-logout:hover { color: var(--fs-danger); border-color: var(--fs-danger); }
 
 	/* Density steps for the horizontal main menu, shared by both layouts —
 	 * menu-footstrap-common.js adds .fs-dense1/2 when the row would wrap (and
@@ -133,7 +133,7 @@
 	.fs-themerow:hover,
 	.fs-topnav .fs-mainmenu > li > a:hover,
 	.fs-topnav .fs-mainmenu .dropdown-menu li > a:hover {
-		background: var(--panel2); color: var(--text); opacity: 1;
+		background: var(--fs-panel2); color: var(--fs-text); opacity: 1;
 	}
 	.fs-sidebar ul.nav > li.active > a,
 	.fs-sidebar ul.nav > li > a.active,
@@ -142,7 +142,7 @@
 	.fs-topnav .fs-mainmenu > li.active > a,
 	.fs-topnav .fs-mainmenu .dropdown-menu li.active > a,
 	.fs-modemenu-top li.active a {
-		background: var(--accent-soft); color: var(--accent);
+		background: var(--fs-accent-soft); color: var(--fs-accent);
 	}
 
 	/* Keyboard focus for the chrome controls, one look for both layouts — the

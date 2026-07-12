@@ -14,11 +14,11 @@
 
 	.cbi-tooltip {
 		position: absolute;
-		z-index: var(--z-tooltip);
+		z-index: var(--fs-z-tooltip);
 		left: -10000px;
-		box-shadow: 0 0 2px var(--border-color-high);
+		box-shadow: 0 0 2px var(--fs-border);
 		border-radius: 3px;
-		background: var(--background-color-high);
+		background: var(--fs-panel);
 		white-space: pre;
 		padding: 2px 5px;
 		opacity: 0;
@@ -49,7 +49,7 @@
 
 	.zonebadge .cbi-tooltip > * {
 		margin: 1px;
-		z-index: var(--z-raise);
+		z-index: var(--fs-z-raise);
 		position: relative;
 	}
 
@@ -80,7 +80,7 @@
 	.btn.disabled,
 	.btn[disabled] {
 		cursor: default;
-		opacity: var(--disabled-opacity);
+		opacity: var(--fs-disabled-opacity);
 		box-shadow: none;
 	}
 
@@ -142,17 +142,17 @@
 		padding: 3px 3px 2px;
 		font-size: 9.75px;
 		font-weight: bold;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 		text-transform: uppercase;
 		white-space: nowrap;
-		background-color: var(--background-color-low);
+		background-color: var(--fs-panel2);
 		border-radius: 3px;
 		text-shadow: none;
 		margin: .125em 0 .125em .4em;
 	}
 
 	header [data-indicator][data-style="active"] {
-		color: var(--on-primary-color);
-		background-color: var(--primary-color-high);
+		color: var(--fs-on-accent);
+		background-color: var(--fs-accent);
 	}
 }

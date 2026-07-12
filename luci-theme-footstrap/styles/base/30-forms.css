@@ -10,7 +10,7 @@
 		display: block;
 		font-size: 19.5px;
 		line-height: 1;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 		padding-top: 20px;
 	}
 
@@ -18,7 +18,7 @@
 	input,
 	button,
 	select {
-		font-family: var(--font-sans);
+		font-family: var(--fs-font-sans);
 		font-size: 13px;
 		font-weight: normal;
 		line-height: normal;
@@ -46,7 +46,7 @@
 		line-height: 18px;
 		flex: 0 0 180px;
 		text-align: right;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 	}
 
 	.cbi-value > .cbi-section,
@@ -72,11 +72,11 @@
 		display: inline-block;
 		width: 210px;
 		padding: 4px;
-		background: var(--background-color-high);
-		color: var(--text-color-high);
+		background: var(--fs-panel);
+		color: var(--fs-text);
 		font-size: 13px;
 		line-height: 18px;
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		border-radius: 3px;
 	}
 
@@ -129,7 +129,7 @@
 		right: -1px;
 		bottom: -1px;
 		padding: 0 6px;
-		border: 1px solid var(--border-color-high);
+		border: 1px solid var(--fs-border);
 		/* radius + the × ink are theme/60-inputs.css's — absorbed */
 		font-weight: bold;
 		pointer-events: auto;
@@ -137,7 +137,7 @@
 
 	/* indication line for drag-and-drop in UIDynamicList*/
 	.cbi-dynlist > .item.drag-over { 
-		border-top: 1px solid var(--text-color-highest);
+		border-top: 1px solid var(--fs-text);
 	}
 
 	/* Make item being dragged in UIDynamicList partially transparent*/
@@ -156,12 +156,12 @@
 
 	/* indication line for drag-and-drop in UIDynamicList*/
 	.cbi-dynlist > .add-item > .cbi-input-text.drag-over {
-		border-top: 1px solid var(--text-color-highest);
+		border-top: 1px solid var(--fs-text);
 	}
 
 	/* indication line for drag-and-drop in UIDynamicList*/
 	.cbi-dynlist > .add-item > .cbi-button-add.drag-over {
-		border-top: 1px solid var(--text-color-highest);
+		border-top: 1px solid var(--fs-text);
 	}
 
 	.cbi-dynlist > .add-item > input,
@@ -187,7 +187,7 @@
 	.cbi-select {
 		padding: 0;
 		position: relative;
-		background: linear-gradient(var(--background-color-high), var(--border-color-low));
+		background: linear-gradient(var(--fs-panel), var(--fs-border));
 	}
 
 	.cbi-select select,
@@ -210,7 +210,7 @@
 		bottom: 0;
 		content: "▾";
 		padding: 0 .3em;
-		background: linear-gradient(var(--background-color-high), var(--border-color-low));
+		background: linear-gradient(var(--fs-panel), var(--fs-border));
 		pointer-events: none;
 		border-radius: 3px;
 		display: flex;
@@ -219,18 +219,18 @@
 	}
 
 	.cbi-select select option {
-		background: var(--background-color-low);
-		color: var(--text-color-high);
+		background: var(--fs-panel2);
+		color: var(--fs-text);
 	}
 
 	.cbi-select select option:hover {
-		background: var(--primary-color-low);
-		color: var(--on-primary-color);
+		background: var(--fs-accent);
+		color: var(--fs-on-accent);
 	}
 
 	.cbi-select select option:checked {
-		background: var(--primary-color-medium);
-		color: var(--on-primary-color);
+		background: var(--fs-accent);
+		color: var(--fs-on-accent);
 	}
 
 	input[type=file] {
@@ -256,8 +256,8 @@
 
 	input[type="checkbox"],
 	input[type="radio"] {
-		--bd-color: var(--border-color-high);
-		--fg-color: var(--text-color-high);
+		--bd-color: var(--fs-border);
+		--fg-color: var(--fs-text);
 		appearance: none;
 		width: 14px;
 		height: 14px;
@@ -283,7 +283,7 @@
 		left: 0;
 		width: 14px;
 		height: 14px;
-		background: linear-gradient(var(--background-color-high), var(--background-color-low));
+		background: linear-gradient(var(--fs-panel), var(--fs-panel2));
 		border: 1px solid var(--bd-color);
 		border-radius: 2px;
 	}
@@ -315,8 +315,8 @@
 
 	input[type="checkbox"].cbi-input-invalid,
 	input[type="radio"].cbi-input-invalid {
-		--bd-color: var(--error-color-medium);
-		--fg-color: var(--error-color-high);
+		--bd-color: var(--fs-danger);
+		--fg-color: var(--fs-danger);
 	}
 
 	.td > input[type=text],
@@ -328,7 +328,7 @@
 	}
 
 	::placeholder {
-		color: var(--text-color-medium);
+		color: var(--fs-dim);
 	}
 
 	.item::after,
@@ -362,7 +362,7 @@
 		/* used to be the hardcoded bootstrap blue `82, 168, 236` — a literal that
 		 * ignored palette and dark mode wherever the theme layer doesn't override
 		 * the focus look (.cbi-select.focus, raw checkbox/radio ::before,
-		 * button:focus). Follows --accent now; the invalid state below swaps the
+		 * button:focus). Follows --fs-accent now; the invalid state below swaps the
 		 * whole colour out by re-declaring this one custom property.
 		 *
 		 * A COLOUR, not an `r, g, b` triple. The triple was the last survivor of the
@@ -373,11 +373,11 @@
 		 * palette is the single source of truth and there is nothing to keep in sync.
 		 * color-mix(in srgb, C p%, transparent) === rgba(C, p/100): the mix is
 		 * premultiplied, so the RGB does not move, only the alpha. */
-		--focus-color: var(--accent);
+		--focus-color: var(--fs-accent);
 
 		outline: 0;
 		border-color: color-mix(in srgb, var(--focus-color) 80%, transparent);
-		/* the inset half used to be color-mix(--border 1%), i.e. alpha 0.01 — it drew
+		/* the inset half used to be color-mix(--fs-border 1%), i.e. alpha 0.01 — it drew
 		 * literally nothing and was transitioned on every widget. Just the focus glow. */
 		box-shadow: 0 0 8px color-mix(in srgb, var(--focus-color) 60%, transparent);
 		text-decoration: none;
@@ -387,7 +387,7 @@
 	.cbi-select.cbi-input-invalid,
 	input[type="checkbox"].cbi-input-invalid:focus::before,
 	input[type="radio"].cbi-input-invalid:focus::before {
-		--focus-color: var(--error-color-high);
+		--focus-color: var(--fs-danger);
 	}
 
 	input[disabled],
@@ -400,7 +400,7 @@
 	input[type="checkbox"][disabled]::after,
 	input[type="radio"][disabled]::before,
 	input[type="radio"][disabled]::after {
-		opacity: var(--disabled-opacity);
+		opacity: var(--fs-disabled-opacity);
 		pointer-events: none;
 		cursor: default;
 	}
@@ -408,7 +408,7 @@
 	input[readonly],
 	select[readonly],
 	textarea[readonly] {
-		border-color: color-mix(in srgb, var(--border) calc(var(--disabled-opacity) * 100%), transparent);
+		border-color: color-mix(in srgb, var(--fs-border) calc(var(--fs-disabled-opacity) * 100%), transparent);
 		pointer-events: auto;
 		cursor: auto;
 	}
@@ -436,10 +436,10 @@
 	/* .cbi-page-actions paint is owned by theme/55-buttons.css — absorbed.
 	 * The legacy `.actions` plate has no theme override, so it stays. */
 	.actions {
-		background: var(--background-color-low);
+		background: var(--fs-panel2);
 		margin-bottom: 18px;
 		padding: 17px 20px 18px 17px;
-		border-top: 1px solid var(--border-color-medium);
+		border-top: 1px solid var(--fs-border);
 		border-radius: 0 0 3px 3px;
 		text-align: right;
 	}

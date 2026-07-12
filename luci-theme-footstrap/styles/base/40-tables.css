@@ -26,7 +26,7 @@
 		 * exactly what CLAUDE.md forbids. Merged: the rule between the two
 		 * (.table .tr:first-child .th) has higher specificity and wins either way, so
 		 * moving this up changes nothing. Verified with cssdiff. */
-		border-top: 1px solid var(--border-color-medium);
+		border-top: 1px solid var(--fs-border);
 	}
 
 	.table .tr:first-child .th {
@@ -50,7 +50,7 @@
 
 	.tr.drag-over-above,
 	.tr.drag-over-below {
-		border: 2px solid var(--primary-color-high);
+		border: 2px solid var(--fs-accent);
 		border-width: 2px 0 0 0;
 	}
 

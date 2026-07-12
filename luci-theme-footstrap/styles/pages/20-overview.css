@@ -31,7 +31,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: var(--radius-sm);
+		border-radius: var(--fs-radius-sm);
 	}
 	.cbi-title .label[data-indicator='poll-status']::after {
 		content: '';
@@ -115,9 +115,9 @@
 		min-width: 0 !important;
 		max-width: none !important;
 		text-align: left;
-		background: var(--panel2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		background: var(--fs-panel2);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		padding: 9px 11px;
 		container-type: inline-size; container-name: fs-port;
 		display: grid;
@@ -132,35 +132,35 @@
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-head:first-child {
 		grid-column: 1 / -1;
 		display: flex; align-items: center; justify-content: space-between; gap: 6px;
-		font-size: 13px; font-weight: 600; color: var(--text);
+		font-size: 13px; font-weight: 600; color: var(--fs-text);
 	}
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-head:first-child::after {
 		content: '';
 		width: 8px; height: 8px;
 		border-radius: 50%;
-		background: var(--good);				/* linked (default) */
+		background: var(--fs-good);				/* linked (default) */
 		flex: 0 0 auto;
 	}
 	/* no-link (icon *_down.svg): hollow ring + dim name */
-	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-head:first-child { color: var(--dim); }
+	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-head:first-child { color: var(--fs-dim); }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-head:first-child::after {
 		background: transparent;
-		border: 1.5px solid var(--dim);
+		border: 1.5px solid var(--fs-dim);
 	}
 	/* speed (2nd child) → left column, green when linked, dim when not; hide its <br> */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2) {
-		font-size: 13px; font-weight: 600; color: var(--good); text-align: left;
+		font-size: 13px; font-weight: 600; color: var(--fs-good); text-align: left;
 	}
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2) br { display: none; }
-	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-body:nth-child(2) { color: var(--dim); }
+	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-body:nth-child(2) { color: var(--fs-dim); }
 	/* traffic (4th child) → right column: ▲ transmitted over ▼ received (stock keeps
 	 * them on two lines via a <br> — CSS can't reorder br-separated text runs). Mono,
 	 * dim, right-aligned so the numbers line up on the card's right edge. */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { text-align: right; }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container {
-		font-family: var(--font-mono);
+		font-family: var(--fs-font-mono);
 		font-size: 11px !important;
-		color: var(--dim);
+		color: var(--fs-dim);
 		line-height: 1.5;
 		white-space: nowrap;
 	}
@@ -222,7 +222,7 @@
 		white-space: normal;
 		overflow-wrap: anywhere;
 		padding-right: min(200px, 50%);
-		font-size: 12px; font-weight: 600; color: var(--text);
+		font-size: 12px; font-weight: 600; color: var(--fs-text);
 	}
 	/* bar cell — spans full width on row 2 */
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar) .td:nth-child(2) {

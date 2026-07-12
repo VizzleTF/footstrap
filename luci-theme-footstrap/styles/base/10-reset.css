@@ -104,7 +104,7 @@
 	textarea {
 		overflow: auto;
 		vertical-align: top;
-		font-family: var(--font-mono);
+		font-family: var(--fs-font-mono);
 	}
 
 	.control-group {

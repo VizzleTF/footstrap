@@ -7,7 +7,7 @@
 -#}
 <a class="fs-brand" href="{{ dispatcher.build_url() }}">
 	<span class="fs-logo">
-		{# currentColor, not a baked #fff: .fs-logo sets `color: var(--on-accent)`, so the
+		{# currentColor, not a baked #fff: .fs-logo sets `color: var(--fs-on-accent)`, so the
 		   glyph is the same ink every other thing sitting on an accent fill uses, and it
 		   follows the palette and the light/dark mode like everything else. This was the
 		   only icon in the theme that could not. #}

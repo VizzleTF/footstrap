@@ -7,24 +7,24 @@
 	.cbi-progressbar {
 		position: relative;
 		height: 10px;
-		background: var(--track);
+		background: var(--fs-track);
 		border: 0;
-		border-radius: var(--radius-pill);
+		border-radius: var(--fs-radius-pill);
 		overflow: visible;
 		min-width: 120px;
 		margin: 0;
 	}
 	.cbi-progressbar > div {
 		height: 100%;
-		background: var(--accent);
-		border-radius: var(--radius-pill);
+		background: var(--fs-accent);
+		border-radius: var(--fs-radius-pill);
 		transition: width .4s ease;
 	}
 	.cbi-progressbar::after {
 		content: attr(title);
 		position: absolute; right: 0; bottom: calc(100% + 4px); top: auto; left: auto;
-		font-family: var(--font-mono); font-size: 11px; font-weight: 400;
-		color: var(--dim); white-space: nowrap; text-shadow: none;
+		font-family: var(--fs-font-mono); font-size: 11px; font-weight: 400;
+		color: var(--fs-dim); white-space: nowrap; text-shadow: none;
 	}
 
 	/* Progressbar rows in a section table (e.g. luci-app-cpu-status): keep the

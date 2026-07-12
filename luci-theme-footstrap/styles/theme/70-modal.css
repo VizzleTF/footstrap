@@ -9,25 +9,25 @@
 	 * `var` (option changed) inner ins/del, and the legend swatches.
 	 * ================================================================== */
 	#modal_overlay .uci-dialog ins {
-		background-color: color-mix(in srgb, var(--good) 18%, var(--panel));
+		background-color: color-mix(in srgb, var(--fs-good) 18%, var(--fs-panel));
 	}
 	#modal_overlay .uci-dialog del {
-		background-color: color-mix(in srgb, var(--danger) 18%, var(--panel));
+		background-color: color-mix(in srgb, var(--fs-danger) 18%, var(--fs-panel));
 	}
 	#modal_overlay .uci-dialog div > ins {
-		border-color: color-mix(in srgb, var(--good) 45%, transparent);
+		border-color: color-mix(in srgb, var(--fs-good) 45%, transparent);
 	}
 	#modal_overlay .uci-dialog div > del {
-		border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+		border-color: color-mix(in srgb, var(--fs-danger) 45%, transparent);
 	}
 	#modal_overlay .uci-dialog div > var {
-		background-color: var(--panel2);
-		border-color: var(--border);
+		background-color: var(--fs-panel2);
+		border-color: var(--fs-border);
 	}
 
 	/* Round the popup itself to match the theme's cards (base is only 3px), plus
 	 * small rounding on the diff boxes and legend swatches for a cohesive look. */
-	#modal_overlay .modal { border-radius: var(--radius-lg); }
+	#modal_overlay .modal { border-radius: var(--fs-radius-lg); }
 
 	/* A config-form modal (Bridge device options, firewall rule, …) is only 600px
 	 * wide by default. That's cramped for a form with a table (Bridge VLAN filtering,
@@ -38,7 +38,7 @@
 	.modal:has(.cbi-map) { max-width: min(1100px, 94vw); }
 	#modal_overlay .uci-dialog div > ins,
 	#modal_overlay .uci-dialog div > del,
-	#modal_overlay .uci-dialog div > var { border-radius: var(--radius-sm); }
+	#modal_overlay .uci-dialog div > var { border-radius: var(--fs-radius-sm); }
 	#modal_overlay .uci-change-legend-label > ins,
 	#modal_overlay .uci-change-legend-label > del,
 	#modal_overlay .uci-change-legend-label > var { border-radius: 4px; overflow: hidden; }

@@ -18,7 +18,14 @@ Reports:
      one is dead. Reported only for `theme` and `page`, where it always means a
      rule was appended instead of edited; `base` re-states properties on purpose
      (the reset sets `input { font-size: 100% }`, forms then sets 13px).
-  6. Base declarations dead across layers: `theme`/`page` beat `base` regardless
+  6. Reads of the EXPORT tier (`--*-color-*`) from inside styles/. Those names are
+     the LuCI convention this theme exposes OUTWARD, for third-party luci-app-*
+     stylesheets; the theme itself reads only its private `--fs-*` tokens. If a
+     theme rule reads an export name, an app declaring that name on the shared
+     `:root` — unlayered, so it outranks every cascade layer — silently repaints
+     the theme. Measured: before the split, a hostile `:root` repainted 312 of the
+     336 elements in docs/gallery.html; after it, 0.
+  7. Base declarations dead across layers: `theme`/`page` beat `base` regardless
      of specificity, so a base declaration whose selector is repainted on the
      same property by a later layer can never apply. Split in two, and the split
      is the whole point:
@@ -221,6 +228,31 @@ def audit_shadowed(css):
                 seen[k] = (p.name, line, val, nsel)
     return out
 
+# The export tier: the conventional LuCI theme variable names. They are DEFINED in
+# 02-tokens.css (from the --fs-* private tokens) and must be read by nobody inside
+# this theme — see the header of that file. Element-scoped locals that merely happen
+# to end in -color (--bd-color, --fg-color, --on-color, --focus-color, and pre's
+# --border-color) are not the bridge: they are declared inside the rule that reads
+# them, so they cannot be hijacked from a foreign :root.
+EXPORT_RE = re.compile(r"var\(\s*(--(?:background|text|border|primary|error|success|warn)-color-[a-z]+"
+                       r"|--on-(?:primary|error|success|warn)-color)\s*[,)]")
+
+def audit_export_reads(css):
+    """Reads of the export tier from inside styles/.
+
+    The bridge points OUTWARD. If a theme rule reads it, a third-party luci-app-*
+    that declares that name on :root — unlayered, so it outranks every layer —
+    silently repaints this theme. base used to read it 158 times, which made the
+    most conventional names (--text-color-high &c.) the widest hole we had. Read
+    the --fs-* token the bridge aliases instead; it is shorter anyway.
+    """
+    out = []
+    for p in css:
+        for i, line in enumerate(_strip_comments(p.read_text(encoding="utf-8")).split("\n"), 1):
+            for m in EXPORT_RE.finditer(line):
+                out.append((p.name, i, m.group(1), line.strip()[:60]))
+    return out
+
 def _norm(sel):
     return re.sub(r"\s+", " ", sel).strip()
 
@@ -344,6 +376,17 @@ def main():
             print(f"  {sel} {{ {prop} }}  {pf}:{pl} {pv!r} -> {f}:{ln} {v!r}{same}")
         print(f"  ({len(sh)} dead) -> edit the first rule instead of appending a second")
         print("     (group-then-refine, e.g. a shared input rule narrowed for textarea, is not reported)")
+
+    print("\n== reads of the EXPORT tier (--*-color-*) from inside the theme ==")
+    ex = audit_export_reads(css)
+    findings += len(ex)
+    if not ex:
+        print("  none (the bridge points outward only)")
+    else:
+        for name, ln, var, txt in ex:
+            print(f"  {name}:{ln:<4} {var:24} {txt}")
+        print(f"  ({len(ex)}) -> read the --fs-* token it aliases. A third-party luci-app-* can")
+        print("     declare these names on :root, unlayered, and repaint the theme silently.")
 
     print("\n== base declarations a later layer repaints on the SAME selector ==")
     safe, backlog = audit_base_dead(css)

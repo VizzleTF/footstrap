@@ -7,7 +7,7 @@
 		font-size: 13px;
 		font-weight: normal;
 		line-height: 18px;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 		min-height: 100%;
 		display: flex;
 		flex-direction: column;
@@ -17,14 +17,14 @@
 	}
 
 	a {
-		color: var(--primary-color-high);
+		color: var(--fs-accent);
 		text-decoration: none;
 		line-height: inherit;
 		font-weight: inherit;
 	}
 
 	a:hover {
-		color: var(--primary-color-low);
+		color: var(--fs-accent);
 		text-decoration: underline;
 	}
 
@@ -47,7 +47,7 @@
 
 	p small {
 		font-size: 11px;
-		color: var(--text-color-low);
+		color: var(--fs-dim);
 	}
 
 	h1,
@@ -57,7 +57,7 @@
 	h5,
 	h6 {
 		font-weight: bold;
-		color: var(--text-color-high);
+		color: var(--fs-text);
 	}
 
 	h1 small,
@@ -66,7 +66,7 @@
 	h4 small,
 	h5 small,
 	h6 small {
-		color: var(--text-color-low);
+		color: var(--fs-dim);
 	}
 
 	h1 {
@@ -117,7 +117,7 @@
 
 	h6 {
 		font-size: 13px;
-		color: var(--text-color-low);
+		color: var(--fs-dim);
 		text-transform: uppercase;
 	}
 
@@ -142,7 +142,7 @@
 
 	li {
 		line-height: 18px;
-		color: var(--text-color-medium);
+		color: var(--fs-dim);
 	}
 
 	dl {
@@ -164,7 +164,7 @@
 	hr {
 		margin: 20px 0 19px;
 		border: 0;
-		border-bottom: 1px solid var(--border-color-low);
+		border-bottom: 1px solid var(--fs-border);
 	}
 
 	strong {
@@ -188,24 +188,24 @@
 
 	code, pre {
 		padding: 0 3px 2px;
-		font-family: var(--font-mono);
+		font-family: var(--fs-font-mono);
 		font-size: 12px;
 		border-radius: 3px;
 	}
 
 	code {
-		/* was --border-color-low: in dark that is #444c56, and --text on it measures
+		/* was --border-color-low: in dark that is #444c56, and --fs-text on it measures
 		 * 4.40:1 — under AA. The panel2 surface <pre> already uses gives 6.45 and still
 		 * reads as a chip. */
-		background-color: var(--background-color-low);
-		color: var(--text-color-high);
+		background-color: var(--fs-panel2);
+		color: var(--fs-text);
 		padding: 1px 3px;
 	}
 
 	pre {
-		--border-color: color-mix(in srgb, var(--border) 15%, transparent);
+		--border-color: color-mix(in srgb, var(--fs-border) 15%, transparent);
 
-		background-color: var(--background-color-low);
+		background-color: var(--fs-panel2);
 		display: block;
 		padding: 8.5px;
 		margin: 0 0 18px;

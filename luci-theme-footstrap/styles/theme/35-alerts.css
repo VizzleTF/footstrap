@@ -3,7 +3,7 @@
 	 * Alert panel. A left accent stripe on a panel card; the type variants
 	 * recolour the frame.
 	 *
-	 * The `background: var(--panel)` used to be repeated for each variant
+	 * The `background: var(--fs-panel)` used to be repeated for each variant
 	 * (`.alert-message.warning`, `.alert-message.error`, …) to out-specify the
 	 * gradients in styles/base. That is what cascade layers are for — a normal
 	 * declaration in `theme` beats one in `base` whatever the specificity — so
@@ -11,30 +11,30 @@
 	 * ================================================================== */
 	.alert-message {
 		padding: 14px 16px;
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--border);
-		border-left: 3px solid var(--accent);
-		background: var(--panel);
-		color: var(--text);
+		border-radius: var(--fs-radius-lg);
+		border: 1px solid var(--fs-border);
+		border-left: 3px solid var(--fs-accent);
+		background: var(--fs-panel);
+		color: var(--fs-text);
 		box-shadow: var(--fs-shadow);
 		gap: 12px;
 	}
 	/* warning and error tint the whole frame; success and notice only the stripe */
-	.alert-message.warning { border-color: var(--warn); }
-	.alert-message.error, .alert-message.danger { border-color: var(--danger); }
-	.alert-message.success, .alert-message.notice { border-left-color: var(--good); }
+	.alert-message.warning { border-color: var(--fs-warn); }
+	.alert-message.error, .alert-message.danger { border-color: var(--fs-danger); }
+	.alert-message.success, .alert-message.notice { border-left-color: var(--fs-good); }
 
 	/* h2 is what the theme's own notices now emit (the document had no heading above
 	 * h4 at all). h4 stays in the list — a third-party luci-app-* alert is free to use
 	 * it, and coverage only ever grows. */
-	.alert-message :is(h2, h3, h4) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--text); }
-	.alert-message p { margin: 4px 0; color: var(--dim); font-size: 13px; }
+	.alert-message :is(h2, h3, h4) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--fs-text); }
+	.alert-message p { margin: 4px 0; color: var(--fs-dim); font-size: 13px; }
 	/* inner table (e.g. firmware Current/Available) — flatten so it doesn't read as
 	 * a nested card on the alert panel; subtle row dividers only */
 	.alert-message .table { margin: 10px 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
-	.alert-message .table .th { color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-	.alert-message .table .th, .alert-message .table .td { padding: 7px 14px 7px 0; background: transparent; border-color: color-mix(in srgb, var(--border) 60%, transparent); }
-	.alert-message .table .td { color: var(--text); }
+	.alert-message .table .th { color: var(--fs-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+	.alert-message .table .th, .alert-message .table .td { padding: 7px 14px 7px 0; background: transparent; border-color: color-mix(in srgb, var(--fs-border) 60%, transparent); }
+	.alert-message .table .td { color: var(--fs-text); }
 
 	/* ==================================================================
 	 * The `.label` pill.
@@ -46,15 +46,15 @@
 	 * added because packages use it. See docs/gallery.html.
 	 * ================================================================== */
 	.label {
-		display: inline-block; padding: 3px 9px; border-radius: var(--radius-pill);
+		display: inline-block; padding: 3px 9px; border-radius: var(--fs-radius-pill);
 		font-size: 11px; font-weight: 600; line-height: 1.4;
-		background: var(--panel2); border: 1px solid var(--border);
-		color: var(--dim); text-shadow: none; text-transform: none;
+		background: var(--fs-panel2); border: 1px solid var(--fs-border);
+		color: var(--fs-dim); text-shadow: none; text-transform: none;
 		/* carried over from the absorbed styles/base .label rule */
 		white-space: nowrap; margin: .125em 0 .125em .4em;
 	}
 	/* THE VARIANTS DO NOT SET A BACKGROUND, and that is deliberate — they inherit the
-	 * opaque --panel2 from `.label` above.
+	 * opaque --fs-panel2 from `.label` above.
 	 *
 	 * They used to paint a TRANSLUCENT tint of their own colour on top of it, i.e. text
 	 * of colour C on a tint of C. Two things went wrong. The tint always drags the
@@ -62,14 +62,14 @@
 	 * translucent, what it actually renders as depends on the surface underneath, so no
 	 * single percentage is safe everywhere. Measured across the palette x mode matrix
 	 * (axe-core), every variant landed at 3.4-4.4:1. Dropping the fill puts the text on
-	 * --panel2, where the palette guarantees >=4.5 by construction, and the coloured
+	 * --fs-panel2, where the palette guarantees >=4.5 by construction, and the coloured
 	 * border still carries the status just as loudly. */
-	.label.important, .label.notice { border-color: var(--accent); color: var(--accent); }
-	.label.warning { border-color: var(--warn); color: var(--warn); }
-	.label.success { border-color: var(--good); color: var(--good); }
-	.label.danger, .label.error { border-color: var(--danger); color: var(--danger); }
-	a.label:link, a.label:visited { color: var(--dim); }
-	a.label:hover { text-decoration: none; color: var(--text); }
+	.label.important, .label.notice { border-color: var(--fs-accent); color: var(--fs-accent); }
+	.label.warning { border-color: var(--fs-warn); color: var(--fs-warn); }
+	.label.success { border-color: var(--fs-good); color: var(--fs-good); }
+	.label.danger, .label.error { border-color: var(--fs-danger); color: var(--fs-danger); }
+	a.label:link, a.label:visited { color: var(--fs-dim); }
+	a.label:hover { text-decoration: none; color: var(--fs-text); }
 
 	/* The show/hide toggles in a section title are .label pills too, but clickable.
 	 * SINGLE owner of the pill look: pages/20-overview.css used to restate it (in
@@ -80,12 +80,12 @@
 	 * these pills (uppercase, margins, min-width, badge look). */
 	.cbi-title .label {
 		font-size: 11px; font-weight: 600;
-		padding: 4px 12px; border-radius: var(--radius-pill);
-		background: var(--panel2); border: 1px solid var(--border);
-		color: var(--dim); cursor: pointer; line-height: 1.4;
+		padding: 4px 12px; border-radius: var(--fs-radius-pill);
+		background: var(--fs-panel2); border: 1px solid var(--fs-border);
+		color: var(--fs-dim); cursor: pointer; line-height: 1.4;
 		text-transform: none; letter-spacing: 0;
 		margin: 0; min-width: 0; box-shadow: none;
 	}
-	.cbi-title .label:hover { color: var(--text); border-color: var(--dim); opacity: 1; }
-	.cbi-title .label.notice { opacity: 1; color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+	.cbi-title .label:hover { color: var(--fs-text); border-color: var(--fs-dim); opacity: 1; }
+	.cbi-title .label.notice { opacity: 1; color: var(--fs-accent); border-color: var(--fs-accent); background: var(--fs-accent-soft); }
 }

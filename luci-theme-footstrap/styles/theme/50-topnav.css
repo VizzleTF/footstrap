@@ -4,11 +4,11 @@
 	 * Active only under body.fs-top. Horizontal menu + dropdowns.
 	 * ================================================================== */
 	body.fs-top { display: block; }
-	.fs-topwrap { min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); overflow-x: clip; }
+	.fs-topwrap { min-height: 100dvh; display: flex; flex-direction: column; background: var(--fs-bg); overflow-x: clip; }
 
 	/* top bar */
 	.fs-topnav {
-		position: sticky; top: 0; z-index: var(--z-sticky);
+		position: sticky; top: 0; z-index: var(--fs-z-sticky);
 		display: flex; align-items: center; gap: 12px;
 		height: var(--fs-bar-h);
 		/* the bar is a <header>; keep it at margin 0 explicitly — its spacing to
@@ -19,8 +19,8 @@
 		 * rule the theme no longer carries. Own the shadow here. */
 		/* the inset hairline was mixed at 1% (alpha 0.01) — invisible. Match the 25%
 		 * of the drop shadow beside it so it actually draws. */
-		box-shadow: 0 1px 3px color-mix(in srgb, var(--border) 25%, transparent),
-		            inset 0 -1px 0 color-mix(in srgb, var(--border) 25%, transparent);
+		box-shadow: 0 1px 3px color-mix(in srgb, var(--fs-border) 25%, transparent),
+		            inset 0 -1px 0 color-mix(in srgb, var(--fs-border) 25%, transparent);
 		/* align the nav content to the .fs-content inner column (container centered
 		 * at --fs-content-max, plus its 28px side padding) so the logo/menu line up
 		 * with the headings and cards below */
@@ -28,7 +28,7 @@
 		background: var(--fs-bar-bg);
 		backdrop-filter: blur(10px);
 		-webkit-backdrop-filter: blur(10px);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--fs-border);
 	}
 	/* placement only — the look lives in 10-chrome.css */
 	.fs-topnav .fs-brand { padding: 0; flex: 0 0 auto; }
@@ -41,21 +41,21 @@
 	}
 	.fs-topnav .fs-mainmenu > li { position: relative; }
 	.fs-topnav .fs-mainmenu > li > a {
-		display: block; padding: 6px 11px; border-radius: var(--radius);
-		color: var(--dim); font-size: 15px; font-weight: 600; white-space: nowrap;
+		display: block; padding: 6px 11px; border-radius: var(--fs-radius);
+		color: var(--fs-dim); font-size: 15px; font-weight: 600; white-space: nowrap;
 	}
 	/* hover/active and the .fs-dense1/2 auto-fit steps are grouped for both
 	 * layouts in theme/10-chrome.css */
 
 	/* dropdowns — a translucent popover in the design language */
 	.fs-topnav .fs-mainmenu .dropdown-menu {
-		display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: var(--z-flyout);
+		display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: var(--fs-z-flyout);
 		min-width: 200px; padding: 7px; margin: 0;
 		list-style: none;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow-pop);
-		background: color-mix(in srgb, var(--panel) 96%, transparent);
+		background: color-mix(in srgb, var(--fs-panel) 96%, transparent);
 		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 	}
 	/* invisible bridge over the gap so hover isn't lost moving into the menu */
@@ -70,8 +70,8 @@
 	/* tap/click toggle (.open) works on every device; second tap removes it */
 	.fs-topnav .fs-mainmenu > li.dropdown.open > .dropdown-menu { display: block; }
 	.fs-topnav .fs-mainmenu .dropdown-menu li > a {
-		display: block; padding: 9px 12px; border-radius: var(--radius);
-		color: var(--dim); font-size: 13px; font-weight: 600; white-space: nowrap;
+		display: block; padding: 9px 12px; border-radius: var(--fs-radius);
+		color: var(--fs-dim); font-size: 13px; font-weight: 600; white-space: nowrap;
 	}
 	/* dropdown-menu link hover/active grouped in theme/10-chrome.css */
 	.fs-topnav .fs-mainmenu > li.dropdown > a.menu::after { content: none; display: none; }
@@ -88,14 +88,14 @@
 	 * margin-bottom the bar used to inherit from base — keeps the gap. */
 	.fs-main-top { flex: 1 1 auto; display: flex; flex-direction: column; }
 	.fs-main-top .fs-content { max-width: var(--fs-content-max); margin: 0 auto; width: 100%; padding-top: 26px; }
-	.fs-main-top .fs-footer { max-width: var(--fs-content-max); margin: 0 auto; width: 100%; border-top: 1px solid var(--border); }
+	.fs-main-top .fs-footer { max-width: var(--fs-content-max); margin: 0 auto; width: 100%; border-top: 1px solid var(--fs-border); }
 
 	/* mode menu row (rare, >1 mode) */
 	.fs-modemenu-top {
 		display: flex; gap: 4px; list-style: none; margin: 0; padding: 8px 24px;
-		background: var(--panel); border-bottom: 1px solid var(--border);
+		background: var(--fs-panel); border-bottom: 1px solid var(--fs-border);
 	}
-	.fs-modemenu-top li a { color: var(--dim); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-sm); }
+	.fs-modemenu-top li a { color: var(--fs-dim); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--fs-radius-sm); }
 	/* .fs-modemenu-top li.active a grouped in theme/10-chrome.css */
 
 	/* responsive: wrap menu */

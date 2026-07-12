@@ -6,7 +6,7 @@
 		top: 0;
 		bottom: 0;
 		background: rgba(0, 0, 0, 0.7);
-		z-index: var(--z-overlay);
+		z-index: var(--fs-z-overlay);
 		overflow: auto;
 		transition: opacity .125s ease-in;
 		opacity: 0;
@@ -19,9 +19,9 @@
 		min-height: 32px;
 		max-width: 600px;
 		border-radius: 3px;
-		background: var(--background-color-high);
-		border: 1px solid var(--border-color-low);
-		box-shadow: 0 0 3px var(--background-color-low);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
+		box-shadow: 0 0 3px var(--fs-panel2);
 		padding: 1em 1em .5em 1em;
 		min-width: 270px;
 	}
@@ -66,7 +66,7 @@
 	}
 
 	.btn .close, .alert-message .close {
-		font-family: var(--font-sans);
+		font-family: var(--fs-font-sans);
 		line-height: 18px;
 	}
 
@@ -75,36 +75,36 @@
 	.btn.error,
 	.alert-message.error,
 	.cbi-tooltip.error {
-		background: linear-gradient(var(--error-color-low), var(--error-color-medium));
-		color: var(--on-error-color);
-		border-color: var(--error-color-high) var(--error-color-high) var(--error-color-low);
+		background: linear-gradient(var(--fs-danger), var(--fs-danger));
+		color: var(--fs-on-danger);
+		border-color: var(--fs-danger) var(--fs-danger) var(--fs-danger);
 	}
 
 	.btn.success, .alert-message.success, .cbi-tooltip.success {
-		background: linear-gradient(var(--success-color-low), var(--success-color-medium));
-		color: var(--on-error-color);
-		border-color: var(--success-color-high) var(--success-color-high) var(--success-color-low);
+		background: linear-gradient(var(--fs-good), var(--fs-good));
+		color: var(--fs-on-danger);
+		border-color: var(--fs-good) var(--fs-good) var(--fs-good);
 	}
 
 	.btn.info, .alert-message.info, .cbi-tooltip.info {
-		background: linear-gradient(var(--primary-color-low), var(--primary-color-medium));
-		color: var(--on-primary-color);
-		border-color: var(--primary-color-high) var(--primary-color-high) var(--primary-color-low);
+		background: linear-gradient(var(--fs-accent), var(--fs-accent));
+		color: var(--fs-on-accent);
+		border-color: var(--fs-accent) var(--fs-accent) var(--fs-accent);
 	}
 
 	.alert-message.notice, .cbi-tooltip.notice {
-		background: linear-gradient(var(--background-color-low), var(--background-color-medium));
-		border-color: var(--background-color-high) var(--background-color-high) var(--background-color-low);
-		color: var(--text-color-high);
+		background: linear-gradient(var(--fs-panel2), var(--fs-panel2));
+		border-color: var(--fs-panel) var(--fs-panel) var(--fs-panel2);
+		color: var(--fs-text);
 	}
 
 	.alert-message.warning {
-		background: linear-gradient(var(--warn-color-low), var(--warn-color-medium));
+		background: linear-gradient(var(--fs-warn), var(--fs-warn));
 		/* border-color is theme/35-alerts.css's — absorbed */
-		color: var(--on-warn-color);
+		color: var(--fs-on-warn);
 	}
 
 	.modal.alert-message {
-		color: var(--text-color-high);
+		color: var(--fs-text);
 	}
 }

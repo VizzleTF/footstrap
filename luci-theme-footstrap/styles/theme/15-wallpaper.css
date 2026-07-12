@@ -2,7 +2,7 @@
 	/* Wallpaper axis (data-wallpaper="cats"): a doodle-cats pattern behind the
 	 * content area, composable with any palette (it was the old "Rvht" palette,
 	 * which only ever added this wallpaper on the default colours). Cards sit on
-	 * --panel and cover it, so the cats show through the gaps; the pattern fill is
+	 * --fs-panel and cover it, so the cats show through the gaps; the pattern fill is
 	 * a low-opacity neutral grey, so it reads on both light and dark backgrounds. */
 	/* Paint the wallpaper on exactly ONE element per layout, or two overlapping
 	 * semi-transparent tile layers double up and misalign. Sidebar: .fs-main (there
@@ -15,9 +15,9 @@
 		background-size: 440px auto;
 	}
 	/* Top-nav: the content wrapper (.fs-main-top / #maincontent) carries an opaque
-	 * --bg fill that would hide the wrapper's single tiling layer — make it
+	 * --fs-bg fill that would hide the wrapper's single tiling layer — make it
 	 * transparent so the one .fs-topwrap layer shows through the whole content area
-	 * (its own --bg is the same colour, so only the cats appear). This is what keeps
+	 * (its own --fs-bg is the same colour, so only the cats appear). This is what keeps
 	 * a single, seam-free tiling instead of a second misaligned layer. */
 	:root[data-wallpaper="cats"] .fs-main-top { background-color: transparent; }
 	/* let the cats show through the footer too */
@@ -36,6 +36,6 @@
 
 	/* No wash/tint layer behind #view: the wallpaper is meant to show through the
 	 * gaps between the cards at full strength. Every block that carries text (cards,
-	 * tab strips, alerts, tables) paints an opaque --panel of its own, so nothing
+	 * tab strips, alerts, tables) paints an opaque --fs-panel of its own, so nothing
 	 * has to be dimmed globally. */
 }

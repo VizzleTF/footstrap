@@ -2,7 +2,7 @@
 	/* ==================================================================
 	 * WCAG 2.2 SC 1.4.1 (Use of Color, level A): inside a block of text, a link may
 	 * not be identified by COLOUR ALONE. It needs either a non-colour cue, or 3:1
-	 * contrast against the surrounding text — and --accent against --text measures
+	 * contrast against the surrounding text — and --fs-accent against --fs-text measures
 	 * 1.4:1 in dark mode, nowhere near it. So: underline links that sit in prose.
 	 *
 	 * Scoped to prose deliberately. Navigation links, buttons, pills and table cells
@@ -18,14 +18,14 @@
 	/* fade-in used by overview poll */
 	.fade-in { animation: fs-fade .3s ease; }
 	@keyframes fs-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-	.cbi-title-ref { color: var(--accent); }
-	.close { color: var(--text); text-shadow: none; opacity: .6; }
+	.cbi-title-ref { color: var(--fs-accent); }
+	.close { color: var(--fs-text); text-shadow: none; opacity: .6; }
 	.close:hover { opacity: 1; }
-	.ifacebox { background: var(--panel); border-color: var(--border); }
-	.ifacebox .ifacebox-head { background: var(--panel2); color: var(--text); }
-	.ifacebadge { background: var(--panel2); border-color: var(--border); }
-	.ifacebadge-active { border-color: var(--accent); }
-	.zonebadge-empty { border-color: var(--border); color: var(--dim); }
+	.ifacebox { background: var(--fs-panel); border-color: var(--fs-border); }
+	.ifacebox .ifacebox-head { background: var(--fs-panel2); color: var(--fs-text); }
+	.ifacebadge { background: var(--fs-panel2); border-color: var(--fs-border); }
+	.ifacebadge-active { border-color: var(--fs-accent); }
+	.zonebadge-empty { border-color: var(--fs-border); color: var(--fs-dim); }
 
 	/* ==================================================================
 	 * Responsive CBI section tables (firewall zones, port forwards, DHCP …).
@@ -60,7 +60,7 @@
 	/* pager (pagination row: « prev · text · » next) — generic component, not page
 	 * scoped: any .pager gets an inline centred row with compact square buttons. */
 	.pager.center { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 10px; padding: 14px 0; }
-	.pager .text { flex: 0 0 auto; font-size: 12px; color: var(--dim); }
+	.pager .text { flex: 0 0 auto; font-size: 12px; color: var(--fs-dim); }
 
 	/* ==================================================================
 	 * FOOTSTRAP: page heading + tab strips as cards
@@ -70,43 +70,43 @@
 	 * instead of loose text floating over the (possibly patterned) bg.
 	 *   - the map/view heading and its description form ONE card;
 	 *   - every tab strip (page tabs, mode tabs, CBI form tabs) is a pill
-	 *     row; the active pill is an --accent fill (design mock).
+	 *     row; the active pill is an --fs-accent fill (design mock).
 	 * Appended last: source order beats the earlier tab/heading rules.
 	 * ================================================================== */
 
 	/* ---------- heading card (h2 + .cbi-map-descr) ---------- */
 	.cbi-map > h2,
 	#view > h2 {
-		background: var(--panel);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
 		margin: 0 0 16px;
 		padding: 16px;
 		font-size: 18px;
 		font-weight: 700;
-		color: var(--text);
+		color: var(--fs-text);
 	}
 	/* a heading followed by a description: split the card across the two
 	 * siblings (no wrapper element exists to hold them both) */
 	.cbi-map > h2:has(+ .cbi-map-descr),
 	#view > h2:has(+ .cbi-map-descr) {
 		border-bottom: 0;
-		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+		border-radius: var(--fs-radius-lg) var(--fs-radius-lg) 0 0;
 		padding-bottom: 4px;
 		margin-bottom: 0;
 		box-shadow: none;
 	}
 	.cbi-map > h2 + .cbi-map-descr,
 	#view > h2 + .cbi-map-descr {
-		background: var(--panel);
-		border: 1px solid var(--border);
+		background: var(--fs-panel);
+		border: 1px solid var(--fs-border);
 		border-top: 0;
-		border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+		border-radius: 0 0 var(--fs-radius-lg) var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
 		margin: 0 0 16px;
 		padding: 0 16px 16px;
-		color: var(--dim);
+		color: var(--fs-dim);
 		font-size: 13px;
 		line-height: 1.5;
 	}

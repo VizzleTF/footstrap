@@ -3,16 +3,39 @@
 	 * --------- */
 
 	/* ============================================================
-	 * Footstrap design tokens, plus a bridge onto the --*-color-*
-	 * variable names LuCI themes have exposed for years.
+	 * Footstrap design tokens. TWO TIERS, and the split is load-bearing:
+	 *
+	 *   PRIVATE  --fs-*        every rule in this theme reads ONLY these.
+	 *   EXPORT   --*-color-*   the variable names LuCI themes have exposed for
+	 *                          years. Defined FROM the private tier, read by
+	 *                          NOBODY inside footstrap. They exist purely so a
+	 *                          third-party luci-app-* stylesheet keeps working
+	 *                          and keeps following the palette and dark mode.
+	 *
+	 * Why the theme's own tokens carry a prefix at all: :root is a SHARED global
+	 * scope. Every luci-app-* on the router drops its CSS into the same document,
+	 * unlayered — and an unlayered declaration outranks every cascade layer. One
+	 * app writing `:root { --accent: … }` or `--radius`, `--text`, `--border`
+	 * (ordinary names anyone would pick) used to repaint this entire theme, and
+	 * silently. Under --fs-* it cannot: we do not read those names any more.
+	 *
+	 * And that is exactly why base must NOT read the export tier either. It used
+	 * to, 158 times — so an app declaring `--text-color-high` (a LuCI CONVENTION,
+	 * i.e. likelier than --accent, not less) repainted every base widget. Now the
+	 * bridge only points outward. An app may set any of these names it likes: it
+	 * restyles its own widgets, which is what it meant to do, and the theme's own
+	 * chrome does not move.
+	 *
+	 * The bridge is a pure alias — three --border-color-* names all meant
+	 * --fs-border — so nothing was lost by having base read the token directly;
+	 * the file even got smaller (the export names are longer). audit.py fails on
+	 * any read of an export name inside styles/, so the coupling cannot grow back.
+	 *
 	 * Design system: docs/08-design-sistema.md
 	 * Light = default (:root); dark = :root[data-darkmode="true"].
-	 * The bridge is not internal bookkeeping: styles/base and any
-	 * third-party luci-app-* stylesheet address those names, so a
-	 * palette change here repaints both without touching a rule.
 	 * ============================================================ */
 	:root {
-		/* Palette COLOURS (--bg…--danger, --accent-*, --track) are
+		/* Palette COLOURS (--fs-bg…--fs-danger, --fs-accent-*, --fs-track) are
 		 * NOT here — they live in 03-palettes.css as swappable variant blocks, one
 		 * per colourway × light/dark, and the default (footstrap) also fills bare
 		 * :root there. Add a colourway = add a block there, nothing to touch here.
@@ -20,11 +43,11 @@
 		 * z-index scale, and the var()-based bridge (auto-follows whatever palette is
 		 * active). The component bridges this used to mention are GONE — the HSL triples
 		 * first, then the RGB ones — see the note at the bottom of the file. */
-		/* The inks that go ON the accent/good/warn/danger fills (--on-accent &c.) are
+		/* The inks that go ON the accent/good/warn/danger fills (--fs-on-accent &c.) are
 		 * NOT here either: they are palette- AND mode-dependent, so they live in the
 		 * palette blocks next to the fills they have to be legible against. A dark
 		 * palette has light fills and therefore needs a DARK ink — the single global
-		 * `--on-accent: #fff` that used to sit here put white text on every fill in
+		 * `--fs-on-accent: #fff` that used to sit here put white text on every fill in
 		 * every mode and failed WCAG AA on seven of the eight dark-palette fills. */
 		--fs-shadow: 0 1px 3px rgba(15,23,37,.08);
 		/* drop shadow for floating pop surfaces (menus, dropdown lists, the
@@ -32,9 +55,9 @@
 		 * .28/.30/.32 literals that had drifted apart across those components. */
 		--fs-shadow-pop: 0 12px 34px rgba(0,0,0,.30);
 		/* focus ring shared by every field (input, select, cbi-dropdown, range,
-		 * dynlist add-item). The invalid state swaps the colour for --danger and
+		 * dynlist add-item). The invalid state swaps the colour for --fs-danger and
 		 * keeps its own literal. */
-		--fs-focus-ring: 0 0 0 3px var(--accent-soft);
+		--fs-focus-ring: 0 0 0 3px var(--fs-accent-soft);
 		--fs-content-max: 1280px;	/* content column cap (desktop breakpoint ≥1200) */
 		/* content column side padding. Coupled uses: .fs-content padding, the
 		 * top-nav bar's centering calc, and the notification width calc — one
@@ -43,7 +66,7 @@
 		/* translucent blurred bar surface — the top-nav bar and the sidebar's
 		 * phone bar are the same component in two markups; one token keeps their
 		 * glass tint identical. */
-		--fs-bar-bg: color-mix(in srgb, var(--panel) 88%, transparent);
+		--fs-bar-bg: color-mix(in srgb, var(--fs-panel) 88%, transparent);
 		/* height of that bar. Also the scroll-margin every anchor target needs in order
 		 * to clear it (base/10-reset.css) — the two must not drift, or an in-page jump
 		 * lands under the sticky bar. */
@@ -57,13 +80,13 @@
 		 * chip 8. Every border-radius in theme/pages references one of these — grep
 		 * shows no bare px radius left except 0 / 50% / hairline insets. */
 		--fs-radius-base: 12px;
-		--radius-lg: var(--fs-radius-base);				/* cards, panels, modals, table frame, popovers */
-		--radius: calc(var(--fs-radius-base) * 5 / 6);	/* controls: inputs, buttons, dropdowns, tabs (10 @12) */
-		--radius-sm: calc(var(--fs-radius-base) * 2 / 3);	/* chips, code, small insets, rail toggle (8 @12) */
-		--radius-pill: 999px;					/* pills, toggles, badges — always round */
+		--fs-radius-lg: var(--fs-radius-base);				/* cards, panels, modals, table frame, popovers */
+		--fs-radius: calc(var(--fs-radius-base) * 5 / 6);	/* controls: inputs, buttons, dropdowns, tabs (10 @12) */
+		--fs-radius-sm: calc(var(--fs-radius-base) * 2 / 3);	/* chips, code, small insets, rail toggle (8 @12) */
+		--fs-radius-pill: 999px;					/* pills, toggles, badges — always round */
 
-		--font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-		--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+		--fs-font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+		--fs-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
 		/* ---- Stacking scale ----------------------------------------------------
 		 * Every z-index in the theme comes from here. There used to be nine bare
@@ -82,50 +105,58 @@
 		 *   tooltip   .cbi-tooltip — must read over modal content
 		 *   dropdown  an OPEN .cbi-dropdown list — over everything, including inside a modal
 		 * ------------------------------------------------------------------------ */
-		--z-raise: 2;
-		--z-sticky: 50;
-		--z-flyout: 70;
-		--z-header: 800;
-		--z-popover: 850;
-		--z-overlay: 900;
-		--z-tooltip: 1000;
-		--z-dropdown: 1100;
+		--fs-z-raise: 2;
+		--fs-z-sticky: 50;
+		--fs-z-flyout: 70;
+		--fs-z-header: 800;
+		--fs-z-popover: 850;
+		--fs-z-overlay: 900;
+		--fs-z-tooltip: 1000;
+		--fs-z-dropdown: 1100;
 
-		/* bridge: the conventional LuCI theme vars -> footstrap tokens */
-		--background-color-high: var(--panel);
-		--background-color-medium: var(--panel2);
-		--background-color-low: var(--panel2);
+		/* ---- EXPORT TIER ------------------------------------------------------
+		 * The conventional LuCI theme variable names, defined from the private
+		 * tokens above. OUTBOUND ONLY: nothing in styles/ may read these, and
+		 * audit.py fails the build if something starts to. They are here so a
+		 * third-party luci-app-* stylesheet that addresses them (the convention
+		 * every LuCI theme has exposed for years) still gets our palette and
+		 * follows dark mode — and so that an app overwriting one restyles its own
+		 * widgets without touching this theme's chrome.
+		 * ---------------------------------------------------------------------- */
+		--background-color-high: var(--fs-panel);
+		--background-color-medium: var(--fs-panel2);
+		--background-color-low: var(--fs-panel2);
 
-		--text-color-highest: var(--text);
-		--text-color-high: var(--text);
-		--text-color-medium: var(--dim);
-		--text-color-low: var(--dim);
+		--text-color-highest: var(--fs-text);
+		--text-color-high: var(--fs-text);
+		--text-color-medium: var(--fs-dim);
+		--text-color-low: var(--fs-dim);
 
-		--border-color-high: var(--border);
-		--border-color-medium: var(--border);
-		--border-color-low: var(--border);
+		--border-color-high: var(--fs-border);
+		--border-color-medium: var(--fs-border);
+		--border-color-low: var(--fs-border);
 
-		--primary-color-high: var(--accent);
-		--primary-color-medium: var(--accent);
-		--primary-color-low: var(--accent);
-		--on-primary-color: var(--on-accent);
+		--primary-color-high: var(--fs-accent);
+		--primary-color-medium: var(--fs-accent);
+		--primary-color-low: var(--fs-accent);
+		--on-primary-color: var(--fs-on-accent);
 
-		--error-color-high: var(--danger);
-		--error-color-medium: var(--danger);
-		--error-color-low: var(--danger);
-		--on-error-color: var(--on-danger);
+		--error-color-high: var(--fs-danger);
+		--error-color-medium: var(--fs-danger);
+		--error-color-low: var(--fs-danger);
+		--on-error-color: var(--fs-on-danger);
 
-		--success-color-high: var(--good);
-		--success-color-medium: var(--good);
-		--success-color-low: var(--good);
-		--on-success-color: var(--on-good);
+		--success-color-high: var(--fs-good);
+		--success-color-medium: var(--fs-good);
+		--success-color-low: var(--fs-good);
+		--on-success-color: var(--fs-on-good);
 
-		--warn-color-high: var(--warn);
-		--warn-color-medium: var(--warn);
-		--warn-color-low: var(--warn);
-		--on-warn-color: var(--on-warn);
+		--warn-color-high: var(--fs-warn);
+		--warn-color-medium: var(--fs-warn);
+		--warn-color-low: var(--fs-warn);
+		--on-warn-color: var(--fs-on-warn);
 
-		--disabled-opacity: .6;
+		--fs-disabled-opacity: .6;
 		color-scheme: light;
 	}
 
@@ -133,7 +164,7 @@
 		/* palette colours are in 03-palettes.css; only mode-level, palette-independent
 		 * tokens live here */
 		--fs-shadow: 0 1px 2px rgba(0,0,0,.4);
-		--disabled-opacity: .45;
+		--fs-disabled-opacity: .45;
 		color-scheme: dark;
 	}
 
@@ -150,7 +181,7 @@
 	 *
 	 * Every rule that read them now takes color-mix() over the palette token itself:
 	 *   rgba(var(--error-color-high-rgb), .3)
-	 *   -> color-mix(in srgb, var(--error-color-high) 30%, transparent)   [identical output]
+	 *   -> color-mix(in srgb, var(--fs-danger) 30%, transparent)   [identical output]
 	 * so a tint of X is derived FROM X and a palette is the single source of truth.
 	 * Do not reintroduce a component copy of a colour in any notation.
 	 *
