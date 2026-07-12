@@ -220,6 +220,14 @@ Via OpenWrt SDK: symlink the package into `feeds/luci/themes/`, `./scripts/feeds
 
 Conventional Commits, message in English. **Never commit without an explicit instruction.** No co-author / "Generated with" / any AI attribution trailers.
 
+**Two remotes, and both are the full repository — push to BOTH.** `origin`
+(`github.com:VizzleTF/luci-theme-footstrap`) is what `main` tracks and what the CHANGELOG's
+compare links and the self-update's release API point at; `forgejo`
+(`git.vaka.work/vizzle/openwrt_footstrap`) is a complete mirror, not a partial or archival
+one — same branch, same history, fast-forward. A push that lands on only one of them leaves
+the other silently behind, which is exactly how `forgejo` ended up 11 commits stale. Tags go
+to both as well, when a tag is asked for.
+
 ## CHANGELOG — every commit writes into `## [Unreleased]`, and a tag renames it
 
 Two files, kept in lockstep: **`CHANGELOG.md`** (English) and **`CHANGELOG_ru.md`** (Russian
