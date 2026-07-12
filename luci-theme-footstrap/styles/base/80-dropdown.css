@@ -120,16 +120,14 @@
 		height: 20px;
 	}
 
+	/* The open list's paint AND its sizing (surface, border, shadow, the min/max/width
+	 * that let it grow past the closed control) are theme/65-dropdown.css's — absorbed.
+	 * What stays is what makes it a popup at all: it is taken out of flow here, and the
+	 * stacking order comes from the --z-* scale, which theme never restates. */
 	.cbi-dropdown[open] > ul.dropdown {
 		display: block;
-		background: var(--background-color-low);
-		border: 1px solid var(--border-color-high);
-		box-shadow: 0 0 4px var(--border-color-high);
 		position: absolute;
 		z-index: var(--z-dropdown);
-		max-width: none;
-		min-width: 100%;
-		width: auto;
 		transition: max-height .125s ease-in;
 		overflow-y: auto;
 	}

@@ -2,8 +2,7 @@
 	/* Widgets with no generic equivalent: CBI section tables, the interface and
 	 * zone badges, the uci change dialog, spinners, the file browser, and a few
 	 * per-page rules luci-mod-* depends on. */
-	.hidden { display: none }
-
+	/* .hidden is theme/60-inputs.css's (with the .cbi-* variants LuCI actually emits) */
 	form.inline { display: inline; margin-bottom: 0; }
 
 	#modemenu li:last-child span.divider { display: none }
@@ -136,7 +135,7 @@
 		/* .06: the bold text inside is --error-color-high ON a tint of ITSELF, so the tint
 		 * eats its own contrast — .12 measured 4.4:1. At 6% every palette clears 4.5
 		 * (4.87 / 4.95 / 5.28 / 6.09). */
-		background-color: rgba(var(--error-color-high-rgb), .06);
+		background-color: color-mix(in srgb, var(--error-color-high) 6%, transparent);
 		padding: 5px;
 		margin-bottom: 18px;
 	}
@@ -144,7 +143,7 @@
 	.cbi-section-error ul { margin: 0 0 0 20px; }
 
 	.cbi-section-error ul li {
-		color: var(--error-color-high);
+		/* colour is theme/35-alerts.css's — absorbed */
 		font-weight: bold;
 	}
 
@@ -153,7 +152,7 @@
 		margin: 0 10px;
 		text-align: center;
 		white-space: nowrap;
-		background: linear-gradient(var(--background-color-high), var(--background-color-medium));
+		/* the gradient surface was theme/45-misc.css's flat one — absorbed */
 		border-radius: 4px;
 		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--dim) 5%, transparent);
 		display: inline-flex;
@@ -166,8 +165,7 @@
 		border-bottom: 1px solid var(--border-color-high);
 		border-radius: 3px 3px 0 0;
 		padding: 2px;
-		background: var(--background-color-medium);
-		color: var(--text-color-high);
+		/* surface + ink are theme/45-misc.css's — absorbed */
 	}
 
 	.ifacebox .ifacebox-head[style] {
@@ -213,7 +211,7 @@
 		flex-direction: row;
 		border: 1px solid var(--border-color-high);
 		padding: 2px;
-		background: linear-gradient(var(--background-color-high), var(--background-color-high) 25%, var(--background-color-medium));
+		/* the gradient surface is theme/45-misc.css's flat one — absorbed */
 		color: var(--text-color-high);
 		text-shadow: 0 1px 1px color-mix(in srgb, var(--panel) 75%, transparent);
 		border-radius: 4px;
@@ -229,7 +227,7 @@
 	}
 
 	.ifacebadge-active {
-		border-color: var(--text-color-high);
+		/* border-color is theme/45-misc.css's (the accent) — absorbed */
 		font-weight: bold;
 	}
 
@@ -317,8 +315,8 @@
 	}
 
 	.zonebadge-empty {
+		/* dashed WIDTH/STYLE only — theme/45-misc.css owns the colour and the ink */
 		border: 1px dashed var(--border-color-high);
-		color: var(--text-color-medium);
 		font-style: italic;
 		font-size: smaller;
 	}
@@ -376,21 +374,21 @@
 	}
 
 	.uci-dialog div > ins {
-		background-color: rgba(var(--success-color-high-rgb), .3);
-		border-color: rgba(var(--success-color-high-rgb), .6);
+		background-color: color-mix(in srgb, var(--success-color-high) 30%, transparent);
+		border-color: color-mix(in srgb, var(--success-color-high) 60%, transparent);
 	}
 
 	.uci-dialog div > del {
-		background-color: rgba(var(--error-color-high-rgb), .3);
-		border-color: rgba(var(--error-color-high-rgb), .6);
+		background-color: color-mix(in srgb, var(--error-color-high) 30%, transparent);
+		border-color: color-mix(in srgb, var(--error-color-high) 60%, transparent);
 	}
 
 	.uci-dialog var > ins {
-		background-color: rgba(var(--success-color-high-rgb), .3);
+		background-color: color-mix(in srgb, var(--success-color-high) 30%, transparent);
 	}
 
 	.uci-dialog var > del {
-		background-color: rgba(var(--error-color-high-rgb), .3);
+		background-color: color-mix(in srgb, var(--error-color-high) 30%, transparent);
 	}
 
 	.uci-change-list > var > * {
@@ -510,8 +508,8 @@
 	.cbi-filebrowser {
 		min-width: 210px;
 		max-width: 100%;
+		/* border WIDTH/STYLE only, and the radius is theme/60-inputs.css's — absorbed */
 		border: 1px solid var(--border-color-high);
-		border-radius: 3px;
 		display: flex;
 		flex-direction: column;
 		opacity: 0;
@@ -549,10 +547,7 @@
 		flex-direction: row;
 	}
 
-	.cbi-filebrowser > ul > li:hover {
-		background: var(--background-color-low);
-	}
-
+	/* the row hover surface is theme/60-inputs.css's — absorbed */
 	.cbi-filebrowser > ul > li > div:first-child {
 		flex: 10;
 		overflow: hidden;
@@ -606,10 +601,11 @@
 		100% { opacity: 0; }
 	}
 
-	.fade-in {
-		animation: fade-in .4s ease;
-	}
-
+	/* .fade-in's animation is theme/45-misc.css's (fs-fade) — absorbed. The @keyframes
+	 * above STAYS even though nothing here rides it any more: `fade-in` is an upstream
+	 * animation NAME, and a third-party luci-app-* may well write `animation: fade-in`
+	 * against it. Deleting a keyframes block is the same kind of un-theming as deleting
+	 * a selector nothing on this router happens to render. */
 	.fade-out {
 		animation: fade-out .4s ease;
 	}
@@ -643,12 +639,17 @@
 		max-width: none;
 	}
 
+	/* The realtime graphs (Status → Load/Traffic) inject resources/svg/*.svg into a
+	 * div with an inline style. The <svg> root itself carries no inline style, so the
+	 * background needs no flag. Its grid <line>s DO (`style="stroke:black"` in the
+	 * .svg file) — black hairlines are invisible on a dark panel, and only an author
+	 * !important beats an inline declaration. */
 	#view div[style] > svg {
-		background-color: var(--background-color-high)!important;
+		background-color: var(--background-color-high);
 	}
 
 	#view div[style] > svg line[style] {
-		stroke: var(--text-color-highest)!important;
+		stroke: var(--text-color-highest) !important;
 	}
 
 	/* The overview Hide/Show toggle pills are owned by theme/35-alerts.css

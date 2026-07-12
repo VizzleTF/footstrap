@@ -1,12 +1,17 @@
 @layer page {
 	/* Why this file still carries !important, when the rest of the theme dropped it:
 	 * these declarations do not fight another stylesheet — they fight inline
-	 * `style=` attributes written by luci-mod-status. 29_ports.js builds each Port
-	 * status tile as
+	 * `style=` attributes written by luci-mod-status. 29_ports.js builds the grid,
+	 * each Port tile and the tiles' inner rows as
+	 *     E('div', {style: 'display:grid;grid-template-columns:repeat(auto-fit, minmax(70px, 1fr));margin-bottom:1em'})
 	 *     E('div', {class: 'ifacebox', style: 'margin:.25em;min-width:70px;max-width:100px'})
+	 *     E('div', {class: 'ifacebox-head cbi-tooltip-container', style: 'display:flex'})   <- the zone bar we hide
+	 *     E('div', {class: 'cbi-tooltip-container', style: 'text-align:left;font-size:80%'}) <- the traffic figures
 	 * and an inline declaration outranks every author rule in every layer. Only an
-	 * author !important beats it. Same for the meter rows and the hidden zone bar.
-	 * A cascade layer cannot replace these flags; do not remove them.
+	 * author !important beats it. Every flag below is checked against the property
+	 * the inline style actually sets — a flag that fights only another footstrap
+	 * rule is redundant (this layer is `page`, the last one) and was removed.
+	 * A cascade layer cannot replace the flags that remain; do not remove them.
 	 * ================================================================== */
 
 	/* The generic `.cbi-title .label` pill look lives in theme/35-alerts.css (one
@@ -98,7 +103,7 @@
 	 * more rows; few ports cap at 200 instead of one stretching across the whole
 	 * width. Works for a 2-port device or a 24-port switch alike. */
 	body[data-page='admin-status-overview'] div:has(> .ifacebox img[src*="/port_"]) {
-		gap: 10px !important;
+		gap: 10px;								/* no inline gap — no flag needed */
 		grid-template-columns: repeat(auto-fit, minmax(126px, 200px)) !important;
 		margin-bottom: 0 !important;
 	}
@@ -157,18 +162,25 @@
 		font-size: 11px !important;
 		color: var(--dim);
 		line-height: 1.5;
-		text-align: right;
 		white-space: nowrap;
+	}
+	/* The right-align is the ONE declaration on this element that has to fight the
+	 * container's own inline `text-align:left` (29_ports.js), so it needs the flag —
+	 * and it is scoped to the wide card, because on the narrow one we WANT the inline
+	 * left and an unscoped flag would have overridden it (that is why this sits in its
+	 * own query rather than in the rule above: the @container block below is a plain
+	 * declaration and could never win back against an important one). */
+	@container fs-port not (max-width: 158px) {
+		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container { text-align: right !important; }
 	}
 	/* Too narrow for speed + traffic side by side (card ≤158): stack them full-width
 	 * so the nowrap traffic figures never spill past the card edge. Container query
 	 * on the card itself (container-type above) — keys off the CARD width, so it
-	 * follows the auto-fit shrink, not the viewport. */
+	 * follows the auto-fit shrink, not the viewport. The .cbi-tooltip-container needs
+	 * no rule here: its inline text-align is already left. */
 	@container fs-port (max-width: 158px) {
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2),
-		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { grid-column: 1 / -1; }
-		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4),
-		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container { text-align: left; }
+		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { grid-column: 1 / -1; text-align: left; }
 	}
 
 	/* ---------------------------------------------------------------------------
@@ -190,9 +202,11 @@
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar):last-child { padding-bottom: 2px; }
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar) .td {
 		display: block;
-		width: auto !important;
-		padding: 0 !important;
-		border: 0 !important;
+		/* `width: auto` overrides base's `.td[width="33%"]` (the includes set a
+		 * width ATTRIBUTE, not an inline style) — a later layer beats it, no flag. */
+		width: auto;
+		padding: 0;
+		border: 0;
 	}
 	/* label — row 1, left.
 	 * The key/value rule above puts `white-space: nowrap` on a first column; a
@@ -207,7 +221,7 @@
 		min-width: 0;
 		white-space: normal;
 		overflow-wrap: anywhere;
-		padding-right: min(200px, 50%) !important;
+		padding-right: min(200px, 50%);
 		font-size: 12px; font-weight: 600; color: var(--text);
 	}
 	/* bar cell — spans full width on row 2 */
@@ -216,11 +230,13 @@
 	}
 
 	/* System / Memory / Storage cards: drop the per-row border-bottom dividers
-	 * (the generic .cbi-section .table .td rule adds them) — cleaner card look. */
+	 * (the generic .cbi-section .table .td rule in theme/30-tables.css adds them) —
+	 * cleaner card look. That rule is in `theme`, this file is `page`, so the later
+	 * layer wins on its own; these carried an !important that fought nothing. */
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .td,
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .th,
-	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-value { border-bottom: 0 !important; }
+	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-value { border-bottom: 0; }
 	/* System key/value table draws its dividers on .tr (not .td) — remove those too */
-	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .tr { border-bottom: 0 !important; }
+	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .tr { border-bottom: 0; }
 
 }

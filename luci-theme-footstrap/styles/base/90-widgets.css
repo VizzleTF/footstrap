@@ -2,10 +2,8 @@
 	/* Small widgets a view or a third-party luci-app-* can drop anywhere: tooltip,
 	 * progress bar, firewall zone badge, button states, close cross, alert box and
 	 * the .label pill. */
-	.cbi-title-ref {
-		color: var(--primary-color-high);
-	}
-
+	/* .cbi-title-ref's colour is theme/45-misc.css's — absorbed. The arrow stays: it
+	 * is content, not paint, and nothing in theme emits it. */
 	.cbi-title-ref::after {
 		content: "➙";
 	}
@@ -46,7 +44,7 @@
 		margin: -1.6em 0 0 -5px;
 		border-radius: 3px;
 		pointer-events: none;
-		box-shadow: 0 0 3px var(--border-color-high);
+		/* box-shadow is theme/30-tables.css's — absorbed */
 	}
 
 	.zonebadge .cbi-tooltip > * {
@@ -77,10 +75,8 @@
 		flex-direction: column;
 	}
 
-	.btn.active, .btn:active {
-		box-shadow: inset 0 2px 4px color-mix(in srgb, var(--border) 25%, transparent), 0 1px 2px rgba(0, 0, 0, 0.05);
-	}
-
+	/* The pressed-state shadow (.btn.active/.btn:active) is theme/55-buttons.css's —
+	 * absorbed, and it was a byte-for-byte copy of what theme already declared. */
 	.btn.disabled,
 	.btn[disabled] {
 		cursor: default;
@@ -88,44 +84,32 @@
 		box-shadow: none;
 	}
 
+	/* .btn.large's size/radius and ALL of .btn.small are theme/55-buttons.css's —
+	 * absorbed. line-height stays: theme sizes the button by padding and never sets it. */
 	.btn.large {
-		font-size: 15px;
 		line-height: normal;
-		padding: 9px 14px 9px;
-		border-radius: 6px;
 	}
 
-	.btn.small {
-		padding: 7px 9px 7px;
-		font-size: 11px;
-	}
-
+	/* The cross's colour, shadow and both opacities are theme/70-modal.css's —
+	 * absorbed. What is left is geometry, which theme does not touch. */
 	.close {
 		float: right;
-		color: var(--text-color-high);
 		font-size: 20px;
 		font-weight: bold;
 		line-height: 13.5px;
-		text-shadow: 0 1px 0 var(--background-color-high);
-		opacity: 0.25;
 	}
 
 	.close:hover {
-		color: var(--text-color-high);
 		text-decoration: none;
-		opacity: 0.4;
 	}
 
+	/* The alert's whole paint — surface, ink, border, radius, shadow, padding — is
+	 * theme/35-alerts.css's; it was still described here as a warm gradient over the
+	 * legacy bridge, which has not been what an alert looks like for a long time.
+	 * Absorbed. Geometry and the white-space reset stay: theme sets neither. */
 	.alert-message {
 		position: relative;
-		padding: .5em .5em .25em .5em;
 		margin-bottom: .5em;
-		color: var(--on-warn-color);
-		background: linear-gradient(var(--warn-color-low), var(--warn-color-medium));
-		border: 1px solid var(--border-color-low);
-		border-color: var(--border-color-high) var(--border-color-high) var(--border-color-low);
-		border-radius: 4px;
-		box-shadow: 1px 1px 1px var(--border-color-low);
 		white-space: unset;
 	}
 

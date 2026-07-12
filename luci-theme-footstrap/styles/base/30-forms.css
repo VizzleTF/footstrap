@@ -102,19 +102,16 @@
 
 	.cbi-dynlist {
 		height: auto;
-		min-height: 30px;
+		/* min-height is theme/60-inputs.css's — absorbed */
 		display: inline-flex;
 		flex-direction: column;
 	}
 
+	/* The item's paint (surface, ink, border, radius, shadow) is theme/60-inputs.css's —
+	 * absorbed. Everything left here is the drag-and-drop machinery UIDynamicList needs. */
 	.cbi-dynlist > .item {
 		margin-bottom: 4px;
-		box-shadow: 0 0 2px var(--border-color-high);
-		background: var(--background-color-high);
 		padding: 6px 2em 6px 4px;
-		border: 1px solid var(--border-color-high);
-		border-radius: 3px;
-		color: var(--text-color-high);
 		position: relative;
 		pointer-events: auto; /* needed for drag-and-drop in UIDynamicList */
 		overflow: hidden;
@@ -133,9 +130,8 @@
 		bottom: -1px;
 		padding: 0 6px;
 		border: 1px solid var(--border-color-high);
-		border-radius: 0 3px 3px 0;
+		/* radius + the × ink are theme/60-inputs.css's — absorbed */
 		font-weight: bold;
-		color: var(--error-color-high);
 		pointer-events: auto;
 	}
 
@@ -170,7 +166,7 @@
 
 	.cbi-dynlist > .add-item > input,
 	.cbi-dynlist > .add-item > button {
-		flex: 1 1 auto;
+		/* flex is theme/60-inputs.css's — absorbed */
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -254,10 +250,8 @@
 
 	select[multiple] {
 		height: inherit;
-		/* was var(--on-accent), i.e. the ink meant for accent FILLS — which resolved
-		 * to plain white and painted a white listbox in dark mode. This is a surface,
-		 * so it takes a surface token. */
-		background-color: var(--background-color-high);
+		/* the surface is theme/60-inputs.css's — absorbed (and the reason it must be a
+		 * SURFACE token, not an ink one, is recorded there) */
 	}
 
 	input[type="checkbox"],
@@ -368,15 +362,24 @@
 		/* used to be the hardcoded bootstrap blue `82, 168, 236` — a literal that
 		 * ignored palette and dark mode wherever the theme layer doesn't override
 		 * the focus look (.cbi-select.focus, raw checkbox/radio ::before,
-		 * button:focus). Follows --accent now; the invalid state below still swaps
-		 * in --error-color-high-rgb. */
-		--focus-color-rgb: var(--accent-rgb, 82, 168, 236);
+		 * button:focus). Follows --accent now; the invalid state below swaps the
+		 * whole colour out by re-declaring this one custom property.
+		 *
+		 * A COLOUR, not an `r, g, b` triple. The triple was the last survivor of the
+		 * component bridge the HSL one was torn out for, and it fails the same way:
+		 * `rgba(var(--x), .6)` with --x missing is invalid at computed-value time, so
+		 * the glow vanishes silently and audit.py cannot see it (the var IS defined —
+		 * just somewhere else). color-mix() takes the palette token directly, so the
+		 * palette is the single source of truth and there is nothing to keep in sync.
+		 * color-mix(in srgb, C p%, transparent) === rgba(C, p/100): the mix is
+		 * premultiplied, so the RGB does not move, only the alpha. */
+		--focus-color: var(--accent);
 
 		outline: 0;
-		border-color: rgba(var(--focus-color-rgb), 0.8);
+		border-color: color-mix(in srgb, var(--focus-color) 80%, transparent);
 		/* the inset half used to be color-mix(--border 1%), i.e. alpha 0.01 — it drew
 		 * literally nothing and was transitioned on every widget. Just the focus glow. */
-		box-shadow: 0 0 8px rgba(var(--focus-color-rgb), 0.6);
+		box-shadow: 0 0 8px color-mix(in srgb, var(--focus-color) 60%, transparent);
 		text-decoration: none;
 	}
 
@@ -384,7 +387,7 @@
 	.cbi-select.cbi-input-invalid,
 	input[type="checkbox"].cbi-input-invalid:focus::before,
 	input[type="radio"].cbi-input-invalid:focus::before {
-		--focus-color-rgb: var(--error-color-high-rgb);
+		--focus-color: var(--error-color-high);
 	}
 
 	input[disabled],

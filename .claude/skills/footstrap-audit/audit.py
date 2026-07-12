@@ -18,6 +18,20 @@ Reports:
      one is dead. Reported only for `theme` and `page`, where it always means a
      rule was appended instead of edited; `base` re-states properties on purpose
      (the reset sets `input { font-size: 100% }`, forms then sets 13px).
+  6. Base declarations dead across layers: `theme`/`page` beat `base` regardless
+     of specificity, so a base declaration whose selector is repainted on the
+     same property by a later layer can never apply. Split in two, and the split
+     is the whole point:
+       SAFE    — EVERY selector of the base rule is repainted. Coverage is
+                 unchanged by deleting it (the same selectors stay themed, just
+                 from a later layer), so it is a dead byte. Counted as a finding.
+       BACKLOG — only SOME selectors of the group are repainted. NOT a finding
+                 and NOT deletable: base groups upstream widgets together
+                 (`.cbi-button-positive, .cbi-button-fieldadd, .cbi-button-add`),
+                 and dropping the rule would un-theme the members no shipped LuCI
+                 page happens to render — which third-party luci-app-* packages
+                 DO render. This is the absorption backlog, printed so it can be
+                 absorbed into `theme` deliberately, never deleted.
 
 No dependencies. Run from repo root:
   .claude/tooling/preview-venv/bin/python .claude/skills/footstrap-audit/audit.py
@@ -41,8 +55,11 @@ BASE = STYLES / "base"
 BANG_OK = ({"90-responsive.css", "20-overview.css", "95-a11y-media.css"}
            | {p.name for p in (STYLES / "base").glob("*.css")})
 
-# vars set at runtime (inline style / other files) — legitimately "undefined" here
-VAR_ALLOW = {"--zone-color-rgb", "--focus-color-rgb", "--on-color"}
+# vars set at runtime (inline style / other files) — legitimately "undefined" here.
+# --zone-color-rgb is written inline on a zone badge by luci-mod-network; it is the
+# only --*-rgb left, and the only one that may exist: the theme's own RGB bridge
+# (--accent-rgb &c.) was removed for the same reason the HSL one was — see 02-tokens.
+VAR_ALLOW = {"--zone-color-rgb", "--on-color"}
 
 def _strip_for_balance(s):
     """Drop comments and quoted strings before counting brackets.
@@ -90,6 +107,11 @@ def balance(path):
     return bad
 
 def audit_vars(s):
+    # comments first. A comment is free to quote the code it is explaining — the note
+    # in 02-tokens.css spells out the removed bridge as `rgba(var(--x), .3)` — and
+    # scanning it raw turns that prose into a phantom "used but not defined" var. Same
+    # lesson as the bracket counter below: never lex a language out of its comments.
+    s = _strip_comments(s)
     defined = set(re.findall(r"(--[a-zA-Z0-9-]+)\s*:", s))
     used = set(re.findall(r"var\((--[a-zA-Z0-9-]+)", s))
     return sorted(u for u in (used - defined) if u not in VAR_ALLOW)
@@ -199,6 +221,61 @@ def audit_shadowed(css):
                 seen[k] = (p.name, line, val, nsel)
     return out
 
+def _norm(sel):
+    return re.sub(r"\s+", " ", sel).strip()
+
+def audit_base_dead(css):
+    """Base declarations that a later layer repaints on an identical selector.
+
+    Layer order (tokens, base, theme, page) means theme/page win over base no
+    matter the specificity, so such a base declaration is unreachable. Whether it
+    can be DELETED depends on the rest of its selector group, which is the only
+    thing this check really exists to get right:
+
+      .cbi-button-positive,      <- theme repaints this one
+      .cbi-button-fieldadd,      <- theme does not
+      .cbi-button-add,
+      .cbi-button-save { border-color: var(--on-color) }
+
+    The declaration is dead for `.cbi-button-positive` and fully alive for the
+    other three. Deleting the rule because it "looks overridden" un-themes three
+    upstream widgets that no shipped LuCI page renders but a third-party
+    luci-app-* does — the coverage contract in CLAUDE.md. So only a group where
+    EVERY member is repainted is reported as removable; the mixed ones are
+    printed as backlog to absorb, and absorbing means writing the uncovered
+    selectors into `theme` first, not deleting them here.
+    """
+    later = {}
+    for p in css:
+        for line, layer, ctx, sel, decls, nsel in rules(p):
+            if layer in ("theme", "page"):
+                later.setdefault((ctx, _norm(sel)), set()).update(pr for pr, _ in decls)
+
+    groups = {}   # one entry per base RULE, keyed by where it starts
+    for p in css:
+        for line, layer, ctx, sel, decls, nsel in rules(p):
+            if layer != "base":
+                continue
+            g = groups.setdefault((p.name, line, ctx), {"sels": [], "decls": decls})
+            g["sels"].append(_norm(sel))
+
+    safe, backlog = [], []
+    for (name, line, ctx), g in sorted(groups.items()):
+        for prop, val in g["decls"]:
+            # an important declaration in base OUTRANKS one in theme (the flag
+            # inverts layer order), so it is not dead at all
+            if "!important" in val:
+                continue
+            cov = [prop in later.get((ctx, s), ()) for s in g["sels"]]
+            if not cov:
+                continue
+            if all(cov):
+                safe.append((name, line, ", ".join(g["sels"]), prop, val))
+            elif any(cov):
+                backlog.append((name, line, prop,
+                                [s for s, c in zip(g["sels"], cov) if not c]))
+    return safe, backlog
+
 def sources():
     """Every source file, in the order build-css.sh concatenates them."""
     return (sorted(STYLES.glob("*.css"))
@@ -267,6 +344,27 @@ def main():
             print(f"  {sel} {{ {prop} }}  {pf}:{pl} {pv!r} -> {f}:{ln} {v!r}{same}")
         print(f"  ({len(sh)} dead) -> edit the first rule instead of appending a second")
         print("     (group-then-refine, e.g. a shared input rule narrowed for textarea, is not reported)")
+
+    print("\n== base declarations a later layer repaints on the SAME selector ==")
+    safe, backlog = audit_base_dead(css)
+    findings += len(safe)
+    if not safe:
+        print("  none removable")
+    else:
+        for name, ln, sel, prop, val in safe:
+            print(f"  {name}:{ln:<4} {sel[:56]}  {{ {prop}: {val[:34]} }}")
+        print(f"  ({len(safe)} dead) -> every selector of the rule is repainted by theme/page,")
+        print("     so deleting these changes no rendered style (prove it with cssdiff.py)")
+    if backlog:
+        print(f"\n  -- absorption backlog: {len(backlog)} declaration(s) where only PART of the")
+        print("     selector group is repainted. DO NOT DELETE: the members listed below are")
+        print("     styled by base alone, and third-party luci-app-* packages emit them.")
+        seen_sel = {}
+        for name, ln, prop, missing in backlog:
+            for m in missing:
+                seen_sel.setdefault(m, set()).add(prop)
+        for m, props in sorted(seen_sel.items()):
+            print(f"       {m[:58]:58} base-only for: {', '.join(sorted(props))[:40]}")
 
     print("\n== hardcoded colors in styles/base (candidates to tokenize) ==")
     hc = [(p.name, ln, sel, txt)

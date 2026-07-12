@@ -100,7 +100,7 @@
 
 	.alert-message.warning {
 		background: linear-gradient(var(--warn-color-low), var(--warn-color-medium));
-		border-color: var(--warn-color-high) var(--warn-color-high) var(--warn-color-low);
+		/* border-color is theme/35-alerts.css's — absorbed */
 		color: var(--on-warn-color);
 	}
 

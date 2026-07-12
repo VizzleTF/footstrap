@@ -9,9 +9,9 @@
 	 *
 	 * TO ADD A COLOURWAY "sunset":
 	 *   1. Copy the two hicontrast blocks below, rename data-palette to "sunset".
-	 *   2. Set the 14 colours + accent-soft + the two *-rgb (raw RGB of --danger /
-	 *      --good, for the alert tints that need an alpha). accent-lt is light-only;
-	 *      dark inherits it.
+	 *   2. Set the 14 colours. accent-lt is light-only; dark inherits it. Nothing
+	 *      else: --accent-soft and every tint/shadow in the theme are color-mix()
+	 *      over these, so they follow automatically.
 	 *   3. Set the four INKS (--on-accent/--on-good/--on-warn/--on-danger) — see below.
 	 *   4. Register the name: applyPalette()/currentPalette() in
 	 *      menu-footstrap-common.js and the head.ut pre-paint switch.
@@ -28,9 +28,13 @@
 	 * be dark. Whatever ink a new colourway picks, check it against all four of its
 	 * own fills: every pair below clears 4.5:1.
 	 *
-	 * Shadows/hairlines everywhere are color-mix() over these same tokens (the
-	 * old HSL-component bridge is gone), so a new colourway's shadow tints follow
-	 * its colours automatically — nothing extra to define.
+	 * Shadows/hairlines/tints everywhere are color-mix() over these same tokens, so
+	 * a new colourway's tints follow its colours automatically — nothing extra to
+	 * define. Both component bridges are gone: the HSL triples first, then the RGB
+	 * ones (--accent-rgb, --error-color-high-rgb, --success-color-high-rgb), which
+	 * were the same trap — a second, hand-kept copy of a colour that goes stale in
+	 * silence, and whose absence kills the declaration with no error anywhere.
+	 * A tint of X is mixed FROM X. Do not reintroduce a component copy of a colour.
 	 *
 	 * Default: footstrap fills bare :root (no data-palette attr), so a no-JS load
 	 * still has colours. hicontrast is opt-in via data-palette="hicontrast".
@@ -55,15 +59,15 @@
 		--faint: #68727e;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23656d76" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
 		--accent: #0969da;
-		--accent-rgb: 9, 105, 218;	/* raw RGB of --accent, for base's focus glow (rgba(var(),a)) */
 		--accent-lt: #54aeff;	/* logo-gradient light end (both modes) */
-		--accent-soft: rgba(9,105,218,.10);
+		/* a tint OF --accent, so mix it FROM --accent. It used to restate the accent's
+		 * RGB as a literal, which goes stale silently the moment the accent is
+		 * recoloured — the same failure the *-rgb triples had, and why they are gone. */
+		--accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
 		--track: #eaeef2;
 		--good: #197c36;
 		--warn: #946300;
 		--danger: #cf222e;
-		--error-color-high-rgb: 207, 34, 46;
-		--success-color-high-rgb: 25, 124, 54;
 		/* ink on the fills above — white clears 4.5:1 on all four (5.19/5.08/4.87/5.36) */
 		--on-accent: #fff;
 		--on-good: #fff;
@@ -82,14 +86,11 @@
 		--faint: #959ca5;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238c99a8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
 		--accent: #569df5;
-		--accent-rgb: 86, 157, 245;
-		--accent-soft: rgba(86,157,245,.15);
+		--accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
 		--track: #373e47;
 		--good: #5aad5d;
 		--warn: #c79128;
 		--danger: #ea7a74;
-		--error-color-high-rgb: 234, 122, 116;
-		--success-color-high-rgb: 90, 173, 93;
 		/* dark ink: these fills are light. White measured 2.85/2.85/2.83/3.70 — a fail
 		 * on all four. #10151c (a shade of --bg) gives 6.43/6.44/6.47/4.95. */
 		--on-accent: #10151c;
@@ -118,15 +119,12 @@
 		--faint: #69727f;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%235b6675" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
 		--accent: #0b6fbd;
-		--accent-rgb: 11, 111, 189;
 		--accent-lt: #7ec8ff;	/* logo-gradient light end (both modes) */
-		--accent-soft: rgba(11,111,189,.10);
+		--accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
 		--track: #eaeef4;
 		--good: #0f7a52;
 		--warn: #8a5a00;
 		--danger: #c02b2b;
-		--error-color-high-rgb: 192, 43, 43;
-		--success-color-high-rgb: 15, 122, 82;
 		/* white on the fills above: 5.22/5.35/5.93/5.80 */
 		--on-accent: #fff;
 		--on-good: #fff;
@@ -144,14 +142,11 @@
 		--faint: #8f9aad;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%239ba6b8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
 		--accent: #3ba7ff;
-		--accent-rgb: 59, 167, 255;
-		--accent-soft: rgba(59,167,255,.14);
+		--accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
 		--track: #1b2230;
 		--good: #43e0a0;
 		--warn: #ffb454;
 		--danger: #ff6b6b;
-		--error-color-high-rgb: 255, 107, 107;
-		--success-color-high-rgb: 67, 224, 160;
 		/* dark ink: white on these neons was 2.57/1.69/1.76/2.78 — --good with a white
 		 * label was effectively unreadable. #0a0d13 (= --bg) gives 7.55/11.49/11.03/7.01. */
 		--on-accent: #0a0d13;

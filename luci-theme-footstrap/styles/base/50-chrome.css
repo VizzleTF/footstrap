@@ -43,7 +43,7 @@
 
 	.cbi-tab-disabled[data-errors]::after {
 		content: attr(data-errors);
-		background: var(--error-color-high);
+		/* the badge fill is theme/40-tabs.css's — absorbed */
 		color: var(--on-error-color);
 		height: 16px;
 		min-width: 16px;

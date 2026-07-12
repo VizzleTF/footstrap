@@ -78,12 +78,15 @@
 		margin-right: .4em;
 	}
 
+	/* The FILLS are theme/55-buttons.css's — absorbed. What stays is --on-color, which
+	 * is not paint: the spinner glyph (.spinning::before in 95-luci.css) masks itself
+	 * with it, so it must keep tracking the button's variant. border-color stays too —
+	 * theme does not set it on .cbi-page-actions .cbi-button-apply. */
 	.btn.primary,
 	.cbi-button-action.important,
 	.cbi-page-actions .cbi-button-apply,
 	.cbi-section-actions .cbi-button-edit {
 		--on-color: var(--on-primary-color);
-		background: linear-gradient(var(--primary-color-medium), var(--primary-color-low));
 		border-color: var(--primary-color-high);
 	}
 
@@ -96,14 +99,13 @@
 
 	.cbi-button-negative.important {
 		--on-color: var(--on-error-color);
-		background: linear-gradient(var(--error-color-medium), var(--error-color-low));
-		border-color: var(--error-color-high);
+		/* fill + border are theme/55-buttons.css's — absorbed */
 	}
 
 	.cbi-page-actions .cbi-button-apply + .cbi-button-save,
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
 		--on-color: var(--success-color-high);
 		border-color: var(--on-color);
-		background: var(--default-btn-background);
+		/* the neutral fill is theme/55-buttons.css's — absorbed */
 	}
 }

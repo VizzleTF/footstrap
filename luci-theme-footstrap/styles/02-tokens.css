@@ -12,14 +12,14 @@
 	 * palette change here repaints both without touching a rule.
 	 * ============================================================ */
 	:root {
-		/* Palette COLOURS (--bg…--danger, --accent-*, --track, the *-rgb bridge) are
+		/* Palette COLOURS (--bg…--danger, --accent-*, --track) are
 		 * NOT here — they live in 03-palettes.css as swappable variant blocks, one
 		 * per colourway × light/dark, and the default (footstrap) also fills bare
 		 * :root there. Add a colourway = add a block there, nothing to touch here.
 		 * Everything in this file is palette-INDEPENDENT: shadows, radius, fonts, the
 		 * z-index scale, and the var()-based bridge (auto-follows whatever palette is
-		 * active). The HSL-component bridge this used to mention is GONE — see the note
-		 * at the bottom of the file. */
+		 * active). The component bridges this used to mention are GONE — the HSL triples
+		 * first, then the RGB ones — see the note at the bottom of the file. */
 		/* The inks that go ON the accent/good/warn/danger fills (--on-accent &c.) are
 		 * NOT here either: they are palette- AND mode-dependent, so they live in the
 		 * palette blocks next to the fills they have to be legible against. A dark
@@ -137,8 +137,23 @@
 		color-scheme: dark;
 	}
 
-	/* The HSL-component bridge (--*-hsl triples, --*-h/s/l parts, delta signs)
-	 * that used to sit here is GONE: every base rule that read it was converted
-	 * to color-mix() over the real palette tokens, so shadows/hairlines follow
-	 * a palette exactly instead of a parallel hand-synced HSL copy. */
+	/* BOTH component bridges that used to sit here are GONE, and for one reason.
+	 *
+	 * First the HSL one (--*-hsl triples, --*-h/s/l parts, delta signs). Then the RGB
+	 * one that outlived it — --accent-rgb, --error-color-high-rgb,
+	 * --success-color-high-rgb, read as `rgba(var(--x), .3)` — which was the same
+	 * mistake wearing a different notation: a second, hand-maintained copy of a colour
+	 * that already exists as a token. It goes stale when the palette is recoloured and
+	 * says nothing, and if the triple ever goes missing the declaration is invalid at
+	 * computed-value time, so the tint just disappears with no error anywhere (audit.py
+	 * cannot catch that either — the var IS defined, only elsewhere).
+	 *
+	 * Every rule that read them now takes color-mix() over the palette token itself:
+	 *   rgba(var(--error-color-high-rgb), .3)
+	 *   -> color-mix(in srgb, var(--error-color-high) 30%, transparent)   [identical output]
+	 * so a tint of X is derived FROM X and a palette is the single source of truth.
+	 * Do not reintroduce a component copy of a colour in any notation.
+	 *
+	 * The one surviving --*-rgb is --zone-color-rgb, and it is not ours: luci-mod-network
+	 * writes it inline on a zone badge (see base/95-luci.css). */
 }

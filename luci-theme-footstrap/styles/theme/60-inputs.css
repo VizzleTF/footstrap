@@ -32,6 +32,9 @@
 	.cbi-value-description { font-family: var(--font-sans); }
 
 	/* --- live components that bypassed the theme --- */
+	/* A SURFACE token, not an ink one. This once read var(--on-accent) — the ink meant
+	 * to go ON an accent fill — which resolves to plain white and painted a white
+	 * listbox in dark mode. */
 	select[multiple] { background-color: var(--panel2); color: var(--text); }
 	.td.cbi-value-field var { color: var(--accent); }
 	.td.cbi-value-field var.cbi-tooltip-container { border-bottom-color: var(--accent); }

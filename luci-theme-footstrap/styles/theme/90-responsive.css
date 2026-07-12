@@ -87,13 +87,15 @@
 	 * the widget and size it to its content. Harmless on desktop, where ui.js sets
 	 * only top/bottom/max-height and left/right were already at their initial value.
 	 *
-	 * These flags fight an *inline style*, not another stylesheet rule — no layer
-	 * can replace them. Keep them. */
+	 * Only left/right carry the flag: those are the two properties ui.js writes
+	 * inline, and an inline declaration is the one thing no layer can outrank. The
+	 * widths never appear in an inline style (ui.js only ever CLEARS `ul.style.width`
+	 * on close), so they win from this layer on their own. */
 	.cbi-dropdown[open] > ul.dropdown {
 		left: 0 !important;
 		right: auto !important;
-		min-width: 100% !important;
-		width: max-content !important;
-		max-width: min(92vw, 420px) !important;
+		min-width: 100%;
+		width: max-content;
+		max-width: min(92vw, 420px);
 	}
 }
