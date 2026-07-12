@@ -10,6 +10,7 @@
 	import { getuid, getspnam } from 'luci.core';
 
 	const boardinfo = ubus.call('system', 'board') ?? {};
+	const empty_password = (getuid() == 0 && getspnam('root')?.pwdp === '');
 
 	http.prepare_content('text/html; charset=UTF-8');
 -%}
@@ -21,12 +22,7 @@
 		<div class="fs-shell">
 			<aside class="fs-sidebar">
 				<div class="fs-brandrow">
-					<a class="fs-brand" href="{{ dispatcher.build_url() }}">
-						<span class="fs-logo">
-							<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="#fff" stroke="none"/></svg>
-						</span>
-						<span class="fs-wordmark">{{ striptags(boardinfo.hostname ?? 'OpenWrt') }}</span>
-					</a>
+					{% include('themes/footstrap/partials/brand', { boardinfo }) %}
 					<button type="button" class="fs-railtoggle" id="fs-rail-toggle" aria-label="{{ _('Collapse menu') }}" title="{{ _('Collapse menu') }}">
 						<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
 					</button>
@@ -42,47 +38,11 @@
 
 				<div class="fs-spacer"></div>
 
-				<button type="button" class="fs-themerow" id="fs-appearance" title="{{ _('Appearance') }}">
-					<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
-					<span class="fs-label">{{ _('Appearance') }}</span>
-				</button>
-
-				{% if (dispatcher.lookup("admin/logout")): %}
-				<a class="fs-logout" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ _('Logout') }}">
-					<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 12H3m0 0 3-3m-3 3 3 3"/></svg>
-					<span class="fs-label">{{ _('Logout') }}</span>
-				</a>
-				{% endif %}
+				{% include('themes/footstrap/partials/appearance', { with_label: true }) %}
+				{% include('themes/footstrap/partials/logout', { with_label: true }) %}
 			</aside>
 
 			<main class="fs-main" id="maincontent">
 				<div class="fs-content">
-					{% if (getuid() == 0 && getspnam('root')?.pwdp === ''): %}
-						<div class="alert-message warning">
-							<h4>{{ _('No password set!') }}</h4>
-							<p>{{ _('There is no password set on this router. Please configure a root password to protect the web interface.') }}</p>
-							{% if (dispatcher.lookup("admin/system/admin")): %}
-							  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/admin") }}">{{ _('Go to password configuration...') }}</a></div>
-							{% endif %}
-						</div>
-					{% endif %}
-
-					{% if (boardinfo.rootfs_type == "initramfs"): %}
-						<div class="alert-message warning">
-							<h4>{{ _('System running in recovery (initramfs) mode.') }}</h4>
-							<p>{{ _('No changes to settings will be stored and are lost after rebooting. This mode should only be used to install a firmware upgrade') }}</p>
-							{% if (dispatcher.lookup("admin/system/flash")): %}
-							  <div class="right"><a class="btn" href="{{ dispatcher.build_url("admin/system/flash") }}">{{ _('Go to firmware upgrade...') }}</a></div>
-							{% endif %}
-						</div>
-					{% endif %}
-
-					<noscript>
-						<div class="alert-message warning">
-							<h4>{{ _('JavaScript required!') }}</h4>
-							<p>{{ _('You must enable JavaScript in your browser or LuCI will not work properly.') }}</p>
-						</div>
-					</noscript>
-
-					<div id="tabmenu" style="display:none"></div>
+					{% include('themes/footstrap/partials/notices', { boardinfo, empty_password }) %}
 		{% endif %}

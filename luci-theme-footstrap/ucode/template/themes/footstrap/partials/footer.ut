@@ -1,0 +1,32 @@
+{#
+ Shared footer body for both footstrap layouts. Included as
+ include('themes/footstrap/partials/footer', { menu_module }) — menu_module is
+ the layout's client menu renderer ('menu-footstrap' / 'menu-footstrap-top').
+ The two copies were identical apart from that name and had every reason to
+ drift; this is the single source now. The wrapper being closed is .fs-shell
+ (sidebar) or .fs-topwrap (top-nav) — same depth in both templates.
+ Licensed to the public under the Apache License 2.0.
+-#}
+		{% if (!blank_page): %}
+				</div>{# /.fs-content #}
+
+				<footer class="fs-footer">
+					<span>
+						Powered by
+						<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">
+							{{ version.luciname }} ({{ version.luciversion }})</a>
+						/
+						<a href="{{ entityencode(version.disturl ?? '#', true) }}" target="_blank" rel="noreferrer">
+							{{ version.distname }} {{ version.distversion }} ({{ version.distrevision }})</a>
+						{% if (lua_active): %}
+							/ {{ _('Lua compatibility mode active') }}
+						{% endif %}
+					</span>
+				</footer>
+			</main>{# /.fs-main #}
+		</div>{# /.fs-shell or /.fs-topwrap #}
+		<script>L.require('{{ menu_module }}')</script>
+		<script>L.require('fs-select')</script>
+		{% endif %}
+	</body>
+</html>

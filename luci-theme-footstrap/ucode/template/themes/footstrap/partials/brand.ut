@@ -1,0 +1,13 @@
+{#
+ Shared brand block (logo + hostname wordmark) for both layouts. Included as
+ include('themes/footstrap/partials/brand', { boardinfo }). The two copies in
+ the headers were byte-identical — one source now; the look lives in
+ styles/theme/10-chrome.css.
+ Licensed to the public under the Apache License 2.0.
+-#}
+<a class="fs-brand" href="{{ dispatcher.build_url() }}">
+	<span class="fs-logo">
+		<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="#fff" stroke="none"/></svg>
+	</span>
+	<span class="fs-wordmark">{{ striptags(boardinfo.hostname ?? 'OpenWrt') }}</span>
+</a>

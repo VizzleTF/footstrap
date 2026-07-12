@@ -1,0 +1,18 @@
+{#
+ Shared logout link for both layouts (guarded on the node being dispatchable).
+ Included as include('themes/footstrap/partials/logout', { with_label }) —
+ with_label: the sidebar's footer row (.fs-logout); without it the top-nav's
+ phone-only square icon button (.fs-top-logout, visibility in 50-topnav.css).
+ Same door+arrow glyph either way.
+ Licensed to the public under the Apache License 2.0.
+-#}
+{% if (dispatcher.lookup("admin/logout")): %}
+{% if (with_label): %}
+<a class="fs-logout" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ _('Logout') }}">
+{% else %}
+<a class="fs-top-logout" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ _('Logout') }}" aria-label="{{ _('Logout') }}">
+{% endif %}
+	<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 12H3m0 0 3-3m-3 3 3 3"/></svg>
+	{% if (with_label): %}<span class="fs-label">{{ _('Logout') }}</span>{% endif %}
+</a>
+{% endif %}

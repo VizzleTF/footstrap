@@ -1,0 +1,17 @@
+{#
+ Shared Appearance trigger (#fs-appearance) for both layouts. Included as
+ include('themes/footstrap/partials/appearance', { with_label }) —
+ with_label: the sidebar's full-width text row (.fs-themerow); without it the
+ top-nav's square icon button (.fs-appearance-btn). Same id, same icon; the
+ menu JS wires whichever is mounted. Looks live in styles/theme/10-chrome.css
+ (icon button) and 20-shell-sidebar.css (row).
+ Licensed to the public under the Apache License 2.0.
+-#}
+{% if (with_label): %}
+<button type="button" class="fs-themerow" id="fs-appearance" title="{{ _('Appearance') }}">
+{% else %}
+<button type="button" class="fs-appearance-btn" id="fs-appearance" aria-label="{{ _('Appearance') }}">
+{% endif %}
+	<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
+	{% if (with_label): %}<span class="fs-label">{{ _('Appearance') }}</span>{% endif %}
+</button>

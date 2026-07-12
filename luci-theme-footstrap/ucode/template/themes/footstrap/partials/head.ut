@@ -9,7 +9,7 @@
 <html lang="{{ dispatcher.lang }}">
 	<head>
 		<meta charset="utf-8">
-		<title>{{ striptags(`${boardinfo.hostname ?? '?'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`) }}</title>
+		<title>{{ striptags(`${boardinfo.hostname ?? 'OpenWrt'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`) }}</title>
 		<script>
 			/* footstrap: saved client preference wins, else follow OS. */
 			(function() {
@@ -18,20 +18,22 @@
 				try { saved = localStorage.getItem('fs-darkmode'); } catch (e) {}
 				var mq = window.matchMedia('(prefers-color-scheme: dark)');
 				function set(dark) { root.setAttribute('data-darkmode', dark ? 'true' : 'false'); }
-				if (saved === 'true' || saved === 'false') {
+				if (saved === 'true' || saved === 'false')
 					set(saved === 'true');
-				} else {
+				else
 					set(mq.matches);
-					mq.addEventListener('change', function(m) {
-						try { if (localStorage.getItem('fs-darkmode')) return; } catch (e) {}
-						set(m.matches);
-					});
-				}
+				/* ALWAYS registered (the handler re-checks storage): the user can
+				   switch to Auto in the Appearance popover after loading with a
+				   saved value, and OS theme flips must still track live then. */
+				mq.addEventListener('change', function(m) {
+					try { if (localStorage.getItem('fs-darkmode')) return; } catch (e) {}
+					set(m.matches);
+				});
 			})();
 		</script>
 		<script>
 			/* footstrap: apply saved color palette before paint (no flash).
-			   'github' = GitHub Primer variant; empty/absent = footstrap default. */
+			   empty/absent = footstrap default; 'hicontrast' is the opt-in variant. */
 			(function() {
 				try {
 					var root = document.querySelector(':root'),
