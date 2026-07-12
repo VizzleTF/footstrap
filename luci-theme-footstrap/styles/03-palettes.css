@@ -117,11 +117,35 @@
 		 * declaration down SILENTLY — the failure mode audit.py exists to catch. Its
 		 * value is irrelevant while data-tint is absent; nothing reads --fs-tint-c then. */
 		--fs-tint-h: 0;
-		/* HOW STRONG THE CUE IS — the only knob, and it is a chroma, not a percentage.
-		 * Dark takes a touch more because a dark surface swallows chroma. */
-		--fs-tint-c: .008;
+		/* HOW STRONG THE CUE IS — a chroma, not a percentage (see below), and it is a
+		 * function of the HUE, which is not a flourish: the canvas is not neutral. Every
+		 * palette's canvas is a blue-grey — measured, oklch hue 248–264 — and the dark one
+		 * carries chroma .0153 of it. So a flat chroma made the blue and violet end of the
+		 * wheel INVISIBLE: asking for blue at .011 painted the canvas *less* blue than the
+		 * palette already was. The cue has to be read against the untinted page, not
+		 * against grey, so it must out-chroma the canvas's own cast where the two agree,
+		 * and needs no help where they don't.
+		 *
+		 * Hence a floor plus two cos() terms, each peaking on one hue and gone 90° away:
+		 *
+		 *   +BOOST at 258°  the canvas's own hue. Without it blue and violet were the one
+		 *                   part of the wheel that did nothing.
+		 *   -DAMP  at 55°   red through yellow, the hues the eye reads as "warm" and picks
+		 *                   up first. At the shared floor they shouted while the cold half
+		 *                   whispered; a cue is only usable if every hue lands with about
+		 *                   the same weight. (Dark only — a light canvas has no such
+		 *                   problem, warm on near-white is the quietest thing on the wheel.)
+		 *
+		 * One expression per mode, no per-hue table to keep in sync with the palettes.
+		 * LIGHT runs a higher floor than dark, which sounds backwards until you look at the
+		 * surface: near-white has almost no chroma of its own (.0034), so the tint is the
+		 * only colour there and 8 thousandths of it simply did not read. */
+		--fs-tint-c: calc(.016 + .012 * max(0, cos((var(--fs-tint-h) - 258) * 1deg)));
 	}
-	:root[data-darkmode="true"] { --fs-tint-c: .011; }
+	:root[data-darkmode="true"] {
+		--fs-tint-c: calc(.011 + .016 * max(0, cos((var(--fs-tint-h) - 258) * 1deg))
+			- .004 * max(0, cos((var(--fs-tint-h) - 55) * 1deg)));
+	}
 	:root[data-tint] { --fs-bg: oklch(from var(--fs-bg-base) l var(--fs-tint-c) var(--fs-tint-h)); }
 
 	/* ---- footstrap — GitHub Primer (DEFAULT, also fills bare :root) ---- */
