@@ -115,6 +115,17 @@ strip_comments() {
 #     space; that last space stays.
 #   - spaces inside calc(): `calc(var(--x) * 5 / 6)` REQUIRES them around `*` and
 #     `/`, and `calc(100% - 8px)` around the `-`. Nothing here touches those.
+#   - the LINE BREAK inside a declaration, which is whitespace too. This scanner is
+#     line-oriented and used to join lines with nothing between them, so a
+#     declaration wrapped onto a second line came out with its lines glued:
+#         calc(.011 + .016 * max(0, cos(…))
+#             - .004 * max(0, cos(…)))
+#     minified to `…))- .004 * …`, and a calc() `-` with no space BEFORE it is a
+#     parse error. The declaration then dropped, --fs-tint-c went undefined, --fs-bg
+#     became invalid at computed-value time and the canvas fell back to white — with
+#     no error anywhere. (export-tier.mjs caught it: contrast collapsed to 1.5:1.)
+#     A newline between two tokens is now treated exactly like a space run: kept when
+#     it separates two tokens, dropped next to a delimiter, so nothing else moves.
 #   - `>` `+` `~` keep their spaces. Stripping them is safe but buys ~200 bytes.
 #   - anything inside a string. This scanner is string-aware, like the comment one:
 #     every data-URI in the tree is quoted and full of `:`, `;` and spaces.
@@ -122,19 +133,26 @@ strip_comments() {
 #     line number still means something.
 squeeze() {
 	awk '
-		BEGIN { q = ""; ban = 0 }
+		BEGIN { q = ""; ban = 0; lastc = "" }
 		{
 			line = $0
 			# The /*! ... */ licence banner is the one comment strip_comments keeps, and
 			# it must survive BYTE FOR BYTE: it is an Apache-2.0 attribution notice, not
 			# formatting. Squeezing it turned "Twitter, Inc" into "Twitter,Inc" and glued
 			# every line together. Copy it out untouched, newlines and all.
-			if (ban) { print line; if (index(line, "*/")) ban = 0; next }
+			if (ban) { print line; lastc = ""; if (index(line, "*/")) ban = 0; next }
 			if (substr(line, 1, 3) == "/*!") {
-				print line
+				print line; lastc = ""
 				if (!index(substr(line, 4), "*/")) ban = 1
 				next
 			}
+			# The line BREAK we are about to swallow is whitespace, and a declaration may
+			# be wrapped across it (a long calc(), a gradient). Feed it to the same
+			# whitespace-run logic below as a leading space: it survives only where a
+			# space would — between two tokens — and is dropped next to { } ; , : as
+			# before. lastc == "" means the output is already at the start of a line
+			# (after a `}` or the banner), where there is nothing to glue to.
+			if (lastc != "" && q == "") line = " " line
 			out = ""; i = 1; n = length(line)
 			while (i <= n) {
 				c = substr(line, i, 1)
@@ -147,7 +165,9 @@ squeeze() {
 				if (c == "\"" || c == "'"'"'") { q = c; out = out c; i++; continue }
 				if (c == " " || c == "\t") {         # collapse a run of whitespace to one space
 					while (i <= n && (substr(line, i, 1) == " " || substr(line, i, 1) == "\t")) i++
-					prev = (length(out) ? substr(out, length(out), 1) : "")
+					# prev is the last character EMITTED, which on a continuation line
+					# lives on the previous output line — hence lastc, not just `out`.
+					prev = (length(out) ? substr(out, length(out), 1) : lastc)
 					nxt  = (i <= n ? substr(line, i, 1) : "")
 					# drop it entirely next to a delimiter; otherwise it may be a combinator
 					if (prev == "" || prev == "{" || prev == "}" || prev == ";" || prev == "," || prev == ":")
@@ -160,8 +180,9 @@ squeeze() {
 				out = out c; i++
 			}
 			printf "%s", out
+			if (length(out)) lastc = substr(out, length(out), 1)
 			# a newline only after a closing brace — keeps rules on their own lines
-			if (length(out) && substr(out, length(out), 1) == "}") printf "\n"
+			if (lastc == "}") { printf "\n"; lastc = "" }
 		}
 		END { printf "\n" }
 	' "$1" | sed 's/;}/}/g'
