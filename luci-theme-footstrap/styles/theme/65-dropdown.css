@@ -27,7 +27,7 @@
 		color: var(--fs-on-accent);
 	}
 	.cbi-page-actions .cbi-dropdown.cbi-button-apply:hover,
-	.cbi-page-actions .cbi-dropdown > .cbi-button:hover { filter: brightness(1.08); }
+	.cbi-page-actions .cbi-dropdown > .cbi-button:hover { filter: var(--fs-hover-lift); }
 
 	/* ==================================================================
 	 * FOOTSTRAP cbi-dropdown widget — the JS select used across all forms.
@@ -40,7 +40,7 @@
 		border-radius: var(--fs-radius);
 		color: var(--fs-text);
 		min-height: 38px;
-		transition: border-color .15s, box-shadow .15s;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 	.cbi-dropdown:not(.btn):not(.cbi-button):hover { border-color: var(--fs-dim); }
 	.cbi-dropdown:focus, .cbi-dropdown[open] {

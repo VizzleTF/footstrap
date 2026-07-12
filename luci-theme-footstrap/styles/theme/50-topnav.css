@@ -26,8 +26,8 @@
 		 * with the headings and cards below */
 		padding: 0 max(20px, calc((100% - var(--fs-content-max)) / 2 + var(--fs-content-pad)));
 		background: var(--fs-bar-bg);
-		backdrop-filter: blur(10px);
-		-webkit-backdrop-filter: blur(10px);
+		backdrop-filter: var(--fs-blur);
+		-webkit-backdrop-filter: var(--fs-blur);
 		border-bottom: 1px solid var(--fs-border);
 	}
 	/* placement only — the look lives in 10-chrome.css */
@@ -55,8 +55,8 @@
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow-pop);
-		background: color-mix(in srgb, var(--fs-panel) 96%, transparent);
-		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+		background: var(--fs-glass);
+		backdrop-filter: var(--fs-blur); -webkit-backdrop-filter: var(--fs-blur);
 	}
 	/* invisible bridge over the gap so hover isn't lost moving into the menu */
 	.fs-topnav .fs-mainmenu .dropdown-menu::before {

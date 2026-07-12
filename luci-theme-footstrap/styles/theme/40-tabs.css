@@ -70,7 +70,7 @@
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--fs-dim);
-		transition: background .12s ease, color .12s ease;
+		transition: background var(--fs-dur), color var(--fs-dur);
 	}
 
 	#tabmenu ul.tabs > li > a:hover,

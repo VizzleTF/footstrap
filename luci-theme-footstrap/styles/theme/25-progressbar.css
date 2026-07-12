@@ -18,7 +18,7 @@
 		height: 100%;
 		background: var(--fs-accent);
 		border-radius: var(--fs-radius-pill);
-		transition: width .4s ease;
+		transition: width var(--fs-dur-fill);
 	}
 	.cbi-progressbar::after {
 		content: attr(title);

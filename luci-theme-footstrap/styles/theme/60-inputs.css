@@ -72,7 +72,7 @@
 		display: inline-block; position: relative; margin: 0;
 		width: 40px; height: 22px; border-radius: var(--fs-radius-pill);
 		background: var(--fs-track); border: 1px solid var(--fs-border);
-		cursor: pointer; transition: background .2s, border-color .2s; vertical-align: middle;
+		cursor: pointer; transition: background var(--fs-dur), border-color var(--fs-dur); vertical-align: middle;
 	}
 	.cbi-checkbox > label::after {
 		content: ""; position: absolute; top: 2px; left: 2px;
@@ -81,7 +81,7 @@
 		/* transform, not `left`: `left` is a layout property, so the knob re-laid out
 		 * the row on every frame of the slide. translateX is composited. */
 		transform: translateX(0);
-		transition: transform .22s cubic-bezier(.4,0,.2,1), background .2s;
+		transition: transform var(--fs-dur-move), background var(--fs-dur);
 	}
 	.cbi-checkbox > input[type="checkbox"]:checked + label { background: var(--fs-accent); border-color: transparent; }
 	.cbi-checkbox > input[type="checkbox"]:checked + label::after { transform: translateX(18px); background: var(--fs-on-accent); }
@@ -173,7 +173,7 @@
 		padding: 8px 11px;
 		min-height: 38px;
 		box-shadow: none;
-		transition: border-color .15s, box-shadow .15s;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 	textarea { min-height: 84px; line-height: 1.5; }
 
@@ -196,7 +196,7 @@
 	/* invalid state keeps the danger cue */
 	.cbi-input-invalid, input.cbi-input-invalid, textarea.cbi-input-invalid {
 		border-color: var(--fs-danger);
-		box-shadow: 0 0 0 3px color-mix(in srgb, var(--fs-danger) 18%, transparent);
+		box-shadow: var(--fs-focus-ring-invalid);
 	}
 
 	/* dynamic list: keep the layout from styles/base (inline-flex column of item
@@ -229,7 +229,7 @@
 		align-items: stretch;
 		background: var(--fs-panel2); border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius-sm); overflow: hidden;
-		transition: border-color .15s, box-shadow .15s;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 	.cbi-dynlist > .add-item:focus-within { border-color: var(--fs-accent); box-shadow: var(--fs-focus-ring); }
 	.cbi-dynlist > .add-item > input,
@@ -246,7 +246,7 @@
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius);
 		overflow: hidden;
-		transition: border-color .15s, box-shadow .15s;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 	.control-group:has(> .cbi-input-password) > .cbi-input-password {
 		border: 0; border-radius: 0;

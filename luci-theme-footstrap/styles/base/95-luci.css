@@ -154,7 +154,7 @@
 		white-space: nowrap;
 		/* the gradient surface was theme/45-misc.css's flat one — absorbed */
 		border-radius: 4px;
-		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fs-dim) 5%, transparent);
+		box-shadow: var(--fs-emboss);
 		display: inline-flex;
 		flex-direction: column;
 		line-height: 1.2em;
@@ -169,7 +169,7 @@
 	}
 
 	.ifacebox .ifacebox-head[style] {
-		text-shadow: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
+		text-shadow: var(--fs-text-emboss);
 	}
 
 	.ifacebox .ifacebox-head.active {
@@ -213,9 +213,9 @@
 		padding: 2px;
 		/* the gradient surface is theme/45-misc.css's flat one — absorbed */
 		color: var(--fs-text);
-		text-shadow: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
+		text-shadow: var(--fs-text-emboss);
 		border-radius: 4px;
-		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fs-panel) 5%, transparent);
+		box-shadow: var(--fs-emboss);
 		cursor: default;
 		line-height: 1.2em;
 	}
@@ -297,7 +297,7 @@
 		display: inline-block;
 		white-space: nowrap;
 		color: var(--fs-text);
-		text-shadow: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
+		text-shadow: var(--fs-text-emboss);
 	}
 
 	.zonebadge > em,
@@ -374,21 +374,21 @@
 	}
 
 	.uci-dialog div > ins {
-		background-color: color-mix(in srgb, var(--fs-good) 30%, transparent);
-		border-color: color-mix(in srgb, var(--fs-good) 60%, transparent);
+		background-color: var(--fs-good-fill);
+		border-color: var(--fs-good-line);
 	}
 
 	.uci-dialog div > del {
-		background-color: color-mix(in srgb, var(--fs-danger) 30%, transparent);
-		border-color: color-mix(in srgb, var(--fs-danger) 60%, transparent);
+		background-color: var(--fs-danger-fill);
+		border-color: var(--fs-danger-line);
 	}
 
 	.uci-dialog var > ins {
-		background-color: color-mix(in srgb, var(--fs-good) 30%, transparent);
+		background-color: var(--fs-good-fill);
 	}
 
 	.uci-dialog var > del {
-		background-color: color-mix(in srgb, var(--fs-danger) 30%, transparent);
+		background-color: var(--fs-danger-fill);
 	}
 
 	.uci-change-list > var > * {
@@ -502,7 +502,7 @@
 		opacity: 1;
 		height: auto;
 		overflow: visible;
-		transition: opacity .25s ease-in;
+		transition: opacity var(--fs-dur-fade);
 	}
 
 	.cbi-filebrowser {
@@ -521,7 +521,7 @@
 		opacity: 1;
 		height: auto;
 		overflow: visible;
-		transition: opacity .25s ease-in;
+		transition: opacity var(--fs-dur-fade);
 	}
 
 	.cbi-filebrowser > * {

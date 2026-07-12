@@ -42,7 +42,7 @@
 		border-radius: 1px;
 		transform: rotate(45deg);			/* default: chevron down (collapsed / Show) */
 		margin-top: -2px;					/* optical centring of the down chevron */
-		transition: transform .15s ease;
+		transition: transform var(--fs-dur-move);
 	}
 	.cbi-title .label[data-indicator='poll-status'][data-style='inactive']::after {
 		transform: rotate(-135deg);			/* expanded / Hide -> chevron up */

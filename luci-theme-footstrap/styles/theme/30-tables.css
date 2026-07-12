@@ -220,7 +220,7 @@
 		background: transparent;
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles) {
-		border-bottom: 1px solid var(--fs-border); transition: background .12s;
+		border-bottom: 1px solid var(--fs-border); transition: background var(--fs-dur);
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles):hover { background: var(--fs-panel2); }
 	.table .tr:last-child { border-bottom: 0; }

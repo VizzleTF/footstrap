@@ -128,7 +128,7 @@
 		display: block;
 		position: absolute;
 		z-index: var(--fs-z-dropdown);
-		transition: max-height .125s ease-in;
+		transition: max-height var(--fs-dur-move);
 		overflow-y: auto;
 	}
 

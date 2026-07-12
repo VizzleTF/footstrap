@@ -58,5 +58,5 @@
 		background: var(--fs-accent); color: var(--fs-on-accent);
 		border: 0; font-weight: 700; font-size: 14px;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn:hover { filter: brightness(1.06); }
+	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn:hover { filter: var(--fs-hover-lift); }
 }

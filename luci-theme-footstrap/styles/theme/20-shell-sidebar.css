@@ -47,10 +47,10 @@
 		width: 28px; height: 28px; padding: 0; flex: 0 0 auto;
 		border: 1px solid transparent; border-radius: var(--fs-radius-sm);
 		background: transparent; color: var(--fs-faint); cursor: pointer;
-		transition: color .15s, background .15s, border-color .15s;
+		transition: background var(--fs-dur), border-color var(--fs-dur), color var(--fs-dur);
 	}
 	.fs-railtoggle:hover { color: var(--fs-text); background: var(--fs-panel2); border-color: var(--fs-border); }
-	.fs-railtoggle .fs-ico { width: 16px; height: 16px; transition: transform .2s ease; }
+	.fs-railtoggle .fs-ico { width: 16px; height: 16px; transition: transform var(--fs-dur-move); }
 	/* the sidebar is a fixed-width column, so its wordmark must truncate */
 	.fs-wordmark { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -85,7 +85,7 @@
 	.fs-chevron {
 		width: 14px; height: 14px; flex: 0 0 auto;
 		color: var(--fs-dim);
-		transition: transform .2s ease;
+		transition: transform var(--fs-dur-move);
 	}
 	.fs-sidebar ul.nav > li.open > a .fs-chevron { transform: rotate(90deg); }
 	.fs-sidebar ul.nav > li.has-sub > a { cursor: pointer; }
@@ -152,18 +152,18 @@
 		font-size: 12px; font-weight: 600; cursor: pointer;
 		color: var(--fs-on-good); background: var(--fs-good);
 		border: 1px solid transparent; border-radius: var(--fs-radius);
-		transition: filter .15s;
+		transition: filter var(--fs-dur);
 	}
-	.fs-ap-update:hover { filter: brightness(1.08); }
+	.fs-ap-update:hover { filter: var(--fs-hover-lift); }
 	.fs-ap-update[hidden] { display: none; }
 	.fs-ap-badge {
 		font-size: 11px; font-weight: 600; white-space: nowrap; text-decoration: none;
 		color: var(--fs-good); padding: 2px 9px; border-radius: var(--fs-radius-pill);
 		background: var(--fs-panel2);	/* opaque: a self-tint eats its own contrast — see theme/35-alerts.css */
-		border: 1px solid color-mix(in srgb, var(--fs-good) 40%, transparent);
+		border: 1px solid var(--fs-good-line);
 	}
 	.fs-ap-badge[hidden] { display: none; }
-	.fs-ap-badge:hover { filter: brightness(1.12); }
+	.fs-ap-badge:hover { filter: var(--fs-hover-lift); }
 
 	/* update indicator: a green dot at the top-right of the Appearance trigger,
 	 * matching the overview port-status link dot. Added by menu-*-common.js when a
@@ -182,7 +182,7 @@
 		flex: 1; padding: 6px 8px; border: 0; border-radius: var(--fs-radius-sm);
 		background: transparent; color: var(--fs-dim);
 		font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2;
-		cursor: pointer; white-space: nowrap; transition: background .15s, color .15s;
+		cursor: pointer; white-space: nowrap; transition: background var(--fs-dur), color var(--fs-dur);
 	}
 	.fs-seg button:hover { color: var(--fs-text); }
 	.fs-seg button.active { background: var(--fs-accent); color: var(--fs-on-accent); }
@@ -275,7 +275,7 @@
 			background: var(--fs-panel); border: 1px solid var(--fs-border);
 			box-shadow: var(--fs-shadow-pop);
 			color: var(--fs-text); font-size: 13px; font-weight: 600; white-space: nowrap;
-			opacity: 0; pointer-events: none; transition: opacity .12s ease;
+			opacity: 0; pointer-events: none; transition: opacity var(--fs-dur);
 		}
 		:root[data-rail="true"] .fs-sidebar ul.nav > li:not(.has-sub) > a:hover::after { opacity: 1; }
 
@@ -371,8 +371,8 @@
 			flex-direction: row; flex-wrap: wrap; align-items: center;
 			gap: 10px; padding: 10px 16px;
 			background: var(--fs-bar-bg);
-			backdrop-filter: blur(10px);
-			-webkit-backdrop-filter: blur(10px);
+			backdrop-filter: var(--fs-blur);
+			-webkit-backdrop-filter: var(--fs-blur);
 			border-right: 0; border-bottom: 1px solid var(--fs-border);
 			/* the submenu popups anchor to this bar and must escape it */
 			overflow: visible;
@@ -407,8 +407,8 @@
 			position: absolute; left: 16px; right: auto; top: calc(100% + 8px); z-index: var(--fs-z-flyout);
 			width: max-content; min-width: 200px; max-width: calc(100vw - 32px);
 			margin: 0; padding: 7px;
-			background: color-mix(in srgb, var(--fs-panel) 96%, transparent);
-			backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+			background: var(--fs-glass);
+			backdrop-filter: var(--fs-blur); -webkit-backdrop-filter: var(--fs-blur);
 			border: 1px solid var(--fs-border);
 			border-radius: var(--fs-radius-lg); box-shadow: var(--fs-shadow-pop);
 		}

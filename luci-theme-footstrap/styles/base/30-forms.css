@@ -342,7 +342,7 @@
 	input, button, textarea, select {
 		/* border-COLOR, not `border`: the shorthand also animates border-width, so every
 		 * hover on any input or button ran a layout animation instead of a paint one. */
-		transition: border-color linear 0.2s, box-shadow linear 0.2s;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 
 	.item:hover::after,

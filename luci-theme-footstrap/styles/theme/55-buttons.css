@@ -80,7 +80,7 @@
 	 * specificity its `border-color: transparent` would otherwise erase Save's
 	 * outline on hover. */
 	.cbi-button-positive:hover, .cbi-button-action:hover, .cbi-button-apply:hover,
-	.cbi-button-save:hover, .cbi-button-negative:hover { filter: brightness(1.08); border-color: transparent; }
+	.cbi-button-save:hover, .cbi-button-negative:hover { filter: var(--fs-hover-lift); border-color: transparent; }
 	.cbi-button-reset, .cbi-button-link { background: transparent; border-color: var(--fs-border); color: var(--fs-dim); }
 
 	/* The .btn colour words. base/60-modal.css paints .btn.danger/.error/.success/
@@ -94,7 +94,7 @@
 	.btn.success { background: var(--fs-good); border-color: transparent; color: var(--fs-on-good); }
 	.btn.info { background: var(--fs-accent); border-color: transparent; color: var(--fs-on-accent); }
 	.btn.danger:hover, .btn.error:hover, .btn.success:hover, .btn.info:hover {
-		filter: brightness(1.08); border-color: transparent;
+		filter: var(--fs-hover-lift); border-color: transparent;
 	}
 
 	/* Size words. base/90-widgets.css gives .btn.large/.btn.small a font-size AND a
@@ -183,30 +183,30 @@
 
 	.td .cbi-button-action, .td .cbi-button-edit, .td .cbi-button-apply,
 	.cbi-section-actions .cbi-button-edit, .cbi-section-actions .cbi-button-action {
-		color: var(--fs-accent); border-color: color-mix(in srgb, var(--fs-accent) 40%, transparent); background: transparent;
+		color: var(--fs-accent); border-color: var(--fs-accent-line); background: transparent;
 	}
 	.td .cbi-button-action:hover, .td .cbi-button-edit:hover, .td .cbi-button-apply:hover,
 	.cbi-section-actions .cbi-button-action:hover {
 		background: var(--fs-accent-soft); color: var(--fs-accent);
-		border-color: color-mix(in srgb, var(--fs-accent) 55%, transparent);
+		border-color: var(--fs-accent-line-hi);
 	}
 	/* Enabled/positive toggle in a table cell (e.g. System -> Startup) rendered as
 	 * blue text on a green fill = unreadable. Green outline instead, matching the
 	 * red-outline negative button. */
 	.td .cbi-button-positive, .cbi-section-actions .cbi-button-positive {
-		color: var(--fs-good); border-color: color-mix(in srgb, var(--fs-good) 40%, transparent); background: transparent;
+		color: var(--fs-good); border-color: var(--fs-good-line); background: transparent;
 	}
 	.td .cbi-button-positive:hover, .cbi-section-actions .cbi-button-positive:hover {
-		background: color-mix(in srgb, var(--fs-good) 12%, transparent);
+		background: var(--fs-good-soft);
 	}
 	.td .cbi-button-negative, .td .cbi-button-remove,
 	.cbi-section-actions .cbi-button-remove, .cbi-section-actions .cbi-button-negative {
-		color: var(--fs-danger); border-color: color-mix(in srgb, var(--fs-danger) 40%, transparent); background: transparent;
+		color: var(--fs-danger); border-color: var(--fs-danger-line); background: transparent;
 	}
 	.td .cbi-button-negative:hover, .td .cbi-button-remove:hover,
 	.cbi-section-actions .cbi-button-negative:hover {
-		background: color-mix(in srgb, var(--fs-danger) 12%, transparent); color: var(--fs-danger);
-		border-color: color-mix(in srgb, var(--fs-danger) 55%, transparent);
+		background: var(--fs-danger-soft); color: var(--fs-danger);
+		border-color: var(--fs-danger-line-hi);
 	}
 
 	/* ==================================================================
@@ -228,7 +228,7 @@
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
 		background: transparent;
 		background-image: none;
-		border: 1px solid color-mix(in srgb, var(--fs-accent) 45%, transparent);
+		border: 1px solid var(--fs-accent-line);
 		color: var(--fs-accent);
 		--on-color: var(--fs-on-accent);
 		text-shadow: none;

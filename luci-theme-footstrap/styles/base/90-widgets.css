@@ -22,13 +22,13 @@
 		white-space: pre;
 		padding: 2px 5px;
 		opacity: 0;
-		transition: opacity .25s ease-in;
+		transition: opacity var(--fs-dur-fade);
 	}
 
 	.cbi-tooltip-container:hover .cbi-tooltip:not(:empty) {
 		left: auto;
 		opacity: 1;
-		transition: opacity .25s ease-in;
+		transition: opacity var(--fs-dur-fade);
 	}
 
 	/* .cbi-progressbar paint (track, fill, the title readout) is owned by

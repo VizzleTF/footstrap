@@ -86,7 +86,7 @@
 		width: 34px; height: 34px; padding: 0; flex: 0 0 auto;
 		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
 		background: var(--fs-panel2); color: var(--fs-dim); cursor: pointer;
-		transition: color .15s, border-color .15s, background .15s;
+		transition: background var(--fs-dur), border-color var(--fs-dur), color var(--fs-dur);
 	}
 	.fs-appearance-btn svg,
 	.fs-top-logout svg { width: 18px; height: 18px; }

@@ -1,31 +1,15 @@
 @layer theme {
 	.zonebadge .cbi-tooltip { box-shadow: var(--fs-shadow-pop); }
 
-	/* ==================================================================
-	 * "Configuration / Changes" (uci changes) modal — soften the stock
-	 * vivid success/error diff colours to token-based tints that read on
-	 * both light and dark. #modal_overlay prefix wins over the base
-	 * `.uci-dialog div > ins` specificity. Covers the diff blocks, the
-	 * `var` (option changed) inner ins/del, and the legend swatches.
-	 * ================================================================== */
-	#modal_overlay .uci-dialog ins {
-		background-color: color-mix(in srgb, var(--fs-good) 18%, var(--fs-panel));
-	}
-	#modal_overlay .uci-dialog del {
-		background-color: color-mix(in srgb, var(--fs-danger) 18%, var(--fs-panel));
-	}
-	#modal_overlay .uci-dialog div > ins {
-		border-color: color-mix(in srgb, var(--fs-good) 45%, transparent);
-	}
-	#modal_overlay .uci-dialog div > del {
-		border-color: color-mix(in srgb, var(--fs-danger) 45%, transparent);
-	}
-	#modal_overlay .uci-dialog div > var {
-		background-color: var(--fs-panel2);
-		border-color: var(--fs-border);
-	}
-
-	/* Round the popup itself to match the theme's cards (base is only 3px), plus
+	/* The "Configuration / Changes" (uci changes) diff USED to be painted twice:
+	 * styles/base gave it one set of tints and five #modal_overlay rules here gave
+	 * it another — 30%/60% against 18%/45%, i.e. the same widget with two different
+	 * strengths depending on whether it happened to be inside the modal (it always
+	 * is). Both are now the ladder in styles/base: --fs-*-fill for the block, and
+	 * --fs-*-line for its border. The rules that sat here were duplicates and are
+	 * gone; only the geometry below is the theme's.
+	 *
+	 * Round the popup itself to match the theme's cards (base is only 3px), plus
 	 * small rounding on the diff boxes and legend swatches for a cohesive look. */
 	#modal_overlay .modal { border-radius: var(--fs-radius-lg); }
 

@@ -55,9 +55,104 @@
 		 * .28/.30/.32 literals that had drifted apart across those components. */
 		--fs-shadow-pop: 0 12px 34px rgba(0,0,0,.30);
 		/* focus ring shared by every field (input, select, cbi-dropdown, range,
-		 * dynlist add-item). The invalid state swaps the colour for --fs-danger and
-		 * keeps its own literal. */
+		 * dynlist add-item), and its invalid twin. The invalid one cannot simply be
+		 * --fs-danger-soft: a red ring has to read as an ALARM at a glance, so it takes
+		 * the next step up the ladder (--fs-danger-fill, 18%) rather than the quiet
+		 * hover tint (12%). Both rings are tokens so the pair sits together. */
 		--fs-focus-ring: 0 0 0 3px var(--fs-accent-soft);
+		--fs-focus-ring-invalid: 0 0 0 3px var(--fs-danger-fill);
+
+		/* the modal scrim. The one colour LITERAL left in the theme, and deliberately
+		 * so: it is not a tint of any palette token but plain black at .7, i.e. the
+		 * absence of light behind a dialog, and it must stay black in both modes (a
+		 * palette-tinted scrim over a dark page dims nothing). It is a token anyway so
+		 * that "the theme has no colour literals" is true of the RULES, and so a
+		 * colourway that wants a different veil has one line to change. */
+		--fs-scrim: rgba(0, 0, 0, .7);
+
+		/* ---- ROLE TINT LADDER (derived) ---------------------------------------
+		 * A tint OF a role colour, mixed FROM that colour — so it follows the palette
+		 * and dark mode with nothing hand-maintained. That is the rule the *-hsl and
+		 * *-rgb bridges broke; these mixes never broke it, but they had no NAMES, and
+		 * an unnamed level drifts in silence. It had: the same outline border was
+		 * written 40% in a table and 45% in the action bar, the same diff block 30%
+		 * in base and 18% in theme, the same hover fill 12% here and 18% there — four
+		 * strengths where the design has two, and nothing recorded which was meant.
+		 *
+		 * FOUR steps, and the matrix is COMPLETE on purpose — every role has every
+		 * step, whether or not something reads it today. A gap is how the drift above
+		 * started: --fs-accent-soft existed, good/warn/danger had no sibling, so every
+		 * rule that wanted one invented a percentage on the spot. A ladder is only a
+		 * ladder if the next component can take a step off it instead of inventing.
+		 *
+		 *   -soft     12%  a quiet FILL      — outline-button :hover
+		 *   -fill     18%  a stronger FILL   — callout/diff surface, the invalid ring
+		 *   -line     40%  a HAIRLINE        — outline-button border, diff border
+		 *   -line-hi  55%  that hairline on :hover
+		 *
+		 * --fs-accent-soft is the one member NOT here: it lives in the palette blocks,
+		 * because its strength is the only one that differs per MODE (10% light / 15%
+		 * dark; hicontrast 10/14). Everything else is mode-independent by measurement.
+		 * ----------------------------------------------------------------------- */
+		--fs-good-soft: color-mix(in srgb, var(--fs-good) 12%, transparent);
+		--fs-warn-soft: color-mix(in srgb, var(--fs-warn) 12%, transparent);
+		--fs-danger-soft: color-mix(in srgb, var(--fs-danger) 12%, transparent);
+
+		--fs-accent-fill: color-mix(in srgb, var(--fs-accent) 18%, transparent);
+		--fs-good-fill: color-mix(in srgb, var(--fs-good) 18%, transparent);
+		--fs-warn-fill: color-mix(in srgb, var(--fs-warn) 18%, transparent);
+		--fs-danger-fill: color-mix(in srgb, var(--fs-danger) 18%, transparent);
+
+		--fs-accent-line: color-mix(in srgb, var(--fs-accent) 40%, transparent);
+		--fs-good-line: color-mix(in srgb, var(--fs-good) 40%, transparent);
+		--fs-warn-line: color-mix(in srgb, var(--fs-warn) 40%, transparent);
+		--fs-danger-line: color-mix(in srgb, var(--fs-danger) 40%, transparent);
+
+		--fs-accent-line-hi: color-mix(in srgb, var(--fs-accent) 55%, transparent);
+		--fs-good-line-hi: color-mix(in srgb, var(--fs-good) 55%, transparent);
+		--fs-warn-line-hi: color-mix(in srgb, var(--fs-warn) 55%, transparent);
+		--fs-danger-line-hi: color-mix(in srgb, var(--fs-danger) 55%, transparent);
+
+		/* the frosted pop surface (top-nav dropdown, sidebar rail flyout). Distinct
+		 * from --fs-bar-bg (88%) and deliberately NOT merged into it: a BAR is a thin
+		 * strip the page scrolls under, and seeing content ghost through it is the
+		 * point; a dropdown carries a whole menu and has to stay readable. */
+		--fs-glass: color-mix(in srgb, var(--fs-panel) 96%, transparent);
+		/* one blur radius for every frosted surface — the bar said 10px and the pop
+		 * surfaces 12px, a difference nothing could see and nobody chose. */
+		--fs-blur: blur(12px);
+
+		/* the 1px raised edge on a plate that carries text (.ifacebox/.ifacebadge) —
+		 * the emboss is the inset shadow, --fs-text-emboss the matching text shadow.
+		 * .ifacebox used to mix --fs-dim and .ifacebadge --fs-panel for the SAME edge
+		 * at the same 5%; at that alpha neither was distinguishable from the other. */
+		--fs-emboss: inset 0 1px 0 color-mix(in srgb, var(--fs-panel) 5%, transparent);
+		--fs-text-emboss: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
+
+		/* hover lift for a SOLID (filled) control — the one hover cue that cannot be
+		 * a colour, since the fill it brightens is whatever the role token says. The
+		 * three sites had drifted to 1.06 / 1.08 / 1.12. */
+		--fs-hover-lift: brightness(1.08);
+
+		/* ---- MOTION -----------------------------------------------------------
+		 * Four durations, because the UI does four things. There used to be seven
+		 * (.12 / .125 / .15 / .2 / .22 / .25 / .4) and four easing curves (`ease`,
+		 * `ease-in`, `linear`, one cubic-bezier), none of it chosen — two rules even
+		 * declared the SAME three properties at the same duration in a different
+		 * order, so a grep could not see they were the same rule.
+		 *
+		 * There is no easing TOKEN, and that is the merge, not an omission: every
+		 * transition now leaves the timing function off and takes the CSS default
+		 * (`ease`). One curve, nothing to keep in sync, and fewer bytes than naming
+		 * it. If a future rule needs a different curve, that is a design decision and
+		 * it should have to justify itself in a comment.
+		 *
+		 * 95-a11y-media.css kills all of this under prefers-reduced-motion.
+		 * ----------------------------------------------------------------------- */
+		--fs-dur: .15s;		/* a state change: colour, border, shadow, background, filter */
+		--fs-dur-move: .2s;	/* something that moves or unfolds: transform, max-height */
+		--fs-dur-fade: .25s;	/* a transient thing fading in or out: spinner, notification */
+		--fs-dur-fill: .4s;	/* a progress bar growing to its value */
 		--fs-content-max: 1280px;	/* content column cap (desktop breakpoint ≥1200) */
 		/* content column side padding. Coupled uses: .fs-content padding, the
 		 * top-nav bar's centering calc, and the notification width calc — one
