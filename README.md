@@ -35,12 +35,12 @@
 и поставит нужный пакет:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/VizzleTF/footstrap/main/install.sh | sh
+wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
 ```
 
 Нужна конкретная версия — добавьте тег: `... | sh -s v0.3.8`.
 
-Вручную качайте raw-файл из [релизов](https://github.com/VizzleTF/footstrap/releases)
+Вручную качайте raw-файл из [релизов](https://github.com/VizzleTF/luci-theme-footstrap/releases)
 (именно файл, а не zip-артефакт со страницы Actions):
 
 ```sh

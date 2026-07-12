@@ -2,9 +2,9 @@
 # luci-theme-footstrap installer for OpenWrt 24.10 (ipk) and 25.12+ (apk).
 #
 # One-line install (run on the router over SSH):
-#   wget -qO- https://raw.githubusercontent.com/VizzleTF/footstrap/main/install.sh | sh
+#   wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
 # or:
-#   curl -fsSL https://raw.githubusercontent.com/VizzleTF/footstrap/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
 #
 # Optional: pin a release tag ->  ... | sh -s v0.3.1
 #
@@ -14,7 +14,7 @@
 
 set -e
 
-REPO="VizzleTF/footstrap"
+REPO="VizzleTF/luci-theme-footstrap"
 TAG="${1:-latest}"
 TMP="/tmp/footstrap-install"
 
