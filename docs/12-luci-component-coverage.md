@@ -14,7 +14,7 @@
 | Textfield | `.cbi-input-text`, `input[type=text/number/…]` | общий input-блок (panel2, radius 10, focus-ring) |
 | Textarea | `.cbi-input-textarea`, `textarea` | тот же input-блок |
 | Checkbox | `.cbi-checkbox`, `input[type=checkbox]` | toggle-switch блок |
-| Select (native) | `.cbi-input-select` | input-блок + `fs-select.js` заменяет на `.cbi-dropdown` |
+| Select (native) | `.cbi-input-select` | input-блок + `fs-select.js` рисует рядом `.cbi-dropdown` (нативный `<select>` остаётся источником правды и `frameEl.firstChild`) |
 | Dropdown | `.cbi-dropdown` | dropdown-блок (контрол+chevron+open-list) |
 | Combobox | `.cbi-dropdown` + `.create-item` | dropdown-блок |
 | ComboButton | `.cbi-dropdown` (кнопка) | dropdown + button блоки |
@@ -26,7 +26,7 @@
 | Tabs | `.cbi-tabmenu`, `.cbi-tab*` | tabs-блок (accent-подчёркивание) |
 | Progressbar | `.cbi-progressbar` | общий блок (track + good-fill) |
 | Tooltip | `.cbi-tooltip*` | tooltip-блок + bridge |
-| Buttons | `.cbi-button-{action,positive,negative,neutral,save,reset,add,apply,remove}` | button-блок (38 правил) |
+| Buttons | `.cbi-button-{action,positive,negative,neutral,save,reset,add,apply,remove}` | button-блок (44 правила, `theme/55-buttons.css`) |
 | Modal / Notification | `.modal`, `.cbi-modal`, `.alert-message`, `notification` | alert-блок + bridge |
 | Value / Section | `.cbi-value`, `.cbi-section` | section-card блок |
 
@@ -38,11 +38,16 @@
 
 ## Page-scoped исключения (осознанные, не «дыры»)
 
-Только **2 страницы** с уникальным дизайном (не стилевые пробелы):
-- `admin-status-overview` — кастомный дашборд (`05_footstrap_dashboard.js`).
-- `admin-system-package-manager` — Software-страница под Claude-дизайн.
+Весь page-scope живёт в `styles/pages/` (`@layer page`) — **5 файлов**, не
+стилевые пробелы:
+- `10-login.css` — страница логина (`form:has(> .cbi-map input[name=luci_username])`).
+- `20-overview.css` — `admin-status-overview`: раскладка сеткой
+  (`05_footstrap_overview_layout.js`) + порт-плитки.
+- `30-software.css` — `admin-system-package-manager`, Software-страница под макет.
+- `40-sshkeys.css` — `admin-system-admin-sshkeys`.
+- `50-leases.css` — таблицы DHCP-лизов.
 
-Всё остальное — общая логика: **token-bridge** re-темит ~2600 базовых правил,
-поверх — компонентные блоки (input / button / dropdown / dynlist / table-card /
-tabs / slider / section-card). Один виджет = одно общее правило, без разовых
-исключений на страницу.
+Всё остальное — общая логика: **token-bridge** re-темит ~340 базовых правил
+(925 деклараций в `styles/base/`), поверх — компонентные блоки (input / button /
+dropdown / dynlist / table-card / tabs / slider / section-card). Один виджет =
+одно общее правило, без разовых исключений на страницу.

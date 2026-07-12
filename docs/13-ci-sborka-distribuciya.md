@@ -5,7 +5,29 @@
 
 ## GitHub Actions (`.github/workflows/build.yml`)
 
-Триггеры: тег `v*` или ручной `workflow_dispatch`. Матрица форматов:
+Триггеры: push в `main`, тег `v*`, любой `pull_request` или ручной
+`workflow_dispatch`. Джобы: `check` → `lint` → `build` (`needs: [check, lint]`)
+→ `release` (только на тег).
+
+### Гейты перед сборкой
+
+- **`check`** — только `sh`, `awk` и `python3`, поэтому стоит секунды и не может
+  сломать buildbot OpenWrt (там нет node и не будет):
+  1. `sh -n` по всем скриптам пакета, `install.sh` и `uci-defaults`;
+  2. `build-css.sh /tmp/cascade.css` — заодно это и **бюджет размера**: сам скрипт
+     падает, если минифицированный `cascade.css` больше `FS_CSS_BUDGET`
+     (по умолчанию 126976 байт ≈ 124 КБ) — uhttpd отдаёт `/www/luci-static/*.css`
+     без сжатия, так что это байты на проводе;
+  3. бюджет шрифтов: суммарно `fonts/*.woff2` ≤ 102400 байт;
+  4. `audit.py --strict` — undefined `var()`, затенённые декларации, лишние
+     `!important`, цветовые литералы; с `--strict` любая находка = ненулевой exit.
+- **`lint`** — npm-гейты, живут **только в CI**: `eslint` по `htdocs`, `stylelint`
+  по `styles/**/*.css`, `axe-core` (WCAG 2.2 AA) по `docs/gallery.html` в матрице
+  {light,dark} × {footstrap,hicontrast} (`tools/a11y-gallery.mjs`). Локально —
+  `npm run lint` / `npm run a11y`. Ничего из `package.json` **не шипается**:
+  `luci.mk` копирует `htdocs/` и `ucode/` как есть и node не зовёт.
+
+### Матрица форматов (`build`)
 
 | fmt | channel | SDK | CONFIG_USE_APK |
 |---|---|---|---|
@@ -31,6 +53,9 @@
 
 ```makefile
 PKG_NAME:=luci-theme-footstrap
+LUCI_NAME:=luci-theme-footstrap # пин: luci.mk берёт имя из имени каталога и
+                                # им же именует хук Build/Prepare — иначе сборка
+                                # CSS молча не выполнится
 FOOTSTRAP_VERSION?=            # CI инжектит из тега; локально версия git-derived
 ifneq ($(FOOTSTRAP_VERSION),)
 PKG_VERSION:=$(FOOTSTRAP_VERSION)
@@ -61,7 +86,7 @@ include $(TOPDIR)/feeds/luci/luci.mk   # АБСОЛЮТНЫЙ путь (не ../
 формат из последнего (или заданного) релиза:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/VizzleTF/footstrap/main/install.sh | sh
+wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
 # закрепить версию:  ... | sh -s v0.3.6
 ```
 

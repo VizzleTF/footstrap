@@ -3,8 +3,9 @@
 ## Два режима работы
 
 1. **Быстрый цикл (без сборки)** — правим файлы прямо на роутере / scp с хоста.
-   Тема — это только шаблоны + статика, компилировать нечего. Основной режим
-   при разработке.
+   Тема — это шаблоны + статика; единственный шаг сборки — `build-css.sh`,
+   который склеивает дерево `styles/` в `cascade.css` (только `cat`/`awk`,
+   docs/17). Основной режим при разработке.
 2. **Пакет .apk через SDK** — для распространения и чистой установки.
 
 ## Быстрый цикл разработки на живом роутере
@@ -60,24 +61,26 @@ ssh router 'uci set luci.main.mediaurlbase=/luci-static/mytheme && uci commit lu
 - Шаблоны `.ut` НЕ кэшируются между запросами (ucode компилирует на лету) —
   правка header.ut видна по F5.
 - CSS/JS кэширует браузер: жёсткий reload (Ctrl+Shift+R). `luci.js` грузится с
-  `?v=<версия>-<mtime базы пакетов>`, но CSS темы — без версии: при правках CSS
-  на живую держать DevTools с Disable cache.
+  `?v=<версия>-<mtime базы пакетов>`; в footstrap с тем же ключом грузится и
+  `cascade.css` (`?v={{ pkgs_update_time }}` в `partials/head.ut`), поэтому после
+  заливки CSS достаточно `ssh router 'touch /lib/apk/db/installed'` — ключ
+  меняется, и файл подхватывается обычным F5, без Disable cache.
 
 ### Синхронизация одним скриптом
 
 ```sh
-#!/bin/sh
-# dev-sync.sh — залить тему на роутер
-set -e
-R=router
-N=mytheme
-rsync -av --no-perms ucode/template/themes/$N/ $R:/usr/share/ucode/luci/template/themes/$N/
-rsync -av --no-perms htdocs/luci-static/$N/    $R:/www/luci-static/$N/
-scp -q htdocs/luci-static/resources/menu-$N.js $R:/www/luci-static/resources/
-echo synced
+luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — router
 ```
 
-(rsync на роутере может отсутствовать — тогда `apk add rsync` или чистый scp.)
+Скрипт делает всё разом (только `ssh`/`scp`, rsync на роутере не нужен):
+пересобирает `cascade.css` из `styles/` (`build-css.sh --dev`, с комментариями),
+копирует шаблоны обеих раскладок (`footstrap/` + `footstrap-top/`, включая
+`partials/`), статику, `menu-footstrap.js` / `menu-footstrap-top.js` /
+`menu-footstrap-common.js` / `fs-select.js` и overview-include, ставит скрипт
+самообновления с его rpcd-ACL, пересоздаёт симлинк `footstrap-top` → `footstrap`
+и вычищает легаси-каталоги вариантов, прогоняет `root/etc/uci-defaults/…`
+(единственный источник регистрации тем) и сбрасывает кэши.
+**Активную тему не меняет.**
 
 ## Сборка пакета .apk (OpenWrt 25.12 использует apk, не opkg)
 
@@ -85,6 +88,9 @@ echo synced
 > поддержка 24.10) вынесена в **docs/13**. Ниже — ручная сборка через SDK.
 
 ### Через SDK
+
+Эти же шаги (скачать SDK, положить тему в feed, собрать) автоматизирует
+`luci-theme-footstrap/build-apk.sh` — руками они выглядят так:
 
 ```sh
 # SDK под таргет роутера (пример: mediatek/filogic 25.12.2)
@@ -96,24 +102,29 @@ tar --zstd -xf openwrt-sdk-*.tar.zst && cd openwrt-sdk-*/
 ./scripts/feeds update base luci
 ./scripts/feeds install -a -p luci
 
-# положить тему внутрь feed'а luci (там работает include ../../luci.mk)
-ln -s /path/to/repo/luci-theme-mytheme feeds/luci/themes/luci-theme-mytheme
-./scripts/feeds update -i luci && ./scripts/feeds install luci-theme-mytheme
+# положить тему внутрь feed'а luci
+ln -s /path/to/repo/luci-theme-footstrap feeds/luci/themes/luci-theme-footstrap
+./scripts/feeds update -i luci && ./scripts/feeds install luci-theme-footstrap
 
 make defconfig
-make package/luci-theme-mytheme/compile V=s
+make package/luci-theme-footstrap/compile V=s
 
 # результат
-ls bin/packages/*/luci/luci-theme-mytheme*.apk
+ls bin/packages/*/luci/luci-theme-footstrap*.apk
 ```
+
+`cascade.css` в git не лежит: его генерирует хук `Build/Prepare` в Makefile
+темы — он вызывает `build-css.sh` уже по копии дерева в `PKG_BUILD_DIR` (нужны
+только `cat`/`awk`, поэтому это работает и на билдботе OpenWrt). Там же в
+`menu-footstrap-common.js` штампуется версия.
 
 ### Установка на роутер
 
 ```sh
-scp bin/packages/*/luci/luci-theme-mytheme*.apk router:/tmp/
-ssh router 'apk add --allow-untrusted /tmp/luci-theme-mytheme*.apk'
+scp bin/packages/*/luci/luci-theme-footstrap*.apk router:/tmp/
+ssh router 'apk add --allow-untrusted /tmp/luci-theme-footstrap*.apk'
 # удаление
-ssh router 'apk del luci-theme-mytheme'
+ssh router 'apk del luci-theme-footstrap'
 ```
 
 `--allow-untrusted` нужен, т.к. локальная сборка не подписана ключом фида.
@@ -129,13 +140,25 @@ src-git mytheme https://github.com/<you>/<repo>.git
 Структура репо тогда: `themes/luci-theme-mytheme/…` — feed-скрипты найдут пакет
 по Makefile. `include ../../luci.mk` резолвится, если в корне репо лежит копия
 `luci.mk` — либо проще указывать полный путь к luci.mk из feed'а luci:
-`include $(TOPDIR)/feeds/luci/luci.mk`.
+`include $(TOPDIR)/feeds/luci/luci.mk` (footstrap использует именно эту форму —
+поэтому его Makefile собирается и из `feeds/luci/themes/`, и просто из
+`package/`, как это делает CI).
 
 ## Тестовая матрица
 
 - Страницы: Status/Overview (таблицы, ifacebox), Network/Interfaces (zonebadge,
   модалки), Network/Firewall (section-table, dropdown), System/Software (прогресс),
   Realtime graphs (SVG), логин/логаут, Reboot.
-- Режимы: светлая/тёмная/auto, мобильная ширина (<854px), длинные hostname/SSID.
+- Режимы: светлая/тёмная/auto, обе раскладки (sidebar / top-nav), палитры
+  (footstrap / hicontrast), мобильная ширина (мобильный тир — ≤767px; выше 768px
+  идёт «планшет/десктоп», у верхнего меню есть ещё компактный тир ≤1199px),
+  длинные hostname/SSID.
 - Отдельно: страница `apply/rollback` (шторка подтверждения изменений) — рисуется
   ui.js поверх темы, часто ломается кастомными z-index.
+- Статические гейты (их же гоняет CI, docs/13): `build-css.sh` сам проверяет
+  баланс скобок и бюджет размера; `python3 .claude/skills/footstrap-audit/audit.py
+  --strict` (неопределённые `var()`, затенённые правила, лишние `!important`,
+  хардкод-цвета — с ненулевым кодом возврата); `npm run lint` (eslint по
+  `htdocs/`, stylelint по `styles/`); `npm run a11y` (axe-core по
+  `docs/gallery.html`, матрица light/dark × footstrap/hicontrast). Ничего из
+  `package.json` в пакет не попадает — на билдботе OpenWrt node нет.

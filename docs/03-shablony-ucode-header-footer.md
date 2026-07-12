@@ -98,6 +98,28 @@ Bootstrap дополнительно показывает предупрежде
 `data-page` на `<body>` — важен: CSS luci-base и приложений таргетирует страницы
 по этому атрибуту (напр. `[data-page="admin-status-overview"]`).
 
+> **Реальный header footstrap отличается.** `ucode/template/themes/footstrap/header.ut`
+> и `footstrap-top/header.ut` — тонкие: `<head>`, бренд, notices, appearance и logout
+> вынесены в `themes/footstrap/partials/*.ut` (одни на оба layout'а).
+>
+> - `data-page` собирается из **диспетч-пути**:
+>   `join('-', length(ctx.path) ? ctx.path : ctx.request_path)` — обратный порядок
+>   относительно bootstrap. На firstchild-маршруте (`/admin/status` рендерит overview)
+>   `request_path` = `['admin','status']`, и `data-page` выходил `admin-status`: правила
+>   `body[data-page='admin-status-overview']` и overview-include молча не применялись.
+> - Первый элемент `<body>` — skip-link `<a class="fs-skip" href="#maincontent">`;
+>   контейнер контента — `<main class="fs-main" id="maincontent" tabindex="-1">`, а меню
+>   сайдбара — `<nav class="fs-sidebar" aria-label>` (у `<aside>` роль `complementary`,
+>   по ней к меню нельзя перейти лендмарком).
+> - В обоих layout'ах есть `<h1 class="fs-title-main">` (визуально скрыт, контейнер
+>   `[hidden]`) — без него у документа не было h1 вообще.
+> - `partials/head.ut`: `cascade.css`, `node.css` и `cbi.js` идут с `?v={{ pkgs_update_time }}`
+>   (uhttpd не шлёт Cache-Control); preload двух latin-сабсетов Manrope; `<style>` без
+>   атрибута `title` (на `<style>` он объявляет alternate style sheet set, а не MIME);
+>   `<title>` и интерполяции — через `entityencode(striptags(...))`.
+> - Предупреждения (нет пароля root / initramfs / noscript) и `#tabmenu` — в
+>   `partials/notices.ut`, заголовки в них `<h2>`, а не `<h4>`.
+
 ## footer.ut
 
 ```
@@ -120,6 +142,13 @@ Bootstrap дополнительно показывает предупрежде
 `L.require('menu-mytheme')` грузит `/www/luci-static/resources/menu-mytheme.js`.
 На этот момент `L` уже определён (luci-base вставляет `luci.js` между header
 темы и контентом).
+
+> **У footstrap** `footstrap/footer.ut` и `footstrap-top/footer.ut` — по одной строке:
+> обе включают `partials/footer.ut`, передавая `menu_module` (`menu-footstrap` /
+> `menu-footstrap-top`). В общем футере: `<footer class="fs-footer" role="contentinfo">`
+> (роль явная — implicit `contentinfo` у `<footer>` есть, только когда его ближайший
+> предок `<body>`, а этот лежит внутри `<main>`), строки версии обёрнуты в
+> `entityencode`, и после меню грузится ещё `L.require('fs-select')`.
 
 ## sysauth.ut (страница логина) — опционально
 

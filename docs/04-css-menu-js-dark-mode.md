@@ -23,9 +23,11 @@
 - **Меню**: ваши же контейнеры `#topmenu`, `#tabmenu`, `#modemenu`, `.dropdown-menu`
 - **Логин**: `[data-page="failsafe"]`, generic sysauth разметка
 
-Практический вывод: **не писать CSS с нуля — форкнуть `cascade.css` bootstrap
-и перекрасить через CSS custom properties** (см. ниже). Так делает большинство
-современных тем.
+Практический вывод: **не писать CSS с нуля — взять готовый набор виджетных
+дефолтов и перекрасить через CSS custom properties** (см. ниже). Так делает
+большинство современных тем. В footstrap эти дефолты лежат в `styles/base/`
+(`@layer base`) и поглощаются по одному правилу, а сам `cascade.css`
+**генерируется** из дерева `styles/` скриптом `build-css.sh` — docs/17.
 
 ## Система CSS-переменных bootstrap (master/25.12)
 
@@ -70,6 +72,15 @@ Bootstrap параметризован HSL-переменными — перек
 Плюс точечные правки `[data-darkmode="true"] .zonebadge[style]` и т.п. для
 элементов с инлайновыми цветами.
 
+> **В footstrap HSL-триплетов нет.** Палитра задаётся прямыми токенами
+> (`--bg/--panel/--panel2/--border/--text/--dim/--accent/…`, `styles/02-tokens.css`),
+> оттенки и тени считаются `color-mix()`. Привычные LuCI-имена `--*-color-*`
+> остаются мостом поверх них (`--primary-color-high: var(--accent)` и т.д., там же) —
+> чтобы сторонние `luci-app-*` красились сами. Цвет текста на акценте — не одна
+> общая переменная, а четыре чернила на **каждую палитру и режим**:
+> `--on-accent/--on-good/--on-warn/--on-danger` (`styles/03-palettes.css`).
+> Там же — шкала `--z-*` и `--fs-bar-h` в `02-tokens.css`. Подробно — docs/17.
+
 ## Механизм dark mode (bootstrap, master)
 
 Три варианта темы = три uci-записи, указывающие на **одни и те же файлы через
@@ -112,6 +123,15 @@ const darkpref = (theme == 'bootstrap-dark' ? 'true'
 
 Makefile при этом в `postrm` удаляет все три uci-записи.
 
+> **В footstrap записей две — только раскладки** (`FootstrapSidebar`,
+> `FootstrapOnTop`, `root/etc/uci-defaults/30_luci-theme-footstrap`), симлинков
+> `-dark`/`-light` нет: режим клиентский. Инлайновый скрипт в
+> `partials/head.ut` до первой отрисовки ставит `data-darkmode` из
+> `localStorage['fs-darkmode']`, а если там ничего нет — из `prefers-color-scheme`;
+> подписка на `change` регистрируется всегда, чтобы режим Auto продолжал следить за
+> системой. Переключает — попап Appearance (`menu-footstrap-common.js`). `postrm`
+> в Makefile удаляет все записи `luci.themes.*`, включая шесть легаси-имён.
+
 ## menu-<тема>.js: контракт
 
 Файл: `htdocs/luci-static/resources/menu-mytheme.js`. Грузится из footer:
@@ -151,6 +171,15 @@ API: `ui.menu.load()`, `ui.menu.getChildren(node)`, `L.env.dispatchpath`,
 Хотите другую структуру меню (сайдбар как в material/argon) — меняете renderMainMenu
 и контейнеры в header.ut соответственно. Material так и делает: тот же контракт,
 другая раскладка.
+
+> **В footstrap рендерера два**: `menu-footstrap.js` (сайдбар) и
+> `menu-footstrap-top.js` (верхнее меню); общая логика — табы, `#modemenu`, попап
+> Appearance, SPA-роутер — вынесена в `menu-footstrap-common.js`, который оба
+> подключают через `'require menu-footstrap-common as common'`. `partials/footer.ut`
+> грузит нужный рендерер (`L.require('menu-footstrap')` / `…-top`) и `fs-select`.
+> Заголовки секций — паттерн **disclosure** по W3C APG: `role="button"` +
+> `aria-expanded` + `aria-controls`, Space открывает/закрывает, Escape закрывает и
+> возвращает фокус на заголовок.
 
 ## Кастомизация логотипа
 

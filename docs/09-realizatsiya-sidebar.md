@@ -6,21 +6,26 @@
 ## Целевая раскладка
 
 ```
-┌──────────────────────────────────────────────┐
-│ sidebar 224px │  main column (flex:1)          │
-│               │ ┌────────────────────────────┐ │
-│  [лого] OpenWrt│ │ topbar 66px: заголовок +   │ │
-│               │ │  online-pill uptime         │ │
-│  ПАНЕЛЬ       │ ├────────────────────────────┤ │
-│  ▸ Status ●   │ │ #tabmenu (вкладки раздела)  │ │
-│  ▸ System     │ │                            │ │
-│  ▸ Network    │ │ #view (контент приложения) │ │
-│  …            │ │                            │ │
-│  [spacer]     │ │                            │ │
-│  Тема [◐]     │ │                            │ │
-│  ▸ Log out    │ │                            │ │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ .fs-sidebar 224px │ .fs-main (flex:1)            │
+│ (rail: 68px)      │ ┌──────────────────────────┐ │
+│  [лого] hostname ◂│ │ .fs-content:             │ │
+│  #indicators      │ │  предупреждения          │ │
+│  МЕНЮ             │ │  #tabmenu (вкладки)      │ │
+│  ▸ Status ●       │ │  #view (контент)         │ │
+│  ▸ System         │ │                          │ │
+│  ▸ Network        │ ├──────────────────────────┤ │
+│  …                │ │ footer.fs-footer         │ │
+│  [spacer]         │ └──────────────────────────┘ │
+│  Appearance [◐]   │                              │
+│  ▸ Log out        │                              │
+└──────────────────────────────────────────────────┘
 ```
+
+Отдельного topbar в `main` нет: заголовок страницы — визуально скрытый `<h1>`
+(`.fs-title[hidden]`, нужен для порядка заголовков и скринридера), а `#indicators`
+(поллинг «Refreshing», несохранённые изменения) живёт в сайдбаре. Кнопка `◂`
+(`#fs-rail-toggle`) сворачивает сайдбар в 68px-рельс с иконками и флайаутами.
 
 ## Маппинг LuCI-контейнеров на sidebar
 
@@ -29,10 +34,10 @@ LuCI-меню рендерит клиентский JS в фиксированн
 
 | LuCI-контейнер | В bootstrap | В footstrap sidebar |
 |---|---|---|
-| `#topmenu` | горизонт. меню верхних разделов | **вертикальный список в сайдбаре** (Status/System/Network/…) |
-| `#modemenu` | breadcrumb-переключатель admin/status | скрыт или как заголовок группы «Панель» (обычно один режим — admin) |
-| `#tabmenu` | вкладки под шапкой | остаётся в main, над `#view` |
-| `#indicators` | правый угол шапки | online-pill в topbar |
+| `#topmenu` | горизонт. меню верхних разделов | **вертикальный список в сайдбаре** (`ul.nav`, Status/System/Network/…) |
+| `#modemenu` | breadcrumb-переключатель admin/status | `.fs-modemenu` в сайдбаре; пустой/единственный режим → `display:none` |
+| `#tabmenu` | вкладки под шапкой | остаётся в main, над `#view` (контейнер эмитит `partials/notices.ut`) |
+| `#indicators` | правый угол шапки | `.fs-indicators` в сайдбаре под брендом; пустой → скрыт |
 | `#view` | контент | контент (main column) |
 
 Верхние разделы LuCI (Status, System, Services, Network, VPN, …) приходят из
@@ -40,57 +45,72 @@ LuCI-меню рендерит клиентский JS в фиксированн
 
 ## Изменения по файлам
 
-### 1. `htdocs/luci-static/footstrap/fonts/` (новое)
+### 1. `htdocs/luci-static/footstrap/fonts/`
 
-Самохостинг шрифтов (роутер офлайн, без Google Fonts):
-- `Manrope-*.woff2` (веса 600/700/800 достаточно; 400/500 если нужен текст)
-- `JetBrainsMono-*.woff2` (400/600)
-- `@font-face` объявления в начале `cascade.css`.
+Самохостинг шрифтов (роутер офлайн, без Google Fonts). Каждое начертание разбито
+по `unicode-range` на три сабсета — латиница, latin-ext, кириллица:
+- `manrope-{600,700}-{latin,latinext,cyrillic}.woff2`
+- `jetbrains-mono-{400,600}-{latin,latinext,cyrillic}.woff2`
+- `@font-face` — в `styles/01-fonts.css` (нижний слой сборки, без `@layer`:
+  `@font-face` объявляет ресурс, а не правило).
 
-Взять из google-webfonts-helper или репозиториев шрифтов (OFL/Apache — можно
+Взято из google-webfonts-helper или репозиториев шрифтов (OFL/Apache — можно
 класть в пакет). Fallback: `system-ui, sans-serif` / `ui-monospace, monospace`.
+Латинские сабсеты Manrope 600/700 ещё и предзагружаются (`<link rel=preload>` в
+`partials/head.ut`) — ими рисуется сам хром.
 
 ### 2. `cascade.css` — стратегия
 
-Форк bootstrap `cascade.css` уже несёт все нужные cbi-классы (док 04). Меняем:
+`cascade.css` **генерируется**: `build-css.sh` склеивает дерево `styles/` (один
+каталог на каскадный слой, префикс имени файла = порядок) и вырезает комментарии;
+редактировать сам файл нельзя, он в `.gitignore`. Порядок слоёв —
+`tokens, base, theme, page` (док 17). Устройство:
 
-1. **Блок `:root` переменных** — заменить bootstrap HSL-схему на footstrap-токены
-   (док 08): добавить `--bg/--panel/--panel2/--border/--text/--dim/--accent/
-   --accent-soft/--track/--good/--warn/--danger/--shadow` + светлые в
-   `:root[data-darkmode="false"]`, тёмные в `[data-darkmode="true"]`.
-   Bootstrap-переменные (`--background-color-*` и т.д.) переопределить через
-   новые, чтобы старые правила cbi продолжали работать без переписывания 2600
-   строк:
+1. **Токены** — `styles/02-tokens.css` (палитро-независимое: тени, радиусы,
+   шрифты, z-index) + `styles/03-palettes.css` (цвета, блок на палитру × режим;
+   док 08). Там же **мост** на имена переменных, которые LuCI-темы отдают годами,
+   чтобы правила `styles/base` и сторонние `luci-app-*` стили перекрашивались
+   вместе с палитрой без переписывания:
    ```css
    :root {
      --background-color-high: var(--panel);
      --border-color-medium:   var(--border);
      --primary-color-medium:  var(--accent);
-     /* … мост old→new … */
+     /* … мост → footstrap-токены … */
    }
    ```
-2. **Раскладка** — новый блок: `body{display:flex}`, `#mainmenu`(sidebar)
-   fixed-width 224px, `#maincontent` flex-column. Добавить classes для sidebar,
-   topbar, online-pill.
-3. **Компоненты** — доработать под макет: `.cbi-progressbar` (трек 8px, radius
-   99px, заливка по значению), панели-карточки (radius 16, `--panel`, `--border`),
-   строки-таблицы (flex space-between, mono-значения), шрифты.
+2. **Раскладка** — `styles/theme/20-shell-sidebar.css`: `.fs-shell{display:flex}`,
+   `.fs-sidebar` фиксированной ширины 224px (свёрнутый рельс — 68px),
+   `.fs-main` flex-column. Общий с top-nav хром (бренд, лого, логаут,
+   индикаторы, примитивы `ul.nav`) — в `styles/theme/10-chrome.css`.
+3. **Компоненты** — по файлу на тему: `.cbi-progressbar` (трек 10px,
+   `--radius-pill`, заливка `--accent`), панели-карточки (`--radius-lg`,
+   `--panel`, `--border`), таблицы, alert'ы, вкладки, кнопки, инпуты, модалки.
 
-Держать `data-darkmode` контракт (док 04): auto через `matchMedia`, форс через
-symlink-темы footstrap-dark/light. Токены обеих схем — как в доке 08.
+Контракт `data-darkmode` (док 04) держим, но **без symlink-тем**: режим
+(auto/light/dark) и палитра — клиентские, из `localStorage`, применяются
+инлайновым скриптом в `partials/head.ut` до первой отрисовки; auto по-прежнему
+слушает `matchMedia('(prefers-color-scheme: dark)')`.
 
 ### 3. `ucode/template/themes/footstrap/header.ut`
 
-- `<body>` → flex-контейнер (или обёртка `.fs-shell`).
-- **Sidebar** (`<nav id="mainmenu">` или переиспользовать) с:
-  - лого-блок (градиентный квадрат + wifi-SVG + wordmark hostname/OpenWrt);
-  - заголовок группы «Панель»;
-  - `<ul id="topmenu">` (пустой, наполнит menu-JS вертикально);
+- Общая часть обоих раскладок вынесена в `partials/` (`head`, `brand`,
+  `appearance`, `logout`, `notices`, `footer`) — их же инклюдит `footstrap-top`.
+- `<body>` → обёртка `.fs-shell` (flex). Перед ней — skip-link `.fs-skip`
+  («Skip to content» → `#maincontent`), первый таб-стоп страницы.
+- **Sidebar** — `<nav class="fs-sidebar" aria-label="Menu">` (именно `<nav>`:
+  `<aside>` даёт роль `complementary`, и по лендмарку до меню было не допрыгнуть):
+  - `.fs-brandrow`: бренд (градиентный квадрат + wifi-SVG на `currentColor` +
+    wordmark hostname/OpenWrt) + кнопка `#fs-rail-toggle` (свернуть в рельс);
+  - `<div id="indicators">`;
+  - `.fs-navlabel` («Menu») + `<ul class="nav" id="topmenu">` (пустой, наполнит
+    menu-JS вертикально) + `<ul id="modemenu">`;
   - spacer `flex:1`;
-  - строка «Тема» + переключатель (кнопка с `data-darkmode`-toggle);
+  - кнопка Appearance (`#fs-appearance`, поповер: режим/палитра/обои/скругление);
   - Log out (`{{ dispatcher.build_url('admin/logout') }}` если есть).
-- **Main**: `<div id="maincontent">` с topbar (заголовок `dispatched.title` +
-  `#indicators` online-pill) и `#tabmenu`.
+- **Main**: `<main class="fs-main" id="maincontent" tabindex="-1">` — скрытый
+  `<h1>` (`.fs-title`, заголовок документа для скринридера) и `.fs-content`
+  (предупреждения, `#tabmenu`, `#view`, `footer`).
 - Сохранить обязательное: `http.prepare_content`, cbi.js, переводы, `node.css`,
   `css`, `data-page`, `blank_page`, noscript, предупреждения (no-password,
   initramfs) — из дока 03/06.
@@ -98,15 +118,29 @@ symlink-темы footstrap-dark/light. Токены обеих схем — ка
 ### 4. `htdocs/luci-static/resources/menu-footstrap.js`
 
 - `renderMainMenu` → вертикальный список в `#topmenu`: пункт =
-  `<li><a><icon><span>title</span></a></li>`, активный класс по `dispatchpath`.
-- Иконки: map по имени/пути раздела (`admin/status`→dashboard-иконка,
-  `admin/system`→gear, `admin/network`→network, …), fallback — точка/generic
-  SVG. Набор SVG — инлайн в JS (как в макете).
-- `#tabmenu` — оставить горизонтальным в main (как bootstrap `renderTabMenu`).
+  `<li><a><icon><span class="fs-label">title</span><chevron></a></li>`, активный
+  класс по `dispatchpath`. Всё общее (табы, режимы, поповер Appearance, рельс,
+  SPA-роутер) живёт в `menu-footstrap-common.js`; layout-специфичен только
+  `renderMainMenu`, он передаётся в `common.init()` (композиция, а не наследование —
+  LuCI делает из каждого baseclass синглтон).
+- Иконки: map по имени/пути раздела (`status`→dashboard-иконка, `system`→gear,
+  `network`→network, `vpn`, `docker`, …), fallback — generic SVG. Набор SVG —
+  инлайн в JS (как в макете).
+- `#tabmenu` — горизонтальный, в main (`renderTabMenu` в common.js).
 - `#modemenu` — если >1 режима, показать; иначе скрыть.
-- Переключатель темы: обработчик тогглит `data-darkmode` на `:root` +
-  сохраняет выбор (localStorage или uci-nothing — только клиент). Учесть, что
-  форс-варианты идут через выбор темы в настройках; клиентский тоггл — быстрый UX.
+- Раздел с детьми — **disclosure-паттерн W3C APG**, а не ссылка: `role="button"`,
+  `aria-expanded`, `aria-controls`, Enter/Space, Escape закрывает флайаут и
+  возвращает фокус на триггер. Осознанно **не** `role="menu"` (APG: навигация
+  сайта не должна брать семантику menubar).
+- Два смысла `.open`: в развёрнутом сайдбаре — аккордеон (можно держать
+  несколько секций открытыми, набор помнится в `localStorage` `fs-menu-open`), в
+  рельсе и на телефоне (≤767px) — эксклюзивный флайаут. На выходе из
+  флайаут-режима аккордеон восстанавливается (`restoreAccordion()`).
+- Переключатель темы: не тумблер в сайдбаре, а поповер Appearance
+  (`#fs-appearance`, обработчик в common.js): режим/палитра/обои/скругление
+  тогглят `data-darkmode`/`data-palette`/`data-wallpaper`/`--fs-radius-base` на
+  `:root` и сохраняются в `localStorage` — только клиент, без сервера и
+  перезагрузки. Раскладка (sidebar/top) остаётся серверным выбором в списке тем.
 
 ## Порядок работ
 
@@ -114,19 +148,20 @@ symlink-темы footstrap-dark/light. Токены обеих схем — ка
 2. `cascade.css`: переменные-мост (old→new) + токены обеих схем. Проверить, что
    стандартный overview не сломался (цвета применились).
 3. `cascade.css`: sidebar-раскладка + компоненты.
-4. `header.ut`: sidebar + main + topbar.
-5. `menu-footstrap.js`: вертикальное меню + иконки + тема-тоггл.
+4. `header.ut`: sidebar + main.
+5. `menu-footstrap.js`: вертикальное меню + иконки + поповер Appearance.
 6. Деплой `dev-sync.sh`, `ucode -c` шаблонов, live-render на `ssh router`
    (временная активация + curl + откат, см. док 05).
 
 ## Проверка (Definition of Done для 1A)
 
-- [ ] `ucode -c` header/footer/sysauth — OK
+- [ ] `ucode -c` header/footer + `partials/*` — OK
 - [ ] Активация footstrap → нет fallback/error500
 - [ ] Sidebar рендерится, верхние разделы кликабельны, активный подсвечен
 - [ ] Status→Overview: панели-карточки, прогресс-бары памяти/диска в стиле макета
 - [ ] Вкладки раздела (#tabmenu) работают
-- [ ] Переключатель темы меняет dark/light; auto по системной
-- [ ] Мобильная ширина (<854px): sidebar сворачивается/скрывается
-- [ ] Логин (sysauth) в стиле темы
+- [ ] Appearance меняет dark/light; auto по системной
+- [ ] Мобильная ширина (≤767px): sidebar превращается в верхний бар
+- [ ] Логин в стиле темы (своего `sysauth.ut` тема не несёт — страница логина
+      стоковая, оформляется CSS: `styles/pages/10-login.css`)
 - [ ] Откат на bootstrap чистый
