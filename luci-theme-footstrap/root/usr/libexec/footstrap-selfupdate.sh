@@ -22,9 +22,26 @@
 # Exit code is 0 for all of the above except a failed spawn; the client reads the
 # keyword, not the code.
 
-STATUS=/tmp/footstrap-update.status
-WORKER=/tmp/footstrap-update-run.sh
-CACHE=/tmp/footstrap-latest
+# rpcd hands the exec'd process an environment the CALLER can set, so nothing
+# here may be resolved through an inherited PATH.
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+# All state lives in /var/run (a symlink to /tmp/run), NOT in /tmp itself.
+# /tmp is 1777: any local unprivileged process can pre-create a predictable path
+# there as a symlink, and root's `cp`, `chmod`, `curl -o` and `>` then write
+# through it to a file of the attacker's choosing (CWE-377). /var/run is
+# root-owned 0755, so an unprivileged process cannot create the names below at
+# all and the race does not exist. It is tmpfs either way, so the "a reboot
+# re-checks" property of the cache is unchanged.
+WD=/var/run/footstrap-update
+STATUS="$WD/status"
+WORKER="$WD/run.sh"
+CACHE="$WD/latest"
+
+mkdir -p "$WD" 2>/dev/null && chmod 700 "$WD" 2>/dev/null || {
+	echo "ERR: cannot create $WD"; exit 1
+}
 
 # How long a `check` result stays good. GitHub allows 60 unauthenticated API
 # calls per hour per source IP; without a cache every page load would spend one.
@@ -40,23 +57,29 @@ CACHE_TTL=300
 REPO="VizzleTF/luci-theme-footstrap"
 API="https://api.github.com/repos/${REPO}/releases/latest"
 
+# Every curl below is bounded. Without --max-time a stalled connection leaves
+# STATUS=RUNNING and a live $WORKER behind forever, and that pair is exactly what
+# the "" branch reads as "a run is already in progress" — the button would wedge
+# until a reboot.
+CURL="curl -fsSL --connect-timeout 10"
+
 do_update() {
 	if command -v apk >/dev/null 2>&1; then
-		EXT="apk"; TMP="/tmp/footstrap-update.apk"
+		EXT="apk"; TMP="$WD/pkg.apk"
 		install_pkg() { apk add --allow-untrusted "$1"; }
 	elif command -v opkg >/dev/null 2>&1; then
-		EXT="ipk"; TMP="/tmp/footstrap-update.ipk"
+		EXT="ipk"; TMP="$WD/pkg.ipk"
 		install_pkg() { opkg install "$1"; }
 	else
 		echo "ERR: no apk or opkg found" > "$STATUS"; return 1
 	fi
 
 	# pick the .apk / .ipk asset URL from the latest release
-	url="$(curl -fsSL "$API" 2>/dev/null | jsonfilter -e '@.assets[*].browser_download_url' 2>/dev/null | grep -E "\.${EXT}\$" | head -1)"
+	url="$($CURL --max-time 20 "$API" 2>/dev/null | jsonfilter -e '@.assets[*].browser_download_url' 2>/dev/null | grep -E "\.${EXT}\$" | head -1)"
 	[ -n "$url" ] || { echo "ERR: no .${EXT} asset in latest release" > "$STATUS"; return 1; }
 
 	# -L: follow the release->objects.githubusercontent.com redirect
-	curl -fsSL -o "$TMP" "$url" 2>/dev/null || { echo "ERR: download failed" > "$STATUS"; return 1; }
+	$CURL --max-time 600 -o "$TMP" "$url" 2>/dev/null || { echo "ERR: download failed" > "$STATUS"; return 1; }
 	[ -s "$TMP" ] || { echo "ERR: empty download" > "$STATUS"; rm -f "$TMP"; return 1; }
 
 	out="$(install_pkg "$TMP" 2>&1)"; rc=$?
@@ -65,7 +88,11 @@ do_update() {
 	rm -f /tmp/luci-indexcache* 2>/dev/null
 	rm -rf /tmp/luci-modulecache 2>/dev/null
 
-	[ "$rc" = 0 ] || { echo "ERR: install failed: ${out}" > "$STATUS"; return 1; }
+	# The protocol is one line; apk's failure output is many. Flatten and cap it.
+	[ "$rc" = 0 ] || {
+		reason="$(printf '%s' "$out" | tr '\n\t' '  ' | tail -c 200)"
+		echo "ERR: install failed: ${reason}" > "$STATUS"; return 1
+	}
 	echo "OK" > "$STATUS"
 }
 
@@ -77,12 +104,16 @@ check)
 	now=$(date +%s)
 	if [ -f "$CACHE" ]; then
 		read -r ts tag < "$CACHE"
-		if [ -n "$tag" ] && [ $((now - ts)) -lt "$CACHE_TTL" ] 2>/dev/null; then
+		# A truncated or corrupt cache (full tmpfs) leaves ts empty or non-numeric,
+		# and an arithmetic error is FATAL in ash: the script would die here and
+		# `check` would answer with an empty string instead of ERR:. Force a miss.
+		case "$ts" in ''|*[!0-9]*) ts=0 ;; esac
+		if [ -n "$tag" ] && [ $((now - ts)) -lt "$CACHE_TTL" ]; then
 			echo "$tag"; exit 0
 		fi
 	fi
 
-	tag="$(curl -fsSL --max-time 10 "$API" 2>/dev/null | jsonfilter -e '@.tag_name' 2>/dev/null)"
+	tag="$($CURL --max-time 10 "$API" 2>/dev/null | jsonfilter -e '@.tag_name' 2>/dev/null)"
 	[ -n "$tag" ] || { echo "ERR: cannot reach the GitHub release API"; exit 1; }
 	echo "$now $tag" > "$CACHE"
 	echo "$tag"
