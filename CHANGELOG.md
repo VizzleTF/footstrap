@@ -10,10 +10,75 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
-## [Unreleased]
+## [0.7.16] — 2026-07-12
 
 ### Added
+- The SPA router now follows `alias` and `firstchild` menu nodes, so the links
+  that used to be its blind spot navigate in place like every other page:
+  Firewall, System Log, Realtime Graphs, Administration, Terminal, Attended
+  Sysupgrade. Those are 7 of the 27 links the menu renders — and among the most
+  clicked — yet each one still did a full page reload, because the router only
+  recognised `view` nodes and an alias is a redirect, not a page. Coverage over
+  every clickable node goes from 50 to 62.
+  Resolution is a port of `resolve_firstchild()`/`node_weight()` from
+  `dispatcher.uc`, not an approximation of it: the same weight (`order ?? 9999`,
+  a login node last), the same `firstchild_ineligible` and `satisfied` filters,
+  the same recursion into a nested `firstchild`. It has to be exact — the server
+  answers an alias URL with a 200 at that URL and resolves the leaf internally
+  (no redirect), so a client that picked a different child would open one page on
+  a click and another on F5. Verified against the live router: for all 65
+  clickable nodes the SPA's `data-page`, `dispatchpath`, `pathinfo`, URL and tab
+  strip are identical to a real full load of the same URL, in both layouts and
+  across Back/Forward. `rewrite` is deliberately left alone (the tree has none,
+  and a wrong guess would open the wrong page — worse than the reload it falls
+  back to).
 - This changelog and its Russian mirror.
+
+### Performance
+- **Every view was rendered twice on the first visit to a page, and registered two
+  pollers.** LuCI's `require()` does not hand back a class — it caches an *instance*,
+  so requiring a view for the first time constructs it, and a view's `__init__` *is*
+  its render (that is all `ui.instantiateView()` does). The router required the view
+  and then built a second instance on top, so the page was painted twice and polled at
+  double the RPC rate for as long as the user stayed on it. A fresh instance is now
+  built only on a revisit, when `require()` returns the singleton whose `__init__`
+  already ran. Present since the router landed.
+- **A view whose content comes from its first poll took up to 5 s to fill after an
+  in-place navigation.** Wireless is the visible case: its station list is drawn from
+  the first poll, and it sat spinning for 4950 ms against ~360 ms on a full page load.
+  LuCI runs one 1 s tick and fires a poller only when `tick % interval == 0`; a full
+  load calls `Poll.start()`, which zeroes the tick and steps at once, whereas the
+  router kept the *outgoing* page's tick running, so the incoming view's poller had to
+  wait for the next multiple of its interval. The poll loop is now put back into the
+  state a fresh load leaves it in (`stop()` then `start()` on an empty queue), and the
+  view's own first `poll.add()` arms the timer and takes the first step — which is
+  exactly the upstream sequence, not a shortcut around it. Wireless: **4950 → 137 ms**,
+  Realtime→Wireless: **55 → 16 ms**. Note `stop()` alone is not the fix and never was:
+  it deletes the tick, and `Poll.add()` only auto-starts when the tick exists, so the
+  page would never poll at all. Also note the two bugs above are one bug: re-arming the
+  poll while the view still rendered twice made the realtime graphs throw, because
+  `view/status/load.js` keeps its graph list in a module-level array (a LuCI module is
+  a cached singleton across SPA navs) and indexes its RPC results by that array's
+  current length — the second render grew it mid-flight. Fixing the double render
+  closed that window for good.
+- The navigation benchmark now covers **38 standard pages, up from 14**, compares
+  **three themes** (stock `luci-theme-bootstrap`, third-party
+  `luci-theme-proton2025` 1.3.0, footstrap), and all 38 pages open in footstrap
+  without a page reload. Summed medians: **10517 ms bootstrap, 11680 ms proton2025,
+  4638 ms footstrap**; median per-page speedup **3.43x** over bootstrap and **3.94x**
+  over proton2025, and there is no longer a single page where footstrap loses. Network
+  requests per navigation drop from 15–48 (bootstrap) and 27–72 (proton2025) to
+  **0–8**. proton2025 is *slower* than the stock theme it restyles — it ships 436 KB
+  of CSS against footstrap's 106 KB and has no client router.
+  The pages the old benchmark missed are the ones the theme is fastest on: a tab or an
+  alias link carries almost no work of its own, so a full reload spends its whole time
+  restarting the runtime — Realtime→Wireless 287 → 16 ms (17.5x), Diagnostics 189 →
+  21 ms (9.2x).
+  Two harness bugs were producing plausible but false numbers and are fixed: a
+  3-second wait for a spinner that a cached view never renders (it reported ~3017 ms
+  for the eight *fastest* pages), and a readiness check that the outgoing page's DOM
+  already satisfied. Readiness is now "the old nodes are gone", which is exactly what
+  `dom.content(#view, …)` guarantees.
 
 ### Fixed
 - Read-only users got working Save/Apply/Reset buttons. The SPA router rebuilt
@@ -497,6 +562,7 @@ line, not one per tag. The individual patch releases are in the git history.
   once jsmin was proven safe by a token-equivalence gate.
 
 [Unreleased]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.15...HEAD
+[0.7.16]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.15...v0.7.16
 [0.7.15]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.14...v0.7.15
 [0.7.14]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.13...v0.7.14
 [0.7.13]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.12...v0.7.13
