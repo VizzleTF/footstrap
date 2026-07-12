@@ -217,6 +217,34 @@
 		font-size: 11px; font-weight: 600; color: var(--fs-dim); font-variant-numeric: tabular-nums;
 	}
 
+	/* Tint axis — the same slider, but the track IS the value: a hue wheel laid flat,
+	 * so the control shows what it picks before it is dragged (a bare grey track under
+	 * a "215°" readout means nothing to anyone). The stops are the six primaries of the
+	 * wheel at a fixed lightness/chroma; the browser interpolates between them, so the
+	 * pixel under the thumb is roughly the hue the thumb selects.
+	 *
+	 * The gradient is written once into an element-scoped local: Firefox paints the
+	 * TRACK pseudo-element over the input's own background, so the same image has to be
+	 * declared twice, and two copies of a seven-stop gradient are two things to drift.
+	 * Position 0 (= off) deliberately still shows red rather than a grey notch: the
+	 * readout says "Off" and the surfaces are visibly untinted, which is unambiguous,
+	 * and a notch would cost a stop that the interpolation reads as a hue. */
+	input[type="range"].fs-range-hue {
+		--fs-hue-track: linear-gradient(to right,
+			oklch(.72 .17 0), oklch(.72 .17 60), oklch(.72 .17 120),
+			oklch(.72 .17 180), oklch(.72 .17 240), oklch(.72 .17 300), oklch(.72 .17 360));
+		background: var(--fs-hue-track);
+	}
+	input[type="range"].fs-range-hue::-moz-range-track { background: var(--fs-hue-track); }
+	/* the thumb carries the CHOSEN hue while the tint is on — the one place in the
+	 * popover that shows the raw colour rather than the wash it produces */
+	:root[data-tint] input[type="range"].fs-range-hue::-webkit-slider-thumb {
+		background: oklch(.65 .17 var(--fs-tint-h));
+	}
+	:root[data-tint] input[type="range"].fs-range-hue::-moz-range-thumb {
+		background: oklch(.65 .17 var(--fs-tint-h));
+	}
+
 	/* a sidebar row, not a bare icon: gap + hit area + a hover plate */
 	.fs-logout {
 		gap: 11px; padding: 10px 11px; border-radius: var(--fs-radius);

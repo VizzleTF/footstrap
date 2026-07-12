@@ -60,6 +60,16 @@
 					var r = parseInt(localStorage.getItem('fs-radius'), 10);
 					if (r >= 0 && r <= 20 && r !== 12)
 						root.style.setProperty('--fs-radius-base', r + 'px');
+					/* Tint: one hue (1-360) washed into the page CANVAS so this router is
+					   recognisable at a glance. Absent/0 = off. localStorage is per ORIGIN,
+					   so the hue is already per router. styles/03-palettes derives --fs-bg
+					   from it; setting the hue BEFORE the attribute avoids a frame painted
+					   with hue 0. */
+					var t = parseInt(localStorage.getItem('fs-tint'), 10);
+					if (t >= 1 && t <= 360) {
+						root.style.setProperty('--fs-tint-h', String(t));
+						root.setAttribute('data-tint', '');
+					}
 				} catch (e) {}
 			})();
 		</script>

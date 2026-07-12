@@ -252,6 +252,40 @@ function applyRadius(px) {
 	else { lsSet('fs-radius', String(v)); root.style.setProperty('--fs-radius-base', v + 'px'); }
 }
 
+/* Background-tint axis: ONE hue (0–360°) washed into the CANVAS the cards float on
+ * (--fs-bg — the same surface the cats wallpaper tiles over), so a whole install
+ * reads as green / violet / amber at a glance and you can tell which router the tab
+ * (or the screenshot in a ticket) belongs to. Cards, chrome and the status colours
+ * keep the palette's values — the cue colours the paper, not the UI. The tint itself
+ * is done in CSS — :root[data-tint] + an inline --fs-tint-h; see the TINT block in
+ * 03-palettes.css for why the mix is contrast-safe on every hue.
+ *
+ * 0 IS "OFF", not "red": a hue wheel wraps, so 360 is the same red and nothing is
+ * lost by spending one end of the slider on the off state — which a hue axis
+ * otherwise has no room for (there is no "no colour" hue). Off clears the attribute
+ * entirely, so an untinted router costs exactly the CSS the palette already had.
+ * head.ut pre-paints it before first paint, so a reload doesn't flash the neutral
+ * palette first. */
+function currentTint() {
+	const h = parseInt(lsGet('fs-tint'), 10);
+	return (h >= 1 && h <= 360) ? h : 0;
+}
+function applyTint(deg) {
+	const root = document.querySelector(':root');
+	const v = Math.max(0, Math.min(360, deg | 0));
+	if (!v) {
+		lsDel('fs-tint');
+		root.removeAttribute('data-tint');
+		root.style.removeProperty('--fs-tint-h');
+	} else {
+		lsSet('fs-tint', String(v));
+		/* the hue first, then the attribute that switches the mixes on — the other
+		 * order paints one frame with the previous hue (or hue 0) on a fresh load. */
+		root.style.setProperty('--fs-tint-h', String(v));
+		root.setAttribute('data-tint', '');
+	}
+}
+
 /* Sidebar accordion behaviour: with auto-collapse on, opening a section folds
  * every other one back (one open at a time); off (default, and the historical
  * behaviour) they stack. Only meaningful for the expanded sidebar — the rail
@@ -310,21 +344,27 @@ function segControl(current, opts, onPick, label) {
 	return wrap;
 }
 
-/* A range slider with a live px readout; onInput fires continuously as it drags.
+/* A range slider with a live readout; onInput fires continuously as it drags.
  * Without the label and valuetext a screen reader announced a bare "slider, 12" —
- * no idea what it adjusts, and no unit. */
-function sliderControl(current, min, max, onInput, label) {
-	const out = E('span', { 'class': 'fs-range-val' }, [ current + 'px' ]);
+ * no idea what it adjusts, and no unit.
+ *
+ * `opts.fmt` renders the value: it is what the READOUT says and what the screen
+ * reader is told, so it is not cosmetic — the tint slider's `0` means "off", and a
+ * reader announcing "0 degrees" would be announcing a hue that is not applied. */
+function sliderControl(current, min, max, onInput, label, opts) {
+	const o = opts || {};
+	const fmt = o.fmt || (v => v + 'px');
+	const out = E('span', { 'class': 'fs-range-val' }, [ fmt(current) ]);
 	const input = E('input', {
-		'type': 'range', 'class': 'fs-range',
-		'min': String(min), 'max': String(max), 'step': '1', 'value': String(current),
+		'type': 'range', 'class': 'fs-range' + (o.cls ? ' ' + o.cls : ''),
+		'min': String(min), 'max': String(max), 'step': String(o.step || 1), 'value': String(current),
 		'aria-label': label || '',
-		'aria-valuetext': current + 'px'
+		'aria-valuetext': fmt(current)
 	});
 	input.addEventListener('input', () => {
 		const v = parseInt(input.value, 10);
-		out.firstChild.data = v + 'px';
-		input.setAttribute('aria-valuetext', v + 'px');
+		out.firstChild.data = fmt(v);
+		input.setAttribute('aria-valuetext', fmt(v));
 		onInput(v);
 	});
 	return E('div', { 'class': 'fs-rangewrap' }, [ input, out ]);
@@ -810,9 +850,12 @@ function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
 
-	/* Popover axes: Theme, Palette, Wallpaper, plus Submenus (sidebar) and Updates.
-	 * Palette dropped its third "Rvht" option — it set no colours, only the cats
-	 * wallpaper, which is now its own Wallpaper axis (composes with either palette). */
+	/* Popover axes: Theme, Palette, Wallpaper, Tint, Rounding, plus Submenus (sidebar)
+	 * and Updates. Palette dropped its third "Rvht" option — it set no colours, only
+	 * the cats wallpaper, which is now its own Wallpaper axis (composes with either
+	 * palette). Tint sits next to Palette because it composes with it too: it hues the
+	 * surfaces of whichever palette is on, and its job is identifying the ROUTER, not
+	 * choosing a look. */
 	const groups = [
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Theme') ]),
@@ -835,6 +878,19 @@ function wireAppearance() {
 				{ val: 'off',  label: _('Off') },
 				{ val: 'cats', label: _('Cats') }
 			], applyWallpaper, _('Wallpaper'))
+		]),
+		E('div', { 'class': 'fs-ap-group' }, [
+			/* the caption says what the axis is FOR, not what it does — "Tint" alone
+			 * reads as decoration and nobody would look for the router-identity cue
+			 * under it */
+			E('div', { 'class': 'fs-ap-label' }, [ _('Tint (router identification)') ]),
+			/* step 5 = 72 hues, which is finer than anyone can name and coarse enough
+			 * that the same router lands on the same colour when it is set again. */
+			sliderControl(currentTint(), 0, 360, applyTint, _('Tint (router identification)'), {
+				step: 5,
+				cls: 'fs-range-hue',
+				fmt: v => (v ? v + '°' : _('Off'))
+			})
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding') ]),

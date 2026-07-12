@@ -9,9 +9,11 @@
 	 *
 	 * TO ADD A COLOURWAY "sunset":
 	 *   1. Copy the two hicontrast blocks below, rename data-palette to "sunset".
-	 *   2. Set the 14 colours. accent-lt is light-only; dark inherits it. Nothing
-	 *      else: --fs-accent-soft and every tint/shadow in the theme are color-mix()
-	 *      over these, so they follow automatically.
+	 *   2. Set the 14 colours. The canvas is declared as --fs-bg-base, not --fs-bg (the
+	 *      live token is derived from it by the TINT block below); everything else is
+	 *      declared under its own name. accent-lt is light-only; dark inherits it.
+	 *      Nothing else: --fs-accent-soft and every tint/shadow in the theme are
+	 *      color-mix() over these, so they follow automatically.
 	 *   3. Set the four INKS (--fs-on-accent/--fs-on-good/--fs-on-warn/--fs-on-danger) — see below.
 	 *   4. Register the name: applyPalette()/currentPalette() in
 	 *      menu-footstrap-common.js and the head.ut pre-paint switch.
@@ -46,11 +48,87 @@
 	 * can't reference var() or currentColor, so each palette block bakes its own
 	 * --fs-dim into the stroke — the only way the glyph can follow palette/mode. */
 
+	/* ============================================================
+	 * BACKGROUND TINT — "which router am I on?"
+	 *
+	 * One hue (Appearance → Tint, 0–360°, localStorage `fs-tint`, pre-painted by
+	 * partials/head.ut) washed into the CANVAS — --fs-bg, the surface the cards float
+	 * on and the one the cats wallpaper tiles over — so a whole LuCI install reads as
+	 * green / violet / amber at a glance. localStorage is keyed by ORIGIN, so the
+	 * setting is already per router with nothing server-side: the same browser shows
+	 * the main router green and the AP violet, and a screenshot pasted into a ticket
+	 * says which box it came from. Off (no data-tint) = the palette exactly as it was.
+	 *
+	 * NOTHING ELSE MOVES, and that is the design, not a first cut. The cards
+	 * (--fs-panel/--fs-panel2), the chrome and the semantic colours
+	 * (--fs-accent/good/warn/danger) keep the palette's own values: a router's identity
+	 * cue has no business restating itself on every table row, and re-hueing the status
+	 * colours would make the cue lie about status. Colour the paper the UI is laid on,
+	 * not the UI.
+	 *
+	 * WHY THE PALETTES DECLARE --fs-bg-base AND THE LIVE --fs-bg IS DERIVED HERE.
+	 * A custom property cannot be defined from itself — `--fs-bg: color-mix(…,
+	 * var(--fs-bg), …)` is a cycle, which is invalid at computed-value time and would
+	 * silently drop the colour. So each palette names the RAW canvas and this block owns
+	 * the single derivation step; every rule in the theme goes on reading --fs-bg.
+	 *
+	 * WHY THIS SETS THE CANVAS'S CHROMA AND HUE INSTEAD OF MIXING A COLOUR INTO IT.
+	 * The obvious spelling — `color-mix(in oklch, var(--fs-bg-base) 96%, <tint colour>)` —
+	 * was written first and is a trap, because in a POLAR space the mix does not do what
+	 * the percentage says. Chroma interpolates by weight, but the result's HUE lands on
+	 * the tint's hue almost immediately, so the percentage never controlled the strength:
+	 * measured on the dark canvas (28,33,40), a "2%" mix at hue 165 already gave 25,36,31
+	 * — fully green — and "6%" gave 23,36,31, i.e. the same colour. Turning the knob down
+	 * changed nothing a user could see, which is exactly what they reported. In light mode
+	 * it failed the other way: the mix landed outside sRGB and clipped, so the tint was
+	 * invisible on blue hues and obvious on green ones — the cue's strength depended on
+	 * WHICH colour you picked, which is nonsense for an identity cue.
+	 *
+	 * What the tint actually IS, then: give the canvas the user's hue, at a chroma we
+	 * choose, and leave its LIGHTNESS exactly where the palette put it. That is one
+	 * relative-colour declaration, and it is better than a mix on every axis:
+	 *
+	 *   ONE HONEST KNOB   --fs-tint-c is the strength, in chroma, and it behaves the same
+	 *                     on every hue: there is no gamut clipping at these values and no
+	 *                     hue-dependent surprise.
+	 *   CONTRAST IS FREE  `l` is copied through untouched, so the surface keeps its
+	 *                     lightness and the AA margins on it barely move (chroma alone
+	 *                     nudges WCAG luminance a little). The mix could not promise that:
+	 *                     it dragged lightness toward the anchor, and an early attempt cost
+	 *                     --primary-color-high on --fs-bg its whole margin in hicontrast
+	 *                     light — 4.61:1 down to 4.40:1, i.e. under AA.
+	 *
+	 * Still proven, not assumed: tools/export-tier.mjs runs the AA matrix over six hues x
+	 * both modes x both palettes (it is what caught that 4.40:1), and tools/a11y-gallery.mjs
+	 * runs axe over the tinted gallery at two extreme hues. Change --fs-tint-c and re-run both.
+	 *
+	 * The shipped chroma is deliberately tiny — under what the dark palette's own blue-grey
+	 * canvas already carries (.0165). This is an IDENTITY cue, not a colourway: a large flat
+	 * field is where the eye is most sensitive to a cast, so a tint this faint still tells
+	 * two routers apart at a glance, while a page you stare at all day still looks like the
+	 * theme you chose. Loud is a different feature, and it belongs in a palette — there the
+	 * cards and the chrome can move with it.
+	 * ============================================================ */
+	:root {
+		--fs-bg: var(--fs-bg-base);
+		/* The hue the user picked, in degrees. Declared here (not only inline by
+		 * head.ut/menu-*-common.js) so the stylesheet stands on its own: a var() with
+		 * no definition anywhere is invalid at computed-value time and takes the whole
+		 * declaration down SILENTLY — the failure mode audit.py exists to catch. Its
+		 * value is irrelevant while data-tint is absent; nothing reads --fs-tint-c then. */
+		--fs-tint-h: 0;
+		/* HOW STRONG THE CUE IS — the only knob, and it is a chroma, not a percentage.
+		 * Dark takes a touch more because a dark surface swallows chroma. */
+		--fs-tint-c: .008;
+	}
+	:root[data-darkmode="true"] { --fs-tint-c: .011; }
+	:root[data-tint] { --fs-bg: oklch(from var(--fs-bg-base) l var(--fs-tint-c) var(--fs-tint-h)); }
+
 	/* ---- footstrap — GitHub Primer (DEFAULT, also fills bare :root) ---- */
 	:root,
 	:root[data-palette="footstrap"] {
 		/* LIGHT */
-		--fs-bg: #f6f8fa;
+		--fs-bg-base: #f6f8fa;
 		--fs-panel: #ffffff;
 		--fs-panel2: #f6f8fa;
 		--fs-border: #d0d7de;
@@ -77,7 +155,7 @@
 	:root[data-darkmode="true"],
 	:root[data-palette="footstrap"][data-darkmode="true"] {
 		/* DARK (dimmed) */
-		--fs-bg: #1c2128;
+		--fs-bg-base: #1c2128;
 		--fs-panel: #22272e;
 		--fs-panel2: #2d333b;
 		--fs-border: #444c56;
@@ -110,7 +188,7 @@
 		 * both uses have the same requirement — ≥4.5:1 against white — so darkening
 		 * the colour fixes both at once. Now 5.22/5.35/5.93/5.80, i.e. genuinely
 		 * above the default palette, which is what the name promises. */
-		--fs-bg: #eef1f6;
+		--fs-bg-base: #eef1f6;
 		--fs-panel: #ffffff;
 		--fs-panel2: #f6f8fb;
 		--fs-border: #e4e9f1;
@@ -133,7 +211,7 @@
 	}
 	:root[data-palette="hicontrast"][data-darkmode="true"] {
 		/* DARK */
-		--fs-bg: #0a0d13;
+		--fs-bg-base: #0a0d13;
 		--fs-panel: #111620;
 		--fs-panel2: #161c28;
 		--fs-border: #232b3a;

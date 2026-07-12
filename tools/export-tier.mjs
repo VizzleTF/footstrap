@@ -86,12 +86,19 @@ const NAMES = [
 	...Object.values(INKS),
 ];
 
+/* The Tint axis (Appearance → Tint) re-hues the three SURFACES every level above is
+ * measured against, so it multiplies this matrix — and it is user-driven, i.e. the
+ * hue nobody looked at is the one someone picks. Six hues, evenly around the wheel:
+ * the tint is a mix, the mix is monotonic in hue, and 60° apart is finer than the
+ * gamut boundaries that would move a result. `null` = the untinted palette. */
+const TINTS = [null, 0, 60, 120, 180, 240, 300];
+
 const MATRIX = [
 	{ palette: 'footstrap', mode: 'light' },
 	{ palette: 'footstrap', mode: 'dark' },
 	{ palette: 'hicontrast', mode: 'light' },
 	{ palette: 'hicontrast', mode: 'dark' },
-];
+].flatMap((c) => TINTS.map((tint) => ({ ...c, tint })));
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -100,13 +107,15 @@ await page.goto(base, { waitUntil: 'load' });
 const failures = [];
 let checks = 0;
 
-for (const { palette, mode } of MATRIX) {
-	await page.evaluate(([p, m]) => {
+for (const { palette, mode, tint } of MATRIX) {
+	await page.evaluate(([p, m, t]) => {
 		const root = document.documentElement;
 		root.setAttribute('data-darkmode', m === 'dark' ? 'true' : 'false');
 		if (p === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
 		else root.removeAttribute('data-palette');
-	}, [palette, mode]);
+		if (t === null) { root.removeAttribute('data-tint'); root.style.removeProperty('--fs-tint-h'); }
+		else { root.style.setProperty('--fs-tint-h', String(t)); root.setAttribute('data-tint', ''); }
+	}, [palette, mode, tint]);
 	await page.waitForTimeout(150);
 
 	/* Resolve each custom property by RASTERISING it, never by parsing the computed
@@ -133,7 +142,7 @@ for (const { palette, mode } of MATRIX) {
 		return out;
 	}, NAMES);
 
-	const where = `${palette}/${mode}`;
+	const where = `${palette}/${mode}${tint === null ? '' : `/tint ${tint}°`}`;
 
 	for (const family of TEXT_FAMILIES)
 		for (const level of LEVELS)
@@ -174,4 +183,4 @@ if (failures.length) {
 	for (const f of failures) console.error(`  ${f}`);
 	process.exit(1);
 }
-console.log(`export tier: OK — ${checks} checks across all four palette x mode combinations`);
+console.log(`export tier: OK — ${checks} checks across ${MATRIX.length} palette x mode x tint combinations`);

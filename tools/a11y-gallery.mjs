@@ -49,12 +49,21 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}/gallery.html`;
 
+/* The Tint axis re-hues every surface in the gallery, so it multiplies this matrix
+ * the way the palette does — and unlike the palette it is a slider, i.e. the user
+ * can land anywhere on the wheel. Two hues per combination rather than the six
+ * export-tier.mjs sweeps, because an axe pass is seconds and these two are the
+ * extremes that matter: at the fixed lightness the tint anchor uses, yellow carries
+ * the most luminance and blue the least, so they bracket what a mix can do to the
+ * contrast of text sitting on the surface. `null` = untinted. */
+const TINTS = [null, 60, 260];
+
 const MATRIX = [
 	{ mode: 'light', palette: 'footstrap' },
 	{ mode: 'dark', palette: 'footstrap' },
 	{ mode: 'light', palette: 'hicontrast' },
 	{ mode: 'dark', palette: 'hicontrast' },
-];
+].flatMap((c) => TINTS.map((tint) => ({ ...c, tint })));
 
 const browser = await chromium.launch();
 /* axe-core requires a real BrowserContext (it injects into every frame), not the
@@ -62,15 +71,17 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext();
 let failed = 0;
 
-for (const { mode, palette } of MATRIX) {
+for (const { mode, palette, tint } of MATRIX) {
 	const page = await ctx.newPage();
 	await page.goto(base, { waitUntil: 'load' });
-	await page.evaluate(([m, p]) => {
+	await page.evaluate(([m, p, t]) => {
 		const root = document.documentElement;
 		root.setAttribute('data-darkmode', m === 'dark' ? 'true' : 'false');
 		if (p === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
 		else root.removeAttribute('data-palette');
-	}, [mode, palette]);
+		if (t === null) { root.removeAttribute('data-tint'); root.style.removeProperty('--fs-tint-h'); }
+		else { root.style.setProperty('--fs-tint-h', String(t)); root.setAttribute('data-tint', ''); }
+	}, [mode, palette, tint]);
 	await page.waitForTimeout(400);   /* let the webfonts settle before measuring contrast */
 
 	const { violations } = await new AxeBuilder({ page })
@@ -80,7 +91,7 @@ for (const { mode, palette } of MATRIX) {
 	const hard = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
 	const soft = violations.filter((v) => !hard.includes(v));
 
-	const label = `${palette}/${mode}`;
+	const label = `${palette}/${mode}${tint === null ? '' : `/tint${tint}`}`;
 	if (!hard.length) {
 		console.log(`✔ ${label.padEnd(22)} no serious/critical violations` +
 			(soft.length ? `  (${soft.length} moderate/minor, not gating)` : ''));
@@ -106,4 +117,4 @@ if (failed) {
 	console.error(`\n${failed} serious/critical accessibility violation(s) — see above`);
 	process.exit(1);
 }
-console.log('\naxe-core: clean across all four palette x mode combinations');
+console.log(`\naxe-core: clean across all ${MATRIX.length} palette x mode x tint combinations`);
