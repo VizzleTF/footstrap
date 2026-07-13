@@ -3,7 +3,7 @@
 	 * Shared chrome — brand, logo, wordmark, logout, indicators.
 	 *
 	 * These widgets are the same in both layouts; only where they sit differs.
-	 * They used to be described twice — unscoped in 20-shell-sidebar.css and again
+	 * They used to be described twice — unscoped in 20-shell.css and again
 	 * under `.fs-topnav` in the topnav file — and the two copies had drifted (32px vs
 	 * 30px logo, 11px vs 10px brand gap, 10px vs 8px indicator gap). The top-nav
 	 * values are the reference and live here.
@@ -74,7 +74,7 @@
 	/* The 34px square icon button that .fs-themerow / .fs-logout collapse into is
 	 * NOT declared here any more. It only exists where the chrome is a bar or a rail,
 	 * and those states are already the ones that give them their border, surface and
-	 * size (20-shell-sidebar.css for the rail and the phone bar, 50-toplayout.css for
+	 * size (20-shell.css for the rail and the phone bar, 50-toplayout.css for
 	 * the desktop bar) — an unconditional copy here was a second definition of the
 	 * same button that the layout blocks then had to re-state anyway. The two
 	 * elements it used to target (.fs-appearance-btn, .fs-top-logout) no longer

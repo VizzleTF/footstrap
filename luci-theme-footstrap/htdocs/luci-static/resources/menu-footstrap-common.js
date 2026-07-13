@@ -159,9 +159,39 @@ function fitTabStrips() {
  * live width would make the answer depend on the state it is deciding (once the sidebar is
  * a bar it has no cut at all, so the content "fits", so it un-narrows, so it cuts again):
  * an oscillation. A constant makes the decision a pure function of the viewport. */
-const CONTENT_MIN = 500;			/* below this a content column stops being readable */
-const SIDEBAR_W = 224, RAIL_W = 68;	/* theme/20-shell.css */
-const CONTENT_PAD = 56;				/* 2 * --fs-content-pad (02-tokens.css) */
+/* The numbers come from the STYLESHEET, which is the thing that actually lays the sidebar
+ * out — they are not restated here.
+ *
+ * They used to be: `CONTENT_MIN = 500, SIDEBAR_W = 224, RAIL_W = 68, CONTENT_PAD = 56`,
+ * against bare `224px` / `68px` literals in theme/20-shell.css and a `--fs-content-pad`
+ * token this file doubled by hand. Two copies of one number, in two languages, with nothing
+ * to hold them together: narrow the rail in the CSS and this measurement goes on subtracting
+ * the old width, silently deciding the content still fits when it does not — and no gate in
+ * the build can see it. (20-shell.css even referred to a "--fs-content-min" token, which did
+ * not exist; the value lived only here.) They are tokens now, in 02-tokens.css, and this
+ * reads them back.
+ *
+ * Read once and memoised: fitShell runs on every resize and every content mutation, and
+ * getComputedStyle forces a style recalc. The fallbacks are the historical values — a
+ * browser that somehow hands us an empty custom property must not turn the whole shell
+ * measurement into NaN (`NaN < NaN` is false, so the sidebar would simply never yield). */
+let _geom = null;
+function shellGeometry() {
+	if (_geom) return _geom;
+	const cs = getComputedStyle(document.documentElement);
+	const px = (name, dflt) => {
+		const v = parseFloat(cs.getPropertyValue(name));
+		return Number.isFinite(v) ? v : dflt;
+	};
+	_geom = {
+		contentMin: px('--fs-content-min', 500),
+		sidebarW:   px('--fs-sidebar-w', 224),
+		railW:      px('--fs-rail-w', 68),
+		/* the token is ONE side's padding; the column loses it twice */
+		contentPad: px('--fs-content-pad', 28) * 2
+	};
+	return _geom;
+}
 
 function fitShell() {
 	const root = document.documentElement;
@@ -169,9 +199,10 @@ function fitShell() {
 		root.removeAttribute('data-narrow');
 		return;
 	}
-	const cut = (root.getAttribute('data-rail') === 'true') ? RAIL_W : SIDEBAR_W;
-	const content = window.innerWidth - cut - CONTENT_PAD;
-	if (content < CONTENT_MIN) root.setAttribute('data-narrow', '');
+	const g = shellGeometry();
+	const cut = (root.getAttribute('data-rail') === 'true') ? g.railW : g.sidebarW;
+	const content = window.innerWidth - cut - g.contentPad;
+	if (content < g.contentMin) root.setAttribute('data-narrow', '');
 	else root.removeAttribute('data-narrow');
 }
 
@@ -214,15 +245,11 @@ function scheduleTabFit() {
  * reflow per strip per tick, to discover the tabs had not moved. Nothing here
  * depends on content, only on strips appearing; width changes are covered by the
  * resize listener above. */
+/* `removed: true` — a strip DISAPPEARING matters here too (the density classes were sized for
+ * a menu that is no longer on the page), which is the one way this differs from fs-select's
+ * use of the same helper. */
 function tabStripTouched(mutations) {
-	const SEL = '.tabs, .cbi-tabmenu';
-	for (const m of mutations)
-		for (const list of [ m.addedNodes, m.removedNodes ])
-			for (const n of list) {
-				if (n.nodeType !== 1) continue;
-				if (n.matches(SEL) || n.querySelector(SEL)) return true;
-			}
-	return false;
+	return fit.touches(mutations, '.tabs, .cbi-tabmenu', { removed: true });
 }
 let _tabFitWired = false;
 function wireTabFit() {
@@ -264,10 +291,18 @@ function renderModeMenu(tree, renderMainMenu) {
 		ul.style.display = '';
 }
 
-/* header Appearance popover: Mode (auto/light/dark) + Palette (footstrap/github).
- * Both axes are client-side, instant, persisted in localStorage — no server, no
- * reload. head.ut's inline script applies both before paint (no flash). Layout
- * (sidebar/top) is a server choice and stays in the stock "Design" dropdown. */
+/* The Appearance popover's axes. ALL of them are client-side, instant and persisted in
+ * localStorage — no server, no reload — and head.ut's inline script re-applies them before
+ * paint, so a reload never flashes the wrong one (tools/axes.mjs holds the two copies to the
+ * same contract):
+ *
+ *   Layout (sidebar|top) · Theme (auto|light|dark) · Palette (footstrap|hicontrast) ·
+ *   Wallpaper (off|cats) · Tint (hue) · Accent (hue) · Rounding (0-20px) ·
+ *   Submenus (keep-open|auto-collapse) · Updates (check|off)
+ *
+ * Layout is NOT a server choice and is NOT in the stock "Design" dropdown — there is one
+ * theme entry. The only server involvement is a DEFAULT for a router migrated from the old
+ * top-nav theme (luci.main.footstrap_layout), which the user's own choice then overrides. */
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
@@ -288,13 +323,13 @@ function currentPalette() {
  * either palette. data-wallpaper="cats" on :root drives styles/theme/15-wallpaper.css. */
 function currentWallpaper() { return lsGet('fs-wallpaper') === 'cats' ? 'cats' : 'off'; }
 function applyWallpaper(val) {
-	const root = document.querySelector(':root');
+	const root = document.documentElement;
 	if (val === 'cats') { lsSet('fs-wallpaper', 'cats'); root.setAttribute('data-wallpaper', 'cats'); }
 	else { lsDel('fs-wallpaper'); root.removeAttribute('data-wallpaper'); }
 }
 const _mqDark = window.matchMedia('(prefers-color-scheme: dark)');
 function applyMode(val) {
-	const root = document.querySelector(':root');
+	const root = document.documentElement;
 	if (val === 'auto') lsDel('fs-darkmode');
 	else lsSet('fs-darkmode', val === 'dark' ? 'true' : 'false');
 	const dark = (val === 'dark') || (val === 'auto' && _mqDark.matches);
@@ -306,7 +341,7 @@ _mqDark.addEventListener('change', () => {
 	if (currentMode() === 'auto') applyMode('auto');
 });
 function applyPalette(val) {
-	const root = document.querySelector(':root');
+	const root = document.documentElement;
 	/* footstrap (GitHub colours) is the default = bare :root, no attr; hicontrast is
 	 * the opt-in variant. Colourway blocks live in styles/03-palettes.css. */
 	if (val === 'hicontrast') { lsSet('fs-palette', 'hicontrast'); root.setAttribute('data-palette', 'hicontrast'); }
@@ -323,7 +358,7 @@ function currentRadius() {
 	return (s >= 0 && s <= 20) ? s : FS_RADIUS_DEFAULT;
 }
 function applyRadius(px) {
-	const root = document.querySelector(':root');
+	const root = document.documentElement;
 	const v = Math.max(0, Math.min(20, px | 0));
 	if (v === FS_RADIUS_DEFAULT) { lsDel('fs-radius'); root.style.removeProperty('--fs-radius-base'); }
 	else { lsSet('fs-radius', String(v)); root.style.setProperty('--fs-radius-base', v + 'px'); }
@@ -343,25 +378,51 @@ function applyRadius(px) {
  * entirely, so an untinted router costs exactly the CSS the palette already had.
  * head.ut pre-paints it before first paint, so a reload doesn't flash the neutral
  * palette first. */
-function currentTint() {
-	const h = parseInt(lsGet('fs-tint'), 10);
-	return (h >= 1 && h <= 360) ? h : 0;
+/* ---- the HUE axis, written once --------------------------------------------------
+ *
+ * Tint and Accent are the same axis pointed at two different things, and they were written
+ * out twice: same 1-360 validation, same "0 is off", same clamp, same removeAttribute +
+ * removeProperty on the off path, and the same load-bearing ORDERING rule (set the custom
+ * property BEFORE the attribute, or a fresh load paints one frame with the previous hue).
+ * Three names differed; forty lines did not.
+ *
+ * That ordering rule is exactly the kind of thing that gets fixed in one copy and not the
+ * other — so it now exists once. A third hue axis is three arguments away.
+ *
+ * The other seven Appearance axes are NOT folded in with them, and that is deliberate: each
+ * has a real quirk that a table would have to grow an option for. `mode` stores a value that
+ * is not the value it applies (tri-state → matchMedia) and owns an MQL listener; `radius`
+ * sets an inline custom property with no attribute, and its default sits in the MIDDLE of the
+ * range, so "clear the key" is not an end of the slider; `layout` reads the ATTRIBUTE rather
+ * than localStorage (the server-migrated default) and writes its default explicitly; and
+ * `autoCollapse`/`updateCheck` have no `:root` attribute at all and dispatch events instead.
+ * Five short functions beat one table with five optional hooks. */
+function hueAxis(key, attr, prop) {
+	return {
+		current() {
+			const h = parseInt(lsGet(key), 10);
+			return (h >= 1 && h <= 360) ? h : 0;
+		},
+		apply(deg) {
+			const root = document.documentElement;
+			const v = Math.max(0, Math.min(360, deg | 0));
+			if (!v) {
+				lsDel(key);
+				root.removeAttribute(attr);
+				root.style.removeProperty(prop);
+			} else {
+				lsSet(key, String(v));
+				/* the hue FIRST, then the attribute that switches the mixes on — the other
+				 * order paints one frame with the previous hue (or hue 0) on a fresh load. */
+				root.style.setProperty(prop, String(v));
+				root.setAttribute(attr, '');
+			}
+		}
+	};
 }
-function applyTint(deg) {
-	const root = document.querySelector(':root');
-	const v = Math.max(0, Math.min(360, deg | 0));
-	if (!v) {
-		lsDel('fs-tint');
-		root.removeAttribute('data-tint');
-		root.style.removeProperty('--fs-tint-h');
-	} else {
-		lsSet('fs-tint', String(v));
-		/* the hue first, then the attribute that switches the mixes on — the other
-		 * order paints one frame with the previous hue (or hue 0) on a fresh load. */
-		root.style.setProperty('--fs-tint-h', String(v));
-		root.setAttribute('data-tint', '');
-	}
-}
+
+const TINT = hueAxis('fs-tint', 'data-tint', '--fs-tint-h');
+const currentTint = TINT.current, applyTint = TINT.apply;
 
 /* Accent-hue axis: ONE hue (0–360°) that recolours the UI accent — the solid buttons,
  * the toggle knobs, the range sliders, the focus rings, the accented links — while the
@@ -374,25 +435,8 @@ function applyTint(deg) {
  * wraps, so spending one end on the off state loses nothing, and off clears the
  * attribute so an un-recoloured router costs exactly the palette it already had.
  * head.ut pre-paints it, so a reload doesn't flash the default accent first. */
-function currentAccent() {
-	const h = parseInt(lsGet('fs-accent'), 10);
-	return (h >= 1 && h <= 360) ? h : 0;
-}
-function applyAccent(deg) {
-	const root = document.querySelector(':root');
-	const v = Math.max(0, Math.min(360, deg | 0));
-	if (!v) {
-		lsDel('fs-accent');
-		root.removeAttribute('data-accent');
-		root.style.removeProperty('--fs-accent-h');
-	} else {
-		lsSet('fs-accent', String(v));
-		/* hue before the attribute, as the tint — otherwise one frame paints with the
-		 * previous hue (or 0) on a fresh load. */
-		root.style.setProperty('--fs-accent-h', String(v));
-		root.setAttribute('data-accent', '');
-	}
-}
+const ACCENT = hueAxis('fs-accent', 'data-accent', '--fs-accent-h');
+const currentAccent = ACCENT.current, applyAccent = ACCENT.apply;
 
 /* Layout axis: the vertical sidebar (default) vs the horizontal top bar. Both are
  * ONE template and ONE menu renderer now — the layout is a client class, morphed by
@@ -427,7 +471,7 @@ function applyLayout(val) {
 	 * third layout has to opt in to a rule rather than inherit it by not being 'top'.
 	 * head.ut stamps the same attribute server-side, so it is never absent. */
 	lsSet('fs-layout', layout);
-	document.querySelector(':root').setAttribute('data-layout', layout);
+	document.documentElement.setAttribute('data-layout', layout);
 	/* the bar and the column have completely different room for the menu, so the
 	 * fits-on-one-row measurement has to be re-taken. Nothing else re-renders. */
 	scheduleTabFit();
@@ -1128,6 +1172,11 @@ function wireVisibility() {
 	});
 }
 
+/* How close a popup may come to the edge of the viewport before it is nudged back in.
+ * Read by BOTH popups the theme places by hand — the Appearance popover below and the menu's
+ * dropdown edge-clamp (menu-footstrap.js) — which had each written their own `8`. */
+const EDGE_GAP = 8;
+
 /* Place the popover next to its trigger and keep it inside the viewport.
  * It is position:fixed and lives on <body> — the sidebar is `overflow-y: auto`
  * (which computes overflow-x to `auto` too), so an absolutely-positioned popover
@@ -1135,7 +1184,7 @@ function wireVisibility() {
  * Top-nav opens downward from the right edge of the button; the sidebar opens
  * sideways out of the rail. Both are then clamped to the viewport. */
 function placePopover(btn, pop) {
-	const gap = 8, r = btn.getBoundingClientRect();
+	const gap = EDGE_GAP, r = btn.getBoundingClientRect();
 	const w = pop.offsetWidth, h = pop.offsetHeight;
 	const vw = document.documentElement.clientWidth;
 	const vh = document.documentElement.clientHeight;
@@ -1155,7 +1204,7 @@ function placePopover(btn, pop) {
 }
 
 /* ---- theme version + update check --------------------------------------
- * FS_VERSION is stamped at build/deploy: the package Makefile (Build/Compile)
+ * FS_VERSION is stamped at build/deploy: the package Makefile (Build/Prepare)
  * and dev-sync.sh rewrite the '0.0.0-dev' literal below to the git-derived
  * version. On release builds it is the real version; a plain source checkout
  * (never stamped) stays 'dev' and skips the update check.
@@ -1223,8 +1272,8 @@ function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
 
-	/* Popover axes: Theme, Palette, Wallpaper, Tint, Rounding, plus Submenus (sidebar)
-	 * and Updates. Palette dropped its third "Rvht" option — it set no colours, only
+	/* Popover axes, in order: Layout, Theme, Palette, Wallpaper, Tint, Accent, Rounding,
+	 * plus Submenus (sidebar only) and Updates. Palette dropped its third "Rvht" option — it set no colours, only
 	 * the cats wallpaper, which is now its own Wallpaper axis (composes with either
 	 * palette). Tint sits next to Palette because it composes with it too: it hues the
 	 * surfaces of whichever palette is on, and its job is identifying the ROUTER, not
@@ -1389,13 +1438,22 @@ function wireAppearance() {
 			])
 		]);
 
-		/* The package's postinst restarts rpcd (it must: a reload would leave stale
-		 * ACLs and a half-updated backend). rpcd keeps sessions in memory, so the
-		 * restart logs this browser out and every further RPC answers "Login
-		 * session is expired" / "Access denied". That is the SUCCESS path, not a
-		 * failure: postinst only runs once the package installed. Say so and offer
-		 * a fresh login — a full reload also re-fetches the new CSS/JS, whose
-		 * cache-buster changed with the install. */
+		/* The update no longer logs you out — but keep this branch anyway.
+		 *
+		 * postinst used to `rpcd restart`, which destroys every in-memory session, so a
+		 * successful update ended with this browser logged out and every further RPC
+		 * answering "Login session is expired" / "Access denied". The whole branch existed
+		 * to explain a self-inflicted logout as success. postinst now does `rpcd reload`
+		 * (SIGHUP), which re-reads the ACL directory — verified on a live router to be all
+		 * this package needs — and leaves sessions alone, so the normal path is now simply
+		 * "Updated. Reloading…".
+		 *
+		 * It stays because the CLAIM it makes is still true: an expired session arriving
+		 * after the installer has run means the package installed (postinst is the last
+		 * thing to run), and telling the user to sign in again is the right answer whatever
+		 * killed the session — a hand-rolled rpcd restart, an upgrade of luci-base
+		 * alongside, a router that rebooted. A full reload also re-fetches the new CSS/JS,
+		 * whose cache-buster changed with the install. */
 		const sessionGone = (m) =>
 			(/session is expired|Access denied|-32002|\b403\b/i).test(String(m));
 		const relogin = () => modal([
@@ -1532,6 +1590,9 @@ function wireRail() {
 return baseclass.extend({
 	/* menu-footstrap.js asks before unfolding a section (see applyAutoCollapse) */
 	autoCollapse: currentAutoCollapse,
+
+	/* the viewport edge gap both hand-placed popups obey — see EDGE_GAP above */
+	EDGE_GAP,
 
 	/* the disclosure primitives both layouts' menus build their sections on */
 	setOpen,

@@ -31,11 +31,19 @@ dest() {
 	esac
 }
 
+# root/ is in the list, and it was missing.
+#
+# dest() has always known how to map root/* to /* — but nothing ever handed it one: --all
+# searched only htdocs/ and ucode/template, and the git-diff branch was restricted to the same
+# two. So editing footstrap-selfupdate.sh or its rpcd ACL and running this script deployed
+# NOTHING, silently, and the router went on running the old backend. The package ships root/
+# (luci.mk installs it to /), so this must too.
 collect() {
 	if [ "$1" = "--all" ]; then
-		find htdocs/luci-static ucode/template -type f \
+		find htdocs/luci-static ucode/template root -type f \
 			\( -name '*.css' -o -name '*.js' -o -name '*.ut' -o -name '*.woff2' \
-			   -o -name '*.svg' -o -name '*.png' \)
+			   -o -name '*.svg' -o -name '*.png' -o -name '*.sh' -o -name '*.json' \
+			   -o -path 'root/etc/uci-defaults/*' \)
 	elif [ $# -gt 0 ]; then
 		printf '%s\n' "$@"
 	else
@@ -43,7 +51,8 @@ collect() {
 		# styles/ is source, not runtime: a change there means ship cascade.css.
 		{
 			git -C "$ROOT/.." diff --name-only HEAD -- \
-				luci-theme-footstrap/htdocs/luci-static luci-theme-footstrap/ucode/template 2>/dev/null \
+				luci-theme-footstrap/htdocs/luci-static luci-theme-footstrap/ucode/template \
+				luci-theme-footstrap/root 2>/dev/null \
 				| sed 's#^luci-theme-footstrap/##'
 			git -C "$ROOT/.." diff --quiet HEAD -- luci-theme-footstrap/styles 2>/dev/null || echo "$CSS"
 		} | sort -u
@@ -54,14 +63,22 @@ FILES="$(collect "$@")"
 [ -n "$FILES" ] || { echo "nothing changed to deploy (use --all to force)"; }
 
 n=0
+backend=0
 for f in $FILES; do
 	[ -f "$f" ] || continue
 	d="$(dest "$f")" || { echo "skip (unmapped): $f"; continue; }
 	ssh "$R" "mkdir -p '$(dirname "$d")'"
 	scp -q "$f" "$R:$d"
+	# an executable on the router has to arrive executable; scp does not preserve the bit
+	case "$d" in /usr/libexec/*|/etc/uci-defaults/*) ssh "$R" "chmod +x '$d'" ;; esac
+	# an acl.d change only takes effect once rpcd re-reads the directory (SIGHUP)
+	case "$d" in /usr/share/rpcd/acl.d/*|/usr/libexec/*) backend=1 ;; esac
 	echo "→ $d"
 	n=$((n+1))
 done
 
-ssh "$R" 'touch /lib/apk/db/installed; rm -f /tmp/luci-indexcache*'
+[ "$backend" = 1 ] && ssh "$R" '/etc/init.d/rpcd reload' && echo "rpcd reloaded (ACL/backend changed)"
+# BOTH caches, as the package's postinst does: a stale module cache after replacing theme JS
+# is exactly the case that bites.
+ssh "$R" 'touch /lib/apk/db/installed; rm -f /tmp/luci-indexcache*; rm -rf /tmp/luci-modulecache'
 echo "deployed $n file(s) to $R; cache bumped (F5 reloads). Active theme unchanged."

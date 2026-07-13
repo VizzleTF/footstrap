@@ -74,7 +74,10 @@
 	 * = base, vertical = the one override) states each of the three states exactly once.
 	 *
 	 * The override wins on SPECIFICITY, never on source order:
-	 *   :root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar  (0,3,0)  beats  .fs-sidebar  (0,1,0).
+	 *   :root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar  (0,4,0)  beats  .fs-sidebar  (0,1,0).
+	 *   (four class-level parts: :root, [data-layout], :not([data-narrow]) — a :not() contributes
+	 *    the specificity of its argument — and .fs-sidebar. It said 0,3,0, which was the count
+	 *    before :not([data-narrow]) joined the guard.)
 	 * ================================================================== */
 	.fs-shell {
 		display: flex; flex-direction: column;
@@ -111,7 +114,7 @@
 
 	/* the menu on its own full-width row beneath the brand. The DESKTOP bar lifts it back
 	 * onto the brand's row whenever it fits — that decision is measured, not a breakpoint
-	 * (menu-footstrap.js adds .fs-bar-stack when it does NOT fit). */
+	 * (menu-footstrap-common.js (fitChrome) adds .fs-bar-stack when it does NOT fit). */
 	.fs-sidebar ul.nav {
 		order: 3; flex: 1 1 100%;
 		flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px;
@@ -210,7 +213,9 @@
 	 * it is 224px expanded and 68px as a rail, so the two must give way at DIFFERENT widths,
 	 * which one viewport breakpoint cannot express. `data-narrow` is set by
 	 * menu-footstrap-common.js when the content column would fall below --fs-content-min
-	 * (500px), measured from the sidebar's actual cut — so the rail keeps its column ~156px
+	 * (02-tokens.css — a real token now; this comment used to cite one that did not exist,
+	 * while the JS carried its own uncoupled copy of the number), measured from the
+	 * sidebar's actual cut — so the rail keeps its column ~156px
 	 * further down than the expanded sidebar does, which is exactly the room it gave back.
 	 *
 	 * The `min-width: 521px` is not a second guess: it is a floor that keeps the chrome
@@ -220,7 +225,7 @@
 	@media (min-width: 521px) {
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-shell { flex-direction: row; }
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar {
-			width: 224px; height: 100dvh;
+			width: var(--fs-sidebar-w); height: 100dvh;
 			flex: 0 0 auto;
 			flex-direction: column; flex-wrap: nowrap; align-items: normal;
 			gap: normal; padding: 22px 14px;
@@ -480,7 +485,7 @@
 	 * ================================================================== */
 	@media (min-width: 521px) {
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar {
-			width: 68px; padding: 22px 10px;
+			width: var(--fs-rail-w); padding: 22px 10px;
 			/* the default `overflow-y: auto` computes overflow-x to `auto` as well,
 			 * which would clip the flyouts; the rail is short enough not to scroll */
 			overflow: visible;

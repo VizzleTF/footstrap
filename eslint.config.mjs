@@ -1,3 +1,4 @@
+import js from '@eslint/js';
 import globals from 'globals';
 
 /* ESLint for the theme's browser JS.
@@ -13,6 +14,16 @@ import globals from 'globals';
  * tree fails to parse and the lint is worthless.
  */
 export default [
+	/* eslint:recommended as the FLOOR. The rule list below used to be the whole of it —
+	 * eighteen rules picked by hand — which quietly meant that every OTHER free
+	 * correctness rule was off: no-dupe-keys, no-unreachable, no-duplicate-case,
+	 * no-prototype-builtins, no-async-promise-executor, getter-return, no-sparse-arrays,
+	 * no-cond-assign, no-misleading-character-class and ~30 more. None of them is a style
+	 * opinion; each is a bug that compiles. Turning the set on found ZERO new violations in
+	 * this codebase, so it costs nothing today and catches the next one for free — which is
+	 * the only reason to have a linter at all. The hand-picked rules below still stand:
+	 * they are the ones recommended does NOT give you (no-var, eqeqeq, wrap-regex, …). */
+	{ files: ['luci-theme-footstrap/htdocs/**/*.js'], ...js.configs.recommended },
 	{
 		files: ['luci-theme-footstrap/htdocs/**/*.js'],
 		languageOptions: {
@@ -41,6 +52,12 @@ export default [
 			},
 		},
 		rules: {
+			/* An empty `catch {}` is the deliberate idiom here: every localStorage access is
+			 * wrapped in one, because a browser in private mode THROWS on getItem, and a theme
+			 * preference that cannot be read is not an error — it is a default. Same for the
+			 * ui.hideModal() guard. Empty blocks anywhere ELSE stay an error. */
+			'no-empty': ['error', { allowEmptyCatch: true }],
+
 			/* correctness — these are the ones that catch real bugs */
 			'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],
 			'no-undef': 'error',
@@ -97,7 +114,9 @@ export default [
 		 * that ESLint cannot see. */
 		files: [
 			'luci-theme-footstrap/htdocs/luci-static/resources/fs-select.js',
+			'luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap.js',
 			'luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap-common.js',
+			'luci-theme-footstrap/htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js',
 		],
 		languageOptions: { globals: { fit: 'readonly' } },
 	},

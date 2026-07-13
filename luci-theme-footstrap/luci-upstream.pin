@@ -1,0 +1,18 @@
+# The openwrt/luci commit this project takes its two BORROWED BUILD TOOLS from, and their
+# checksums. Sourced as shell (`. luci-upstream.pin`) by update-po.sh and by the CI workflow.
+#
+# Both tools are downloaded over the network and then EXECUTED as gates:
+#   - jsmin.c        is compiled and decides whether our shipped JavaScript is safe
+#                    (jsmin's regex-vs-division lookback can silently eat a file — see CLAUDE.md)
+#   - i18n-scan.pl   is run by perl and decides whether the translation catalogue is complete
+# Fetching either from a moving `master` would mean the gate is whatever upstream pushed last.
+#
+# THIS FILE IS THE SINGLE SOURCE OF THE COMMIT. It used to be written out twice — once in
+# .github/workflows/build.yml and once in update-po.sh — each with a comment saying "bump them
+# together, deliberately", and nothing whatsoever holding them together. Bumping one and
+# forgetting the other left half the toolchain on an older tree, silently.
+#
+# To bump: change LUCI_PIN, re-fetch both files at the new commit, and update their sha256s.
+LUCI_PIN=5cf20c5741dc34eea0faaf7324ef3751b05fa1f3
+JSMIN_SHA256=0568b14873f27f339cf66a9c43603d0bc8ca501ff62522ea924c6e8daf1be215
+I18N_SCAN_SHA256=a1823d1fdd942f31a105e1e53b401e146bc10527f231e016930b1a5123ef21d3

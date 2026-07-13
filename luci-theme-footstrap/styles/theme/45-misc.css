@@ -75,12 +75,11 @@
 	.zonebadge-empty { border-color: var(--fs-border); color: var(--fs-dim); }
 
 	/* ==================================================================
-	 * Responsive CBI section tables (firewall zones, port forwards, DHCP …).
-	 * The base forces .tr/.td to table display and dropdowns to min-width:210px,
-	 * so tables with several dropdown columns overflow the content column and
-	 * never stack. Desktop/tablet: let in-table controls shrink to share the
-	 * available width. Narrow (<760px): stack each row into a card, using the
-	 * cell's data-title as its label.
+	 * The @container PLUMBING for the responsive tables. The card rules themselves are
+	 * NOT here: a CBI section table (firewall zones, port forwards …) cards under
+	 * `@container fs-content (max-width: 960px)` in theme/65-dropdown.css, and a data
+	 * table cards by MEASUREMENT (.fs-stacked, fs-select.js) at any width. All this file
+	 * declares is WHICH boxes are query containers, and under what names.
 	 * ================================================================== */
 	/* Query the actual content width, not the viewport — the sidebar eats width, so
 	 * a viewport breakpoint would stack too late (or too early) depending on layout. */
@@ -94,13 +93,13 @@
 	.cbi-map { container-type: inline-size; container-name: fs-map fs-content; }
 
 	/* ==================================================================
-	 * Responsive standalone data tables — DHCP/DHCPv6 leases, Processes,
-	 * Startup init scripts, wireless Associated Stations, etc. These are plain
-	 * <table class="table"> with a .tr.table-titles header and td[data-title],
-	 * NOT .cbi-section-table and NOT inside .cbi-map, so the block above never
-	 * reaches them (they overflow to ~800px on a phone). #view is their query
-	 * container; stack each row into label/value pairs below 800px. On a wider column
-	 * (content-max 1280) data tables stay real tables and reflow long values.
+	 * #view is a query container under TWO names, and both are still used — but NOT by
+	 * the data tables any more. Those are measured now (.fs-stacked), which is why no
+	 * threshold for them appears anywhere in this file.
+	 *   fs-view    the overview's grid (pages/20-overview.css, @container 800)
+	 *   fs-content "whatever content column I am in" — the config table's card
+	 *              (@container 960, theme/65-dropdown.css) resolves to the NEAREST of
+	 *              #view and .cbi-map, which is the point of sharing the name.
 	 * ================================================================== */
 	#view { container-type: inline-size; container-name: fs-view fs-content; }
 

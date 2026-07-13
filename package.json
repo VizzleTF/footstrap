@@ -12,10 +12,13 @@
     "css-dup": "node tools/css-dup.mjs",
     "css-orphans": "node tools/fs-orphans.mjs",
     "css-metrics": "node tools/css-metrics.mjs",
-    "check": "npm run lint && npm run css-metrics && npm run css-orphans && npm run css-dup && npm run export-tier && npm run i18n && npm run a11y"
+    "check": "npm run lint && npm run css-metrics && npm run css-orphans && npm run css-dup && npm run mirror && npm run axes && npm run export-tier && npm run i18n && npm run a11y",
+    "mirror": "node tools/mirror.mjs",
+    "axes": "node tools/axes.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
+    "@eslint/js": "^9.39.5",
     "@projectwallace/css-analyzer": "^9.9.0",
     "css-tree": "^3.2.1",
     "eslint": "^9.17.0",

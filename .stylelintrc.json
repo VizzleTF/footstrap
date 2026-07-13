@@ -12,7 +12,17 @@
     "CLAUDE.md — no stray !important, and no colour literal outside the palettes.",
     "",
     "audit.py stays: it checks things stylelint cannot see (var() defined-vs-used",
-    "across files, declarations shadowed within a cascade layer)."
+    "across files, declarations shadowed within a cascade layer).",
+    "",
+    "The second block of rules below is the same argument one layer deeper: all of them",
+    "are correctness, none is formatting, and every one found ZERO violations in the",
+    "current tree — so they cost nothing today and catch the next mistake for free.",
+    "declaration-property-value-no-unknown is the one that matters most: it is the only",
+    "check that reads a declaration's VALUE against the property's grammar, i.e. the only",
+    "thing that can catch a value which is invalid at computed-value time and therefore",
+    "vanishes in SILENCE — the exact failure mode this project tore the --*-rgb component",
+    "bridges out for. custom-property-no-missing-var-function catches `color: --fs-accent`",
+    "(a bare custom-property name where var() was meant), which parses and does nothing."
   ],
   "rules": {
     "color-no-invalid-hex": true,
@@ -51,6 +61,17 @@
     "no-invalid-double-slash-comments": true,
     "no-invalid-position-at-import-rule": true,
     "no-irregular-whitespace": true,
+
+    "declaration-property-value-no-unknown": true,
+    "custom-property-no-missing-var-function": true,
+    "declaration-block-no-duplicate-custom-properties": true,
+    "function-no-unknown": true,
+    "media-query-no-invalid": true,
+    "selector-anb-no-unmatchable": true,
+    "keyframe-declaration-no-important": true,
+    "no-invalid-position-declaration": true,
+    "font-family-no-missing-generic-family-keyword": true,
+    "syntax-string-no-invalid": true,
 
     "no-descending-specificity": null,
 

@@ -16,7 +16,7 @@
 # !important. Layer precedence is declared once in styles/00-header.css.
 #
 # Without --dev the output is minified: comments dropped (except the /*! banner),
-# indentation and blank lines collapsed. That is ~30% of the byte size, and it
+# indentation and blank lines collapsed. That cuts it by ~61% (284 KB of source -> ~112 KB shipped), and it
 # matters — uhttpd serves /www/luci-static/*.css with no gzip, so the browser
 # downloads every byte. The transform never touches selectors or declarations,
 # which is why LuCI's own csstidy pass stays off (it mangles :has()/color-mix()).
@@ -133,16 +133,16 @@ strip_comments() {
 #     line number still means something.
 squeeze() {
 	awk '
-		BEGIN { q = ""; ban = 0; lastc = "" }
+		BEGIN { q = ""; ban = 0; lastc = ""; buf = ""; lastreal = "" }
 		{
 			line = $0
 			# The /*! ... */ licence banner is the one comment strip_comments keeps, and
 			# it must survive BYTE FOR BYTE: it is an Apache-2.0 attribution notice, not
 			# formatting. Squeezing it turned "Twitter, Inc" into "Twitter,Inc" and glued
 			# every line together. Copy it out untouched, newlines and all.
-			if (ban) { print line; lastc = ""; if (index(line, "*/")) ban = 0; next }
+			if (ban) { print line; lastc = ""; lastreal = ""; if (index(line, "*/")) ban = 0; next }
 			if (substr(line, 1, 3) == "/*!") {
-				print line; lastc = ""
+				print line; lastc = ""; lastreal = ""
 				if (!index(substr(line, 4), "*/")) ban = 1
 				next
 			}
@@ -160,9 +160,10 @@ squeeze() {
 					out = out c
 					if (c == "\\") { out = out substr(line, i + 1, 1); i += 2; continue }
 					if (c == q) q = ""
+					lastreal = ""                # a char inside a string is not structure
 					i++; continue
 				}
-				if (c == "\"" || c == "'"'"'") { q = c; out = out c; i++; continue }
+				if (c == "\"" || c == "'"'"'") { q = c; out = out c; lastreal = ""; i++; continue }
 				if (c == " " || c == "\t") {         # collapse a run of whitespace to one space
 					while (i <= n && (substr(line, i, 1) == " " || substr(line, i, 1) == "\t")) i++
 					# prev is the last character EMITTED, which on a continuation line
@@ -174,18 +175,39 @@ squeeze() {
 						continue
 					if (nxt == "{" || nxt == "}" || nxt == ";" || nxt == "," || nxt == "")
 						continue
-					out = out " "
+					out = out " "; lastreal = " "
 					continue
 				}
-				out = out c; i++
+				# THE LAST `;` OF A BLOCK IS REDUNDANT — drop it as the closing brace is
+				# emitted, i.e. INSIDE the string-aware scanner.
+				#
+				# This used to be a `| sed "s/;}/}/g"` bolted onto the awk output, and sed
+				# cannot see strings: `content: ";}"` came out as `content: "}"`, and a
+				# data-URI containing `;}` was silently corrupted. Both reproduced. Nothing
+				# in the tree happens to contain that byte pair today — which is precisely
+				# how a bug like this waits to be found by whoever adds the first one.
+				#
+				# The `;` may already be sitting in the previous input line''s output, so the
+				# emitted text is held in `buf` until the rule closes rather than streamed:
+				# a `;` printed to stdout cannot be taken back.
+				if (c == "}") {
+					if (length(out) && substr(out, length(out), 1) == ";")
+						out = substr(out, 1, length(out) - 1)
+					else if (!length(out) && length(buf) && substr(buf, length(buf), 1) == ";")
+						buf = substr(buf, 1, length(buf) - 1)
+				}
+				out = out c; lastreal = c; i++
 			}
-			printf "%s", out
+			buf = buf out
 			if (length(out)) lastc = substr(out, length(out), 1)
-			# a newline only after a closing brace — keeps rules on their own lines
-			if (lastc == "}") { printf "\n"; lastc = "" }
+			# a newline only after a closing brace — keeps rules on their own lines.
+			# lastreal, not lastc: a line ending in a QUOTED `}` (content: "}") is not the
+			# end of a rule, and flushing there would break the rule across two lines and
+			# lose the space that separates its next token.
+			if (lastreal == "}") { print buf; buf = ""; lastc = ""; lastreal = "" }
 		}
-		END { printf "\n" }
-	' "$1" | sed 's/;}/}/g'
+		END { if (length(buf)) print buf; else printf "\n" }
+	' "$1"
 }
 
 # The brace check runs on a COMMENT-STRIPPED copy, always — including in --dev,
@@ -221,7 +243,7 @@ echo "build-css: $SIZE bytes -> $OUT"
 # docs/18), so every byte here is a byte on the wire, on a device whose whole point
 # is to be small. The gate is deliberately checked only for the real minified build.
 # Raise it consciously, or not at all.
-BUDGET=${FS_CSS_BUDGET:-117760}   # 115 KB — the sheet is ~108 KB, so this is real headroom, not slack
+BUDGET=${FS_CSS_BUDGET:-117760}   # 115 KB — the sheet is ~109 KB, so this is real headroom, not slack
 if [ "$DEV" -eq 0 ] && [ "$SIZE" -gt "$BUDGET" ]; then
 	echo "build-css: cascade.css is $SIZE bytes, over the $BUDGET-byte budget." >&2
 	echo "build-css: uhttpd cannot compress it, so this is $SIZE bytes on the wire." >&2

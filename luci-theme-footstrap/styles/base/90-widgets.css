@@ -136,7 +136,7 @@
 	/* The `.label` pill (and its .important/.warning/… variants and a.label link
 	 * states) is owned by theme/35-alerts.css — absorbed.
 	 *
-	 * So is the indicator PILL: theme/20-shell-sidebar.css paints `#indicators
+	 * So is the indicator PILL: theme/20-shell.css paints `#indicators
 	 * [data-indicator]`, and ui.js's showIndicator() is the only thing that emits one,
 	 * always into #indicators — so every `header [data-indicator]` is one of those, and
 	 * the later layer repainted padding/font/colour/background/radius here to nothing.

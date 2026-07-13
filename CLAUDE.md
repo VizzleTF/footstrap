@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Both releases are supported, and the API surface is genuinely the same** — verified against `openwrt-24.10` of `openwrt/luci`, not assumed:
 - LuCI on 24.10 is already **ucode**, not Lua (`modules/luci-base/ucode/` exists there), and every template API this theme uses is present: `ctx.path`, `ctx.request_path`, `entityencode`, `striptags`, `dispatcher.build_url/lookup/lang`, `ubus.call`, `pkgs_update_time` (whose 24.10 definition already falls back from `/lib/apk/db/installed` to `/usr/lib/opkg/status`).
 - The `L.env` blob that `luci-base`'s own `template/header.ut` emits is **byte-identical** between the branches, so `L.env.dispatchpath` — which the whole menu and the SPA router key off — exists on both.
-- `luci.mk` on 24.10 honours `LUCI_MINIFY_CSS`/`LUCI_MINIFY_JS` (both pinned to `0` here), so csstidy never gets to mangle `:has()`/`color-mix()`.
+- `luci.mk` on 24.10 honours `LUCI_MINIFY_CSS` (pinned to `0` here), so csstidy never gets to mangle `:has()`/`color-mix()`. `LUCI_MINIFY_JS` is deliberately left at its default of `1` — that is jsmin, which the theme *wants* (see "Writing JS" below); the CSS is minified by `build-css.sh` instead.
 - Packaging differs only in the manager: **apk** on 25.12+, **opkg**/`.ipk` on 24.10. CI builds both; `install.sh` and `footstrap-selfupdate.sh` detect which one is present.
 
 The theme is standalone: it ships no framework and depends on nothing but `luci-base`. `styles/base/` began as a fork of `luci-theme-bootstrap`'s cascade.css and is being absorbed rule by rule — but it is footstrap's code now, so **do not describe it as "the fork" or reintroduce the word bootstrap** into filenames, comments or docs. The only place that name legitimately survives is where it denotes the *other, real* package: the `/luci-static/bootstrap` fallback in `uci-defaults`, the benchmark baseline in `bench/`, and the Apache-2.0 attribution block in `styles/00-header.css` (a licence obligation, not a description).
@@ -29,7 +29,7 @@ Registered in `luci.themes` (System → System → Language and Style): **1 entr
 - **Migration:** a router that was on the old top-nav theme keeps its bar. A shell script cannot write `localStorage`, so `uci-defaults` records the router's DEFAULT layout in `luci.main.footstrap_layout=top`; `head.ut` stamps it, and the user's own choice overrides it forever after. `postrm` deletes the key.
 - `ucode/template/themes/footstrap/` — the ONE template dir. `htdocs/luci-static/footstrap/` — the ONE media dir. No `-top` dir, no symlink.
 - `menu-footstrap.js` is the ONE renderer (vertical accordion / bar dropdowns / rail flyouts — all the same markup); `menu-footstrap-common.js` carries the shared chrome, the SPA router and the Appearance popover.
-- **The BAR is the base; the vertical sidebar is the exception.** The bar is what the chrome IS — for the top layout at every width, and for the sidebar layout on a phone. It is written ONCE, unguarded, in `styles/theme/20-shell.css`. The vertical sidebar is a single guarded override (`@media(min-width:768px){ :root[data-layout="sidebar"] … }`) and it wins on **specificity** (`0,3,0` vs `0,1,0`), never on source order. `50-toplayout.css` is a pure **delta** — only what the DESKTOP bar adds (fixed height, content-aligned padding, menu on the brand's row, per-item dropdown anchoring).
+- **The BAR is the base; the vertical sidebar is the exception.** The bar is what the chrome IS — for the top layout at every width, and for the sidebar layout on a phone. It is written ONCE, unguarded, in `styles/theme/20-shell.css`. The vertical sidebar is a single guarded override (`@media(min-width:521px){ :root[data-layout="sidebar"]:not([data-narrow]) … }`) and it wins on **specificity** (`0,4,0` vs `0,1,0`), never on source order. The guard is **not** a viewport breakpoint dressed up as one: `data-narrow` is what actually decides (see `fs-fit`/`fitShell` below), and `521px` is only the floor below which no sidebar cut could leave a readable column anyway. `50-toplayout.css` is a pure **delta** — only what the DESKTOP bar adds (fixed height, content-aligned padding, menu on the brand's row, per-item dropdown anchoring).
   Why this way round: the bar is needed when `(≤767px) OR ([data-layout="top"])`, and CSS cannot OR a media query with an attribute selector in one selector — so writing the bar under both guards meant writing it twice (measured: 55 of ~75 declarations identical, free to drift). Inverting states each of the three chrome states exactly once. **This is only expressible because `data-layout` always carries an explicit value.** The price is that the vertical override must answer every declaration the bar makes — which is precisely what `cssdiff` proves (desktop sidebar byte-identical). If you add a declaration to the bar, ask whether the column needs to undo it, and re-run `cssdiff`.
 - **The bar stacks its menu onto a second row by MEASUREMENT, not by a breakpoint** (`.fs-bar-stack`, set in `menu-footstrap-common.js` `fitChrome()`). Whether the menu fits beside the brand depends on how many sections the router has, not on the screen — so there is no `@media` for it. The unstacked desktop bar is `flex-wrap: nowrap` on purpose: otherwise flexbox wraps the BAR, hands the menu a whole row, and the "does it fit" measurement always says yes. Escalation is shrink-then-stack: `.fs-dense1/2` trims the pills first, and only when even the tightest step still wraps does the menu take its own row.
 
@@ -37,16 +37,25 @@ Registered in `luci.themes` (System → System → Language and Style): **1 entr
 
 Some decisions in this theme depend on what the **content** needs, not on how wide the screen is, and no CSS query can ask that: a media query measures the viewport, a container query measures the container, and neither can know what the content requires. Those decisions are measured. `fs-fit.js` owns the measuring, the frame-coalescing and the ResizeObserver; a caller registers a fitter (`fit.add(fn)`) and supplies only the decision. Both the top bar (`fitChrome`) and the data tables (`fitTables` in `fs-select.js`) use it. **Add new "does it fit" logic here — do not grow a second observer.**
 
+It owns two more shared primitives, and they are here because the alternative was measured: the pattern got hand-rolled instead.
+- **`fit.frame(fn)`** — coalesce any callback into one call per frame. `fit.schedule()` runs *every* fitter, so a caller that only wants its own work batched cannot use it, and three of them (`fs-select`'s select scan, the overview's grid re-arrange, the menu's clamp reset) had each written the identical five lines. **Exception, and it is a real one:** `menu-footstrap.js`'s dropdown clamp keeps a rAF handle *per `<li>`* so it can **cancel** a pending measure when the pointer moves on; a shared one-flag coalescer cannot express that. Leave it alone.
+- **`fit.touches(mutations, sel, {removed})`** — "is any of this batch even mine?". LuCI's poll rewrites content once a second, so every MutationObserver here needs that question before it does document-wide queries; two of them had written the same triple loop. Each caller keeps its own `sel` — the two care about different things, and a shared filter that pretends otherwise starts lying to one of them.
+
+**`--fs-sidebar-w` / `--fs-rail-w` / `--fs-content-min` are TOKENS (`02-tokens.css`), and `fitShell()` reads them back with `getComputedStyle`.** The stylesheet lays the sidebar out; the JS subtracts its cut from the viewport to decide whether what is LEFT is still readable (`data-narrow`). The JS used to carry its own `SIDEBAR_W = 224, RAIL_W = 68, CONTENT_MIN = 500` against bare literals in the CSS — narrow the rail in the stylesheet and the measurement would go on subtracting the old width, with nothing in the build to notice. **`data-narrow` is the single source of "the sidebar has become a bar": the CSS guards on it and `menu-footstrap.js`'s `flyoutMode()` reads it.** It used to ask `matchMedia('(max-width: 767px)')` instead, and in the 768–779px window the chrome painted as a bar while the menu still behaved like an accordion (measured on the router). **Never re-introduce a viewport breakpoint for that question.**
+
 Three rules it exists to enforce, each of them a bug that was actually hit:
 1. **Measure UNCOLLAPSED.** A collapsed thing always "fits" — a stacked table is a pile of flex rows, a wrapped menu owns a whole row. Reading it as it stands un-collapses it and the next frame collapses it again: oscillation. Strip the class, read, then decide.
 2. **Re-fit SYNCHRONOUSLY on a mutation.** A `MutationObserver` callback is a microtask — it runs *before* the frame is painted; `requestAnimationFrame` runs *at* paint. LuCI's poll re-renders content once a second and the fresh element comes back without our class, so deferring the re-fit to rAF let a stacked table paint one frame at full width and overflow its section, every tick (measured: 19–109 px, once a second).
 3. **Coalesce on resize**, because each fit forces a synchronous layout.
 
-**A CONFIG table (`.cbi-section-table`) is NOT measurable, and must keep its `@container` (960) — do not "finish the job" by moving it onto the measurement.** Its rows are full of widgets (`fs-select.js` turns every `<select>` into a `ui.Dropdown`), and a widget bakes in a width from the layout it was laid out in — so un-collapsing one to take a reading *changes the thing being read*. Measured on the live router: after that toggle the firewall's zone table reported it needed 1747 px where it really needs 1190 px, then overflowed its section by 557 px — an overflow the CSS-only version never had. **The act of measuring was the bug.** A data table has no widgets, which is exactly why it is the one that gets measured. The cost is the last duplicated card block (`css-dup` budget = 2); that is the cheaper of the two evils, and it is recorded rather than hidden.
+**A CONFIG table (`.cbi-section-table`) is NOT measurable, and must keep its `@container` (960) — do not "finish the job" by moving it onto the measurement.** Its rows are full of widgets (`fs-select.js` turns every `<select>` into a `ui.Dropdown`), and a widget bakes in a width from the layout it was laid out in — so un-collapsing one to take a reading *changes the thing being read*. Measured on the live router: after that toggle the firewall's zone table reported it needed 1747 px where it really needs 1190 px, then overflowed its section by 557 px — an overflow the CSS-only version never had. **The act of measuring was the bug.** A data table has no widgets, which is exactly why it is the one that gets measured. The cost is the last duplicated card block — the same declarations under a CLASS (`.fs-stacked`) and under an `@container`, which CSS cannot share; it is **pinned** `@mirror table-card/{label,actions}` so the two copies cannot drift apart.
+
+**The card contract is ONE contract, and it was once split in half — do not split it again.** The stack is *measured*, so it fires at any viewport width; but the table's own `display: block`, the `.hide-xs`/`.hide-sm` columns stock LuCI drops, and the `.col-N` weights all used to live only inside `@media (max-width: 767px)`. In the sidebar layout the content column is `viewport − 224 − 56`, so between roughly **768 and 860 px** it is already below the "too cramped" floor while the media query has switched off: measured on the router at 790/820/850 px, the leases table carded while still `display: table`, and the wireless list rendered **all five** of its `.hide-xs` cells. Those now key off `.fs-stacked`.
+The `.col-N` weights need **no guard at all** and are unguarded in `theme/30-tables.css`: `flex` applies only to a *flex item*, and a `.td` becomes one exactly when its table cards — by **either** mechanism, at any width. So one copy serves the phone tier, the measured stack and the config table's `@container` alike, and the config table (which cards at a **960 px container**, i.e. possibly on a 1200 px desktop) got its weights for the first time. **Do not "fix" this by copying them under a guard.**
 
 ## CSS architecture (critical)
 
-**`htdocs/luci-static/footstrap/cascade.css` is generated — never edit it.** It is gitignored and produced by `luci-theme-footstrap/build-css.sh`, which concatenates the `styles/` tree, strips comments and then squeezes the whitespace CSS ignores (~218 KB → **106 KB**; uhttpd serves `/www/luci-static/*.css` with **no gzip**, so bytes are wire bytes). The squeeze deletes the space after `:`, the spaces around `{ } ; ,` and the last `;` of a block, and nothing else — it leaves the single space between selectors alone (`.a .b` is a descendant combinator, `.a.b` is not) and never touches `calc()` or a string. Proven behaviour-neutral with `cssdiff` (0 diffs over ~4000 elements). The `/*!` licence banner is copied verbatim — it is an Apache-2.0 attribution, not formatting. It also enforces a **size budget** and refuses to write an oversized stylesheet. `build-css.sh` runs from the package `Makefile` (`Build/Prepare/luci-theme-footstrap`) and from `dev-sync.sh`; it needs only `cat`/`awk`, so an OpenWrt buildbot can run it. Use `--dev` to keep comments.
+**`htdocs/luci-static/footstrap/cascade.css` is generated — never edit it.** It is gitignored and produced by `luci-theme-footstrap/build-css.sh`, which concatenates the `styles/` tree, strips comments and then squeezes the whitespace CSS ignores (~284 KB of source → **~112 KB**; uhttpd serves `/www/luci-static/*.css` with **no gzip**, so bytes are wire bytes). The squeeze deletes the space after `:`, the spaces around `{ } ; ,` and the last `;` of a block, and nothing else — it leaves the single space between selectors alone (`.a .b` is a descendant combinator, `.a.b` is not) and never touches `calc()` or a string. **All of that happens inside ONE string-aware awk pass, and the last `;` is dropped there too.** It used to be a `| sed 's/;}/}/g'` bolted onto the awk output, and sed cannot see strings: `content: ";}"` came out as `content: "}"`, and a data-URI containing `;}` was mangled the same way (both reproduced). Nothing in the tree happens to contain that byte pair — which is exactly how a bug like that waits for whoever adds the first one. Proven behaviour-neutral with `cssdiff` (0 diffs over ~4000 elements). The `/*!` licence banner is copied verbatim — it is an Apache-2.0 attribution, not formatting. It also enforces a **size budget** and refuses to write an oversized stylesheet. `build-css.sh` runs from the package `Makefile` (`Build/Prepare/luci-theme-footstrap`) and from `dev-sync.sh`; it needs only `cat`/`awk`, so an OpenWrt buildbot can run it. Use `--dev` to keep comments.
 
 **One directory per cascade layer**; within each, the filename prefix is the source order:
 - `styles/00-header.css` — licence banner + the **only** `@layer` declaration.
@@ -60,9 +69,9 @@ Three rules it exists to enforce, each of them a bug that was actually hit:
   Why the private tier exists at all: `:root` is a **shared** global scope — every `luci-app-*` drops its CSS into the same document, **unlayered, which outranks every cascade layer**. One app writing `:root { --accent: … }`, or `--radius`/`--text`/`--border` (names anyone would pick), used to repaint this whole theme silently. Base reading the *export* names was the wider hole still: `--text-color-high` is a LuCI **convention**, so an app is *likelier* to declare it. Measured on `docs/gallery.html` with a hostile `:root`: **312 of 336 elements repainted before the split, 0 after.** `audit.py` fails on any read of an export name from inside `styles/`, so the coupling cannot grow back. Element-scoped locals (`--bd-color`, `--fg-color`, `--on-color`, `--focus-color`, `pre`'s `--border-color`) are exempt — they are declared inside the rule that reads them and cannot be hijacked from a foreign `:root`.
 - `styles/base/*.css` — `@layer base`, the widget defaults every LuCI view assumes: reset, typography, forms, tables, chrome, modal, buttons, cbi-dropdown, widgets, LuCI-specific. Split from a single 2300-line file; rule order inside the layer is unchanged.
 - `styles/theme/10-chrome.css` — `@layer theme`, the chrome EVERY layout shares (brand, logo, wordmark, logout, indicators, `ul.nav` menu primitives, hover/active/focus). Its values are the **top-bar** ones: where the two layouts ever disagreed on the same element, the bar's value is the one that survived the merge. A layout file may set placement on these (`flex`, `order`, the rail/bar collapse) but never their look.
-- `styles/theme/15`–`95` — `@layer theme`, one file per component/layout concern (wallpaper, shell-sidebar, progressbar, tables, alerts, tabs, misc, toplayout, buttons, inputs, dropdown, modal, responsive, a11y-media). `20-shell.css` carries the bar (base), the vertical sidebar (override) and the icon rail; `50-toplayout.css` is the desktop-bar delta.
+- `styles/theme/15`–`95` — `@layer theme`, one file per component/layout concern (wallpaper, shell, progressbar, tables, alerts, tabs, misc, toplayout, buttons, inputs, dropdown, modal, responsive, a11y-media). `20-shell.css` carries the bar (base), the vertical sidebar (override) and the icon rail; `50-toplayout.css` is the desktop-bar delta.
 - `styles/theme/95-a11y-media.css` — `prefers-reduced-motion` and `forced-colors`. The reduced-motion block is the ONE place a new `!important` is legitimate: the flag inverts the layer order, so it is the only way a single rule can stop animations declared in `base` as well as in `theme`. Do not copy the flag out of that block.
-- `styles/pages/*.css` — `@layer page`, per-page corrections (login, overview, software).
+- `styles/pages/*.css` — `@layer page`, per-page corrections (login, overview, software, sshkeys, leases).
 
 Layer order is `tokens, base, theme, page`. A later layer beats an earlier one **regardless of specificity**, so a theme rule never needs `!important` to outrank a base rule. Unlayered rules beat every layer and that slot is deliberately empty — it is the escape hatch.
 
@@ -91,15 +100,32 @@ Rules when editing CSS:
 
 ## Package / registration
 
-- `Makefile`: `include ../../luci.mk`, `LUCI_DEPENDS:=+luci-base`; `luci.mk` auto-installs `ucode/→/usr/share/ucode/luci`, `htdocs/→/www`, `root/→/`. `postrm` deletes every `luci.themes.*` entry (current + legacy names) and removes the install marker (`/usr/share/luci-theme-footstrap`). `postinst` re-runs the uci-defaults script, so it executes on **upgrade** too (apk maps `postinst` to both `post-install` and `post-upgrade`).
-- `root/etc/uci-defaults/30_luci-theme-footstrap` is the single source of truth for registration: deletes all legacy names, registers the 2 layouts, migrates `luci.main.mediaurlbase` (legacy `-dark`/`-light` → base layout; a dangling path → `bootstrap`), and drops the index/module caches. **Fresh install vs upgrade is decided by a marker file** (`/usr/share/luci-theme-footstrap/.installed`, written at the end of the script and removed by `postrm`): a fresh install may activate the sidebar layout, an upgrade must never change the active theme. It used to key off a `PKG_UPGRADE` env var, which apk never sets — the guard was dead in production and only `dev-sync.sh` (which exports it by hand) ever took the upgrade branch. **Never register themes anywhere else** — `dev-sync.sh` runs this same script.
+- `Makefile`: `include $(TOPDIR)/feeds/luci/luci.mk` (not a relative path — CI rsyncs the package into `package/`, not into the feed), `LUCI_DEPENDS:=+luci-base`; `luci.mk` auto-installs `ucode/→/usr/share/ucode/luci`, `htdocs/→/www`, `root/→/`. `postrm` deletes every `luci.themes.*` entry (current + legacy names) and removes the install marker (`/usr/share/luci-theme-footstrap`). `postinst` re-runs the uci-defaults script, so it executes on **upgrade** too (apk maps `postinst` to both `post-install` and `post-upgrade`) — note OpenWrt's own `default_postinst` *also* runs every shipped `/etc/uci-defaults/*` and then deletes it, so the script runs twice per install; it is idempotent and the fresh-vs-upgrade marker is written at the end of the first pass.
+- **`+luci-base` is the WHOLE dependency list, and keeping it that way is a constraint.** `footstrap-selfupdate.sh` used to hard-require `curl`, which is **not** in OpenWrt's default package set (the base image ships `uclient-fetch`; on the dev router `/usr/bin/curl is owned by curl-8.19.0-r2`, an explicitly installed package). On a stock router the update badge and the Update button both died with `ERR: cannot reach the GitHub release API` — reproduced by moving `/usr/bin/curl` aside. The script falls back to `uclient-fetch` now. `jsonfilter` and `sha256sum` are in the base image, so they need no dep either. Do not add a runtime dep for a convenience tool; fall back instead.
+- **`postinst`/`postrm` `rpcd reload`, never `restart`.** rpcd keeps sessions in memory, so `restart` logs out every LuCI user — including the admin who just clicked Update. `reload` sends SIGHUP, which **does** re-read `/usr/share/rpcd/acl.d/*` (verified on a live router: deleting our ACL file + `reload` flips `session access` for the self-update script from `true` to `false`, and a session created before a `reload` survives it but dies across a `restart`). The ACL refresh is the only thing this package needs from rpcd.
+- `root/etc/uci-defaults/30_luci-theme-footstrap` is the single source of truth for registration: deletes all legacy names, registers the ONE theme entry (`Footstrap` → `/luci-static/footstrap`; there is no second layout entry — layout is a client preference), migrates `luci.main.mediaurlbase` (legacy `-dark`/`-light` → base layout; a dangling path → `bootstrap`), and drops the index/module caches. **Fresh install vs upgrade is decided by a marker file** (`/usr/share/luci-theme-footstrap/.installed`, written at the end of the script and removed by `postrm`): a fresh install may activate the theme, an upgrade must never change the active theme. It used to key off a `PKG_UPGRADE` env var, which apk never sets — the guard was dead in production and only `dev-sync.sh` (which exports it by hand) ever took the upgrade branch. **Never register themes anywhere else** — `dev-sync.sh` runs this same script.
 - Version is git-derived; don't set `PKG_VERSION`. 25.12 packages are **apk** (`apk add --allow-untrusted *.apk`), not opkg/ipk.
+
+## Getting the package onto a router — the trust chain is the whole thing
+
+`install.sh` (piped from the internet into `sh` **as root**) and `root/usr/libexec/footstrap-selfupdate.sh` (the ACL-gated backend behind Appearance → Update) both download a package and install it with `--allow-untrusted` — i.e. **with no package signature to fall back on**. So the trust chain is exactly two things, and both are load-bearing:
+
+1. **A verified TLS channel.** Never `curl -k`, never `--no-check-certificate`, and never as a "retry" after the verified attempt fails — a failure *is* the MITM case, and `ca-bundle` is in OpenWrt's `DEFAULT_PACKAGES` so the insecure path buys nothing. Pin the redirect scheme too (`--proto-redir '=https'`): the release asset hops to `objects.githubusercontent.com`.
+2. **The sha256 GitHub publishes for the asset** (`@.assets[*].digest` in the release API). A mismatch refuses the install. It rides the same channel as the URL, so it is not a defence against a compromised `api.github.com`; it *is* a defence against a tampered or truncated download from the asset CDN, which is a different host. Pin the host too.
+
+`curl` is **not** in OpenWrt's default package set — the base image ships `uclient-fetch` — so the self-updater must fall back to it rather than take a runtime dependency. `jsonfilter` and `sha256sum` *are* in the base image.
+
+**The two scripts cannot share a file** (the installer is `curl | sh` and runs *before* the package that would hold the library exists), so their `fetch()` and host allowlist are `@mirror`-pinned instead. That is not ceremony: they had **already** drifted three ways.
+
+- **`luci-theme-footstrap/luci-upstream.pin` is the single source of the pinned `openwrt/luci` commit** and the sha256s of the two tools this project borrows from it — `jsmin.c` (compiled and run in CI as the gate proving the shipped JS is safe) and `build/i18n-scan.pl` (run by perl as the i18n gate). Both are downloaded and **executed**, so pulling them from a moving `master` would mean the gate is whatever upstream pushed last. `update-po.sh` and the workflow both source that one file; they used to state the commit separately, each with a comment saying "bump them together".
 
 ## Development workflow (one `cat`-based CSS build — deploy to a live router)
 
 Test router: `ssh router` (OpenWrt 25.12.2, mediatek/filogic, apk). **Never break it; back up before touching files** (`/root/theme-backup/`). Login for authed testing: root + password set during dev.
 
-Deploy everything: `luci-theme-footstrap/dev-sync.sh` (rebuilds `cascade.css` from `styles/`, copies the template + partials, fonts, the menu-JS, the overview-layout include; sweeps the legacy variant dirs INCLUDING `footstrap-top`; registers the one theme idempotently; **does not** change the active theme).
+Deploy everything: `luci-theme-footstrap/dev-sync.sh` (rebuilds `cascade.css` from `styles/`, copies the template + partials, fonts, **every** resource JS by glob, the overview-layout include, and the self-update backend + its ACL; sweeps the legacy variant dirs INCLUDING `footstrap-top`; registers the one theme idempotently; **does not** change the active theme).
+
+**Deploy by GLOB or by directory, never by a hand-written list of names.** `dev-sync.sh` used to name its four resource JS files individually, so a fifth would have shipped in the package (`luci.mk` copies `htdocs/` wholesale) and silently never reached the dev router — first tested after a release. The same bug lived in `.claude/skills/footstrap-deploy/deploy.sh`, whose `dest()` knew how to map `root/*` but whose file discovery never handed it one: editing `footstrap-selfupdate.sh` or its ACL and deploying did **nothing**, quietly.
 
 Iterate faster on CSS alone — rebuild first, the file on the router is generated:
 ```sh
@@ -133,7 +159,7 @@ LUCI_PW=<pw> python3 .claude/skills/footstrap-audit/cssdiff.py \
 **Comment as densely as you like — the comments do not ship.** `luci.mk` runs the theme's
 JS through **jsmin** at package time (built from `luci-base/src/jsmin.c`; `luci-base/host`
 is already a build dependency, so it is on the buildbot). Half of this theme's JS is
-comments — ~41 KB of 83 KB — and jsmin takes the shipped bytes from **83 KB to 35 KB**
+comments — **78 KB of 126 KB, i.e. 62%** — and jsmin takes the shipped bytes from **126 KB to 40 KB**
 (−57%) while the source in git keeps every word. uhttpd serves `/www` with **no
 compression**, so those were wire bytes *and* flash bytes on a 8–16 MB device. Explaining
 *why* a line exists costs the user nothing. Do it.
@@ -185,7 +211,21 @@ npm run i18n         # the .pot is current and every string is translated
 npm run css-metrics  # ratchet: !important <= 33, max specificity, no empty rules
 npm run css-orphans  # dead fs-* selectors (SAFE: scoped to our own namespace)
 npm run css-dup      # the same declaration body under two different guards
+npm run mirror       # @mirror-pinned copies (CSS *and* shell) are still byte-identical
+npm run axes         # head.ut's pre-paint agrees with the live Appearance appliers
 ```
+
+- **`axes` is the gate for the one duplication that cannot be pinned.** Every Appearance axis is
+  implemented twice: `partials/head.ut` stamps `:root` **before the first paint** (inline, before the
+  module loader exists — it cannot `require` anything), and `menu-footstrap-common.js` applies it
+  live. Neither copy can go, and they cannot be byte-identical, so `@mirror` cannot hold them. What
+  `tools/axes.mjs` holds is the **contract** — and it derives it *from the JS* rather than restating
+  it: the localStorage keys, the `:root` attributes, the custom properties, the 1–360 ranges, the
+  rounding default (which `head.ut` cannot read from the CSS token, because it runs before the
+  stylesheet), and the load-bearing ordering rule — **set the custom property BEFORE the attribute**,
+  or a reload paints one frame with the previous hue. That last one is the reason the gate exists: it
+  is a one-line fix that would be made in the popover and forgotten in the template, and its only
+  symptom is a single wrong frame, which nobody reports and no other test catches.
 
 - **`css-orphans` is the only safe way to hunt dead CSS here, and the reason is the namespace.**
   PurgeCSS/uncss and coverage-based pruning are *actively dangerous* under the coverage contract
@@ -200,17 +240,26 @@ npm run css-dup      # the same declaration body under two different guards
   it an error, and it is exactly the shape that drifts.
   **Every duplicated body must be a decision: fold it into one rule, or pin it.** There is no numeric
   budget — a budget is a number nobody defends, and it lets the next unexplained copy in for free.
-  When the guards genuinely cannot be merged in CSS, tag every copy `/* @mirror <group>/<role> */`;
-  the tool then enforces that they stay **byte-identical**, and an unpinned duplicate is a hard
-  failure. Note the trap this closes: the detector finds bodies that are IDENTICAL, so the moment two
-  copies diverge they stop being a "duplicate" and it would go quiet **exactly when you need it to
-  shout**. `@mirror` is what makes duplication you cannot delete into duplication that cannot rot.
-  Currently pinned: `table-card/{label,actions}` (×3) and `fs-dt-stack/{tr,td}` (×2) — the data-table
-  card stack, which must fire at 568px for a normal table and at 780px for the DHCP leases (their 8
-  nowrap mono columns hold a ~736px floor, so they have to card earlier). Do NOT "fix" that by
-  hoisting the stack to the wider threshold and un-stacking the narrower tables in the gap: that
-  trades a COPY for a RESET — the same two-place coupling in a form that is harder to reason about,
-  plus a fresh reset-completeness surface.
+  When the guards genuinely cannot be merged in CSS, wrap the **declarations** of every copy in
+  `/* @mirror <group>/<role> */ … /* @endmirror */` (inside the braces — the selectors legitimately
+  differ, only the declarations must match). `css-dup` then accepts the duplicate, and
+  **`tools/mirror.mjs` (`npm run mirror`) enforces that the copies stay byte-identical**. An unpinned
+  duplicate is a hard failure.
+  Note the trap the pin closes, because it is the whole point: `css-dup` finds bodies that are
+  IDENTICAL, so the moment two copies diverge they stop being a "duplicate" and it goes quiet
+  **exactly when you need it to shout**. `@mirror` is what makes duplication you cannot delete into
+  duplication that cannot rot.
+- **`@mirror` is not CSS-only — it covers the shell too**, because the same forced duplication exists
+  there: `install.sh` is fetched with `curl | sh` and runs *before* the package exists, so it cannot
+  source a library that ships *inside* the package — yet it must do exactly what
+  `footstrap-selfupdate.sh` does (fetch over a verified channel, pin the asset host, check the
+  sha256). That duplication had **already drifted**: the two `fetch()`s had different backend orders,
+  one gave its first-choice tool no timeout at all, and one was missing the https redirect pin —
+  and nothing said a word, precisely because a diverged copy is invisible to a duplicate detector.
+  Currently pinned: `table-card/{label,actions}` (CSS: `.fs-stacked` vs the config table's
+  `@container`) and `gh/{fetch,asset-host}` (shell: the installer vs the self-updater). Four groups,
+  two copies each. A `@mirror` group with only ONE copy is also a failure — a mirror of one enforces
+  nothing.
 
 - **eslint** needs `ecmaFeatures.globalReturn` — a LuCI resource file is evaluated inside a
   function wrapper, which is why each ends in a bare `return baseclass.extend({…})`. The

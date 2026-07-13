@@ -22,11 +22,8 @@
  * Runs the whole {footstrap,hicontrast} x {light,dark} matrix, because a palette
  * switcher multiplies the matrix and the combination nobody looks at is where this rots.
  */
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join } from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
+import { buildCss, serveGallery, applyAppearance, matrix } from './lib/gallery.mjs';
 
 const AA = 4.5;
 
@@ -52,23 +49,9 @@ const INKS = {
  * control — here the focus ring and the input outline — not a table rule. */
 const ALL_FAMILIES = [...TEXT_FAMILIES, 'background', 'border'];
 
-const ROOT = new URL('..', import.meta.url).pathname;
-const TMP = process.env.RUNNER_TEMP || '/tmp';
-const CSS = join(TMP, 'cascade-export.css');
-
-execFileSync(join(ROOT, 'luci-theme-footstrap/build-css.sh'), [CSS], { stdio: 'inherit' });
-
-const FILES = { '/gallery.html': join(ROOT, 'docs/gallery.html'), '/cascade.css': CSS };
-const TYPES = { '.html': 'text/html', '.css': 'text/css' };
-const server = createServer(async (req, res) => {
-	const path = req.url.split('?')[0];
-	const file = FILES[path === '/' ? '/gallery.html' : path];
-	if (!file) { res.writeHead(404).end(); return; }
-	res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'text/plain' });
-	res.end(await readFile(file));
-});
-await new Promise((r) => server.listen(0, '127.0.0.1', r));
-const base = `http://127.0.0.1:${server.address().port}/gallery.html`;
+/* build + serve + the Appearance-axis stamping: shared with a11y-gallery.mjs
+ * (tools/lib/gallery.mjs) */
+const { base, close } = await serveGallery(buildCss('cascade-export.css'));
 
 const luminance = ([r, g, b]) => {
 	const f = (u) => (u /= 255) <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
@@ -93,12 +76,7 @@ const NAMES = [
  * gamut boundaries that would move a result. `null` = the untinted palette. */
 const TINTS = [null, 0, 60, 120, 180, 240, 300];
 
-const MATRIX = [
-	{ palette: 'footstrap', mode: 'light' },
-	{ palette: 'footstrap', mode: 'dark' },
-	{ palette: 'hicontrast', mode: 'light' },
-	{ palette: 'hicontrast', mode: 'dark' },
-].flatMap((c) => TINTS.map((tint) => ({ ...c, tint })));
+const MATRIX = matrix(TINTS);
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -108,15 +86,7 @@ const failures = [];
 let checks = 0;
 
 for (const { palette, mode, tint } of MATRIX) {
-	await page.evaluate(([p, m, t]) => {
-		const root = document.documentElement;
-		root.setAttribute('data-darkmode', m === 'dark' ? 'true' : 'false');
-		if (p === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
-		else root.removeAttribute('data-palette');
-		if (t === null) { root.removeAttribute('data-tint'); root.style.removeProperty('--fs-tint-h'); }
-		else { root.style.setProperty('--fs-tint-h', String(t)); root.setAttribute('data-tint', ''); }
-	}, [palette, mode, tint]);
-	await page.waitForTimeout(150);
+	await applyAppearance(page, { mode, palette, tint });
 
 	/* Resolve each custom property by RASTERISING it, never by parsing the computed
 	 * string: a color-mix() computes to whatever space it was written in, and
@@ -176,7 +146,7 @@ for (const { palette, mode, tint } of MATRIX) {
 }
 
 await browser.close();
-server.close();
+close();
 
 if (failures.length) {
 	console.error(`export tier: FAIL — ${failures.length} of ${checks} checks\n`);

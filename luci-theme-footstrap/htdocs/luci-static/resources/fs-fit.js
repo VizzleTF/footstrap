@@ -115,8 +115,51 @@ return baseclass.extend({
 	/* Re-fit on the next frame, coalesced. */
 	schedule,
 
+	/* Coalesce ANY callback into one call per frame — the same rule 3 the fitters obey, for
+	 * the callers that are not fitters.
+	 *
+	 * schedule() above runs EVERY registered fitter, so a caller that just wants its own work
+	 * batched (fs-select's select scan, the overview's grid re-arrange, the menu's clamp reset)
+	 * cannot use it — and all three had hand-rolled the identical five lines
+	 * (`let pending = false; … requestAnimationFrame(() => { pending = false; fn(); })`). This
+	 * file is supposed to own the frame coalescing; now it actually does.
+	 *
+	 * NOT for the per-element case: menu-footstrap.js's dropdown clamp keeps its own rAF handle
+	 * per <li> so it can CANCEL a pending measure when the pointer moves on, which a shared
+	 * one-flag coalescer cannot express. */
+	frame(fn) {
+		let pending = false;
+		return () => {
+			if (pending) return;
+			pending = true;
+			requestAnimationFrame(() => { pending = false; fn(); });
+		};
+	},
+
 	/* Also watch this element's size (beyond #view, which is watched automatically). */
 	watch,
+
+	/* Did this batch of mutations add (or, with {removed: true}, take away) anything matching
+	 * `sel`?
+	 *
+	 * LuCI's poll rewrites page content once a second, so every MutationObserver in this theme
+	 * needs the same cheap first question — "is any of this even mine?" — before it does
+	 * document-wide queries or layout reads on every tick. menu-footstrap-common.js (does a tab
+	 * strip exist now?) and fs-select.js (has a <select> or a data table appeared?) had each
+	 * written the identical triple loop.
+	 *
+	 * The `sel` each passes stays theirs: the two care about different things, and pretending
+	 * otherwise is how a shared filter starts lying to one of its callers. */
+	touches(mutations, sel, opts) {
+		const lists = (opts && opts.removed) ? [ 'addedNodes', 'removedNodes' ] : [ 'addedNodes' ];
+		for (const m of mutations)
+			for (const which of lists)
+				for (const n of m[which]) {
+					if (n.nodeType !== 1) continue;
+					if (n.matches(sel) || n.querySelector(sel)) return true;
+				}
+		return false;
+	},
 
 	/* The measurement every fitter in this theme has needed so far: how much room does this
 	 * element actually have? Its PARENT's content box.

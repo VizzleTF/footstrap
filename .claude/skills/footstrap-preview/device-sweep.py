@@ -69,7 +69,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--devices", default="", help="comma list of device keys (default all)")
     ap.add_argument("--pages", default="", help="space/comma list of LuCI paths (default broad set)")
-    ap.add_argument("--layout", choices=["footstrap", "footstrap-top"], default="footstrap")
+    # sidebar/top are CLIENT preferences (localStorage 'fs-layout'), not theme entries.
+    # This used to offer "footstrap-top" and point mediaurlbase at /luci-static/footstrap-top —
+    # a media dir the rest of the repo deletes, so the sweep screenshotted a broken UI.
+    ap.add_argument("--layout", choices=["sidebar", "top"], default="sidebar")
     ap.add_argument("--mode", choices=["dark", "light"], default="dark")
     ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router"))
     ap.add_argument("--json", action="store_true")
@@ -88,8 +91,8 @@ def main():
     base = f"http://{hn}"
     orig = subprocess.run(["ssh", host, "uci get luci.main.mediaurlbase"],
                           capture_output=True, text=True).stdout.strip() or "/luci-static/bootstrap"
-    subprocess.run(["ssh", host, f"uci set luci.main.mediaurlbase=/luci-static/{args.layout}; "
-                                 f"uci commit luci; rm -f /tmp/luci-indexcache*"])
+    subprocess.run(["ssh", host, "uci set luci.main.mediaurlbase=/luci-static/footstrap; "
+                                 "uci commit luci; rm -f /tmp/luci-indexcache*"])
     from playwright.sync_api import sync_playwright
     results = {}
     try:
@@ -99,6 +102,7 @@ def main():
                 W = DEVICES[dev]
                 ctx = b.new_context(viewport={"width": W, "height": 900}, ignore_https_errors=True)
                 ctx.add_init_script(
+                    f"try{{localStorage.setItem('fs-layout','{args.layout}')}}catch(e){{}}"
                     f"try{{localStorage.setItem('fs-darkmode','{'true' if args.mode=='dark' else 'false'}')}}catch(e){{}}")
                 ctx.request.post(f"{base}/cgi-bin/luci/", form={"luci_username": user, "luci_password": pw})
                 pg = ctx.new_page()

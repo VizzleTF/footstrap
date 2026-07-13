@@ -6,7 +6,7 @@
 	 * paints an opaque --fs-panel. There is no section markup to hook, so costyl the
 	 * page by id: give that lone wrapper the same panel card a .cbi-section gets
 	 * (mirrors theme/30-tables.css `.cbi-section` — --fs-panel, 1px border, r12,
-	 * --fs-shadow, 18px/22px padding). SPA re-stamps body[data-page] on tab nav,
+	 * --fs-shadow, 16px padding). SPA re-stamps body[data-page] on tab nav,
 	 * so the id resolves when you land on the SSH-Keys tab.
 	 *
 	 * Scoped to this page on purpose: a general "card any bare #view > div" rule was

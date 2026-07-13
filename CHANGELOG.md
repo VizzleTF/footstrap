@@ -10,6 +10,205 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Security
+- **`install.sh` no longer disables TLS certificate verification.** The installer is piped from the
+  internet into `sh` as root, and it retried every download with `--no-check-certificate` (or
+  `curl -k`) after *any* failure of the verified attempt — which includes a man-in-the-middle
+  presenting a bogus certificate. Whatever came back was then installed as a root package. The
+  "install the CA bundle" hint it prints was therefore unreachable in the one case it was written
+  for. `ca-bundle` is in OpenWrt's `DEFAULT_PACKAGES`, so the insecure path bought nothing on a
+  stock router and silently disarmed the check on a broken one.
+- **The theme package is now verified against the sha256 GitHub publishes for it, in both the
+  installer and the self-updater.** Both install with `apk add --allow-untrusted`, i.e. with no
+  package signature to fall back on, so the release API's per-asset `digest` is the only integrity
+  check there is — and neither script was reading it. A mismatch now refuses the install. It rides
+  the same TLS channel as the URL, so it does not defend against a compromised `api.github.com`;
+  what it does defend against is a truncated or tampered download from the asset CDN, which is a
+  different host.
+- **The asset host and the redirect scheme are pinned.** The download URL is read out of an API
+  response and handed to `apk add` as root; it is now required to be a GitHub host, and `--proto-redir
+  '=https'` stops a redirect to plain `http://` being followed on the way to the asset CDN.
+- **`install.sh` downloads into `mktemp -d`, not a predictable `/tmp/footstrap-install`.** `/tmp` is
+  1777, so any local unprivileged process could pre-create that name as a symlink and have root
+  write the package through it to a file of its choosing (CWE-377) — the same race
+  `footstrap-selfupdate.sh` already documents six lines of reasoning about avoiding.
+- **The self-updater cannot start two concurrent installs any more.** Its "is a run already in
+  progress?" test was a read followed by a write, so two RPCs arriving together both read "no" and
+  both spawned an `apk add` on the same package — reproduced by firing the script twice at once.
+  An atomic `mkdir` lock replaces it, with the lock's own mtime as the staleness signal (five
+  simultaneous invocations now yield exactly one `STARTED` and four `RUNNING`).
+- **CI's jsmin and the i18n scanner are pinned to a commit SHA and checksummed.** Both were fetched
+  from `openwrt/luci@master` and then *executed* — jsmin is compiled from C and is the gate that
+  decides whether the shipped JavaScript is safe. Off a moving branch, the gate is whatever upstream
+  pushed last.
+
+### Added
+- **A gate for the one duplication that cannot be pinned: the Appearance axes.** Every axis is
+  implemented twice — `head.ut` stamps `:root` before the first paint (inline, before the module
+  loader exists) and `menu-footstrap-common.js` applies it live — and neither copy can go. They
+  cannot be byte-identical either, so `@mirror` cannot hold them. `tools/axes.mjs` (`npm run axes`)
+  holds the **contract** instead, and derives it *from the JS* rather than restating it: the
+  localStorage keys, the `:root` attributes, the custom properties, the 1–360 ranges, the rounding
+  default (which `head.ut` cannot read from the CSS token — it runs before the stylesheet), and the
+  load-bearing ordering rule, *set the custom property before the attribute*. That rule is why the
+  gate exists: it is a one-line fix that would be made in the popover and forgotten in the template,
+  and its only symptom is a single wrong frame on reload — which nobody reports and nothing else
+  catches.
+- **`@mirror` exists now — it was documented but never built.** `CLAUDE.md` described a mechanism in
+  detail ("there is no numeric budget… tag every copy, the tool enforces byte-identity, an unpinned
+  duplicate is a hard failure") and listed the groups it had supposedly pinned. None of it was real:
+  `tools/css-dup.mjs` held a `BUDGET = 2` and its own failure message told you to *raise the budget*,
+  there was not one `@mirror` tag in the tree, and the workflow described the check a third way. The
+  project's argument was right and its tool was not, so the tool now matches: `tools/mirror.mjs`
+  (`npm run mirror`) holds every pinned copy byte-identical, `css-dup` fails on an *unpinned*
+  duplicate, and the budget is gone. It covers **shell as well as CSS** — see below.
+
+### Changed
+- **`install.sh` and `footstrap-selfupdate.sh` are pinned mirrors of each other where they must be.**
+  They cannot share a file — the installer is `curl | sh` and runs *before* the package that would
+  hold the library exists — yet both must fetch over a verified channel, pin the asset host and check
+  the sha256. That duplication had **already drifted**: the two `fetch()`s had different backend
+  orders, one gave its first-choice tool (`uclient-fetch`, on OpenWrt) *no timeout at all*, and one
+  was missing the https redirect pin on its `wget` path. Nothing said a word, precisely because a
+  diverged copy stops looking like a duplicate. They are byte-identical now and `@mirror`-pinned, so
+  they cannot drift again.
+- **The upstream commit the borrowed build tools are pinned to lives in one file.** `jsmin.c` (which
+  CI compiles and runs as the gate proving our shipped JS is safe) and `i18n-scan.pl` (which decides
+  whether the translations are complete) were pinned to the same SHA in two places, each with a
+  comment saying "bump them together", and nothing holding them together. Both now source
+  `luci-upstream.pin`.
+- **The Tint and Accent axes are one function.** They were forty near-identical lines apart — same
+  1–360 validation, same "0 is off", same clamp, and the same load-bearing ordering rule (set the
+  custom property *before* the attribute, or a fresh load paints one frame with the previous hue).
+  That rule is exactly what gets fixed in one copy and not the other. The other seven Appearance axes
+  are deliberately left alone: each has a real quirk a table would need an option for.
+- **The two gallery gates share one harness.** `a11y-gallery.mjs` and `export-tier.mjs` each carried
+  their own copy of "build the CSS, serve the gallery, stamp the Appearance axes onto `:root`" — and
+  that last part was a *fourth and fifth* copy of rules that also live in the theme JS and in
+  `head.ut`. A gate that keeps testing an old shape keeps passing, which is worse than no gate.
+- **`dev-sync.sh` deploys the resource JS by glob, not by name.** It listed four files individually,
+  so a fifth would ship in the package (luci.mk copies `htdocs/` wholesale) and silently never reach
+  the dev router — and be tested for the first time after a release. The deploy skill had the same
+  bug in a worse form: it knew how to map `root/*` to the router but its file discovery never handed
+  it one, so editing the self-update backend or its ACL and deploying did **nothing**, quietly.
+- **`fs-fit.js` actually owns the frame coalescing now, as the docs always claimed.** It exported
+  `schedule()` (which runs *every* fitter) but no way to batch a single callback, so three callers
+  had hand-rolled the identical five lines; two more had hand-rolled the same mutation filter. Both
+  are shared primitives now (`fit.frame`, `fit.touches`). The dropdown clamp keeps its own per-`<li>`
+  rAF handle — it needs to *cancel* a pending measure, which a shared one-flag coalescer cannot
+  express.
+- **The README described a product that no longer exists.** It offered "two layouts
+  (`FootstrapSidebar` / `FootstrapOnTop`) switched in LuCI's settings" and "three palettes" including
+  one that is now a separate wallpaper axis. There is one theme entry; layout, palette, wallpaper,
+  tint, accent, rounding and submenu behaviour are all browser preferences in the Appearance popover,
+  and none of them was documented. The self-update was not mentioned at all.
+- **The viewport edge gap both hand-placed popups obey is one constant.** The Appearance popover and
+  the menu's dropdown clamp each wrote their own `8`.
+- **The documentation described a codebase that had moved on.** A sweep of every checkable claim in
+  `CLAUDE.md`, the READMEs, `docs/`, the skills and the code comments found ~40 that were false. The
+  load-bearing ones: the sidebar override's specificity was stated as `0,3,0` under a `768px` media
+  query (it is `0,4,0` under `521px` + `:not([data-narrow])` — the `0,3,0` predates the `:not()`);
+  nine comments pointed at `theme/20-shell-sidebar.css`, a file that does not exist; the CSS build's
+  own `FS_CSS_BUDGET` was documented as 124 KB in two places and is 115 KB; CI's font budget was
+  documented as 100 KB and is 70 KB (the doc's number would have let 33 KB of font drift in
+  unnoticed); the JS comment/minify figures were ~2× stale; and several comments still described the
+  table card stack as a container query that measurement replaced. A comment that lies is worse than
+  no comment.
+- **The shell's geometry is three tokens instead of six copies of three numbers.** `--fs-sidebar-w`,
+  `--fs-rail-w` and `--fs-content-min` now live in `02-tokens.css`; the stylesheet lays the sidebar out
+  from them and `menu-footstrap-common.js` reads them back to decide whether what is left for the
+  content is still readable. The JS used to carry its own `SIDEBAR_W = 224, RAIL_W = 68,
+  CONTENT_MIN = 500` against bare literals in the CSS, so narrowing the rail in the stylesheet would
+  have left the measurement subtracting the old width with nothing in the build to notice — and
+  `20-shell.css` even cited a `--fs-content-min` token that did not exist.
+- **The package declares its own maintainer and homepage, and ships its `LICENSE`.** Without
+  `LUCI_MAINTAINER`/`LUCI_URL`, `luci.mk` defaulted them and the built package claimed to be
+  maintained by the OpenWrt LuCI community; `PKG_LICENSE:=Apache-2.0` referenced a licence file the
+  repository did not contain.
+- **The linters were only enforcing the rules somebody remembered to list.** `eslint.config.mjs` never
+  extended `eslint:recommended`, so `no-dupe-keys`, `no-unreachable`, `no-duplicate-case`,
+  `no-prototype-builtins`, `getter-return`, `no-async-promise-executor` and about thirty other free
+  correctness rules were simply off; stylelint was missing the value-grammar check
+  (`declaration-property-value-no-unknown`), which is the only thing that can catch a declaration that
+  is invalid at computed-value time and therefore vanishes in *silence* — the exact failure mode the
+  `--*-rgb` component bridges were torn out for. Both sets found **zero** violations in the current
+  tree, so they cost nothing today and catch the next mistake for free.
+
+### Fixed
+- **In a window ~768–779 px wide the menu and the stylesheet disagreed about what the chrome was.**
+  The CSS had moved off the 768 px breakpoint long ago: the sidebar yields when the *content* column
+  would fall below its minimum, measured from the sidebar's real cut (`data-narrow`). `flyoutMode()`
+  in the menu JS was still asking `matchMedia('(max-width: 767px)')`, and its comment pointed at a
+  file that no longer exists. Measured on the live router at 770 and 775 px: the chrome painted as a
+  full-width bar while the menu still believed it was a vertical accordion, so a section opened
+  unfolded *inside* the bar, click-outside and Escape did not close it, and the dropdown edge-clamp
+  refused to place it. Worse, nothing watched `data-narrow` at all, so dragging a window across the
+  boundary ran no transition handler. Both now read the one attribute that decides.
+- **Column weights (`col-1`…`col-10`) never reached a table that carded above the phone tier** — the
+  other half of the split card contract. They are unguarded now, and that is not a workaround: `flex`
+  is inert on anything that is not a flex item, and a cell becomes one exactly when its table cards,
+  by *either* mechanism. So one copy replaces twenty rules under two guards, the config table gets
+  its weights for the first time (it cards at a 960 px *container*, i.e. possibly on a 1200 px
+  desktop), and the stylesheet got 512 bytes smaller. Verified on the router: the package list's
+  cells went from `flex: 0 1 auto` to `1 1 30px` / `2 2 60px` / `10 10 300px`.
+- **`cssdiff.py` could have blanked the dev router's theme selection.** It switches
+  `luci.main.mediaurlbase` and restores it in a `finally`, but read the original with no fallback —
+  so a failed `ssh` made it the empty string and the restore then ran `uci set
+  luci.main.mediaurlbase=`. Its two sibling tools both default to bootstrap there; this one did not.
+  It now refuses to switch the theme at all if it cannot read the value needed to switch back.
+- **`preview.py --layout footstrap-top` screenshotted a broken UI.** It pointed the router's
+  `mediaurlbase` at `/luci-static/footstrap-top`, a path the rest of the repo actively deletes. The
+  layout is a client preference; it is set in the browser now, and the choices are `sidebar` / `top`.
+- **`install.sh` left the LuCI module cache behind**, dropping only the index cache — and a stale
+  module cache right after installing a package that replaces the theme's JS is the one case where it
+  actually bites.
+- **The data-table tagger and its own mutation filter used different selectors.** The tagger asked for
+  `table.table` while the filter beside it carries a comment explaining why it must not. Every
+  `.table` stock LuCI emits really is a `<table>`, so it cost nothing *here* — but that is luck, and
+  the coverage rule is that a third-party `luci-app-*` renders what stock never does. One selector.
+- **The self-update worked only on routers that happened to have `curl` installed.** `curl` is not in
+  OpenWrt's default package set — the base image ships `uclient-fetch` — so on a stock router the
+  Appearance update badge and the one-click Update button both died with the misleading
+  `ERR: cannot reach the GitHub release API`. Reproduced on the dev router by moving `/usr/bin/curl`
+  aside. The script now falls back to `uclient-fetch`, exactly as `install.sh` already did, so the
+  theme still depends on nothing but `luci-base`.
+- **Installing or updating the theme no longer logs every LuCI user out.** `postinst` ran
+  `/etc/init.d/rpcd restart`, and rpcd keeps its sessions in memory. `reload` (SIGHUP) re-reads
+  `/usr/share/rpcd/acl.d/*`, which is the only thing this package needs from rpcd — verified on a
+  live router: removing our ACL file and reloading flips `session access` for the self-update script
+  from `true` to `false`, and a session created before a `reload` survives it while dying across a
+  `restart`. The "you have been logged out, sign in again" screen the updater used to show existed
+  only to explain a logout the package inflicted on itself.
+- **A data table stacked into cards above the phone breakpoint rendered columns that should have been
+  dropped, and ignored its column weights.** The stack is *measured* (`fs-select.js`), so it fires at
+  any width, but three halves of the same contract — the table's own `display: block`, the
+  `.hide-xs`/`.hide-sm` columns stock LuCI drops, and the `.col-N` weights — lived only inside
+  `@media (max-width: 767px)`. In the sidebar layout the content column is `viewport − 224 − 56`, so
+  between roughly 768 and 860 px it is already below the "too cramped to be a table" floor while the
+  media query has switched off. Measured on the live router at 790/820/850 px: the leases table
+  stacked while still `display: table` (keeping the intrinsic min-width that `display: block` exists
+  to prevent), and the wireless association list rendered **all five** of its `.hide-xs` cells. Those
+  rules now key off the `.fs-stacked` class, where the stack is actually decided.
+- **A future colourway would have painted success text with the *danger* ink.** `.cbi-tooltip.success`
+  read `--fs-on-danger`. Nothing could see it, because every shipped palette happens to give all four
+  inks the same value — `cssdiff` found zero diffs, `audit.py` saw a defined variable and axe measured
+  the right contrast. Proven live by forcing `--fs-on-danger` red: the success tooltip turned red, and
+  `--fs-on-good` had no effect on it at all.
+- **`build-css.sh` could silently corrupt a CSS string.** The final "drop the last `;` of a block" pass
+  was a `sed 's/;}/}/g'` bolted onto the string-aware awk, and sed cannot see strings: `content: ";}"`
+  came out as `content: "}"`, and a data-URI containing `;}` was mangled the same way. Both reproduced.
+  The squeeze now happens inside the scanner that already tracks quoting; the output on the current
+  tree is byte-identical, so nothing shipped changes.
+- **Installing footstrap could rewrite the active theme of a router running somebody else's theme.**
+  The "does the active theme actually exist on disk?" guard in `uci-defaults` ran against whatever
+  theme was current, not against ours — so a third-party theme whose ucode template directory is not
+  named after its media basename could be quietly replaced with bootstrap. It is scoped to
+  `/luci-static/footstrap*` now: repair what we ship, leave the rest of the router alone.
+- **The installer told new users to pick theme entries that no longer exist** (`FootstrapSidebar` /
+  `FootstrapOnTop`). There is one `Footstrap` entry; layout is a per-browser toggle in Appearance.
+
 ## [0.8.0] — 2026-07-13
 
 ### Added

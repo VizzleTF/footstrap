@@ -38,6 +38,7 @@ WD=/var/run/footstrap-update
 STATUS="$WD/status"
 WORKER="$WD/run.sh"
 CACHE="$WD/latest"
+LOCK="$WD/lock"		# a DIRECTORY: mkdir is the atomic test-and-set (see the "" branch)
 
 mkdir -p "$WD" 2>/dev/null && chmod 700 "$WD" 2>/dev/null || {
 	echo "ERR: cannot create $WD"; exit 1
@@ -57,11 +58,63 @@ CACHE_TTL=300
 REPO="VizzleTF/luci-theme-footstrap"
 API="https://api.github.com/repos/${REPO}/releases/latest"
 
-# Every curl below is bounded. Without --max-time a stalled connection leaves
+# fetch <url> <max-seconds> [outfile]   — stdout when no outfile.
+#
+# curl is NOT on a stock OpenWrt router: the base image ships `uclient-fetch`, and
+# curl is a separately-installed package (verified on the dev router:
+# `/usr/bin/curl is owned by curl-8.19.0-r2`). This script hard-required it, so on
+# any router that had not installed curl by hand BOTH the update badge and the
+# Update button died with "ERR: cannot reach the GitHub release API" — reproduced
+# by moving /usr/bin/curl aside. uclient-fetch is the fallback, exactly as
+# install.sh already does it.
+#
+# Every fetch is BOUNDED. Without a timeout a stalled connection leaves
 # STATUS=RUNNING and a live $WORKER behind forever, and that pair is exactly what
 # the "" branch reads as "a run is already in progress" — the button would wedge
 # until a reboot.
-CURL="curl -fsSL --connect-timeout 10"
+#
+# The certificate is always verified, and the scheme is pinned to https on the
+# redirect too: the release asset hops to objects.githubusercontent.com, and
+# without --proto-redir a redirect to plain http:// would be followed — handing an
+# on-path attacker the package that is about to be installed as root.
+# @mirror gh/fetch
+fetch() {
+	_u="$1"; _t="$2"; _o="$3"
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		if [ -n "$_o" ]; then uclient-fetch -T "$_t" -qO "$_o" "$_u" 2>/dev/null
+		else uclient-fetch -T "$_t" -qO- "$_u" 2>/dev/null; fi
+		return $?
+	fi
+	if command -v curl >/dev/null 2>&1; then
+		if [ -n "$_o" ]; then
+			curl -fsSL --proto =https --proto-redir =https --connect-timeout 10 --max-time "$_t" -o "$_o" "$_u" 2>/dev/null
+		else
+			curl -fsSL --proto =https --proto-redir =https --connect-timeout 10 --max-time "$_t" "$_u" 2>/dev/null
+		fi
+		return $?
+	fi
+	if command -v wget >/dev/null 2>&1; then
+		_s=''
+		wget --help 2>&1 | grep -q -- '--https-only' && _s='--https-only'
+		if [ -n "$_o" ]; then wget -q $_s -T "$_t" -O "$_o" "$_u"
+		else wget -q $_s -T "$_t" -O- "$_u"; fi
+		return $?
+	fi
+	return 1
+}
+# @endmirror
+
+# The package is downloaded from a URL read out of the API answer and then handed
+# to `apk add --allow-untrusted` as root. Pin the host, so a malformed or tampered
+# response cannot point that install at an arbitrary server.
+# @mirror gh/asset-host
+asset_host_ok() {
+	case "$1" in
+		https://github.com/*|https://objects.githubusercontent.com/*|https://release-assets.githubusercontent.com/*) return 0 ;;
+	esac
+	return 1
+}
+# @endmirror
 
 do_update() {
 	if command -v apk >/dev/null 2>&1; then
@@ -74,13 +127,34 @@ do_update() {
 		echo "ERR: no apk or opkg found" > "$STATUS"; return 1
 	fi
 
-	# pick the .apk / .ipk asset URL from the latest release
-	url="$($CURL --max-time 20 "$API" 2>/dev/null | jsonfilter -e '@.assets[*].browser_download_url' 2>/dev/null | grep -E "\.${EXT}\$" | head -1)"
-	[ -n "$url" ] || { echo "ERR: no .${EXT} asset in latest release" > "$STATUS"; return 1; }
+	# pick the .apk / .ipk asset URL from the latest release, and the sha256 GitHub
+	# publishes for THAT asset (matched on the URL, not on list position)
+	json="$WD/release.json"
+	fetch "$API" 20 "$json" || { echo "ERR: cannot reach the GitHub release API" > "$STATUS"; return 1; }
+	url="$(jsonfilter -i "$json" -e '@.assets[*].browser_download_url' 2>/dev/null | grep -E "\.${EXT}\$" | head -1)"
+	[ -n "$url" ] || { echo "ERR: no .${EXT} asset in latest release" > "$STATUS"; rm -f "$json"; return 1; }
+	asset_host_ok "$url" || { echo "ERR: asset from an unexpected host" > "$STATUS"; rm -f "$json"; return 1; }
+	digest="$(jsonfilter -i "$json" -e "@.assets[@.browser_download_url=\"$url\"].digest" 2>/dev/null | head -1)"
+	rm -f "$json"
 
-	# -L: follow the release->objects.githubusercontent.com redirect
-	$CURL --max-time 600 -o "$TMP" "$url" 2>/dev/null || { echo "ERR: download failed" > "$STATUS"; return 1; }
+	fetch "$url" 600 "$TMP" || { echo "ERR: download failed" > "$STATUS"; return 1; }
 	[ -s "$TMP" ] || { echo "ERR: empty download" > "$STATUS"; rm -f "$TMP"; return 1; }
+
+	# apk is called with --allow-untrusted, i.e. with no package signature to fall
+	# back on — so this sha256 is the only integrity check the update has. It rides
+	# the same TLS channel as the URL, so it does not defend against a compromised
+	# api.github.com; what it does defend against is a truncated or tampered
+	# download from the asset CDN, which is a DIFFERENT host. Refuse on a mismatch:
+	# installing a package whose bytes we cannot account for is the one thing this
+	# script must never do.
+	if [ -n "$digest" ]; then
+		want="${digest#sha256:}"
+		got="$(sha256sum "$TMP" 2>/dev/null | cut -d' ' -f1)"
+		[ -n "$got" ] && [ "$want" = "$got" ] || {
+			echo "ERR: checksum mismatch, refusing to install" > "$STATUS"
+			rm -f "$TMP"; return 1
+		}
+	fi
 
 	out="$(install_pkg "$TMP" 2>&1)"; rc=$?
 	rm -f "$TMP"
@@ -100,7 +174,8 @@ case "$1" in
 check)
 	# The router asks GitHub, not the browser: a LAN client often has no route to
 	# the internet, and a browser fetch is also subject to CORS and to the user's
-	# own rate limit. Cached in /tmp (tmpfs), so a reboot re-checks.
+	# own rate limit. Cached in /var/run (tmpfs, root-owned — see the CWE-377 note in the header;
+	# deliberately NOT /tmp), so a reboot re-checks.
 	now=$(date +%s)
 	if [ -f "$CACHE" ]; then
 		read -r ts tag < "$CACHE"
@@ -113,7 +188,7 @@ check)
 		fi
 	fi
 
-	tag="$($CURL --max-time 10 "$API" 2>/dev/null | jsonfilter -e '@.tag_name' 2>/dev/null)"
+	tag="$(fetch "$API" 10 | jsonfilter -e '@.tag_name' 2>/dev/null)"
 	[ -n "$tag" ] || { echo "ERR: cannot reach the GitHub release API"; exit 1; }
 	echo "$now $tag" > "$CACHE"
 	echo "$tag"
@@ -126,6 +201,7 @@ status)
 __run)
 	do_update
 	rm -f "$WORKER"
+	rmdir "$LOCK" 2>/dev/null
 	exit 0
 	;;
 "")
@@ -135,11 +211,37 @@ __run)
 	if [ "$(cat "$STATUS" 2>/dev/null)" = "RUNNING" ] && [ -f "$WORKER" ]; then
 		echo "RUNNING"; exit 0
 	fi
+
+	# ...but that test is not the whole story: read-then-write is not atomic, so two
+	# RPCs arriving together BOTH read "not running" and BOTH spawned a worker — two
+	# concurrent `apk add` runs on the same package. Reproduced by firing the script
+	# twice at once: two workers, two installs.
+	#
+	# mkdir IS atomic — it fails if the name exists — so it is the lock. The subtle
+	# part is RECLAIMING a lock whose worker was killed (OOM) and never cleaned up.
+	# Do NOT decide that from $STATUS/$WORKER: those are written AFTER the mkdir, so
+	# a second caller arriving in between sees a held lock with no evidence behind it,
+	# calls it stale, steals it — and we are back to two installs. That was the first
+	# attempt, and the router duly spawned two workers.
+	#
+	# The lock's own MTIME is the evidence, and it is set by the atomic mkdir itself,
+	# so there is no window. A lock younger than any plausible run is a live run (the
+	# client gives up after 300 s and a theme install takes seconds); older than that,
+	# its worker is gone and the lock is ours to take.
+	if ! mkdir "$LOCK" 2>/dev/null; then
+		if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +10 2>/dev/null)" ]; then
+			rmdir "$LOCK" 2>/dev/null
+			mkdir "$LOCK" 2>/dev/null || { echo "RUNNING"; exit 0; }
+		else
+			echo "RUNNING"; exit 0
+		fi
+	fi
 	echo "RUNNING" > "$STATUS"
 
 	# The package we are about to install overwrites this very script. Run the
 	# worker from a copy so the shell keeps reading a file nobody replaces.
 	cp "$0" "$WORKER" && chmod 755 "$WORKER" || {
+		rmdir "$LOCK" 2>/dev/null
 		echo "ERR: cannot stage worker" > "$STATUS"; echo "ERR: cannot stage worker"; exit 1
 	}
 

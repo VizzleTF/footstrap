@@ -2,6 +2,7 @@
 'require baseclass';
 'require dom';
 'require network';
+'require fs-fit as fit';
 
 /* Footstrap overview LAYOUT-only include.
  *
@@ -17,8 +18,9 @@
  * once we move those wrappers into our grid they stay put across polls, and only
  * each section's small inner body repaints (minimal flicker, no full-tree swap).
  *
- * Installed to the global include dir, so it loads under every theme; gate on a
- * footstrap theme being active (see 05_footstrap_dashboard.js rationale). */
+ * Installed to the global include dir, so LuCI loads it under EVERY theme — including
+ * bootstrap, if the user switches away. Hence the gate: do nothing unless a footstrap
+ * theme is the active one (L.env.media). */
 function isFootstrapTheme() {
 	return String(L.env.media || '').indexOf('footstrap') >= 0;
 }
@@ -105,12 +107,9 @@ function watch() {
 	arrange();
 	if (observer || !view) return;
 	observedView = view;
-	let pending = false;
-	observer = new MutationObserver(() => {
-		if (pending) return;
-		pending = true;
-		requestAnimationFrame(() => { pending = false; arrange(); });
-	});
+	/* one arrange() per frame, however many mutations a poll tick delivers — fit.frame is
+	 * the theme's shared coalescer (fs-fit.js) */
+	observer = new MutationObserver(fit.frame(arrange));
 	observer.observe(view, { childList: true, subtree: true });
 }
 

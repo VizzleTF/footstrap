@@ -80,7 +80,7 @@
 	/* No horizontal-scroll wrapper: a data table reflows to fit the content column
 	 * via the overflow-wrap rule above (long opaque values break), so it never needs
 	 * to scroll or be forced into cards on desktop. Card-stacking stays for phones
-	 * only (@container ≤820, below). */
+	 * only — it is MEASURED (.fs-stacked, fs-select.js) and fires at any width. */
 	.cbi-section .table[id] .tr:not(.table-titles):hover .td { background: var(--fs-panel2); }
 	.cbi-section .table[id] .tr.table-titles .th { border-bottom-color: var(--fs-border); }
 	/* Contour around the whole data table (leases, wifi, processes, …). A real
@@ -270,6 +270,32 @@
 	 * value the whole half-column. Values stay LEFT-aligned: they are opaque strings (MAC,
 	 * DUID, rates), and a ragged right edge reads worse than a ragged left one.
 	 * ================================================================== */
+	/* THE CARD CONTRACT IS ONE CONTRACT, AND IT WAS SPLIT IN HALF.
+	 *
+	 * The stack is MEASURED (fs-select.js: room < CRAMPED, or the table overflows), so it
+	 * fires at ANY viewport width. But three pieces of the same contract used to live only
+	 * inside `@media (max-width: 767px)` in theme/90-responsive.css — the table's own
+	 * `display: block`, the `.hide-xs`/`.hide-sm` columns stock LuCI drops on a phone, and
+	 * the `.col-N` weights that stop every cell taking a flat 50%. A table stacked ABOVE the
+	 * phone tier therefore got the card layout with none of them.
+	 *
+	 * That window is real, not theoretical: in the sidebar layout the content column is
+	 * (viewport - 224 - 56), so between about 768 and 860px it is already below CRAMPED while
+	 * the media query has switched off. Measured on the live router at 790/820/850px:
+	 * status_leases stacked with `display: table` still in force (so it kept an intrinsic
+	 * min-width — the exact overflow `display: block` exists to prevent, papered over by the
+	 * `overflow: hidden` below), and wifi_assoclist_table rendered ALL FIVE of its .hide-xs
+	 * cells. At 760px, one pixel into the media query, both behaved correctly.
+	 *
+	 * So key them off the CLASS, where the stack itself is decided. The media query keeps TWO
+	 * of the three (display:block and .hide-xs/.hide-sm — the .col-N weights turned out to need
+	 * no guard at all, see below): they still serve the tables that do NOT stack on a phone,
+	 * and the config tables (.cbi-section-table), which card via @container and never carry
+	 * .fs-stacked. */
+	.table.fs-stacked { display: block; width: 100%; }
+	.table.fs-stacked .td.hide-sm, .table.fs-stacked .th.hide-sm,
+	.table.fs-stacked .td.hide-xs, .table.fs-stacked .th.hide-xs { display: none; }
+
 	.table.fs-stacked .tr.table-titles,
 	.table.fs-stacked .thead,
 	.table.fs-stacked .tr.cbi-section-table-titles,
@@ -280,19 +306,29 @@
 		padding: 6px 10px 6px 0; border: 0; text-align: left;
 		overflow-wrap: anywhere; white-space: normal;
 	}
-	/* the column label, lifted above its value (LuCI writes it per cell as data-title) */
+	/* the column label, lifted above its value (LuCI writes it per cell as data-title).
+	 *
+	 * PINNED: the config table (theme/65-dropdown.css) needs the identical declarations under
+	 * its @container guard, and CSS cannot share a block between a CLASS and a CONTAINER QUERY
+	 * — the two guards do not OR. tools/mirror.mjs holds the two copies byte-identical; edit
+	 * one and the build fails until you edit the other. */
 	.table.fs-stacked .td[data-title]::before {
+		/* @mirror table-card/label */
 		content: attr(data-title); display: block; margin-bottom: 3px;
 		font-size: 10px; font-weight: 700; letter-spacing: .05em;
 		text-transform: uppercase; color: var(--fs-faint);
+		/* @endmirror */
 	}
 	.table.fs-stacked .td.cbi-section-actions::before,
 	.table.fs-stacked .td:not([data-title])::before,
 	.table.fs-stacked .td[data-title=""]::before { content: none; }
-	/* the row's buttons are not a label/value pair — full width below the pairs */
+	/* the row's buttons are not a label/value pair — full width below the pairs.
+	 * PINNED with the config table's copy — see the note above. */
 	.table.fs-stacked .td.cbi-section-actions {
+		/* @mirror table-card/actions */
 		display: flex; flex: 1 1 100%; justify-content: flex-start;
 		flex-wrap: wrap; gap: 8px; padding-top: 8px;
+		/* @endmirror */
 	}
 	/* nothing inside a half-width cell may force the row wider than the viewport: .fs-main
 	 * is overflow-x:clip, so an over-wide child is CUT, not scrolled to. */
@@ -307,7 +343,44 @@
 	 * (1,2,0) outranks the frame's `#view .table[id]` (1,1,1) on specificity, not order. */
 	#view .table.fs-dt.fs-stacked { overflow: hidden; }
 	.table.fs-dt.fs-stacked .tr { padding: 10px 16px 12px; }
-	.table.fs-dt.fs-stacked .td { flex: 1 1 50%; }
+	/* `.fs-stacked .td`, not `.table.fs-dt.fs-stacked .td`: the same elements (the class is
+	 * only ever written onto a .table.fs-dt), but at (0,2,0) instead of (0,3,1) — low enough
+	 * that the unguarded `.table .td.col-N` below, at (0,2,1), beats it on SPECIFICITY rather
+	 * than on source order. */
+	.fs-stacked .td { flex: 1 1 50%; }
+
+	/* ---- COLUMN WEIGHTS: ONE unguarded block, and it is unguarded on purpose ----------
+	 *
+	 * A column weight, 1-10, is a share of a CARDED row: the JS says "this cell is a narrow
+	 * badge, that one is the wide status text" (wireless.js col-2/3/4, connections.js col-7).
+	 * Without it every cell falls back to the flat 50% above and the badge gets as much room
+	 * as the text.
+	 *
+	 * These used to live inside `@media (max-width: 767px)` — one of the three halves of the
+	 * card contract that the MEASURED stack (fs-select.js, any width) left behind. The obvious
+	 * repair was to copy them under the stack's class, which is what a first pass did: twenty
+	 * rules, two guards, free to drift.
+	 *
+	 * They need NO guard at all. `flex` applies only to a FLEX ITEM, and a `.td` is only a flex
+	 * item once its `.tr` has become a flex container — which happens exactly when the table is
+	 * carded, by EITHER mechanism (the data table's `.fs-stacked`, or the config table's
+	 * `@container fs-content (max-width: 960px)`), at ANY viewport. On an ordinary
+	 * `display: table-cell` these declarations are inert. So one copy serves every case, the
+	 * media-query copies are gone, and the config table — which cards at a 960px CONTAINER and
+	 * so could card on a 1200px desktop, well outside the phone tier — gets its weights for the
+	 * first time. Verified with cssdiff: nothing else moved.
+	 *
+	 * Basis is N*30px, as in stock, so the weights compose the same way. */
+	.table .td.col-1,  .table .th.col-1  { flex: 1 1 30px; }
+	.table .td.col-2,  .table .th.col-2  { flex: 2 2 60px; }
+	.table .td.col-3,  .table .th.col-3  { flex: 3 3 90px; }
+	.table .td.col-4,  .table .th.col-4  { flex: 4 4 120px; }
+	.table .td.col-5,  .table .th.col-5  { flex: 5 5 150px; }
+	.table .td.col-6,  .table .th.col-6  { flex: 6 6 180px; }
+	.table .td.col-7,  .table .th.col-7  { flex: 7 7 210px; }
+	.table .td.col-8,  .table .th.col-8  { flex: 8 8 240px; }
+	.table .td.col-9,  .table .th.col-9  { flex: 9 9 270px; }
+	.table .td.col-10, .table .th.col-10 { flex: 10 10 300px; }
 
 	/* general table cell padding — compact but readable (Startup/Processes/etc) */
 	.table .td { padding-top: 7px; padding-bottom: 7px; }

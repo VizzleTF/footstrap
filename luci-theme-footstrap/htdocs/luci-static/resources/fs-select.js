@@ -136,8 +136,17 @@ function enhance(sel) {
  * mutation of these polled tables (Processes/routes/leases). Match = <table class="table">
  * with a table-titles header, not a .cbi-section-table (config forms keep their own
  * layout). */
+/* `.table`, not `table.table` — the SAME selector `relevant()` and STACKABLE use.
+ *
+ * These three used to disagree: the tagger was tag-qualified while the mutation filter right
+ * below it carries a comment explaining that it must NOT be ("LuCI renders most of these as
+ * DIVs"). Checked against the live router: every `.table` stock LuCI emits really is a
+ * `<table>` with `<tr>` rows, so the tag qualifier cost nothing *here* — but that is luck, not
+ * a contract. The coverage rule in CLAUDE.md is that a third-party `luci-app-*` renders what
+ * stock never does, and a `<div class="table">` with a `.tr.table-titles` header would have
+ * been passed over by the tagger and could then never card. One selector, three places. */
 function tagDataTables() {
-	document.querySelectorAll('#view table.table:not(.cbi-section-table):not(.fs-dt)').forEach((t) => {
+	document.querySelectorAll('#view .table:not(.cbi-section-table):not(.fs-dt)').forEach((t) => {
 		/* TWO header markups, and missing the second one is why the package list needed a
 		 * hand-written stacking block of its own. L.ui.Table emits `.tr.table-titles`; the
 		 * apk Software page emits `<table class="table" id="packages">` — no
@@ -181,7 +190,8 @@ const STACKABLE = '#view .table.fs-dt';
  * no fact for anyone to read. A config row needs more room than a data row because a
  * dropdown needs more than a text column — which is exactly why its old container query said
  * 960 where the data table's said 568. The values are unchanged; what changed is that there
- * are now TWO of them, in ONE place, instead of five spread across four files.
+ * is now ONE of them here (568) and one still a @container in theme/65-dropdown.css (960 —
+ * the config table, which must not be measured), instead of five spread across four files.
  *
  * (Do not try to make these measurable by giving the cells a min-width so that "cramped"
  * MANUFACTURES an overflow. That was tried: it carded the firewall's zone table at 1420px
@@ -220,24 +230,15 @@ function fitTables() {
  * containing one) appearing, a data table appearing, or one of the watched
  * attributes flipping on a <select>. Everything else is someone else's text. */
 function relevant(mutations) {
-	for (const m of mutations) {
-		if (m.type === 'attributes') {
-			/* attributeFilter narrows the ATTRIBUTE, not the element: `value` and
-			 * `disabled` live on inputs and buttons too, and a poll rewriting an
-			 * input's value would otherwise wake the whole scan. */
-			if (m.target.tagName === 'SELECT') return true;
-			continue;
-		}
-		for (const n of m.addedNodes) {
-			if (n.nodeType !== 1) continue;
-			/* `.table`, NOT `table.table`: LuCI renders most of these as DIVs (the
-			 * `display: table` comes from the CSS), so the tag-qualified selector missed
-			 * them — and with them every re-measure the poll should have triggered. */
-			if (n.matches('select.cbi-input-select, .table')) return true;
-			if (n.querySelector('select.cbi-input-select, .table')) return true;
-		}
-	}
-	return false;
+	/* attributeFilter narrows the ATTRIBUTE, not the element: `value` and `disabled` live on
+	 * inputs and buttons too, and a poll rewriting an input's value would otherwise wake the
+	 * whole scan. This half is ours alone; the added-node walk below is the shared one. */
+	for (const m of mutations)
+		if (m.type === 'attributes' && m.target.tagName === 'SELECT')
+			return true;
+	/* `.table`, not `table.table` — the same selector tagDataTables() and STACKABLE use.
+	 * Additions only: a select or a table going away costs us nothing to notice. */
+	return fit.touches(mutations, 'select.cbi-input-select, .table');
 }
 
 return baseclass.extend({
@@ -254,11 +255,11 @@ return baseclass.extend({
 		 * before paint) and on every resize of #view. */
 		fit.add(() => { tagDataTables(); fitTables(); });
 
-		let pending = false;
+		/* one scan per frame, however many mutations arrive — fit.frame is the shared
+		 * coalescer (fs-fit.js owns the frame batching for the whole theme) */
+		const scanSoon = fit.frame(scan);
 		new MutationObserver((mutations) => {
-			if (pending || !relevant(mutations)) return;
-			pending = true;
-			requestAnimationFrame(() => { pending = false; scan(); });
+			if (relevant(mutations)) scanSoon();
 		}).observe(document.body, {
 			childList: true, subtree: true,
 			/* `disabled` flips and attr-driven value writes never mutate childList;

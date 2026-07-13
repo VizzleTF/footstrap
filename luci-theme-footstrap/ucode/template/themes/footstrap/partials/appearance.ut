@@ -5,7 +5,7 @@
  in CSS — a layout is a presentation choice, so it must not fork the markup. That is
  why the old `with_label` parameter, and the separate .fs-appearance-btn element it
  emitted, are gone.
- Looks: styles/theme/20-shell-sidebar.css (row, rail, phone bar) and
+ Looks: styles/theme/20-shell.css (row, rail, phone bar) and
  styles/theme/50-toplayout.css (the desktop bar's square button).
  Licensed to the public under the Apache License 2.0.
 -#}

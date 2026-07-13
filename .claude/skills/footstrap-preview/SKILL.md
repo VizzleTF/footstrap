@@ -20,7 +20,8 @@ LUCI_PW=<router-root-password> \
 
 - `<page...>` — one or more LuCI paths (default `admin/status/overview`), e.g.
   `admin/network/dhcp admin/system/system admin/status/routes`.
-- `--layout footstrap|footstrap-top|both` (default `both`).
+- `--layout sidebar|top|both` (default `both`). The layout is a CLIENT preference
+  (`localStorage.fs-layout`), not a theme entry — there is one theme, `Footstrap`.
 - `--mode dark|light|both` (default `both`).
 - `--ssh-host` (default `router`, or env `FOOTSTRAP_SSH`).
 - Output dir: `--out` or env `FOOTSTRAP_OUT` (default `/tmp/claude-1000/footstrap-preview`).

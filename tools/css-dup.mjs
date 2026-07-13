@@ -16,9 +16,24 @@
  * the same bar written under `@media(max-width:767px)` and under `:root[data-layout=top]`
  * — 55 of ~75 declarations identical).
  *
- * So this tool does not fail the build on a find. It REPORTS, and it holds a budget: the
- * duplication a CSS-language limit forces on you is legitimate, but it must be visible and
- * it must not grow. Raise BUDGET deliberately, with a comment saying why.
+ * WHAT IT DOES ABOUT IT — and why there is no budget
+ * ---------------------------------------------------
+ * There used to be a numeric BUDGET here (2), and it was the wrong instrument: a number
+ * nobody defends, which lets the next unexplained copy in for free the moment somebody
+ * raises it by one. Duplication a CSS-language limit FORCES on you is legitimate; it just
+ * has to be a decision rather than an accident.
+ *
+ * So every duplicated body must be one of two things:
+ *   - folded into a single rule, or
+ *   - PINNED: each copy wrapped in `/* @mirror <group>/<role> *\/ … /* @endmirror *\/`
+ *     (the tag goes INSIDE the braces — the selectors legitimately differ, only the
+ *     declarations must match). tools/mirror.mjs then holds the copies byte-identical.
+ * An untagged duplicate is a hard failure.
+ *
+ * The pin is not ceremony. THIS detector only finds bodies that are IDENTICAL — so the
+ * moment two copies diverge they stop looking like a duplicate and it goes quiet, exactly
+ * when you need it to shout. mirror.mjs is what closes that: together they turn duplication
+ * you cannot delete into duplication that cannot rot.
  *
  * Usage: node tools/css-dup.mjs [--min N] [--json]
  */
@@ -40,7 +55,26 @@ const tmp = join(mkdtempSync(join(tmpdir(), 'cssdup-')), 'cascade.css');
 execFileSync(join(ROOT, 'luci-theme-footstrap', 'build-css.sh'), [tmp, '--dev'], { stdio: 'ignore' });
 const css = readFileSync(tmp, 'utf8');
 
-const ast = csstree.parse(css, { positions: true });
+/* css-tree drops comments from the AST, so the pin has to be collected on the side and
+ * matched back by LINE. onComment gives us both. */
+const mirrorAt = new Map();		/* line -> "group/role" */
+const ast = csstree.parse(css, {
+	positions: true,
+	onComment(value, loc) {
+		const m = value.match(/@mirror\s+([A-Za-z0-9_-]+\/[A-Za-z0-9_-]+)/);
+		if (m) mirrorAt.set(loc.start.line, m[1]);
+	},
+});
+
+/* the pin sits INSIDE the rule's braces, so it is a comment on some line between the
+ * block's first and last */
+function mirrorFor(node) {
+	const a = node.block?.loc?.start.line, b = node.block?.loc?.end.line;
+	if (!a) return null;
+	for (const [line, name] of mirrorAt)
+		if (line >= a && line <= b) return name;
+	return null;
+}
 
 /* The "guard" of a rule = the chain of at-rules it sits inside (media/container/supports)
  * plus its cascade layer. Two rules under the same guard with the same body are a plain
@@ -54,6 +88,7 @@ csstree.walk(ast, {
 		if (node.type !== 'Rule' || node.block?.type !== 'Block') return;
 
 		const decls = [];
+		const mirror = mirrorFor(node);
 		for (const d of node.block.children) {
 			if (d.type !== 'Declaration') continue;
 			decls.push(`${d.property}:${csstree.generate(d.value).replace(/\s+/g, ' ').trim()}${d.important ? '!' : ''}`);
@@ -66,6 +101,7 @@ csstree.walk(ast, {
 			line: node.loc?.start.line ?? 0,
 			key: decls.slice().sort().join('; '),
 			n: decls.length,
+			mirror,
 		});
 	},
 	leave(node) {
@@ -92,33 +128,36 @@ findings.sort((a, b) => b.n * b.group.length - a.n * a.group.length);
 
 const wasted = findings.reduce((s, f) => s + f.n * (f.group.length - 1), 0);
 
-const BUDGET = 2;	/* the config table's card, duplicated between theme/30-tables.css
-					 * (.fs-stacked, the data table's) and theme/65-dropdown.css (its
-					 * @container 960). It cannot be folded: a class and a container query
-					 * are different guards, and CSS cannot share a declaration block across
-					 * them. It cannot be measured away either — see fs-select.js: a config
-					 * row is full of widgets that bake in a width from the layout they were
-					 * rendered in, so un-collapsing one to measure it changes the thing being
-					 * measured. Lower this when a copy dies. Raising it is a decision, and
-					 * wants a comment saying why the copy could not be folded. */
+/* A finding is ACCEPTED only if every copy carries the same @mirror pin. */
+const unpinned = findings.filter(f => {
+	const pins = f.group.map(r => r.mirror);
+	return pins.some(p => !p) || new Set(pins).size !== 1;
+});
 
 if (process.argv.includes('--json')) {
-	console.log(JSON.stringify({ findings, wasted, budget: BUDGET }, null, 2));
+	console.log(JSON.stringify({ findings, wasted, unpinned: unpinned.length }, null, 2));
 } else {
 	for (const f of findings) {
-		console.log(`\n--- ${f.n} decls x ${f.group.length} occurrences`);
+		const pins = new Set(f.group.map(r => r.mirror));
+		const tag = (pins.size === 1 && !pins.has(null)) ? `pinned @mirror ${[...pins][0]}` : 'UNPINNED';
+		console.log(`\n--- ${f.n} decls x ${f.group.length} occurrences   [${tag}]`);
 		for (const r of f.group)
 			console.log(`    L${String(r.line).padEnd(6)} guard=${r.guard.padEnd(42)} ${r.selector}`);
 		console.log(`    decls: ${f.key}`);
 	}
 	console.log(`\n${findings.length} duplicated declaration bodies across differing guards `
-		+ `(>= ${MIN_DECLS} decls); ~${wasted} redundant declarations.  budget: ${BUDGET}`);
+		+ `(>= ${MIN_DECLS} decls); ~${wasted} redundant declarations. `
+		+ `${unpinned.length ? `${unpinned.length} UNPINNED.` : 'all pinned.'}`);
 }
 
-if (findings.length > BUDGET) {
-	console.error(`\nFAIL: ${findings.length} duplicated declaration bodies > budget ${BUDGET}.`);
-	console.error('Fold them into one rule. If the guards genuinely cannot be merged in CSS');
-	console.error('(a media query vs an attribute selector, a class vs a container query, two');
-	console.error('@container thresholds), raise BUDGET in tools/css-dup.mjs and say why there.');
+if (unpinned.length) {
+	console.error(`\nFAIL: ${unpinned.length} duplicated declaration body/bodies are not pinned.`);
+	console.error('Fold them into one rule. If the guards genuinely cannot be merged in CSS (a');
+	console.error('media query vs an attribute selector, a class vs a container query, two');
+	console.error('@container thresholds), then this duplication is forced on you — say so, by');
+	console.error('wrapping the declarations of EVERY copy in:');
+	console.error('    /* @mirror <group>/<role> */  …declarations…  /* @endmirror */');
+	console.error('tools/mirror.mjs then holds the copies byte-identical, so they cannot drift.');
+	console.error('There is no budget: a number nobody defends lets the next copy in for free.');
 	process.exit(1);
 }

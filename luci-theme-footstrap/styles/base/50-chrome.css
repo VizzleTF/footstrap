@@ -105,7 +105,7 @@
 	}
 
 	/* Footer PAINT (padding, border, colours, link colour) is owned by the theme
-	 * (`footer` rules in theme/20-shell-sidebar.css) — absorbed, since the theme
+	 * (`footer` rules in theme/20-shell.css) — absorbed, since the theme
 	 * layer overrode all of it. The flex skeleton below stays. */
 	footer {
 		margin-top: auto;

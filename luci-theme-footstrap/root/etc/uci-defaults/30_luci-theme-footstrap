@@ -23,8 +23,14 @@ fi
 # pair this release replaces. Mode, palette AND now the layout are all client-side
 # toggles (Appearance popover), so exactly one server-side theme entry is left — it is
 # re-added below.
-for t in Footstrap FootstrapDark FootstrapLight FootstrapTop FootstrapTopDark \
-         FootstrapTopLight FootstrapSidebar FootstrapOnTop; do
+# Every theme name this package has EVER registered. The Makefile's postrm has to delete the
+# same set (it runs when this file is already gone, so it cannot source it), and the two lists
+# had drifted into a different ORDER — which is exactly how one of them would quietly lose a
+# name. Only the assignment is pinned: the Makefile has to write `$$t` where this writes `$t`.
+# @mirror theme/legacy-names
+LEGACY_THEMES="Footstrap FootstrapDark FootstrapLight FootstrapTop FootstrapTopDark FootstrapTopLight FootstrapSidebar FootstrapOnTop"
+# @endmirror
+for t in $LEGACY_THEMES; do
 	uci -q delete "luci.themes.$t"
 done
 
@@ -65,11 +71,25 @@ esac
 # disk — both its media dir and its ucode template. If a partial upgrade or a
 # hand-edited mediaurlbase points at neither, fall back to the stock bootstrap
 # theme; a plain UI beats no UI. Skipped when bootstrap itself is not installed.
-theme=${new##*/}
-if [ -n "$theme" ] && { [ ! -d "/www/luci-static/$theme" ] ||
-                        [ ! -f "/usr/share/ucode/luci/template/themes/$theme/header.ut" ]; }; then
-	[ -d /www/luci-static/bootstrap ] && new=/luci-static/bootstrap
-fi
+#
+# SCOPED TO OUR OWN THEME, and that scoping is the point. `new` defaults to
+# whatever the router already had, so without the case below this guard passed
+# judgement on OTHER PEOPLE'S themes: installing footstrap would inspect, say, an
+# active luci-theme-argon, and if its ucode template dir did not happen to be named
+# after its media basename — or if it was mid-upgrade at that moment — quietly
+# rewrite the user's mediaurlbase to bootstrap. Repair what we ship; leave the rest
+# of the router alone.
+case "$new" in
+	/luci-static/footstrap*)
+		theme=${new##*/}
+		if [ ! -d "/www/luci-static/$theme" ] ||
+		   [ ! -f "/usr/share/ucode/luci/template/themes/$theme/header.ut" ]; then
+			[ -d /www/luci-static/bootstrap ] &&
+			[ -f /usr/share/ucode/luci/template/themes/bootstrap/header.ut ] &&
+				new=/luci-static/bootstrap
+		fi
+		;;
+esac
 
 [ "$new" = "$cur" ] || uci set luci.main.mediaurlbase="$new"
 

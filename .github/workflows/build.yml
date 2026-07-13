@@ -124,9 +124,27 @@ jobs:
       # The same declaration body written under two DIFFERENT guards (a media query vs an
       # attribute selector, or two @container queries). No linter can flag this — to a
       # cascade-aware tool both rules are required, since only one ever matches — yet it is
-      # exactly the shape that drifts. Reported against a budget, not failed on sight.
+      # exactly the shape that drifts. Every such body must be folded into one rule, or
+      # PINNED with @mirror; an unpinned duplicate fails the build.
       - name: "Duplicated declaration bodies across guards"
         run: node tools/css-dup.mjs
+
+      # ...and the other half of that: css-dup only sees bodies that are IDENTICAL, so it
+      # goes quiet the moment two copies drift — exactly when it should shout. This holds
+      # every @mirror-pinned copy byte-identical, across CSS *and* shell (install.sh and
+      # footstrap-selfupdate.sh cannot share a file: the installer is `curl | sh` and runs
+      # before the package that would contain the library exists).
+      - name: "@mirror (pinned duplication stays byte-identical)"
+        run: node tools/mirror.mjs
+
+      # The Appearance axes are implemented TWICE and cannot be merged: head.ut stamps :root
+      # before the first paint (inline, before the module loader exists) and
+      # menu-footstrap-common.js applies them live. This holds the two to the same contract —
+      # key names, attributes, custom properties, ranges, the rounding default, and the
+      # ordering rule (custom property BEFORE the attribute, or a reload paints one frame with
+      # the previous hue). Its only symptom is a single wrong frame, which nobody reports.
+      - name: "Appearance axes (the pre-paint template agrees with the live appliers)"
+        run: node tools/axes.mjs
 
       # THE GATE THAT MAKES SHIPPING MINIFIED JS SAFE.
       #
@@ -142,20 +160,44 @@ jobs:
       #
       # jsmin.c is byte-identical on openwrt-24.10 and master (checked), so one build
       # covers both releases we support.
+      #
+      # PINNED TO A COMMIT AND CHECKSUMMED, because of what this file IS: we download C
+      # source over the network, compile it, and then run it as the gate that decides
+      # whether our shipped JavaScript is safe. Fetching that from a moving `master` means
+      # the gate is whatever upstream happened to push — and a bad day there (or a poisoned
+      # raw.githubusercontent cache) silently rewrites the check itself. A commit SHA is
+      # immutable; the sha256 says so out loud. Bump both together, deliberately.
+      # The commit and the checksum come from luci-theme-footstrap/luci-upstream.pin, which
+      # update-po.sh sources for ITS borrowed tool as well — one file, so bumping upstream
+      # cannot leave half the toolchain behind.
       - name: Build jsmin (the same one the buildbot uses)
         run: |
           set -eu
-          curl -fsSL -o /tmp/jsmin.c \
-            https://raw.githubusercontent.com/openwrt/luci/master/modules/luci-base/src/jsmin.c
+          . ./luci-theme-footstrap/luci-upstream.pin
+          curl -fsSL --proto '=https' --proto-redir '=https' -o /tmp/jsmin.c \
+            "https://raw.githubusercontent.com/openwrt/luci/$LUCI_PIN/modules/luci-base/src/jsmin.c"
+          echo "$JSMIN_SHA256  /tmp/jsmin.c" | sha256sum -c -
           cc -O2 -o /tmp/jsmin /tmp/jsmin.c
+
+      # WHICH JS SHIPS — asked once, of the thing that decides it.
+      #
+      # The two steps below used to spell out the same pair of globs
+      # (resources/*.js + resources/view/status/include/*.js) independently, so a new JS
+      # directory had to be remembered in both — and if it was added to only one, the other
+      # silently stopped covering it. There is no list: luci.mk copies htdocs/ wholesale, so
+      # every .js under htdocs IS the shipped set. Ask the filesystem.
+      - name: Resolve the shipped JS
+        run: |
+          set -eu
+          files=$(find luci-theme-footstrap/htdocs -name '*.js' | sort | tr '\n' ' ')
+          [ -n "$files" ] || { echo "found no shipped JS — the glue is broken, not the theme"; exit 1; }
+          echo "SHIPPED_JS=$files" >> "$GITHUB_ENV"
+          echo "$files" | tr ' ' '\n'
 
       - name: jsmin equivalence (minified JS must be the same program)
         env:
           JSMIN: /tmp/jsmin
-        run: |
-          node tools/jsmin-verify.mjs \
-            luci-theme-footstrap/htdocs/luci-static/resources/*.js \
-            luci-theme-footstrap/htdocs/luci-static/resources/view/status/include/*.js
+        run: node tools/jsmin-verify.mjs $SHIPPED_JS
 
       - name: JS size budget (measured AFTER minification — that is what ships)
         env:
@@ -163,8 +205,7 @@ jobs:
         run: |
           set -eu
           total=0
-          for f in luci-theme-footstrap/htdocs/luci-static/resources/*.js \
-                   luci-theme-footstrap/htdocs/luci-static/resources/view/status/include/*.js; do
+          for f in $SHIPPED_JS; do
             n=$(/tmp/jsmin < "$f" | wc -c)
             total=$((total + n))
           done

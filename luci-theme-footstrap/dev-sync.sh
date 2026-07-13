@@ -1,14 +1,15 @@
 #!/bin/sh
-# Залить тему footstrap (sidebar + top-nav варианты) на роутер (ssh router).
-# Регистрирует темы, НЕ активирует.
+# Залить тему footstrap на роутер (ssh router).
+# ОДНА тема, одна запись в luci.themes; раскладка (sidebar/top) — клиентская
+# настройка в поповере Appearance, а не запись темы. Регистрирует, НЕ активирует.
 set -e
 
 R="${1:-router}"
 N=footstrap
 D="$(cd "$(dirname "$0")" && pwd)"
 
-# cascade.css is generated from styles/ + pages/ and is not in git. --dev keeps
-# the comments so the file on the router still reads like the source.
+# cascade.css is generated from the four styles/ dirs (styles, base, theme, pages) and is
+# not in git. --dev keeps the comments so the file on the router still reads like the source.
 "$D"/build-css.sh "$D/htdocs/luci-static/$N/cascade.css" --dev
 
 ssh "$R" "mkdir -p /usr/share/ucode/luci/template/themes/$N \
@@ -21,9 +22,19 @@ scp -q  "$D"/ucode/template/themes/$N/*.ut      "$R":/usr/share/ucode/luci/templ
 ssh "$R" "mkdir -p /usr/share/ucode/luci/template/themes/$N/partials"
 scp -q  "$D"/ucode/template/themes/$N/partials/*.ut "$R":/usr/share/ucode/luci/template/themes/$N/partials/
 
-# shared static (cascade.css, fonts, logo) + the menu renderer (+ shared common)
-scp -qr "$D"/htdocs/luci-static/$N/*                     "$R":/www/luci-static/$N/
-scp -q  "$D"/htdocs/luci-static/resources/menu-$N-common.js "$R":/www/luci-static/resources/
+# shared static (cascade.css, fonts, logo)
+scp -qr "$D"/htdocs/luci-static/$N/* "$R":/www/luci-static/$N/
+
+# EVERY resource JS, by glob — not by name.
+#
+# This used to list the four files individually (menu-*-common, menu-*, fs-select, fs-fit),
+# which meant a FIFTH one would be added to the tree, shipped by the package (luci.mk copies
+# htdocs/ wholesale) and silently never reach the dev router — so it would be tested only
+# after a release. The package deploys by directory; so does this.
+scp -q  "$D"/htdocs/luci-static/resources/*.js "$R":/www/luci-static/resources/
+scp -q  "$D"/htdocs/luci-static/resources/view/status/include/*.js \
+	"$R":/www/luci-static/resources/view/status/include/
+
 # stamp the git-derived version into the deployed common.js (the packaged build
 # does the same in the Makefile) so the Appearance popover shows a real version
 # and the update check works on the dev router.
@@ -34,11 +45,6 @@ FS_V="$(git -C "$D" describe --tags --always 2>/dev/null | sed 's/^v//')"
 if [ -n "$FS_V" ] && expr "$FS_V" : '[0-9A-Za-z._-]*$' >/dev/null; then
 	ssh "$R" "sed -i \"s#const FS_VERSION = '[^']*'#const FS_VERSION = '$FS_V'#\" /www/luci-static/resources/menu-$N-common.js"
 fi
-scp -q  "$D"/htdocs/luci-static/resources/menu-$N.js        "$R":/www/luci-static/resources/
-scp -q  "$D"/htdocs/luci-static/resources/fs-select.js      "$R":/www/luci-static/resources/
-scp -q  "$D"/htdocs/luci-static/resources/fs-fit.js         "$R":/www/luci-static/resources/
-scp -q  "$D"/htdocs/luci-static/resources/view/status/include/05_${N}_overview_layout.js \
-	"$R":/www/luci-static/resources/view/status/include/
 
 # self-update backend: the exec script + its rpcd ACL (file.exec of that one path)
 ssh "$R" "mkdir -p /usr/libexec /usr/share/rpcd/acl.d"
@@ -66,8 +72,8 @@ touch /lib/apk/db/installed
 rm -f /tmp/luci-indexcache*"
 
 # register the theme entries by running the package's own uci-defaults script —
-# it is the single source of truth (two layout entries; dark/light and palette
-# are client-side toggles now). PKG_UPGRADE=1 keeps it from touching the active
+# it is the single source of truth (ONE entry, luci.themes.Footstrap; layout,
+# dark/light and palette are all client-side toggles now). PKG_UPGRADE=1 keeps it from touching the active
 # theme on a fresh router.
 scp -q "$D"/root/etc/uci-defaults/30_luci-theme-footstrap "$R":/tmp/30_luci-theme-footstrap
 ssh "$R" "PKG_UPGRADE=1 sh /tmp/30_luci-theme-footstrap; rm -f /tmp/30_luci-theme-footstrap /tmp/luci-indexcache*"

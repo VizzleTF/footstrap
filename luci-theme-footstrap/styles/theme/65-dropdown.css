@@ -2,9 +2,9 @@
 	/* Generic .dropdown-menu popup — reaches the split "Save & Apply" menu ui.js
 	 * renders in the action bar (and any third-party use). Hover text is ACCENT on
 	 * purpose, matching the open cbi-dropdown list: this is a form control's menu.
-	 * The top-nav's NAV dropdowns share the class but hover to --fs-text instead via
-	 * the more specific grouped rule in theme/10-chrome.css — that difference is
-	 * intentional (nav surfaces hover text, form menus hover accent), not drift. */
+	 * `.dropdown-menu` is NOT the theme's nav menu (10-chrome.css says so in as many
+	 * words): a nav submenu is a plain nested <ul>. This class now only reaches ui.js's
+	 * split Save & Apply menu and whatever a third-party luci-app-* emits. */
 	.dropdown-menu { background-color: var(--fs-panel); border-color: var(--fs-border); }
 	.dropdown-menu a { color: var(--fs-text); text-shadow: none; }
 	.dropdown-menu a:hover { background: var(--fs-panel2); background-image: none; color: var(--fs-accent); }
@@ -196,16 +196,25 @@
 		.table.cbi-section-table .td[data-widget="dvalue"],
 		.table.cbi-section-table .td[data-widget="fvalue"],
 		.table.cbi-section-table .td[data-widget="button"] { flex-basis: 50%; }
+		/* PINNED to the data table's copy in theme/30-tables.css: the same card, needed under
+		 * a CLASS there (.fs-stacked, measured) and under this @container here, and CSS will
+		 * not share a block across the two. tools/mirror.mjs holds them byte-identical. */
 		.table.cbi-section-table .td[data-title]::before {
+			/* @mirror table-card/label */
 			content: attr(data-title); display: block; margin-bottom: 3px;
 			font-size: 10px; font-weight: 700; letter-spacing: .05em;
 			text-transform: uppercase; color: var(--fs-faint);
+			/* @endmirror */
 		}
 		/* the row's buttons are not a label/value pair: full width, left-aligned, and
-		 * each button stretches to share the line (Edit | Delete). */
+		 * each button stretches to share the line (Edit | Delete). PINNED — see above.
+		 * (These six declarations were the same six as the data table's, written in a
+		 * DIFFERENT ORDER, so a grep could not tell they were one rule. Normalised.) */
 		.table.cbi-section-table .td.cbi-section-actions {
-			display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 8px;
-			justify-content: flex-start; padding-top: 8px;
+			/* @mirror table-card/actions */
+			display: flex; flex: 1 1 100%; justify-content: flex-start;
+			flex-wrap: wrap; gap: 8px; padding-top: 8px;
+			/* @endmirror */
 		}
 		.table.cbi-section-table .td.cbi-section-actions::before { content: none; }
 		.table.cbi-section-table .td.cbi-section-actions > * { flex: 1 1 auto; display: flex; gap: 8px; }

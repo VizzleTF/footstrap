@@ -35,8 +35,8 @@ luci-theme-footstrap/
     theme/               @layer theme    компоненты и раскладки footstrap
       10-chrome.css      общий хром обоих layout'ов
       15-wallpaper.css   правила-обои (data-wallpaper="cats"), не токены
-      20-shell-sidebar.css  25-progressbar.css  30-tables.css  35-alerts.css
-      40-tabs.css  45-misc.css  50-topnav.css  55-buttons.css  60-inputs.css
+      20-shell.css  25-progressbar.css  30-tables.css  35-alerts.css
+      40-tabs.css  45-misc.css  50-toplayout.css  55-buttons.css  60-inputs.css
       65-dropdown.css  70-modal.css  90-responsive.css
       95-a11y-media.css  prefers-reduced-motion + forced-colors
     pages/               @layer page     постраничные правки
@@ -135,7 +135,7 @@ JS в `style=`) сняла 11 флагов из 43 и добавила один 
 ## Сборка
 
 `build-css.sh` склеивает файлы и (без `--dev`) снимает комментарии, отступы и
-пустые строки. **218 643 → 117 533 байт, −46 %.** Это не косметика: uhttpd отдаёт
+пустые строки. **284 464 → 111 574 байт, −61 %.** Это не косметика: uhttpd отдаёт
 `/www/luci-static/*.css` без gzip, поэтому каждый байт летит по проводу как есть.
 Для сравнения, сток `luci-theme-bootstrap` — 44 КБ.
 
@@ -148,7 +148,7 @@ LuCI (`csstidy`, `LUCI_MINIFY_CSS`) остаётся выключенным — 
 их всегда по копии **без комментариев** (иначе одинокая `{` в прозе роняла
 совершенно валидную `--dev`-сборку), ругается на неизвестную опцию вместо того
 чтобы принять её за имя выходного файла, и держит бюджет размера
-(`FS_CSS_BUDGET`, по умолчанию 124 КБ) — превышение валит сборку, потому что
+(`FS_CSS_BUDGET`, по умолчанию 117 760 байт (115 КБ)) — превышение валит сборку, потому что
 сжать это уже нечем.
 
 ### Как это работает на OpenWrt
@@ -236,7 +236,7 @@ LUCI_PW=… python3 .claude/skills/footstrap-audit/cssdiff.py \
 
 Различаться между вариантами темы должно только расположение меню. Brand, логотип,
 wordmark, logout и индикаторы описывались **дважды** — без скоупа в
-`20-shell-sidebar.css` и повторно под `.fs-topnav` в `26-topnav.css`, — и копии
+`20-shell.css` и повторно под `.fs-topnav` в `50-toplayout.css`, — и копии
 разъехались: логотип 32px против 30px, зазор бренда 11px против 10px, зазор
 индикаторов 10px против 8px.
 
@@ -301,7 +301,7 @@ Bootstrap в ней почти не было. Разбор исходного `b
 На navbar-хроме `cssdiff` показал ровно три вещи, которых тема не покрывала и
 которые молча наследовала: `line-height: 19px` у пунктов меню, `position:
 relative` на `li` (к нему привязан каждый всплывающий подменю-попап) и тень
-`<header>`. Они переехали в `theme/10-chrome.css` и `theme/50-topnav.css`. После
+`<header>`. Они переехали в `theme/10-chrome.css` и `theme/50-toplayout.css`. После
 этого — ноль расхождений на обоих layout'ах.
 
 ### Что именно осталось присвоить: гейт вместо глазомера

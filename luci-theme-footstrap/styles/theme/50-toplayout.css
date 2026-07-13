@@ -75,7 +75,7 @@
 	/* ==================================================================
 	 * THE MENU DOES NOT FIT ON THE BRAND'S ROW — .fs-bar-stack
 	 *
-	 * Set by menu-footstrap.js, NOT by a media query, and that is the point. Whether the
+	 * Set by menu-footstrap-common.js (fitChrome), NOT by a media query, and that is the point. Whether the
 	 * menu fits beside the brand depends on how many sections the router HAS — a stock
 	 * install renders 5, but a box with a few luci-app-* packages renders eleven. So the
 	 * width at which the bar has to stack is a property of the CONTENT, not of the

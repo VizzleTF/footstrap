@@ -80,9 +80,17 @@
 		border-color: var(--fs-danger) var(--fs-danger) var(--fs-danger);
 	}
 
+	/* --fs-on-GOOD, not --fs-on-danger. This read --fs-on-danger, and nothing could
+	 * see it: every shipped palette happens to give all four inks the same value, so
+	 * cssdiff found 0 diffs, audit.py saw a defined var and axe measured the right
+	 * contrast. It only breaks for the NEXT colourway — the one 03-palettes.css tells
+	 * the author to give danger its own ink. Proven live: forcing --fs-on-danger red
+	 * turns .cbi-tooltip.success red, and --fs-on-good has no effect on it at all
+	 * (.btn.success and .alert-message.success are repainted by theme; the tooltip is
+	 * not, so it is the member that was actually exposed). */
 	.btn.success, .alert-message.success, .cbi-tooltip.success {
 		background: linear-gradient(var(--fs-good), var(--fs-good));
-		color: var(--fs-on-danger);
+		color: var(--fs-on-good);
 		border-color: var(--fs-good) var(--fs-good) var(--fs-good);
 	}
 

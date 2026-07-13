@@ -2,7 +2,7 @@
 	/* Document scaffolding: the body box, links, and the typographic scale a view
 	 * inherits when it emits plain <h1>/<p>/<ul>/<pre> markup. */
 	/* body background/padding/font-family are owned by the theme shell
-	 * (theme/20-shell-sidebar.css `body` rule, both layouts) — absorbed. */
+	 * (theme/20-shell.css `body` rule, both layouts) — absorbed. */
 	body {
 		font-size: 13px;
 		font-weight: normal;

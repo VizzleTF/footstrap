@@ -52,10 +52,11 @@
 		body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table) .tr,
 		body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table) .td { display: block; width: auto; }
 
-		/* fs-dt data tables (System→Startup init.d list, leases, processes): the row
-		 * stacking already runs via @container, but the <table> box itself stayed
-		 * display:table and could keep an intrinsic min-width. Block it so its width
-		 * can't exceed the column. */
+		/* fs-dt data tables (System→Startup init.d list, leases, processes) that do NOT
+		 * card on a phone: the row stacking is measured (.fs-stacked, fs-select.js) and
+		 * carries its own `display: block` (theme/30-tables.css), but a table that still
+		 * fits as a table keeps display:table and with it an intrinsic min-width. Block it
+		 * so its width can't exceed the column. */
 		table.fs-dt { display: block; width: 100%; }
 
 		/* generic caps: an input/select must never exceed its field, and long key/value
@@ -111,22 +112,11 @@
 		.hide-sm, .hide-xs,
 		.table .td.hide-sm, .table .td.hide-xs,
 		.table .th.hide-sm, .table .th.hide-xs { display: none; }
-		/* A column weight, 1–10, as a share of the stacked row. The JS uses it to say
-		 * "this cell is a narrow badge, that one is the wide status text" (wireless.js
-		 * col-2/col-3/col-4, connections.js col-7). Without it every cell fell back to
-		 * the even 50% split and the badge column got as much room as the text. Basis is
-		 * N*30px as in stock, so the weights compose the same way; scoped through
-		 * `.table` for the same specificity reason as .hide-xs above. */
-		.table .td.col-1, .table .th.col-1 { flex: 1 1 30px; }
-		.table .td.col-2, .table .th.col-2 { flex: 2 2 60px; }
-		.table .td.col-3, .table .th.col-3 { flex: 3 3 90px; }
-		.table .td.col-4, .table .th.col-4 { flex: 4 4 120px; }
-		.table .td.col-5, .table .th.col-5 { flex: 5 5 150px; }
-		.table .td.col-6, .table .th.col-6 { flex: 6 6 180px; }
-		.table .td.col-7, .table .th.col-7 { flex: 7 7 210px; }
-		.table .td.col-8, .table .th.col-8 { flex: 8 8 240px; }
-		.table .td.col-9, .table .th.col-9 { flex: 9 9 270px; }
-		.table .td.col-10, .table .th.col-10 { flex: 10 10 300px; }
+		/* The `.col-N` weights used to live here, inside the phone tier. They are UNGUARDED
+		 * now, in theme/30-tables.css: `flex` is inert on anything that is not a flex item,
+		 * and a `.td` becomes one exactly when its table is carded — so one copy covers the
+		 * phone tier, the measured stack at any width, and the config table's @container,
+		 * with no guard and no second copy to keep in step. See the block there. */
 
 		/* iOS Safari zooms the page in when a focused control's text is under 16px, and
 		 * never zooms back out — the theme's 13px inputs did exactly that on every form.

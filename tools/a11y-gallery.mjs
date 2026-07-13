@@ -19,35 +19,13 @@
  * (isolated <table>s, headings with no document outline), which trips landmark and
  * heading-order rules that say nothing about the theme.
  */
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join } from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
+import { buildCss, serveGallery, applyAppearance, matrix } from './lib/gallery.mjs';
 
-const ROOT = new URL('..', import.meta.url).pathname;
-const TMP = process.env.RUNNER_TEMP || '/tmp';
-const CSS = join(TMP, 'cascade.css');
-
-/* the stylesheet is generated — build it, don't assume a stale copy is lying around */
-execFileSync(join(ROOT, 'luci-theme-footstrap/build-css.sh'), [CSS], { stdio: 'inherit' });
-
-const FILES = {
-	'/gallery.html': join(ROOT, 'docs/gallery.html'),
-	'/cascade.css': CSS,
-};
-const TYPES = { '.html': 'text/html', '.css': 'text/css' };
-
-const server = createServer(async (req, res) => {
-	const path = req.url.split('?')[0];
-	const file = FILES[path === '/' ? '/gallery.html' : path];
-	if (!file) { res.writeHead(404).end(); return; }
-	res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'text/plain' });
-	res.end(await readFile(file));
-});
-await new Promise((r) => server.listen(0, '127.0.0.1', r));
-const base = `http://127.0.0.1:${server.address().port}/gallery.html`;
+/* build + serve: shared with export-tier.mjs, including the rules for stamping the
+ * Appearance axes onto :root (tools/lib/gallery.mjs) */
+const { base, close } = await serveGallery(buildCss('cascade.css'));
 
 /* The Tint axis re-hues every surface in the gallery, so it multiplies this matrix
  * the way the palette does — and unlike the palette it is a slider, i.e. the user
@@ -58,12 +36,7 @@ const base = `http://127.0.0.1:${server.address().port}/gallery.html`;
  * contrast of text sitting on the surface. `null` = untinted. */
 const TINTS = [null, 60, 260];
 
-const MATRIX = [
-	{ mode: 'light', palette: 'footstrap' },
-	{ mode: 'dark', palette: 'footstrap' },
-	{ mode: 'light', palette: 'hicontrast' },
-	{ mode: 'dark', palette: 'hicontrast' },
-].flatMap((c) => TINTS.map((tint) => ({ ...c, tint })));
+const MATRIX = matrix(TINTS);
 
 const browser = await chromium.launch();
 /* axe-core requires a real BrowserContext (it injects into every frame), not the
@@ -74,14 +47,7 @@ let failed = 0;
 for (const { mode, palette, tint } of MATRIX) {
 	const page = await ctx.newPage();
 	await page.goto(base, { waitUntil: 'load' });
-	await page.evaluate(([m, p, t]) => {
-		const root = document.documentElement;
-		root.setAttribute('data-darkmode', m === 'dark' ? 'true' : 'false');
-		if (p === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
-		else root.removeAttribute('data-palette');
-		if (t === null) { root.removeAttribute('data-tint'); root.style.removeProperty('--fs-tint-h'); }
-		else { root.style.setProperty('--fs-tint-h', String(t)); root.setAttribute('data-tint', ''); }
-	}, [mode, palette, tint]);
+	await applyAppearance(page, { mode, palette, tint });
 	await page.waitForTimeout(400);   /* let the webfonts settle before measuring contrast */
 
 	const { violations } = await new AxeBuilder({ page })
@@ -111,7 +77,7 @@ for (const { mode, palette, tint } of MATRIX) {
 
 await ctx.close();
 await browser.close();
-server.close();
+close();
 
 if (failed) {
 	console.error(`\n${failed} serious/critical accessibility violation(s) — see above`);

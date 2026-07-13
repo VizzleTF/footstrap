@@ -26,7 +26,16 @@ set -eu
 
 cd "$(dirname "$0")"
 
-SCANNER_URL='https://raw.githubusercontent.com/openwrt/luci/master/build/i18n-scan.pl'
+# Pinned to a COMMIT, not to `master`, and checksummed — this is a perl script we fetch
+# over the network and then EXECUTE, and it is the gate that decides whether the translation
+# catalogue is complete. Off a moving branch, the gate is whatever upstream pushed last.
+#
+# The commit and both checksums live in ONE file, luci-upstream.pin, which CI sources too:
+# they were written out separately here and in the workflow, each with a comment saying "bump
+# them together", and nothing enforcing it.
+. ./luci-upstream.pin
+SCANNER_URL="https://raw.githubusercontent.com/openwrt/luci/${LUCI_PIN}/build/i18n-scan.pl"
+SCANNER_SHA256="$I18N_SCAN_SHA256"
 POT='po/templates/footstrap.pot'
 CHECK=0
 [ "${1:-}" = '--check' ] && CHECK=1
@@ -43,8 +52,13 @@ if [ -n "${LUCI_SRC:-}" ] && [ -f "$LUCI_SRC/build/i18n-scan.pl" ]; then
 else
 	scanner="$(mktemp)"
 	trap 'rm -f "$scanner"' EXIT
-	curl -sfL "$SCANNER_URL" -o "$scanner" || {
+	curl -sfL --proto '=https' --proto-redir '=https' "$SCANNER_URL" -o "$scanner" || {
 		echo "update-po: cannot fetch $SCANNER_URL — set LUCI_SRC to a luci checkout" >&2
+		exit 1
+	}
+	# the pin says WHICH script; this says it is that script and nothing else
+	echo "$SCANNER_SHA256  $scanner" | sha256sum -c - >/dev/null || {
+		echo "update-po: i18n-scan.pl checksum mismatch — refusing to run it" >&2
 		exit 1
 	}
 fi

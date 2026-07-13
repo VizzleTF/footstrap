@@ -1,6 +1,7 @@
 'use strict';
 'require baseclass';
 'require ui';
+'require fs-fit as fit';
 'require menu-footstrap-common as common';
 
 /* Footstrap SIDEBAR menu (variant 1A): vertical #topmenu with icons and
@@ -39,15 +40,39 @@ function iconSvg(name) {
  *     may be open, hover drives it on a mouse, and a tap toggles it — so `.open`
  *     must behave like the top-nav dropdown (exclusive, cleared on outside click
  *     and once a real mouse enters the menu). */
-/* one MediaQueryList for the mobile breakpoint — flyoutMode() runs on every
- * click/pointerenter/render item, and allocating a fresh MQL each time is
- * wasted work. Must track the 767px breakpoint in 20-shell-sidebar.css /
- * 90-responsive.css. */
+/* One MediaQueryList for the DESKTOP-bar breakpoint, which topBarMode() below still needs:
+ * 50-toplayout.css guards the desktop bar's deltas with `@media (min-width: 768px)`, so the
+ * edge-clamp must fire under exactly the complement of that. It is NOT what decides whether
+ * the sidebar has become a bar — see flyoutMode(). */
 const _mqMobile = window.matchMedia('(max-width: 767px)');
+
+/* Is a section's panel a POPUP (a flyout / a bar dropdown) rather than an unfolded accordion?
+ *
+ * This asks the same question the STYLESHEET answers, so it must read the same input the
+ * stylesheet does — and that input is `data-narrow`, not a viewport width.
+ *
+ * It used to be `matchMedia('(max-width: 767px)')`, and its comment pointed at a file
+ * (20-shell-sidebar.css) that no longer exists. The CSS had since moved off that breakpoint:
+ * the vertical sidebar now yields when the CONTENT column would fall below --fs-content-min,
+ * measured from the sidebar's real cut (fitShell() in menu-footstrap-common.js stamps
+ * `data-narrow`), because the cut is 224px expanded and 68px as a rail and one viewport
+ * number cannot describe both.
+ *
+ * The two therefore disagreed, and the window was real: with the sidebar expanded the CSS
+ * paints the bar below 780px (1000 − 224 − 56 < 500), while this said "accordion" until 767.
+ * Measured on the live router at 770 and 775px — the chrome was a full-width bar and the menu
+ * still believed it was a vertical accordion, so click-outside and Escape did not close a
+ * panel (common.wireDismiss is gated on this) and clampDropdown refused to place it.
+ *
+ * fitShell() runs before the menu renders (common.init calls fit.add(fitChrome) ahead of
+ * renderChrome), so the attribute is always there by the time this is first asked. The <521px
+ * floor the CSS keeps needs no clause here: at that width the content is far below the
+ * minimum, so data-narrow is already set. */
 function flyoutMode() {
-	return document.documentElement.getAttribute('data-rail') === 'true' ||
-	       document.documentElement.getAttribute('data-layout') === 'top' ||
-	       _mqMobile.matches;
+	const root = document.documentElement;
+	return root.getAttribute('data-rail') === 'true' ||
+	       root.getAttribute('data-layout') === 'top' ||
+	       root.hasAttribute('data-narrow');
 }
 
 /* The trigger in this layout — a bare <a>. common.setOpen keeps `.open` and
@@ -64,7 +89,9 @@ const OPEN_LI = '#topmenu > li.open';
  * bar's left edge and caps it to the viewport, and the collapsed rail flies panels
  * out sideways — neither can overflow this way, so neither needs measuring.
  * (This is the one piece of logic the deleted menu-footstrap-top.js carried.) */
-const EDGE_GAP = 8;
+/* the viewport edge gap, defined once in common.js — the Appearance popover keeps a popup
+ * off the edge by exactly the same amount, and the two used to state it separately */
+const EDGE_GAP = common.EDGE_GAP;
 function topBarMode() {
 	return document.documentElement.getAttribute('data-layout') === 'top' && !_mqMobile.matches;
 }
@@ -161,9 +188,10 @@ function renderMainMenu(tree, url, level) {
 	const idx = (level || 0) + 1;
 
 	children.forEach(child => {
-		/* the sidebar carries its own Logout entry at the bottom (header.ut), so
-		 * drop the menu tree's top-level admin/logout node — otherwise it shows up
-		 * twice. The top-nav layout has no footer link and keeps its own copy. */
+		/* the chrome carries its own Logout entry at the bottom (partials/logout.ut, in
+		 * every layout), so drop the menu tree's top-level admin/logout node — otherwise it
+		 * shows up twice. There is one renderer and one template now, so this is
+		 * unconditional; it used to be qualified with "the top-nav keeps its own copy". */
 		if (!level && child.name === 'logout')
 			return;
 
@@ -302,19 +330,22 @@ return baseclass.extend({
 			clearClamps();
 			flyoutMode() ? closeFlyouts() : restoreAccordion();
 		};
+		/* data-narrow belongs in this list for the same reason data-rail does: it is one of
+		 * the three attributes flyoutMode() reads, i.e. one of the three ways the chrome can
+		 * turn from an accordion into a bar. It was missing, so dragging a window from 800 to
+		 * 770px turned the sidebar into a bar with the accordion still unfolded inside it and
+		 * no transition handler ever ran. (fitShell() writes it — menu-footstrap-common.js.) */
 		new MutationObserver(modeChanged).observe(document.documentElement, {
-			attributes: true, attributeFilter: [ 'data-rail', 'data-layout' ]
+			attributes: true, attributeFilter: [ 'data-rail', 'data-layout', 'data-narrow' ]
 		});
+		/* still needed: topBarMode()/clampDropdown key off the desktop-bar breakpoint, which
+		 * is a real @media in 50-toplayout.css and is not covered by data-narrow */
 		_mqMobile.addEventListener('change', modeChanged);
 
 		/* a clamp computed at the old width is wrong at the new one. Coalesced into a
-		 * frame: resize fires dozens of times a second while a window is dragged. */
-		let resizePending = false;
-		window.addEventListener('resize', () => {
-			if (resizePending) return;
-			resizePending = true;
-			window.requestAnimationFrame(() => { resizePending = false; clearClamps(); });
-		});
+		 * frame (fit.frame — the shared coalescer): resize fires dozens of times a second
+		 * while a window is dragged. */
+		window.addEventListener('resize', fit.frame(clearClamps));
 
 		/* Appearance -> Submenus -> auto-collapse is handled in common.js, which can
 		 * only reach the DOM: the remembered set and the aria-expanded state live

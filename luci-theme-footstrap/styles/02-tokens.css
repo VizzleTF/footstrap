@@ -153,11 +153,29 @@
 		--fs-dur-move: .2s;	/* something that moves or unfolds: transform, max-height */
 		--fs-dur-fade: .25s;	/* a transient thing fading in or out: spinner, notification */
 		--fs-dur-fill: .4s;	/* a progress bar growing to its value */
-		--fs-content-max: 1280px;	/* content column cap (desktop breakpoint ≥1200) */
+		--fs-content-max: 1280px;	/* content column cap */
 		/* content column side padding. Coupled uses: .fs-content padding, the
 		 * top-nav bar's centering calc, and the notification width calc — one
 		 * token so they can't drift apart. */
 		--fs-content-pad: 28px;
+		/* ------------------------------------------------------------------------
+		 * THE SHELL'S GEOMETRY — and the reason it is a token and not a literal.
+		 *
+		 * These three numbers are read by BOTH the stylesheet and menu-footstrap-common.js:
+		 * the CSS lays the sidebar out, and the JS subtracts its cut from the viewport to
+		 * decide whether what is LEFT for the content is still readable (fitShell()). The JS
+		 * kept its own copies — `SIDEBAR_W = 224, RAIL_W = 68, CONTENT_MIN = 500` — while the
+		 * CSS wrote 224px and 68px as bare literals, so the coupling was invisible from both
+		 * sides: change the rail's width in the stylesheet and the measurement silently keeps
+		 * subtracting the old one, and nothing in the build says a word. 20-shell.css even
+		 * cites "--fs-content-min" in a comment, a token that did not exist.
+		 *
+		 * A duplicated number with no name is exactly the drift this project names tokens to
+		 * stop. There is now one definition; the JS reads it back with getPropertyValue().
+		 * ---------------------------------------------------------------------- */
+		--fs-sidebar-w: 224px;		/* the expanded vertical sidebar's column */
+		--fs-rail-w: 68px;		/* ...and the same sidebar collapsed to its icon rail */
+		--fs-content-min: 500px;	/* below this a content column stops being readable */
 		/* translucent blurred bar surface — the top-nav bar and the sidebar's
 		 * phone bar are the same component in two markups; one token keeps their
 		 * glass tint identical. */
@@ -173,7 +191,9 @@
 		 * semantic radii scale from it proportionally so every surface rounds in step;
 		 * pills/toggles stay fully round. Defaults at base 12: card 12, control 10,
 		 * chip 8. Every border-radius in theme/pages references one of these — grep
-		 * shows no bare px radius left except 0 / 50% / hairline insets. */
+		 * shows almost no bare px radius left: 0 / 50% / hairline insets, plus two that are NOT
+		 * corner radii of a card (theme/60-inputs.css 8px = half the 16px scrollbar; theme/70-modal.css
+		 * 4px). */
 		--fs-radius-base: 12px;
 		--fs-radius-lg: var(--fs-radius-base);				/* cards, panels, modals, table frame, popovers */
 		--fs-radius: calc(var(--fs-radius-base) * 5 / 6);	/* controls: inputs, buttons, dropdowns, tabs (10 @12) */

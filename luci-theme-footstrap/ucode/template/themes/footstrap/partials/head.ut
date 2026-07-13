@@ -1,8 +1,11 @@
 {#
- Shared <head> for both footstrap layouts (sidebar + top-nav). Included as
- include('themes/footstrap/partials/head', { boardinfo }). Env vars
- (media, resource, dispatcher, dispatched, node, css, pkgs_update_time) come
- from the render scope; boardinfo is passed in explicitly.
+ The <head> for the ONE template (the layout is a client preference the pre-paint
+ script below applies). Included as
+   include('themes/footstrap/partials/head', { boardinfo, fs_layout })
+ Env vars (media, resource, dispatcher, dispatched, node, css, pkgs_update_time) come
+ from the render scope; boardinfo and fs_layout are passed in explicitly — fs_layout is
+ the ROUTER's default layout (luci.main.footstrap_layout) and is what the <html
+ data-layout> stamp below reads.
  Licensed to the public under the Apache License 2.0.
 -#}
 <!DOCTYPE html>

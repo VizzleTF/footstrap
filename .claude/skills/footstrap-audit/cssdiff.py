@@ -72,9 +72,13 @@ def main():
     ap.add_argument("--layout", default="/luci-static/footstrap")
     ap.add_argument("--mode", default="dark")
     ap.add_argument("--ssh-host", default="router")
-    # Container queries make the stylesheet's behaviour a FUNCTION of width: the table
-    # stacking tiers live in @container fs-view/fs-content, so a diff taken only at 1440
-    # never enters them. Verify a change to those tiers at a width inside each band.
+    # The stylesheet's behaviour is a FUNCTION of width, so a diff taken only at 1440 never
+    # enters the narrow states. Three things change with width and none of them is visible at
+    # the default: the overview grid (@container fs-view 800), the config table's card
+    # (@container fs-content 960 — which in the sidebar layout can fire on a 1200px DESKTOP,
+    # since the column is viewport-224-56), and the data tables, which are not a container
+    # query at all any more but MEASURED (.fs-stacked, fs-select.js) and can card anywhere.
+    # Verify a change to any of them at a width inside each band.
     ap.add_argument("--width", type=int, default=1440)
     ap.add_argument("--height", type=int, default=900)
     ap.add_argument("--ls", action="append", default=[], metavar="KEY=VALUE",
@@ -87,7 +91,16 @@ def main():
     base = f"http://{host}"
 
     def sh(c): return subprocess.run(["ssh",args.ssh_host,c],capture_output=True,text=True)
+    # This script SWITCHES the router's active theme and puts it back in a finally block, so
+    # `orig` is the only thing standing between a dev router and a broken UI. It used to be a
+    # bare .strip() with no fallback: a failed ssh (or a router with the key unset) made it the
+    # EMPTY STRING, and the finally block then ran `uci set luci.main.mediaurlbase=` — blanking
+    # theme selection. preview.py and bench/nav-benchmark.py both default to bootstrap here;
+    # this one did not. Refuse to start rather than restore something we never read.
     orig = sh("uci get luci.main.mediaurlbase").stdout.strip()
+    if not orig:
+        sys.exit("cannot read luci.main.mediaurlbase from the router — refusing to switch the "
+                 "theme, because the value needed to switch it back could not be read")
 
     from playwright.sync_api import sync_playwright
     total = collections.Counter()

@@ -12,10 +12,16 @@ env LUCI_PW (required). Run via the project preview venv:
 """
 import argparse, os, subprocess, sys, time, pathlib
 
-LAYOUTS = {
-    "footstrap":     "/luci-static/footstrap",
-    "footstrap-top": "/luci-static/footstrap-top",
-}
+# ONE theme, ONE media path. The layout is a CLIENT preference (localStorage 'fs-layout'),
+# not a theme entry — so it is set in the browser, not with `uci set mediaurlbase`.
+#
+# This used to be a dict mapping "footstrap-top" to /luci-static/footstrap-top, a path the
+# rest of the repo actively deletes (dev-sync.sh rm -rf's it, uci-defaults migrates away from
+# it). `preview.py --layout footstrap-top` therefore pointed the dev router's mediaurlbase at
+# a directory that does not exist — i.e. it screenshotted a broken UI, or LuCI's theme
+# fallback, and called it the top layout.
+MEDIA_PATH = "/luci-static/footstrap"
+LAYOUTS = ["sidebar", "top"]
 
 def sh(host, cmd):
     return subprocess.run(["ssh", host, cmd], capture_output=True, text=True, timeout=30)
@@ -32,14 +38,14 @@ def main():
     ap.add_argument("pages", nargs="*", default=["admin/status/overview"],
                     help="LuCI paths, e.g. admin/status/overview admin/network/dhcp")
     ap.add_argument("--pages-file", help="file with one LuCI path per line")
-    ap.add_argument("--layout", choices=["footstrap", "footstrap-top", "both"], default="both")
+    ap.add_argument("--layout", choices=["sidebar", "top", "both"], default="both")
     ap.add_argument("--mode", choices=["dark", "light", "both"], default="both")
     ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router"))
     ap.add_argument("--out", default=os.environ.get("FOOTSTRAP_OUT",
                     "/tmp/claude-1000/footstrap-preview"))
     ap.add_argument("--width", type=int, default=1440)
     ap.add_argument("--height", type=int, default=900)
-    ap.add_argument("--palette", default="", help="fs-palette value, e.g. roman/github")
+    ap.add_argument("--palette", default="", help="fs-palette value, footstrap (default) or hicontrast")
     ap.add_argument("--ls", action="append", default=[], metavar="KEY=VALUE",
                     help="extra localStorage entry set before load, repeatable (e.g. --ls fs-rail=true)")
     ap.add_argument("--hover", default="", help="CSS selector to hover before the shot (flyouts/dropdowns)")
@@ -59,6 +65,7 @@ def main():
     user = os.environ.get("LUCI_USER", "root")
 
     layouts = list(LAYOUTS) if args.layout == "both" else [args.layout]
+
     modes = ["dark", "light"] if args.mode == "both" else [args.mode]
     base = get_http_base(args.ssh_host)
     outdir = pathlib.Path(args.out); outdir.mkdir(parents=True, exist_ok=True)
@@ -71,9 +78,10 @@ def main():
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(args=["--no-sandbox"])
+            # activate the one theme once; the layout is chosen per-context below
+            sh(args.ssh_host, f"uci set luci.main.mediaurlbase={MEDIA_PATH}; "
+                              f"uci commit luci; rm -f /tmp/luci-indexcache*")
             for layout in layouts:
-                sh(args.ssh_host, f"uci set luci.main.mediaurlbase={LAYOUTS[layout]}; "
-                                  f"uci commit luci; rm -f /tmp/luci-indexcache*")
                 for mode in modes:
                     ctx = browser.new_context(viewport={"width": args.width, "height": args.height},
                                               device_scale_factor=2, ignore_https_errors=True)
@@ -82,7 +90,10 @@ def main():
                     _extra = "".join(
                         f"try{{localStorage.setItem('{k}','{v}')}}catch(e){{}}"
                         for k, _, v in (e.partition("=") for e in args.ls))
+                    # the layout is a client preference now — head.ut's pre-paint script reads
+                    # this key and stamps <html data-layout> before the first frame
                     ctx.add_init_script(
+                        f"try{{localStorage.setItem('fs-layout','{layout}')}}catch(e){{}}"
                         f"try{{localStorage.setItem('fs-darkmode','{'true' if mode=='dark' else 'false'}')}}catch(e){{}}{_pal}{_extra}")
                     # authenticate via the API (cookie is shared with the context's pages)
                     ctx.request.post(f"{base}/cgi-bin/luci/",
@@ -92,7 +103,7 @@ def main():
                         page.goto(f"{base}/cgi-bin/luci/{path}", wait_until="networkidle")
                         # let client JS render the view
                         try:
-                            page.wait_for_selector("#view .cbi-section, .fs-dashroot, #view .table",
+                            page.wait_for_selector("#view .cbi-section, #view .table",
                                                    timeout=6000)
                         except Exception:
                             pass

@@ -460,7 +460,7 @@
 	 * the arc. That animation runs in the SVG's own document, where the outer page's
 	 * `prefers-reduced-motion` cannot reach it — the one spinner on the page that a
 	 * motion-sensitive user could not turn off. Same glyph, rotated by CSS instead,
-	 * so theme/95-reduced-motion.css can stop it like everything else. The static
+	 * so theme/95-a11y-media.css can stop it like everything else. The static
 	 * circle underneath is rotationally symmetric, so spinning the whole box looks
 	 * identical to spinning just the arc. */
 	.spinning::before {
@@ -478,8 +478,10 @@
 		animation: fs-spin 1s linear infinite;
 	}
 
-	/* One definition, two users: this spinner and the sidebar's update spinner
-	 * (theme/20-shell-sidebar.css). Keyframe names resolve document-wide. */
+	/* The spinner's keyframes. ONE user inside this theme (`.spinning::before`, above):
+	 * the rail's poll glyph is deliberately STATIC (theme/20-shell.css — the spin was what
+	 * broke that click). Kept unscoped anyway: keyframe names resolve document-wide, so a
+	 * third-party luci-app-* may ride it. */
 	@keyframes fs-spin { to { transform: rotate(360deg); } }
 
 	[data-darkmode="true"] .spinning::before {
