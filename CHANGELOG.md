@@ -25,22 +25,13 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 - **Three new CSS gates, each closing a hole nothing off-the-shelf covers** (`npm run check` runs the
   lot; all three are CI-only — the OpenWrt buildbot still needs nothing but `cat`).
-  - `tools/css-dup.mjs` — **the same declaration body written under two different guards, plus the
-    `@mirror` contract that makes the unavoidable copies incapable of rotting.** No linter can flag
-    this duplication and none ever will: to a cascade-aware tool two rules under mutually-exclusive
-    guards (a media query vs an attribute selector, two `@container` thresholds) are both *required*,
-    since only one can ever match. Yet it is exactly the shape that drifts — this release removed 55
-    such declarations, and the detector then found a cluster nobody had noticed: the data-table card
-    stack is written **three times** (~41 redundant declarations), because it has to fire at 568px for
-    a normal table but at 780px for the DHCP leases, whose 8 nowrap mono columns hold a ~736px floor.
-    That one is **not removable** — hoisting the stack to the wider threshold and un-stacking the
-    narrower tables in the gap merely trades a copy for a *reset*, which is the same two-place coupling
-    in a form that is harder to reason about. So the copies stay and are **pinned**: every one carries
-    a `/* @mirror <group>/<role> */` tag, and the tool fails if they ever stop being byte-identical.
-    This closes the trap the detector walks into on its own — it finds bodies that are IDENTICAL, so
-    the moment two copies diverge they stop being a "duplicate" and it would go quiet *exactly when you
-    need it to shout*. There is no numeric budget: every duplicate must be folded or pinned, because a
-    budget is a number nobody defends and it lets the next unexplained copy in for free.
+  - `tools/css-dup.mjs` — **the same declaration body written under two different guards.** No linter
+    can flag this and none ever will: to a cascade-aware tool, two rules under mutually-exclusive
+    guards (a media query vs an attribute selector, a class vs a container query) are both *required*,
+    since only one can ever match. Yet it is exactly the shape that drifts. This release deleted 55
+    such declarations in the chrome and took the duplicate-body count from **4 groups (~41 redundant
+    declarations) to 2 (~14)**; the detector holds the remainder to a budget, so what CSS genuinely
+    forces on you stays visible and cannot grow.
   - `tools/fs-orphans.mjs` — **dead CSS, scoped to the `fs-*` namespace.** PurgeCSS/uncss and
     coverage-based pruning are actively dangerous here: the coverage contract exists *because* a
     third-party `luci-app-*` renders widgets no page we can see renders, and a tool that prunes what
@@ -77,7 +68,10 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   it — the bar as the unguarded base, the vertical sidebar as a single guarded override that wins on
   specificity (`0,3,0` vs `0,1,0`), never on source order — states each of the three chrome states
   exactly once. This is only expressible because `data-layout` always carries an explicit value.
-  `cssdiff` proves the desktop sidebar is byte-identical across 3 014 elements.
+  `cssdiff` proves the inversion changed nothing it did not mean to: **zero unintended property
+  differences across 3 014 elements**, the only differences being the two this release intends (the
+  hostname wrap, and the mode menu's active item, now themed in every layout instead of only the top
+  one).
 - **The bar stacks its menu onto a second row only when the menu does not fit — measured, not guessed.**
   It used to be `@media (max-width: 1199px)`. But whether the menu fits beside the brand depends on how
   many sections the router HAS (a stock install renders 5; a box with a few `luci-app-*` renders eleven),
@@ -94,12 +88,16 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   guess that some real router got wrong. The shape of the answer is always the same — measure the
   element UNCOLLAPSED, then toggle a class — so the measuring, the frame-coalescing and the
   ResizeObserver live in one module and a caller supplies only the decision. It encodes three rules,
-  each a bug that was actually hit: measure uncollapsed (a collapsed thing always "fits", so reading
-  it as it stands un-collapses it and the next frame collapses it again — oscillation); re-fit
-  **synchronously** on a mutation (a MutationObserver callback is a microtask and runs *before* the
-  frame is painted, whereas `requestAnimationFrame` runs *at* paint — deferring it let a stacked table
-  paint one frame at full width and overflow its section on every poll tick, measured at 19–109 px,
-  once a second); and coalesce on resize.
+  the first of which is a bug that was actually hit: **measure uncollapsed** — a collapsed thing always
+  "fits" (a stacked table is a pile of flex rows), so reading it as it stands un-collapses it and the
+  next frame collapses it again, which is an oscillation. The second is a guard rather than a cure:
+  **re-fit synchronously on a mutation**, because a `MutationObserver` callback is a microtask and runs
+  *before* the frame is painted, whereas `requestAnimationFrame` runs *at* paint — so if a poller ever
+  REPLACES a table element (the fresh one arrives without our class) the deferred path would paint one
+  frame at full width. Measured on this router it does not: LuCI updates the cells in place and the
+  class survives the tick, and 60 samples across 6 poll ticks show no flicker on either path. The
+  synchronous fit costs one layout per mutation batch and removes the hazard anyway. Third: coalesce
+  on resize.
 
 - **The sidebar gives way to the bar when the CONTENT column would get too narrow — and the icon rail
   therefore holds on ~155 px longer than the expanded sidebar.** It used to be one viewport
@@ -178,8 +176,10 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   "flyout mode" in which a section behaves exactly like a top-nav dropdown. The top layout is that
   mode, at desktop width: **the whole of the deleted renderer's unique logic was one function**
   (`clampDropdown`, which nudges a dropdown back inside the viewport near the right edge), and it now
-  lives in the surviving renderer. Hover-to-open was always pure CSS. Net cost of gaining a
-  live-switchable layout: **+78 bytes of CSS**.
+  lives in the surviving renderer. Hover-to-open was always pure CSS. Deleting the second stylesheet
+  paid for the new one almost exactly: the layout merge itself cost **+78 bytes of CSS**. (The release
+  as a whole is +971 bytes — the rest buys the hostname wrap, the measured stacking and the
+  content-width sidebar.)
 - **The `with_label` template parameter and the elements it forked** (`.fs-appearance-btn`,
   `.fs-top-logout`). A layout is a presentation choice, so it must not fork the markup: Appearance and
   Log out are one row each, and the bar and the rail squash them into icon buttons in CSS.
