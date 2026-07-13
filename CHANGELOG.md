@@ -109,6 +109,12 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   bought the user nothing. The decision is measured from the sidebar's real cut against a stated
   minimum (500 px of content), so the expanded sidebar now yields at ~780 px and the rail at ~625 px.
 
+- **The poll indicator now looks like one of the controls it sits beside.** In the bar it is followed by
+  the Appearance and Log out buttons, and it was a 28 px capsule next to two 34 px rounded squares —
+  three sizes and two shapes where there is one row. It takes the buttons' height and the theme's
+  control radius now; in the vertical sidebar, where its neighbours are full-width rows rather than
+  square buttons, it spans the column instead of floating in the middle of it as a stray chip.
+
 ### Fixed
 - **A page with nothing to poll (Software, Backup…) showed a "Paused" pill, reporting on a poll that
   does not exist there.** LuCI shows the indicator on a `poll-start` event and flips it to "Paused" on

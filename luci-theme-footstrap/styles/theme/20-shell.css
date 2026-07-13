@@ -312,8 +312,17 @@
 		/* the poll pill sits in the sidebar footer, above Appearance */
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar #indicators {
 			order: 0; margin-left: 0;
-			justify-content: center; flex-wrap: wrap; gap: 6px;
+			flex-wrap: wrap; gap: 6px;
 			padding: 0 6px 4px;
+		}
+		/* In the column the indicator is not one of a row of buttons, it is one of a stack of
+		 * ROWS — Appearance and Log out below it run the full width of the sidebar. A pill
+		 * floating at 87px in the middle of a 195px column read as a stray chip; give it the
+		 * width its neighbours have and the footer lines up. */
+		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar #indicators .label,
+		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar #indicators [data-indicator] {
+			flex: 1 1 100%;
+			justify-content: center;
 		}
 	}
 
@@ -645,12 +654,22 @@
 	.fs-indicators [data-indicator],
 	#indicators .label,
 	#indicators [data-indicator] {
+		/* An indicator sits in a ROW of controls — in the bar it is followed by the Appearance
+		 * and Log out buttons — so it has to look like one of them, or the cluster reads as
+		 * three unrelated things instead of one row. Same height (they are 34px; a box whose
+		 * height came out of its font's line-box was 28px, six pixels short and visibly the
+		 * odd one out) and the same CORNER: --fs-radius, the control radius every button in
+		 * the theme takes, not --fs-radius-pill. A capsule beside two 10px-rounded squares
+		 * announced itself as a different KIND of object, which it is not — it is a control
+		 * you can click to pause the poll. Its WIDTH stays its content's: it says a word. */
+		display: inline-flex; align-items: center;
+		min-height: 34px;
 		text-transform: none;
 		font-weight: 600; font-size: 12px;
 		background: var(--fs-panel2); background-image: none;
 		border: 1px solid var(--fs-border);
 		color: var(--fs-dim);
-		border-radius: var(--fs-radius-pill); padding: 4px 11px; box-shadow: none;
+		border-radius: var(--fs-radius); padding: 0 11px; box-shadow: none;
 	}
 	.fs-indicators [data-indicator][data-style="active"],
 	#indicators [data-indicator][data-style="active"] { color: var(--fs-good); }
