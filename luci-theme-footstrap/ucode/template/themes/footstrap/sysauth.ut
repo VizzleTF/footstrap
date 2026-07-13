@@ -1,0 +1,104 @@
+{#
+ The LOGIN page.
+
+ Copyright 2008 Steven Barth <steven@midlink.org>
+ Copyright 2008-2012 Jo-Philipp Wich <jow@openwrt.org>
+ Licensed to the public under the Apache License 2.0.
+
+ WHY THIS FILE EXISTS AT ALL
+ ---------------------------
+ The dispatcher renders `themes/<theme>/sysauth` when the theme ships one and falls back to
+ the generic `sysauth` otherwise (dispatcher.uc). We shipped none, so the login page came from
+ the generic template — and that one does `include('header')` with NO blank_page, so the whole
+ chrome rendered around the login form: the sidebar, the menu, the footer. On a page where the
+ only thing you can do is log in, every one of those is a dead control. luci-theme-bootstrap
+ does not do that, and neither should we.
+
+ WHAT THIS IS *NOT*, AND THAT IS THE POINT
+ -----------------------------------------
+ It is NOT a copy of bootstrap's sysauth.ut. That one puts the form in a `<section hidden>`
+ and relies on a view module (`ui.instantiateView('bootstrap.sysauth')`) to reveal it inside a
+ modal. This theme tried exactly that once, and it produced a BLANK PAGE WITH NO WAY TO LOG IN
+ — the view's own bootstrap runs before a session exists, the RPCs it makes answer "Access
+ denied", the promise rejects and render() never runs. The comment in styles/pages/10-login.css
+ records that failure; do not re-introduce it.
+
+ So the form is rendered by the SERVER, exactly as the generic template does. It works with JS
+ disabled, it cannot be broken by a rejected promise, and it does not depend on
+ luci-theme-bootstrap being installed (the theme depends on luci-base and nothing else).
+ The only thing this template changes about the generic one is `blank_page: true`.
+
+ styles/pages/10-login.css turns the resulting form into the centred card, keyed off the
+ username field, so nothing else on the site is affected.
+-#}
+
+{% include('header', { blank_page: true }) %}
+
+<form method="post">
+	{% if (fuser): %}
+		<div class="alert-message warning">
+			<p>{{ _('Invalid username and/or password! Please try again.') }}</p>
+		</div>
+	{% endif %}
+
+	<div class="cbi-map">
+		<h2 name="content">{{ _('Authorization Required') }}</h2>
+		<div class="cbi-map-descr">
+			{{ _('Please enter your username and password.') }}
+		</div>
+		<div class="cbi-section"><div class="cbi-section-node">
+			<div class="cbi-value">
+				<label class="cbi-value-title" for="luci_username">{{ _('Username') }}</label>
+				<div class="cbi-value-field">
+					<input class="cbi-input-text" type="text" name="luci_username" id="luci_username" autocomplete="username" value="{{ entityencode(duser, true) }}" />
+				</div>
+			</div>
+			<div class="cbi-value cbi-value-last">
+				<label class="cbi-value-title" for="luci_password">{{ _('Password') }}</label>
+				<div class="cbi-value-field">
+					<input class="cbi-input-text" type="password" name="luci_password" id="luci_password" autocomplete="current-password" />
+				</div>
+			</div>
+		</div></div>
+	</div>
+
+	<div class="cbi-page-actions">
+		<input type="submit" value="{{ _('Log in') }}" class="btn cbi-button cbi-button-apply" />
+	</div>
+</form>
+
+{%
+	let https_ports = uci.get('uhttpd', 'main', 'listen_https') ?? [];
+
+	https_ports = uniq(filter(
+		map(
+			(type(https_ports) == 'string') ? split(https_ports, /\s+/) : https_ports,
+			e => +match(e, /\d+$/)?.[0]
+		),
+		p => (p >= 0 && p <= 65535)
+	));
+%}
+
+<script>
+	var input = document.getElementsByName('luci_password')[0];
+
+	if (input)
+		input.focus();
+
+	/* If the router also serves HTTPS, hop over to it — the password is about to go over
+	 * this connection. Probing with an <img> is upstream's trick: it tells us the TLS port
+	 * actually answers before we send the user there. */
+	if (document.location.protocol != 'https:') {
+		{{ https_ports }}.forEach(function(port) {
+			var url = 'https://' + window.location.hostname + ':' + port + window.location.pathname;
+			var img = new Image();
+
+			img.onload = function() { window.location = url };
+			img.src = 'https://' + window.location.hostname + ':' + port + '{{ resource }}/icons/loading.svg?' + Math.random();
+
+			setTimeout(function() { img.src = '' }, 5000);
+		});
+	}
+</script>
+
+{% include('footer', { blank_page: true }) %}

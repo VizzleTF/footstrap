@@ -66,6 +66,21 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   duplicate, and the budget is gone. It covers **shell as well as CSS** — see below.
 
 ### Changed
+- **Save and Reset carry a tint, and the hover cue is finally visible.** A transparent button beside
+  the solid Save & Apply read as disabled rather than as secondary. Both now take the same step of the
+  role ladder — `-soft` at rest, `-fill` on hover — Save off the accent role and Reset off danger,
+  which it already declared on hover. Their labels are `--fs-text` and **not** the role colour: text of
+  colour C on a translucent tint of C is the mistake this project documents having learned the hard
+  way, and axe measured it immediately (accent on accent-soft: 4.25:1, an AA failure). The fill and the
+  border carry the role; the label only has to be legible.
+- **The hover lift flips direction per mode, and that is a WCAG fix, not a flourish.** `filter`
+  recolours an element's *text* as well as its fill, and a light-mode solid button is a saturated fill
+  carrying WHITE ink — which cannot get any brighter. Brightening it only closes the gap: on
+  `--fs-accent` the white ink measures 5.19:1 at rest, the old `brightness(1.08)` already dropped it to
+  4.59:1, and the lift that would actually be *visible* (1.15) dropped it to **4.08:1 — a failure
+  introduced by hovering**. Measured from the rendered pixels, not computed. So light mode now darkens
+  (0.90 → 6.16:1: a bigger cue *and* better contrast) and dark mode, where the fill is light and the
+  ink dark, brightens (1.15 → ~8:1). Both say the same thing: the button moves away from the page.
 - **`install.sh` and `footstrap-selfupdate.sh` are pinned mirrors of each other where they must be.**
   They cannot share a file — the installer is `curl | sh` and runs *before* the package that would
   hold the library exists — yet both must fetch over a verified channel, pin the asset host and check
@@ -137,6 +152,38 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   tree, so they cost nothing today and catch the next mistake for free.
 
 ### Fixed
+- **The login page carried the whole chrome — sidebar, menu and footer — around a form whose only
+  control is a password field.** The theme shipped no `sysauth.ut`, so LuCI fell back to its generic
+  one, which includes the header *without* `blank_page` (luci-theme-bootstrap ships its own and does
+  not have this problem). The theme has one now. It is deliberately **not** a copy of bootstrap's:
+  that one hides the form in a `<section hidden>` and reveals it from a view module, and this theme
+  tried exactly that once and got a blank page with no way to log in — the view runs before a session
+  exists, its RPCs answer "Access denied", the promise rejects and `render()` never runs. The form is
+  rendered by the server, so it works with JS disabled and cannot be broken by a rejected promise.
+- **The login page ignored the Cats wallpaper.** Dark mode, palette and tint all reached it (they land
+  on `body`), but the wallpaper is painted on `.fs-shell`, which a chrome-less page does not have — so
+  the one screen you see before anything else was the one screen that did not match the theme.
+- **A data table with no `id` lost its cell padding, its mono face and its row hover.** `[id]` and
+  `.fs-dt` are two names for "this is a data table, not a key/value include", and they had been written
+  as two selector lists at *different* weights — `.cbi-section .table[id] .td` is (0,4,0) but
+  `table.fs-dt .td` is only (0,2,1), which loses to the key/value default at (0,3,0). A table that had
+  an id was fine; one identified only by the JS tag kept the key/value padding (`10px 16px 10px 0` —
+  flush left, right for a label column and wrong for a data cell). Live on the router: **Status →
+  Routing** sat every cell hard against the table's left edge. Both names are one `:is([id], .fs-dt)`
+  now and cannot drift apart again.
+- **Typing in an open dropdown does nothing — it should jump to the option, as a native `<select>`
+  does.** Open Country Code, type "ru", and a native select highlights "RU - Russian Federation"; it is
+  how anyone picks one of 248 entries. This theme replaces native selects with a styled `ui.Dropdown`
+  (a native popup cannot be styled), and `ui.Dropdown` has **no letter search at all** — bootstrap only
+  appears to have one because it leaves that field as a real `<select>`. Type-ahead is implemented for
+  every `.cbi-dropdown`, including the ones LuCI renders itself: the buffer resets after a pause,
+  repeating one letter cycles through the items that start with it, and the label is matched before the
+  value, so both "ru" and "russ" find it. Enter commits, exactly as before.
+- **The footer's credit line sat hard left.** `text-align: center` could not centre it: base made the
+  footer a flex row with `justify-content: space-between` — a leftover from a two-column footer — and
+  with the single `<span>` this theme emits, space-between parks it at the start.
+- **"Refresh Channels" (Status → Channel Analysis) sat flush against the section below it**, reading as
+  part of that card rather than as a page-level action. `.cbi-title-buttons` had no bottom margin.
 - **The Appearance popover's "Submenus" control ignored the layout toggle.** The accordion switch is
   meaningless in the top layout (its sections are hover dropdowns, already exclusive), and it was
   left out with an `if (currentLayout() !== 'top')` around the group that builds it. But the popover

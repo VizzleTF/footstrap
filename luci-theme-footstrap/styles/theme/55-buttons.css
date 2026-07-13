@@ -143,13 +143,24 @@
 		display: inline-flex; align-items: center; justify-content: center;
 		vertical-align: middle;
 	}
-	/* reset = subtle outline, same geometry */
+	/* Reset takes the SAME STEP of the ladder as Save — -soft at rest, -fill on hover — so the
+	 * two read as equally weighted secondary actions beside the solid Save & Apply. It takes it
+	 * off the DANGER role rather than the accent one: Reset discards your unsaved changes, which
+	 * the button already declared on hover. (An opaque --fs-panel2 was the first attempt and it
+	 * weighed more than Save's translucent 10-15% tint — a solid surface and a tint do not read
+	 * as the same fill, whatever their lightness.)
+	 *
+	 * Label is --fs-text for the same reason as Save's: --fs-dim on --fs-danger-soft measured
+	 * 4.06:1 and failed AA. The role lives in the fill and the border. */
 	.cbi-page-actions .cbi-button-reset {
-		background: transparent;
-		border: 1px solid var(--fs-border);
-		color: var(--fs-dim);
+		background: var(--fs-danger-soft);
+		border: 1px solid var(--fs-danger-line);
+		color: var(--fs-text);
 	}
-	.cbi-page-actions .cbi-button-reset:hover { border-color: var(--fs-danger); color: var(--fs-danger); }
+	.cbi-page-actions .cbi-button-reset:hover {
+		background: var(--fs-danger-fill);
+		border-color: var(--fs-danger-line-hi);
+	}
 
 	input[type="file"]::file-selector-button {
 		margin-right: 12px; padding: 8px 14px;
@@ -226,17 +237,35 @@
 		--on-color: var(--fs-on-accent);
 		text-shadow: none;
 	}
+	/* Save carries a TINT at rest, not a bare outline: beside the solid Save & Apply a fully
+	 * transparent button reads as disabled rather than as secondary. The steps come off the role
+	 * ladder (02-tokens.css) instead of being invented — -soft (12%) is the quiet fill, -fill
+	 * (18%) the stronger one, so hover is one step UP the same ladder.
+	 *
+	 * THE LABEL IS --fs-text, NOT --fs-accent, and that is the rule this theme learned the hard
+	 * way (CLAUDE.md): never put text of colour C on a translucent tint of C. The tint drags the
+	 * surface toward the text and eats its own contrast — accent-on-accent-soft measured 4.25:1,
+	 * a WCAG AA failure that axe caught the moment the tint went in. The ROLE is carried by the
+	 * fill and the border, which is exactly what they are for; the label only has to be legible.
+	 *
+	 * `filter: none` cancels the --fs-hover-lift the shared hover rule applies: on a translucent
+	 * tint a brightness shift washes the fill out instead of deepening it, and the ladder step
+	 * is the better cue anyway. */
 	.cbi-page-actions .cbi-button-save,
 	.cbi-page-actions .cbi-button-apply + .cbi-button-save,
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
-		background: transparent;
+		background: var(--fs-accent-soft);
 		background-image: none;
 		border: 1px solid var(--fs-accent-line);
-		color: var(--fs-accent);
+		color: var(--fs-text);
 		--on-color: var(--fs-on-accent);
 		text-shadow: none;
 	}
-	.cbi-page-actions .cbi-button-save:hover { background: var(--fs-accent-soft); filter: none; }
+	.cbi-page-actions .cbi-button-save:hover {
+		background: var(--fs-accent-fill);
+		border-color: var(--fs-accent-line-hi);
+		filter: none;
+	}
 
 	/* ==================================================================
 	 * Buttons that are part of a compound field widget.

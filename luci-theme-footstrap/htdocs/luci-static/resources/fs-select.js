@@ -1,6 +1,7 @@
 'use strict';
 'require baseclass';
 'require ui';
+'require dom';
 'require fs-fit as fit';
 
 /* Theme plain LuCI <select> fields (ui.Select, widget:'select') by rendering a
@@ -241,8 +242,116 @@ function relevant(mutations) {
 	return fit.touches(mutations, 'select.cbi-input-select, .table');
 }
 
+/* ---- TYPE-AHEAD: jump to an option by typing its first letters ---------------------
+ *
+ * A NATIVE <select> gives you this for free — open it, type "RU", and the browser highlights
+ * "RU - Russia". It is how anyone picks a country out of 248 entries, and it is the reason
+ * that field is bearable at all.
+ *
+ * We take that away. enhance() above hides the native <select> and renders a ui.Dropdown in
+ * its place, because a native popup cannot be styled — and `ui.Dropdown.handleKeydown`
+ * (luci-base) handles only Esc, Enter, Space and the arrow keys. There is NO letter search in
+ * it. So on this theme the Wireless page's Country Code became 248 items you could only scroll.
+ * The behaviour was not "lost in translation"; stock LuCI never had it, and bootstrap only
+ * appears to because it leaves that field as a real <select>.
+ *
+ * So: put it back, and put it back for EVERY .cbi-dropdown — the ones we create from a
+ * <select> and the ones LuCI renders itself (which never had it either). One document-level
+ * listener, because a dropdown's <ul> is what holds focus while it is open.
+ *
+ * Native semantics, as closely as is sensible:
+ *   - only while the dropdown is OPEN (that is what the user is looking at);
+ *   - printable characters only, no modifiers;
+ *   - the buffer resets after a pause, so "ru" is one search and "r", "u" are two;
+ *   - typing the SAME letter repeatedly cycles through the items that start with it, which is
+ *     how you reach the second "Germany" — exactly what a native select does;
+ *   - matches the visible LABEL first, then the value, so both "RU" and "Russia" find it.
+ *
+ * SPACE is deliberately NOT part of the search. ui.Dropdown binds Space to "toggle the focused
+ * item" and its handler sits on the dropdown itself, so it has already fired by the time this
+ * one sees the event — trying to also treat Space as a character would select something. No
+ * label anyone searches for starts with a space, so nothing is lost.
+ *
+ * This only HIGHLIGHTS (setFocus, as the arrow keys do). Enter commits, Esc closes — both are
+ * ui.Dropdown's own handlers, untouched. */
+const TYPEAHEAD_RESET_MS = 1000;
+let _taBuf = '', _taTimer = null, _taLast = null;
+
+function typeaheadItems(sb) {
+	const ul = sb.querySelector('ul.dropdown') || sb.querySelector('ul');
+	if (!ul) return [];
+	return [...ul.children].filter((li) =>
+		li.tagName === 'LI' &&
+		/* the "custom value" row (options.create) is an input, not a choice */
+		!li.querySelector('input:not([type="hidden"])') &&
+		li.getClientRects().length > 0);
+}
+
+function typeaheadLabel(li) {
+	return (li.textContent || '').trim().toLowerCase();
+}
+
+function wireTypeahead() {
+	document.addEventListener('keydown', (ev) => {
+		if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+		if (!ev.key || ev.key.length !== 1 || ev.key === ' ') return;
+		/* the create-item input is a text field — let the user type into it */
+		if (ev.target && ev.target.matches && ev.target.matches('input, textarea')) return;
+
+		const sb = ev.target.closest?.('.cbi-dropdown[open]');
+		if (!sb) return;
+
+		const items = typeaheadItems(sb);
+		if (!items.length) return;
+
+		/* a new dropdown starts a new search, however fast the user got here */
+		if (sb !== _taLast) { _taBuf = ''; _taLast = sb; }
+
+		const ch = ev.key.toLowerCase();
+		/* repeating one letter cycles; anything else extends the search */
+		const repeat = (_taBuf.length === 1 && _taBuf === ch);
+		const needle = repeat ? ch : (_taBuf + ch);
+
+		const start = items.findIndex((li) => li.classList.contains('focus'));
+		/* on a repeat, look AFTER the current item so the same letter walks forward;
+		 * otherwise the search always restarts from the top, as a native select does */
+		const from = repeat ? start + 1 : 0;
+
+		const match = (li) => typeaheadLabel(li).startsWith(needle) ||
+			String(li.getAttribute('data-value') || '').toLowerCase().startsWith(needle);
+
+		/* wrap around: the second pass covers what the first skipped */
+		let hit = items.slice(from).find(match) ?? items.find(match);
+		if (!hit && !repeat) {
+			/* the extended buffer matches nothing — treat this keystroke as a fresh search
+			 * rather than swallowing it, which is what makes a mistyped letter recoverable */
+			hit = items.find((li) => typeaheadLabel(li).startsWith(ch) ||
+				String(li.getAttribute('data-value') || '').toLowerCase().startsWith(ch));
+			if (hit) _taBuf = '';
+		}
+		if (!hit) return;
+
+		_taBuf = repeat ? ch : (_taBuf + ch);
+		if (_taTimer) window.clearTimeout(_taTimer);
+		_taTimer = window.setTimeout(() => { _taBuf = ''; _taLast = null; }, TYPEAHEAD_RESET_MS);
+
+		/* the widget's own highlighter: adds .focus, scrolls the item into view and focuses it,
+		 * so Enter (ui.Dropdown's handler) then commits exactly what is highlighted */
+		const inst = dom.findClassInstance(sb);
+		if (inst && typeof inst.setFocus === 'function')
+			inst.setFocus(sb, hit, true);
+		else
+			hit.focus();
+
+		ev.preventDefault();
+		ev.stopPropagation();
+	});
+}
+
 return baseclass.extend({
 	__init__() {
+		wireTypeahead();
+
 		const scan = () => {
 			document.querySelectorAll('select.cbi-input-select:not([data-fs-select])').forEach(enhance);
 			document.querySelectorAll('select.cbi-input-select[data-fs-select="1"]').forEach(resync);

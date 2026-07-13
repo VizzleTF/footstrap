@@ -105,18 +105,20 @@
 	}
 
 	/* Footer PAINT (padding, border, colours, link colour) is owned by the theme
-	 * (`footer` rules in theme/20-shell.css) — absorbed, since the theme
-	 * layer overrode all of it. The flex skeleton below stays. */
+	 * (`footer` rules in theme/20-shell.css) — absorbed, since the theme layer overrode all
+	 * of it. What stays is the flex skeleton the LAYOUT needs: margin-top:auto pins the
+	 * footer to the bottom of the flex-column body.
+	 *
+	 * `justify-content: space-between` and `footer span { margin-bottom: 1em }` are gone —
+	 * both were leftovers from a two-column footer this theme does not have, and with the
+	 * single <span> it emits they only pushed the credit line to the left and off the
+	 * vertical centre. The theme now centres it, which made these two declarations dead
+	 * (audit.py --strict fails on a base declaration a later layer repaints). */
 	footer {
 		margin-top: auto;
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		justify-content: space-between;
-	}
-
-	footer span {
-		margin-bottom: 1em;
 	}
 
 	footer ul.breadcrumb {

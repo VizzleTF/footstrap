@@ -72,17 +72,32 @@
 		text-transform: uppercase; letter-spacing: .04em;
 	}
 
-	/* --- DATA tables (with id or JS-tagged .fs-dt): leases, wifi, processes, … ---
-	 * Symmetric horizontal padding so cells clear the table's own contour (below). */
-	.cbi-section .table[id] .td, .cbi-section .table[id] .th,
+	/* --- DATA tables (with id or JS-tagged .fs-dt): leases, wifi, processes, routes, … ---
+	 * Symmetric horizontal padding so cells clear the table's own contour (below).
+	 *
+	 * `:is([id], .fs-dt)` — ONE discriminator, at ONE specificity, and that is the fix.
+	 * `[id]` and `.fs-dt` are two names for the same thing ("this is a data table, not a
+	 * key/value include"), and they used to be written as two selector lists with DIFFERENT
+	 * weights:
+	 *     .cbi-section .table[id] .td   (0,4,0)
+	 *     table.fs-dt .td               (0,2,1)   <- loses to the key/value rule below
+	 * while the key/value default `.cbi-section .table .td` is (0,3,0). So a data table that
+	 * had an id was fine, and one identified ONLY by the JS tag lost: it kept the key/value
+	 * padding (`10px 16px 10px 0` — flush left, which is right for a label column and wrong
+	 * for a data cell) and never got the mono face, the row hover or the header rule either.
+	 * Live on the router: Status → Routing (view/status/routesj.js) emits `<table class="table">`
+	 * with NO id, so every one of its cells sat hard against the table's left edge.
+	 * Both names now resolve to the same (0,4,0) and cannot drift apart again. */
+	.cbi-section .table:is([id], .fs-dt) .td,
+	.cbi-section .table:is([id], .fs-dt) .th,
 	table.fs-dt .td, table.fs-dt .th { padding: 10px 11px; }
-	.cbi-section .table[id] .td { font-family: var(--fs-font-mono); font-size: 12px; color: var(--fs-text); }
+	.cbi-section .table:is([id], .fs-dt) .td { font-family: var(--fs-font-mono); font-size: 12px; color: var(--fs-text); }
 	/* No horizontal-scroll wrapper: a data table reflows to fit the content column
 	 * via the overflow-wrap rule above (long opaque values break), so it never needs
 	 * to scroll or be forced into cards on desktop. Card-stacking stays for phones
 	 * only — it is MEASURED (.fs-stacked, fs-select.js) and fires at any width. */
-	.cbi-section .table[id] .tr:not(.table-titles):hover .td { background: var(--fs-panel2); }
-	.cbi-section .table[id] .tr.table-titles .th { border-bottom-color: var(--fs-border); }
+	.cbi-section .table:is([id], .fs-dt) .tr:not(.table-titles):hover .td { background: var(--fs-panel2); }
+	.cbi-section .table:is([id], .fs-dt) .tr.table-titles .th { border-bottom-color: var(--fs-border); }
 	/* Contour around the whole data table (leases, wifi, processes, …). A real
 	 * <table> needs border-collapse:separate for the radius to take (collapse
 	 * silently drops border-radius); harmless on the div-based tables. Scoped to

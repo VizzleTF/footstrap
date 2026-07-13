@@ -612,6 +612,14 @@
 	footer {
 		padding: 14px var(--fs-content-pad); border-top: 1px solid var(--fs-border);
 		color: var(--fs-dim); font-size: 12px; background: var(--fs-bg);
+		/* CENTRE THE FLEX LINE, not just the text. `text-align: center` alone did nothing:
+		 * base makes the footer a flex container, and it used to add
+		 * `justify-content: space-between` — a leftover from a two-column footer — which with
+		 * the single <span> this theme emits parked the line at the START. The span shrinks to
+		 * its content, so text-align had nothing to centre inside it and the credit line sat
+		 * hard left. (base's space-between and its `footer span` margin are now deleted, since
+		 * this rule made them dead.) */
+		justify-content: center;
 		text-align: center;
 	}
 	footer a { color: var(--fs-dim); }

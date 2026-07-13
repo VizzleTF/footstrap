@@ -1,61 +1,65 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1175
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1178
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1325
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1328
 msgid "Accent"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1236
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1394
 #: ucode/template/themes/footstrap/partials/appearance.ut:12
 #: ucode/template/themes/footstrap/partials/appearance.ut:14
 msgid "Appearance"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1142
+#: ucode/template/themes/footstrap/sysauth.ut:45
+msgid "Authorization Required"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1292
 msgid "Auto"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1200
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1359
 msgid "Auto-collapse"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1286
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1444
 msgid "Cancel"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1158
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1308
 msgid "Cats"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1218
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1376
 msgid "Check"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1281
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1439
 msgid "Close"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1412
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1579
 #: ucode/template/themes/footstrap/header.ut:53
 msgid "Collapse menu"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1144
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1294
 msgid "Dark"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1284
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1442
 msgid ""
 "Download and install the latest Footstrap release from GitHub? The page "
 "reloads when done."
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1334
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1501
 msgid "Downloading and installing…"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1412
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1579
 msgid "Expand menu"
 msgstr ""
 
@@ -71,24 +75,32 @@ msgstr ""
 msgid "Go to password configuration..."
 msgstr ""
 
+#: ucode/template/themes/footstrap/sysauth.ut:40
+msgid "Invalid username and/or password! Please try again."
+msgstr ""
+
 #: ucode/template/themes/footstrap/partials/notices.ut:33
 msgid "JavaScript required!"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1199
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1358
 msgid "Keep open"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1133
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1137
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1283
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1287
 msgid "Layout"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1143
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1293
 msgid "Light"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1305
+#: ucode/template/themes/footstrap/sysauth.ut:66
+msgid "Log in"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1472
 msgid "Log in again"
 msgstr ""
 
@@ -101,7 +113,7 @@ msgstr ""
 msgid "Lua compatibility mode active"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:29
+#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:31
 msgid "Memory"
 msgstr ""
 
@@ -110,8 +122,8 @@ msgstr ""
 msgid "Menu"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1211
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1252
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1369
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1410
 msgid "New version available"
 msgstr ""
 
@@ -125,24 +137,32 @@ msgstr ""
 msgid "No password set!"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1157
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1171
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1181
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1219
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1307
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1321
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1331
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1377
 msgid "Off"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1148
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1152
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1298
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1302
 msgid "Palette"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1185
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1186
+#: ucode/template/themes/footstrap/sysauth.ut:57
+msgid "Password"
+msgstr ""
+
+#: ucode/template/themes/footstrap/sysauth.ut:47
+msgid "Please enter your username and password."
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1335
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1336
 msgid "Rounding"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1135
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1285
 msgid "Sidebar"
 msgstr ""
 
@@ -150,16 +170,16 @@ msgstr ""
 msgid "Skip to content"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:29
+#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:31
 msgid "Storage"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1197
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1201
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1356
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1360
 msgid "Submenus"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:29
+#: htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js:31
 msgid "System"
 msgstr ""
 
@@ -167,8 +187,8 @@ msgstr ""
 msgid "System running in recovery (initramfs) mode."
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1140
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1145
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1290
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1295
 msgid "Theme"
 msgstr ""
 
@@ -178,48 +198,52 @@ msgid ""
 "protect the web interface."
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1165
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1168
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1315
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1318
 msgid "Tint (router identification)"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1136
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1286
 msgid "Top"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1287
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1445
 msgid "Update"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1278
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1436
 msgid "Update Footstrap"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1280
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1438
 msgid "Update failed"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1301
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1468
 msgid ""
 "Update installed. The router restarted its session service, so you have been "
 "logged out — sign in again to load the new theme."
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1212
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1370
 msgid "Update now"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1318
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1485
 msgid "Updated. Reloading…"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1216
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1220
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1374
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1378
 msgid "Updates"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1155
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1159
+#: ucode/template/themes/footstrap/sysauth.ut:51
+msgid "Username"
+msgstr ""
+
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1305
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1309
 msgid "Wallpaper"
 msgstr ""
 
@@ -228,10 +252,10 @@ msgid ""
 "You must enable JavaScript in your browser or LuCI will not work properly."
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1311
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1478
 msgid "timed out waiting for the installer"
 msgstr ""
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1280
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1438
 msgid "unknown error"
 msgstr ""

@@ -14,7 +14,18 @@
 	 * sidebar is an opaque --fs-panel column, so it covers the tiles under it by
 	 * itself — no exclusion needed, which is what the old .fs-topwrap /
 	 * .fs-main:not(.fs-main-top) split was doing by hand across two markups. */
-	:root[data-wallpaper="cats"] .fs-shell {
+	/* The second half of that selector is the LOGIN page, which has no .fs-shell at all:
+	 * themes/footstrap/sysauth.ut renders with blank_page: true — no chrome, no shell wrapper,
+	 * just the form on a bare <body>. Every other Appearance axis already reached it (dark
+	 * mode, palette and tint all land on `body { background: var(--fs-bg) }`), but the
+	 * wallpaper was painted on an element that does not exist there, so a router set to Cats
+	 * showed a flat canvas on the one page you see before anything else.
+	 *
+	 * It is ONE rule, and `:not(:has(.fs-shell))` is what keeps it that way: the tiles go on
+	 * the shell when there is one and on the body when there is not — never on both, which is
+	 * the whole point of the paragraph above (two semi-transparent tile layers double up and
+	 * misalign). Writing it as a second rule would have been the same declarations twice. */
+	:root[data-wallpaper="cats"] :is(.fs-shell, body:not(:has(.fs-shell))) {
 		background-image: url(cats.svg);
 		background-repeat: repeat;
 		background-size: 440px auto;

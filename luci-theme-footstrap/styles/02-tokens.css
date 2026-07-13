@@ -129,10 +129,27 @@
 		--fs-emboss: inset 0 1px 0 color-mix(in srgb, var(--fs-panel) 5%, transparent);
 		--fs-text-emboss: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
 
-		/* hover lift for a SOLID (filled) control — the one hover cue that cannot be
-		 * a colour, since the fill it brightens is whatever the role token says. The
-		 * three sites had drifted to 1.06 / 1.08 / 1.12. */
-		--fs-hover-lift: brightness(1.08);
+		/* Hover cue for a SOLID (filled) control — the one hover cue that cannot be a colour,
+		 * since the fill it shifts is whatever the role token says. The three sites had
+		 * drifted to 1.06 / 1.08 / 1.12 before this token existed.
+		 *
+		 * IT IS PER MODE, AND THE DIRECTION FLIPS. That is not decoration, it is the only
+		 * safe way to do this with a filter, and it is measured:
+		 *
+		 * `filter` recolours the element's TEXT as well as its fill. In LIGHT mode a solid
+		 * button is a saturated fill carrying WHITE ink — and white cannot get any brighter,
+		 * so BRIGHTENING the fill only closes the gap. On --fs-accent (#0969da) the white ink
+		 * measures 5.19:1 at rest; brightness(1.08) already drops it to 4.59:1, a hair over
+		 * AA, and the brightness(1.15) that would actually be visible drops it to 4.08:1 —
+		 * a WCAG failure introduced by hovering. Verified from the rendered pixels, not
+		 * computed from the token.
+		 *
+		 * So light mode DARKENS (0.90 -> 6.16:1: a bigger cue AND better contrast), and dark
+		 * mode, where the fill is light and the ink dark, brightens (1.15 -> ~8:1, measured).
+		 * Both directions say the same thing — the button moves AWAY from the page it sits on.
+		 *
+		 * (--fs-accent-soft is the other token whose strength is per-mode; the rest are not.) */
+		--fs-hover-lift: brightness(0.90);
 
 		/* ---- MOTION -----------------------------------------------------------
 		 * Four durations, because the UI does four things. There used to be seven
@@ -336,6 +353,11 @@
 		 * tokens live here */
 		--fs-shadow: 0 1px 2px rgba(0,0,0,.4);
 		--fs-disabled-opacity: .45;
+		/* the hover cue flips direction here — see the long note at --fs-hover-lift above.
+		 * A dark-mode solid button is a LIGHT fill with DARK ink, so brightening moves it away
+		 * from the page and away from its own ink; in light mode the same move would erase the
+		 * contrast of its white ink. */
+		--fs-hover-lift: brightness(1.15);
 		color-scheme: dark;
 	}
 

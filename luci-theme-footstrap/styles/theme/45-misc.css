@@ -174,4 +174,14 @@
 	#view :is(textarea, input[type="text"], input[type="password"], .cbi-dropdown) + .right {
 		margin-top: 10px;
 	}
+
+	/* A row of buttons that belongs to the PAGE TITLE rather than to any section — LuCI emits
+	 * it as `.cbi-title-section > .cbi-title-buttons` (Status → Channel Analysis puts its
+	 * "Refresh Channels" there; a third-party luci-app-* may put anything there).
+	 *
+	 * Nothing gave it a bottom margin, so the button sat flush against the top edge of the
+	 * first .cbi-section below it, reading as part of that card instead of as a page-level
+	 * action. Same 16px every .cbi-section already uses to separate itself from the next one,
+	 * so the rhythm of the page is unchanged — the gap was simply missing. */
+	.cbi-title-buttons { margin-bottom: 16px; }
 }

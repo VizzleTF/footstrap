@@ -1,16 +1,29 @@
 @layer page {
 	/* ==================================================================
-	 * LOGIN — the stock, server-rendered sysauth.ut, restyled as a centered card.
-	 * Neither layout forks that template: a theme-local sysauth.ut used to hide the
-	 * form in a <section hidden> and reveal it from a view module, which cannot
-	 * work before a session exists (every RPC answers "Access denied", the promise
-	 * rejects, render() never runs) — a blank page with no way to log in. So both
-	 * layouts fall back to the stock one, which also gives the login page the theme
-	 * chrome and the palette wallpaper for free.
+	 * LOGIN — the SERVER-rendered form of themes/footstrap/sysauth.ut, as a centred card.
+	 *
+	 * The theme ships its own sysauth.ut so the login page carries NO chrome (bootstrap
+	 * does the same; without one, LuCI falls back to the generic template, which includes
+	 * the header WITHOUT blank_page and draws the whole sidebar around a page whose only
+	 * control is a password field).
+	 *
+	 * What that template deliberately does NOT do is bootstrap's trick of hiding the form in
+	 * a <section hidden> and revealing it from a view module. That was tried here and it
+	 * produced a BLANK PAGE WITH NO WAY TO LOG IN: the view runs before a session exists, its
+	 * RPCs answer "Access denied", the promise rejects and render() never runs. The form is
+	 * rendered by the server and works with JS off. Do not "improve" this into a modal.
+	 *
 	 * Scoped by the username field so nothing else on the site is affected.
 	 * ================================================================== */
 	form:has(> .cbi-map input[name="luci_username"]) {
-		max-width: 400px; margin: 7vh auto 40px;
+		/* A DEFINITE width, not `max-width` — the card is now a direct flex item of <body>
+		 * (base/20-typography.css makes body a flex column so the footer can margin-top:auto),
+		 * and on the cross axis an `auto` side margin overrides the stretch and sizes the item
+		 * to FIT-CONTENT. `max-width: 400px` then capped nothing: the card collapsed to its
+		 * min-content, ~131px, and the description wrapped one word per line. It only ever
+		 * looked right because it used to sit inside the block .fs-content. */
+		width: min(400px, calc(100% - 32px));
+		margin: 7vh auto 40px;
 		background: var(--fs-panel); border: 1px solid var(--fs-border); border-radius: var(--fs-radius-lg);
 		/* --fs-shadow-pop, not a 45%-black 60px halo: that literal ignored the palette
 		 * and drew a heavy grey cloud under a white card in light mode. */
