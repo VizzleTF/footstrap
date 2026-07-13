@@ -13,14 +13,17 @@
 	 * enough to reflow the whole table within the column while IPv4/MAC/IAID stay
 	 * intact. Matched by data-title (LuCI's per-cell column label).
 	 *
-	 * Scoped to min-width 569 (a container query on #view): at ≤568 — stock LuCI's
-	 * 600px phone breakpoint less .fs-content's 16px side padding — the table cards via
-	 * the theme's @container block, where cells wrap normally, and this nowrap must not
-	 * leak into that phone layout. The two thresholds are adjacent on purpose: a gap
-	 * would leave a band of widths with neither behaviour. It sits in @layer page so it
-	 * wins over the theme's general overflow-wrap. Target this one table here rather
-	 * than in the shared theme file, so other fs-dt tables keep plain break-to-fit. */
-	@container fs-view (min-width: 569px) {
+	 * Scoped to min-width 781 (a container query on #view), NOT the generic 568: these
+	 * 7–8 mono columns (IPv4/MAC/IAID/Remaining/the Static-Lease button/Interface) can't
+	 * wrap, so the real table has a ~736px intrinsic floor + the section's 16px side
+	 * padding. Below ~768px of #view it can neither shrink nor — under the old 569 —
+	 * stack, so it overflowed its section. So nowrap only applies where the table
+	 * genuinely fits (≥781), and below that the leases pair card-stacks early via the
+	 * dedicated @container block below; the two thresholds are adjacent (780/781) so no
+	 * band of widths is left with neither behaviour. It sits in @layer page so it wins
+	 * over the theme's general overflow-wrap. Target this one table here rather than in
+	 * the shared theme file, so other fs-dt tables keep plain break-to-fit. */
+	@container fs-view (min-width: 781px) {
 		#view table.fs-dt:is(.leases, .leases6) .td { white-space: nowrap; }
 		/* The three columns allowed to wrap. Hostname is here for the same reason as
 		 * DUID: overflow-wrap:anywhere takes the natural breaks first (the hyphens in
@@ -31,5 +34,46 @@
 		#view table.fs-dt:is(.leases, .leases6) .td[data-title="Hostname"] {
 			white-space: normal; overflow-wrap: anywhere;
 		}
+	}
+
+	/* Card-stack the leases pair EARLY — from 780 down, not the generic 568 the other
+	 * fs-dt tables use. Their nowrap mono columns hold a ~736px floor (+ the section's
+	 * padding), so between 569 and ~768 the real table overflowed its section instead
+	 * of shrinking. Below 780 it stacks into the same two-column label/value shape the
+	 * theme's @container block gives every other data table on a phone; this block just
+	 * moves the threshold up for these two wide tables. Mirrors theme/30-tables.css's
+	 * @container fs-view (max-width: 568px), scoped to .leases/.leases6. Adjacent to the
+	 * nowrap threshold above (780/781) so no band is left unhandled. Narrower widths
+	 * (≤568) are covered by both this and the generic block — identical layout. */
+	@container fs-view (max-width: 780px) {
+		/* Clip zebra rows to the frame's rounded corners — same reason as the theme's
+		 * @container block (a striped row's square background poking past the 12px frame),
+		 * but for the leases' wider 569–780 stacking band. In @layer page it outranks the
+		 * theme frame's overflow:visible by layer. */
+		#view table.fs-dt:is(.leases, .leases6) { overflow: hidden; }
+		#view table.fs-dt:is(.leases, .leases6) .tr.table-titles { display: none; }
+		#view table.fs-dt:is(.leases, .leases6) .tr {
+			display: flex; flex-wrap: wrap; align-items: flex-start;
+			padding: 10px 16px 12px;
+		}
+		#view table.fs-dt:is(.leases, .leases6) .td {
+			display: block; flex: 1 1 50%; min-width: 0; width: auto;
+			padding: 6px 10px 6px 0; border: 0; text-align: left;
+			overflow-wrap: anywhere; white-space: normal;
+		}
+		#view table.fs-dt:is(.leases, .leases6) .td[data-title]::before {
+			content: attr(data-title); display: block; margin-bottom: 3px;
+			font-size: 10px; font-weight: 700; letter-spacing: .05em;
+			text-transform: uppercase; color: var(--fs-faint);
+		}
+		#view table.fs-dt:is(.leases, .leases6) .td.cbi-section-actions {
+			display: flex; flex: 1 1 100%; justify-content: flex-start;
+			flex-wrap: wrap; gap: 8px; padding-top: 8px;
+		}
+		#view table.fs-dt:is(.leases, .leases6) .td.cbi-section-actions::before,
+		#view table.fs-dt:is(.leases, .leases6) .td:not([data-title])::before,
+		#view table.fs-dt:is(.leases, .leases6) .td[data-title=""]::before { content: none; }
+		#view table.fs-dt:is(.leases, .leases6) .td > *,
+		#view table.fs-dt:is(.leases, .leases6) .td .ifacebadge { min-width: 0; max-width: 100%; }
 	}
 }

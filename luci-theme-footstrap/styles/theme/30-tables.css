@@ -220,10 +220,20 @@
 		background: transparent;
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles) {
-		border-bottom: 1px solid var(--fs-border); transition: background var(--fs-dur);
+		transition: background var(--fs-dur);
+	}
+	/* The row separator on every body row BUT the last. A trailing border-bottom on the
+	 * last row draws a straight 1px line across the full width, which pokes past the
+	 * frame's rounded bottom corners on a data table (those are overflow:visible) — the
+	 * separator "sticking out of the section". `:not(:last-child)` lives IN this rule so
+	 * the last row simply never gets the border: a separate `.tr:last-child` override
+	 * (0,3,0) lost on specificity to this selector's two :not()s (0,4,0) and left the
+	 * border on. On an overflow:hidden .table the line was merely clipped, so it went
+	 * unseen there — but it was always drawn. */
+	.table .tr:not(.table-titles):not(.cbi-section-table-titles):not(:last-child) {
+		border-bottom: 1px solid var(--fs-border);
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles):hover { background: var(--fs-panel2); }
-	.table .tr:last-child { border-bottom: 0; }
 	/* keep section/modal tables flush (no forced hover-card look) */
 	.cbi-section .table > .tr, .cbi-modal .table > .tr { border-radius: 0; }
 
@@ -251,6 +261,16 @@
 	 * whole half-column. Values stay LEFT-aligned: they are opaque strings (MAC, DUID,
 	 * rates) and a ragged right edge reads worse than a ragged left one. */
 	@container fs-view (max-width: 568px) {
+		/* Clip the rows to the frame's rounded corners in the stacked layout. Zebra
+		 * (`.cbi-rowstyle-2`) paints its background on the .tr itself, and the frame is
+		 * overflow:visible — so the last (and any striped) row's SQUARE background poked
+		 * past the 12px rounded corners. Stacked rows are flex-wrap and fit the width, so
+		 * there is no horizontal column to clip here (the only thing overflow:visible
+		 * protected), making overflow:hidden safe — it clips the row backgrounds to the
+		 * radius exactly as the generic .table does. `#view .table.fs-dt` (1,2,0) is
+		 * chosen to outrank the frame's `#view .table[id]` (1,1,1) on specificity, not
+		 * source order. */
+		#view .table.fs-dt { overflow: hidden; }
 		table.fs-dt .tr.table-titles { display: none; }
 		table.fs-dt .tr {
 			display: flex; flex-wrap: wrap; align-items: flex-start;

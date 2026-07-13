@@ -177,6 +177,21 @@ uci commit network</pre>
 				<div class="cbi-value-field"><textarea id="g-ta" class="cbi-input-textarea" rows="3">option one
 option two</textarea></div>
 			</div>
+			<div class="cbi-value" style="margin-top:28px">
+				<label class="cbi-value-title" for="g-ta2">Textarea (scrolling — NFQWS_OPT-style config)</label>
+				<div class="cbi-value-field"><textarea id="g-ta2" class="cbi-input-textarea" rows="6" style="height:150px">#Yv11
+--filter-tcp=443
+--hostlist=/opt/zapret/ipset/zapret-hosts.txt
+--dpi-desync=fake,multisplit
+--dpi-desync-fake-tls=0x00000000
+--dpi-desync-fake-tls=!
+--dpi-desync-split-pos=1,sniext+1,host+1,midsld
+--dpi-desync-ttl=0
+--new
+--filter-udp=443
+--dpi-desync=fake
+--dpi-desync-repeats=6</textarea></div>
+			</div>
 			<div class="cbi-value">
 				<label class="cbi-value-title" for="g-file">File upload</label>
 				<div class="cbi-value-field"><input id="g-file" type="file"></div>

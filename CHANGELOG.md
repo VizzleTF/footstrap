@@ -10,6 +10,79 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [0.7.18] — 2026-07-13
+
+### Added
+- **An Accent hue slider (Appearance → Accent) recolours the UI accent.** A second hue
+  axis beside the background Tint, but pointed at the CHROME rather than the canvas: the
+  solid buttons, the toggle knobs, the range sliders, the focus rings, the active
+  menu/tab and the accented links all follow, because each reads `--fs-accent` or a
+  `color-mix()` of it, and the brand logo rotates with it too. The rotation is
+  `oklch(from … l c H)` — it keeps the palette's exact lightness and chroma and swaps
+  only the hue, so `--fs-on-accent` stays legible on every hue (the ink is not
+  recomputed). 0 = off = the palette's designed accent; the value is per-router
+  (localStorage) and pre-painted by `head.ut` so a reload doesn't flash the default.
+
+### Changed
+- **The page footer ("Powered by LuCI…") is centred** instead of left-aligned, in both
+  layouts.
+- **A tagged release now leads with a short changelog summary instead of install
+  boilerplate.** The release body was just apk/ipk commands — the actual list of
+  changes lived only in the changelog nobody links from the release page. It is now
+  generated from the tag's `CHANGELOG.md` section (`tools/release-notes.sh`): one line
+  per change — the bold lead of each bullet, grouped under Fixed/Added/…, with the
+  verbose rationale dropped — and the install commands moved into a collapsed block. The
+  Russian summary (from `CHANGELOG_ru.md`) follows the English one under a divider, so the
+  release page carries both languages.
+
+### Fixed
+- **A scrolling textarea's scrollbar overshot the field's rounded corners.** A native
+  scrollbar is a square strip that `border-radius` does not clip, so on a tall config field
+  (an NFQWS_OPT blob, a long option list) the grey bar poked past the top-/bottom-right
+  corner as a square notch. The scrollbar is now a slim self-rounded thumb floated off the
+  edges (a transparent border + `background-clip:padding-box` insets it, a transparent track
+  lets the corner show through), via a `::-webkit-scrollbar` block. Deliberately no
+  `scrollbar-width`/`scrollbar-color`: setting either makes Chromium switch to the standard
+  scrollbar and ignore the custom one — and that standard bar is the square, unclipped one
+  that caused the bug. Firefox keeps its native scrollbar, which it already clips to the
+  radius. The resize grip is restyled to match: an accent arc tracing the frame's own
+  rounded corner (following the Rounding setting and the accent hue) instead of the default
+  white square that poked past it. The widget gallery gained a scrolling-textarea case so
+  this stays covered.
+- **The "Refreshing" poll pill sat at the far left of the phone top bar, before the logo.**
+  On a phone the sidebar collapses into a top bar, but `#indicators` had no flex `order`, so
+  it defaulted to 0 and rendered ahead of the brand (`order:1`). It now joins the right-hand
+  cluster with Appearance and Logout (`order:2` + `margin-left:auto`), mirroring the top-nav
+  layout's `.fs-topnav-right` where the pill is the first child.
+- **A stacked data table's last row had square bottom corners against the rounded frame.**
+  When a data table cards into label/value pairs on a narrow screen, zebra striping
+  (`.cbi-rowstyle-2`) paints its background on the row itself, and the frame is
+  `overflow:visible` — so a striped last row's square background overshot the 12px rounded
+  corners. Stacked rows are flex-wrap and already fit the width (nothing horizontal left to
+  clip, the only thing `overflow:visible` guarded), so the table is `overflow:hidden` while
+  stacked, clipping the row backgrounds to the frame radius exactly as an ordinary `.table`
+  does.
+- **The last row of a data table drew a separator that poked out past the card's rounded
+  corners.** The row-separator rule (`.tr:not(.table-titles):not(...)`, specificity 0,4,0)
+  outranked the `.tr:last-child` override that was meant to drop it (0,3,0), so the last
+  row kept its `border-bottom` — a straight 1px line that overshot the frame's rounded
+  bottom corners on any `overflow:visible` data table (leases, wifi, processes). The
+  exclusion now lives in the separator rule itself (`:not(:last-child)`), so the last row
+  never gets the border and no specificity battle decides it. Invisible before only where
+  the table was `overflow:hidden` and clipped the line.
+- **The DHCP leases table stopped shrinking at ~736px and spilled out of its section.**
+  The leases costyl kept every mono column (IPv4/MAC/IAID/Remaining/the Static-Lease
+  button/Interface) on one line — `white-space: nowrap` — down to a 568px container, so
+  the table held a data-dependent intrinsic floor (~736px on a busy router). But the
+  card-stack that folds a data table into label/value pairs only kicked in below 568px,
+  leaving a 569–780px dead band where the table could neither shrink nor stack and
+  overflowed the card. The `.leases`/`.leases6` pair now stacks from 780px down —
+  matching stock bootstrap, which switches its tables to the phone layout early rather
+  than forcing a scroll — while nowrap only stays on at ≥781px, where the real table
+  genuinely fits. The two thresholds are adjacent (780/781) so no width is left with
+  neither behaviour. Other data tables (Processes/Startup/Routes) are narrower and keep
+  the shared 568px threshold.
+
 ## [0.7.17] — 2026-07-13
 
 ### Fixed
@@ -647,7 +720,7 @@ line, not one per tag. The individual patch releases are in the git history.
   nested `calc()`, which broke the layout outright. JS minification came back in 0.7.12,
   once jsmin was proven safe by a token-equivalence gate.
 
-[Unreleased]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.15...HEAD
+[Unreleased]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.18...HEAD
 [0.7.17]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.16...v0.7.17
 [0.7.16]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.15...v0.7.16
 [0.7.15]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.14...v0.7.15
@@ -664,6 +737,7 @@ line, not one per tag. The individual patch releases are in the git history.
 [0.7.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.1...v0.7.2
+[0.7.18]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.17...v0.7.18
 [0.7.1]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.6.5...v0.7.0
 [0.6.x]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.5.7...v0.6.5

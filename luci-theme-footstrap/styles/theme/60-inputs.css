@@ -177,6 +177,46 @@
 		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 	textarea { min-height: 84px; line-height: 1.5; }
+	/* A textarea's native scrollbar is a square strip, and a rounded corner does not clip
+	 * it — so on a scrolling config field (an NFQWS_OPT blob, a big option list) the grey
+	 * bar poked past the top-/bottom-right corner radius, a square notch out of the frame.
+	 * The custom ::-webkit-scrollbar below fixes it: a slim self-rounded thumb floated off
+	 * the edges (a transparent border + background-clip:padding-box insets it), a transparent
+	 * track that lets the rounded corner show through, and the track margin keeps the thumb
+	 * clear of the top/bottom corners — nothing square ever reaches a corner.
+	 *
+	 * Deliberately NO `scrollbar-width`/`scrollbar-color`: setting either makes Chromium
+	 * switch to the STANDARD scrollbar and ignore this whole ::-webkit block — and that
+	 * standard bar is the square, unclipped one that caused the bug. Firefox has no ::-webkit
+	 * and falls back to its native scrollbar, which it already clips to the radius.
+	 *
+	 * 16px wide so the ::-webkit-resizer (its size is tied to the scrollbar's) gets a bigger
+	 * grab area; the 5px transparent thumb border still leaves it slim (6px visible). */
+	textarea::-webkit-scrollbar { width: 16px; height: 16px; }
+	textarea::-webkit-scrollbar-track { background: transparent; margin: 16px 0 10px; }
+	textarea::-webkit-scrollbar-thumb {
+		background: var(--fs-dim); border-radius: 8px;
+		border: 5px solid transparent; background-clip: padding-box;
+	}
+	textarea::-webkit-scrollbar-thumb:hover { background: var(--fs-text); }
+	/* The bottom-right square where the vertical bar meets the resize grip defaulted to
+	 * white and poked past the rounded corner — make it transparent so the frame shows. */
+	textarea::-webkit-scrollbar-corner { background: transparent; }
+	/* The resize grip HIGHLIGHTS the frame's bottom-right corner so it reads as "this field
+	 * is resizable" — an accent arc tracing the frame's own rounded corner (radius =
+	 * --fs-radius, the Rounding setting), no straight legs. Two borders + the corner radius
+	 * draw the arc; the legs vanish because the box is shrunk to exactly the radius: the
+	 * resizer is the scrollbar's 16px, so top/left margin = 16px − radius leaves a
+	 * radius-sized box whose whole right+bottom border IS the quarter-corner curve. (A mask
+	 * would give a shorter arc but ::-webkit-resizer ignores mask — it filled a solid
+	 * square — and a baked-in SVG colour would not follow the palette or the accent hue.) */
+	textarea::-webkit-resizer {
+		background: transparent;
+		border-right: 2px solid var(--fs-accent);
+		border-bottom: 2px solid var(--fs-accent);
+		border-bottom-right-radius: var(--fs-radius);
+		margin: calc(16px - var(--fs-radius)) 0 0 calc(16px - var(--fs-radius));
+	}
 
 	.cbi-input-text:hover, .cbi-input-password:hover, .cbi-input-textarea:hover,
 	input[type="text"]:hover, input[type="password"]:hover, input[type="number"]:hover,

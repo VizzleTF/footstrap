@@ -9,9 +9,11 @@
 	 *
 	 * TO ADD A COLOURWAY "sunset":
 	 *   1. Copy the two hicontrast blocks below, rename data-palette to "sunset".
-	 *   2. Set the 14 colours. The canvas is declared as --fs-bg-base, not --fs-bg (the
-	 *      live token is derived from it by the TINT block below); everything else is
-	 *      declared under its own name. accent-lt is light-only; dark inherits it.
+	 *   2. Set the 14 colours. Two are declared as -base and the live token is derived
+	 *      from them (so the hue axes can rotate them without a second copy): the canvas
+	 *      is --fs-bg-base → --fs-bg (TINT block), and the accent is --fs-accent-base +
+	 *      --fs-accent-lt-base → --fs-accent/--fs-accent-lt (ACCENT block). accent-lt-base
+	 *      is light-only; dark inherits it. Everything else is declared under its own name.
 	 *      Nothing else: --fs-accent-soft and every tint/shadow in the theme are
 	 *      color-mix() over these, so they follow automatically.
 	 *   3. Set the four INKS (--fs-on-accent/--fs-on-good/--fs-on-warn/--fs-on-danger) — see below.
@@ -111,6 +113,17 @@
 	 * ============================================================ */
 	:root {
 		--fs-bg: var(--fs-bg-base);
+		/* The UI accent, and the logo-gradient's light end, derived from the palette's
+		 * own -base hex — so a palette sets --fs-accent-base / --fs-accent-lt-base and
+		 * the accent-hue axis (below) can rotate them without a second copy to keep in
+		 * sync. Absent an accent hue, --fs-accent IS the palette's -base value. */
+		--fs-accent: var(--fs-accent-base);
+		--fs-accent-lt: var(--fs-accent-lt-base);
+		/* The accent hue the user picked, in degrees (Appearance → Accent). Declared
+		 * here for the same reason as --fs-tint-h: an undefined var() in the override
+		 * below would drop the whole declaration silently. Irrelevant while data-accent
+		 * is absent. */
+		--fs-accent-h: 0;
 		/* The hue the user picked, in degrees. Declared here (not only inline by
 		 * head.ut/menu-*-common.js) so the stylesheet stands on its own: a var() with
 		 * no definition anywhere is invalid at computed-value time and takes the whole
@@ -148,6 +161,20 @@
 	}
 	:root[data-tint] { --fs-bg: oklch(from var(--fs-bg-base) l var(--fs-tint-c) var(--fs-tint-h)); }
 
+	/* Accent hue: the same idea as the tint, but on the UI colour rather than the canvas.
+	 * The user rotates --fs-accent-h (Appearance → Accent) and every accented control —
+	 * buttons, toggles, the range sliders, focus rings, the accented links — follows,
+	 * because each reads --fs-accent or a color-mix() OF it (--fs-accent-soft/-fill/-line/
+	 * -line-hi, --fs-focus-ring, and the exported --primary-color-*). oklch(from … l c H)
+	 * keeps the palette's exact lightness and chroma and swaps only the hue, so
+	 * --fs-on-accent's contrast (which tracks lightness) holds on every hue — the ink is
+	 * NOT recomputed. --fs-accent-lt (the logo gradient's light end) rotates with it so the
+	 * brand mark matches. Off (no data-accent) = the palette's own accent, untouched. */
+	:root[data-accent] {
+		--fs-accent: oklch(from var(--fs-accent-base) l c var(--fs-accent-h));
+		--fs-accent-lt: oklch(from var(--fs-accent-lt-base) l c var(--fs-accent-h));
+	}
+
 	/* ---- footstrap — GitHub Primer (DEFAULT, also fills bare :root) ---- */
 	:root,
 	:root[data-palette="footstrap"] {
@@ -160,8 +187,8 @@
 		--fs-dim: #656d76;
 		--fs-faint: #68727e;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23656d76" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--fs-accent: #0969da;
-		--fs-accent-lt: #54aeff;	/* logo-gradient light end (both modes) */
+		--fs-accent-base: #0969da;
+		--fs-accent-lt-base: #54aeff;	/* logo-gradient light end (both modes) */
 		/* a tint OF --fs-accent, so mix it FROM --fs-accent. It used to restate the accent's
 		 * RGB as a literal, which goes stale silently the moment the accent is
 		 * recoloured — the same failure the *-rgb triples had, and why they are gone. */
@@ -187,7 +214,7 @@
 		--fs-dim: #8f9cab;
 		--fs-faint: #959ca5;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238c99a8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--fs-accent: #569df5;
+		--fs-accent-base: #569df5;
 		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 15%, transparent);
 		--fs-track: #373e47;
 		--fs-good: #5aad5d;
@@ -220,8 +247,8 @@
 		--fs-dim: #5b6675;
 		--fs-faint: #69727f;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%235b6675" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--fs-accent: #0b6fbd;
-		--fs-accent-lt: #7ec8ff;	/* logo-gradient light end (both modes) */
+		--fs-accent-base: #0b6fbd;
+		--fs-accent-lt-base: #7ec8ff;	/* logo-gradient light end (both modes) */
 		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 10%, transparent);
 		--fs-track: #eaeef4;
 		--fs-good: #0f7a52;
@@ -243,7 +270,7 @@
 		--fs-dim: #9ba6b8;
 		--fs-faint: #8f9aad;
 		--fs-select-chevron: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%239ba6b8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
-		--fs-accent: #3ba7ff;
+		--fs-accent-base: #3ba7ff;
 		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 14%, transparent);
 		--fs-track: #1b2230;
 		--fs-good: #43e0a0;

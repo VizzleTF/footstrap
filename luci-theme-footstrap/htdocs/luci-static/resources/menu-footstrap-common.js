@@ -286,6 +286,37 @@ function applyTint(deg) {
 	}
 }
 
+/* Accent-hue axis: ONE hue (0–360°) that recolours the UI accent — the solid buttons,
+ * the toggle knobs, the range sliders, the focus rings, the accented links — while the
+ * canvas, cards and status colours (good/warn/danger) stay put. Unlike the tint (which
+ * hues the paper), this hues the CHROME. Done in CSS: :root[data-accent] rotates the
+ * hue of --fs-accent/--fs-accent-lt via oklch(from … l c H), keeping the palette's
+ * lightness and chroma so --fs-on-accent stays legible on every hue (03-palettes.css).
+ *
+ * 0 IS "OFF" (the palette's designed accent), same rationale as the tint: a hue wheel
+ * wraps, so spending one end on the off state loses nothing, and off clears the
+ * attribute so an un-recoloured router costs exactly the palette it already had.
+ * head.ut pre-paints it, so a reload doesn't flash the default accent first. */
+function currentAccent() {
+	const h = parseInt(lsGet('fs-accent'), 10);
+	return (h >= 1 && h <= 360) ? h : 0;
+}
+function applyAccent(deg) {
+	const root = document.querySelector(':root');
+	const v = Math.max(0, Math.min(360, deg | 0));
+	if (!v) {
+		lsDel('fs-accent');
+		root.removeAttribute('data-accent');
+		root.style.removeProperty('--fs-accent-h');
+	} else {
+		lsSet('fs-accent', String(v));
+		/* hue before the attribute, as the tint — otherwise one frame paints with the
+		 * previous hue (or 0) on a fresh load. */
+		root.style.setProperty('--fs-accent-h', String(v));
+		root.setAttribute('data-accent', '');
+	}
+}
+
 /* Sidebar accordion behaviour: with auto-collapse on, opening a section folds
  * every other one back (one open at a time); off (default, and the historical
  * behaviour) they stack. Only meaningful for the expanded sidebar — the rail
@@ -1071,6 +1102,16 @@ function wireAppearance() {
 			sliderControl(currentTint(), 0, 360, applyTint, _('Tint (router identification)'), {
 				step: 5,
 				cls: 'fs-range-hue',
+				fmt: v => (v ? v + '°' : _('Off'))
+			})
+		]),
+		E('div', { 'class': 'fs-ap-group' }, [
+			E('div', { 'class': 'fs-ap-label' }, [ _('Accent') ]),
+			/* recolours the accented CONTROLS (buttons/toggles/sliders/focus rings), not
+			 * the canvas the way Tint does — same hue slider, off at 0 = palette default */
+			sliderControl(currentAccent(), 0, 360, applyAccent, _('Accent'), {
+				step: 5,
+				cls: 'fs-range-hue fs-range-accent',
 				fmt: v => (v ? v + '°' : _('Off'))
 			})
 		]),

@@ -242,12 +242,20 @@
 	}
 	input[type="range"].fs-range-hue::-moz-range-track { background: var(--fs-hue-track); }
 	/* the thumb carries the CHOSEN hue while the tint is on — the one place in the
-	 * popover that shows the raw colour rather than the wash it produces */
-	:root[data-tint] input[type="range"].fs-range-hue::-webkit-slider-thumb {
+	 * popover that shows the raw colour rather than the wash it produces. :not() so the
+	 * shared rainbow track class doesn't hijack the accent slider's thumb below. */
+	:root[data-tint] input[type="range"].fs-range-hue:not(.fs-range-accent)::-webkit-slider-thumb {
 		background: oklch(.65 .17 var(--fs-tint-h));
 	}
-	:root[data-tint] input[type="range"].fs-range-hue::-moz-range-thumb {
+	:root[data-tint] input[type="range"].fs-range-hue:not(.fs-range-accent)::-moz-range-thumb {
 		background: oklch(.65 .17 var(--fs-tint-h));
+	}
+	/* the accent slider reuses the rainbow track; its thumb shows the chosen accent hue */
+	:root[data-accent] input[type="range"].fs-range-accent::-webkit-slider-thumb {
+		background: oklch(.65 .17 var(--fs-accent-h));
+	}
+	:root[data-accent] input[type="range"].fs-range-accent::-moz-range-thumb {
+		background: oklch(.65 .17 var(--fs-accent-h));
 	}
 
 	/* a sidebar row, not a bare icon: gap + hit area + a hover plate */
@@ -381,6 +389,7 @@
 	footer {
 		padding: 14px var(--fs-content-pad); border-top: 1px solid var(--fs-border);
 		color: var(--fs-dim); font-size: 12px; background: var(--fs-bg);
+		text-align: center;
 	}
 	footer a { color: var(--fs-dim); }
 	footer a:hover { color: var(--fs-accent); }
@@ -464,6 +473,13 @@
 		/* both sit on the brand row (order 2) — the menu wraps below it at order 3 */
 		.fs-themerow { order: 2; margin-left: auto; }
 		.fs-logout { order: 2; }
+		/* poll "Refreshing" pill: with no order it fell to the default 0 and rendered
+		 * BEFORE the brand (order 1) at the far LEFT of the bar. Put it in the right
+		 * cluster with Appearance/Logout, mirroring the top-nav's .fs-topnav-right where
+		 * #indicators is the first child. Its own margin-left:auto opens the cluster (it
+		 * is earlier in the DOM than .fs-themerow, so it wins the free space); .fs-themerow
+		 * keeps its auto for when the pill is empty and collapsed (#indicators:empty). */
+		.fs-sidebar #indicators { order: 2; margin-left: auto; padding: 0; }
 		/* danger hover ring, matching the top-nav's .fs-top-logout icon button */
 		.fs-logout:hover { border-color: var(--fs-danger); }
 		.fs-themerow .fs-label, .fs-logout .fs-label { display: none; }

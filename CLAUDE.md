@@ -248,7 +248,24 @@ contains its own entry, otherwise the release page and the tarball describe a ve
 changelog does not exist yet. A fresh empty `## [Unreleased]` goes back on top with the next
 commit that has something to say.
 
+**The GitHub release body is generated from the changelog, not written by hand.** On a `v*`
+tag the CI release job runs `tools/release-notes.sh <x.y.z>`, which pulls the tag's
+`## [x.y.z]` section out of **`CHANGELOG.md`** (the English file) and emits one line per
+change — the **bold lead of each bullet only**, grouped under its `### Fixed`/`### Added`/…
+header, with the rationale paragraph dropped and the install commands tucked into a collapsed
+block. Consequences for how you write an entry: the bold lead is the release note, so it must
+be a **self-contained one-line summary** that reads on its own (it appears with no rationale
+behind it); a bullet with **no `**bold**` lead is silently omitted** from the release; empty
+sections are dropped, so a `### Changed` with no bullets never shows. The multi-line-bold and
+inline-`code` shapes this project already uses are handled. `CHANGELOG.md` is the primary
+source; the **Russian summary from `CHANGELOG_ru.md` is appended** after the English one under
+a divider, so keep the mirror's `[x.y.z]` section in step or the release page shows English
+only for that half.
+
 What goes in an entry:
+- **Each entry is `- **one-line effect.** then the rationale`** — the bold lead states what
+  changed for the reader in a single self-contained sentence (it becomes the release note, see
+  above), and the prose after it carries the *why*, the measurement and what the rule protects.
 - **Write the effect, not the diff.** "Buttons had no focus indicator at all" beats "changed
   `:hover` to `:focus` in `styles/base/70-buttons.css`". The reader wants to know what was
   broken for them and whether it is fixed.

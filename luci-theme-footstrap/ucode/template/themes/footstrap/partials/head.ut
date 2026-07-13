@@ -70,6 +70,15 @@
 						root.style.setProperty('--fs-tint-h', String(t));
 						root.setAttribute('data-tint', '');
 					}
+					/* Accent: one hue (1-360) that rotates the UI accent colour (buttons,
+					   toggles, sliders, focus rings). Absent/0 = the palette's own accent.
+					   styles/03-palettes derives --fs-accent from it; hue before attribute,
+					   as the tint, so no frame paints with the previous hue. */
+					var a = parseInt(localStorage.getItem('fs-accent'), 10);
+					if (a >= 1 && a <= 360) {
+						root.style.setProperty('--fs-accent-h', String(a));
+						root.setAttribute('data-accent', '');
+					}
 				} catch (e) {}
 			})();
 		</script>

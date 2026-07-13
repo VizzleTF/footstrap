@@ -3,6 +3,11 @@ msgstr "Content-Type: text/plain; charset=UTF-8"
 
 #: htdocs/luci-static/resources/menu-footstrap-common.js:944
 #: ucode/template/themes/footstrap/partials/appearance.ut:11
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1109
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1112
+msgid "Accent"
+msgstr ""
+
 #: ucode/template/themes/footstrap/partials/appearance.ut:13
 #: ucode/template/themes/footstrap/partials/appearance.ut:16
 msgid "Appearance"

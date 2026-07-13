@@ -241,29 +241,29 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      # Checkout (this job only downloaded artifacts before) — the release body is
+      # built from the tag's CHANGELOG section, so the repo has to be present.
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
 
+      # Turn the tag's CHANGELOG section into a short release body: one line per
+      # change (the bold lead of each bullet), grouped by Fixed/Added/…, with the
+      # install commands tucked into a collapsed block. The verbose rationale in the
+      # changelog is for maintainers and stays out of the release notes.
+      - name: Build release notes from the CHANGELOG
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          sh tools/release-notes.sh "$ver" > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          body: |
-            luci-theme-footstrap ${{ github.ref_name }} — LuCI theme, noarch.
-
-            - OpenWrt **25.12+** (apk):
-              ```sh
-              apk add --allow-untrusted luci-theme-footstrap-*.apk
-              ```
-            - OpenWrt **24.10** (ipk):
-              ```sh
-              opkg install luci-theme-footstrap_*.ipk
-              ```
-
-            Or one-liner (auto-detects apk/ipk):
-            ```sh
-            wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
-            ```
+          body_path: ${{ runner.temp }}/notes.md
