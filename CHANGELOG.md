@@ -152,6 +152,18 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   tree, so they cost nothing today and catch the next mistake for free.
 
 ### Fixed
+- **Any view using `<a href="#">` for its own controls had its state wiped on every click** (issue #3,
+  `luci-app-filemanager`). Chrome fires `popstate` for a same-document *fragment* navigation, so
+  clicking such a link inside a view arrived at the SPA router as if the user had pressed Back. The
+  router then re-ran the navigation for the path already on screen, which re-instantiates the view —
+  undoing whatever the click had just done, one turn of the event loop later. The file manager's tab
+  strip is four `<a href="#">` links whose handler does not `preventDefault`, so switching to Editor,
+  Settings or Help switched *and instantly reverted*, and the app was unusable. Traced on the router:
+  `popstate` → `#view` receives a brand-new container. The two "Failed to display the file list"
+  errors in that report are the same bug from the other side — each surprise re-render restarts the
+  app's own `render()`, whose file list races the DOM insertion it depends on. A fragment change is
+  not a navigation: the router now compares the *path* and stays out of the way when only the
+  fragment moved. Back/forward across real paths still SPA-navigate, with zero full page loads.
 - **The login page carried the whole chrome — sidebar, menu and footer — around a form whose only
   control is a password field.** The theme shipped no `sysauth.ut`, so LuCI fell back to its generic
   one, which includes the header *without* `blank_page` (luci-theme-bootstrap ships its own and does

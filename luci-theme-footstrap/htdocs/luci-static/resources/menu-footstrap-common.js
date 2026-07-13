@@ -641,6 +641,11 @@ function sliderControl(current, min, max, onInput, label, opts) {
  * which always starts from a fresh instance anyway. See docs/14. */
 
 let _tree = null, _renderMain = null, _wired = false;
+/* The pathname whose view is CURRENTLY rendered. The popstate handler compares against it to
+ * tell a real navigation from a mere fragment change (an `<a href="#">` inside a view, which
+ * Chrome delivers here as a popstate — see the note there). Seeded from the page we were
+ * served, then kept in step by navigate(). */
+let _curPath = window.location.pathname;
 /* navigation generation token: two quick clicks race their async require()s, and
  * without this the FIRST view could render into #view after the second, leaving
  * stale content under the newer URL/title/chrome. Each committed navigation bumps
@@ -894,6 +899,7 @@ function navigate(pathname, push) {
 
 	/* from here on the navigation is committed */
 	const gen = ++_navGen;
+	_curPath = pathname;	/* what is on screen from now on — read by the popstate handler */
 
 	/* Ensure a #view container, and clear whatever the OUTGOING page left as a
 	 * SIBLING of #view inside .fs-content.
@@ -1111,6 +1117,28 @@ function wireRouter() {
 			window.location.reload();
 			return;
 		}
+
+		/* A FRAGMENT CHANGE IS NOT A NAVIGATION, and treating it as one broke every view
+		 * that uses `href="#"` for its own in-page controls — which is a very common idiom.
+		 *
+		 * Chrome fires `popstate` for a same-document fragment navigation, so clicking an
+		 * `<a href="#">` inside a view arrived here as if the user had pressed Back. We then
+		 * re-ran navigate() for the very path already on screen, which RE-INSTANTIATES the
+		 * view — wiping whatever state the click had just set.
+		 *
+		 * Reported as "luci-app-filemanager does not work" (issue #3), and it really did not:
+		 * its tab strip is four `<a href="#">` links whose handler does not preventDefault, so
+		 * every click switched the tab and was instantly undone by the re-render one turn of
+		 * the event loop later. Traced on the live router — `popstate` → `#view` gets a fresh
+		 * container. The double "Failed to display the file list" in that report is the same
+		 * bug seen from the other side: each surprise re-render restarts the app's own
+		 * render(), and its file list races the DOM insertion.
+		 *
+		 * The view has not changed unless the PATH changed. If only the fragment moved, the
+		 * page owns it — say nothing and let the app keep the state it just set. */
+		if (window.location.pathname === _curPath)
+			return;
+
 		if (!navigate(window.location.pathname, false))
 			window.location.reload();
 	});
