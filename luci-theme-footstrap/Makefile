@@ -57,7 +57,12 @@ LUCI_MINIFY_CSS:=0
 # Both run in CI. See CLAUDE.md.
 
 PKG_LICENSE:=Apache-2.0
-PKG_LICENSE_FILES:=LICENSE
+# No PKG_LICENSE_FILES, deliberately. It resolves against $(PKG_BUILD_DIR), and luci.mk's
+# Build/Prepare copies only src/ luasrc/ htdocs/ root/ ucode/ po/ into it — the repo's LICENSE
+# (Apache-2.0, at the tree root) is not among them, and CI rsyncs only this package directory
+# into the SDK, so it is not reachable from $(CURDIR) either. Declaring the file without
+# shipping it makes the package metadata point at something that is not there, which is worse
+# than not declaring it: the SPDX identifier above is what a licence scanner actually reads.
 
 # RELOAD, NOT RESTART — this is the difference between "the theme updated" and
 # "everyone using LuCI was logged out".

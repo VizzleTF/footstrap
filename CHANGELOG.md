@@ -10,7 +10,7 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
-## [Unreleased]
+## [0.8.1] — 2026-07-13
 
 ### Security
 - **`install.sh` no longer disables TLS certificate verification.** The installer is piped from the
@@ -27,9 +27,12 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   the same TLS channel as the URL, so it does not defend against a compromised `api.github.com`;
   what it does defend against is a truncated or tampered download from the asset CDN, which is a
   different host.
-- **The asset host and the redirect scheme are pinned.** The download URL is read out of an API
-  response and handed to `apk add` as root; it is now required to be a GitHub host, and `--proto-redir
-  '=https'` stops a redirect to plain `http://` being followed on the way to the asset CDN.
+- **The asset host is pinned, and the redirect scheme is pinned on the backends that can express it.**
+  The download URL is read out of an API response and handed to `apk add` as root; it is now required
+  to be a GitHub host. `curl` additionally gets `--proto '=https' --proto-redir '=https'`, so it will
+  not follow a redirect to plain `http://` on the way to the asset CDN. **`uclient-fetch` — the
+  first-choice backend, and the one a stock OpenWrt router actually has — has no equivalent flag**, so
+  on that path the guards are the host allowlist and the sha256, not a scheme pin.
 - **`install.sh` downloads into `mktemp -d`, not a predictable `/tmp/footstrap-install`.** `/tmp` is
   1777, so any local unprivileged process could pre-create that name as a symlink and have root
   write the package through it to a file of its choosing (CWE-377) — the same race
@@ -66,8 +69,8 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   duplicate, and the budget is gone. It covers **shell as well as CSS** — see below.
 
 ### Changed
-- **Save and Reset carry a tint, and the hover cue is finally visible.** A transparent button beside
-  the solid Save & Apply read as disabled rather than as secondary. Both now take the same step of the
+- **Save and Reset in the page action bar carry a tint, and the hover cue is finally visible.** A
+  transparent button beside the solid Save & Apply read as disabled rather than as secondary. Both now take the same step of the
   role ladder — `-soft` at rest, `-fill` on hover — Save off the accent role and Reset off danger,
   which it already declared on hover. Their labels are `--fs-text` and **not** the role colour: text of
   colour C on a translucent tint of C is the mistake this project documents having learned the hard
@@ -129,8 +132,9 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   own `FS_CSS_BUDGET` was documented as 124 KB in two places and is 115 KB; CI's font budget was
   documented as 100 KB and is 70 KB (the doc's number would have let 33 KB of font drift in
   unnoticed); the JS comment/minify figures were ~2× stale; and several comments still described the
-  table card stack as a container query that measurement replaced. A comment that lies is worse than
-  no comment.
+  table card stack as a container query that measurement replaced. (`docs/16` and `docs/18` are dated
+  audit snapshots and are left as history, not rewritten.) A comment that lies is worse than no
+  comment.
 - **The shell's geometry is three tokens instead of six copies of three numbers.** `--fs-sidebar-w`,
   `--fs-rail-w` and `--fs-content-min` now live in `02-tokens.css`; the stylesheet lays the sidebar out
   from them and `menu-footstrap-common.js` reads them back to decide whether what is left for the
@@ -138,10 +142,12 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   CONTENT_MIN = 500` against bare literals in the CSS, so narrowing the rail in the stylesheet would
   have left the measurement subtracting the old width with nothing in the build to notice — and
   `20-shell.css` even cited a `--fs-content-min` token that did not exist.
-- **The package declares its own maintainer and homepage, and ships its `LICENSE`.** Without
-  `LUCI_MAINTAINER`/`LUCI_URL`, `luci.mk` defaulted them and the built package claimed to be
-  maintained by the OpenWrt LuCI community; `PKG_LICENSE:=Apache-2.0` referenced a licence file the
-  repository did not contain.
+- **The package declares its own maintainer and homepage.** Without `LUCI_MAINTAINER`/`LUCI_URL`,
+  `luci.mk` defaulted them and the built package claimed to be maintained by the OpenWrt LuCI
+  community. The repository also gained the `LICENSE` text it had never carried, though the package
+  deliberately does **not** set `PKG_LICENSE_FILES`: that resolves against the build directory, which
+  `luci.mk` fills with only `src/ luasrc/ htdocs/ root/ ucode/ po/` — pointing the metadata at a file
+  the build tree does not have would be worse than not pointing at one.
 - **The linters were only enforcing the rules somebody remembered to list.** `eslint.config.mjs` never
   extended `eslint:recommended`, so `no-dupe-keys`, `no-unreachable`, `no-duplicate-case`,
   `no-prototype-builtins`, `getter-return`, `no-async-promise-executor` and about thirty other free
@@ -183,8 +189,8 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   flush left, right for a label column and wrong for a data cell). Live on the router: **Status →
   Routing** sat every cell hard against the table's left edge. Both names are one `:is([id], .fs-dt)`
   now and cannot drift apart again.
-- **Typing in an open dropdown does nothing — it should jump to the option, as a native `<select>`
-  does.** Open Country Code, type "ru", and a native select highlights "RU - Russian Federation"; it is
+- **Typing in an open dropdown now jumps to the matching option, as a native `<select>` does.** Open
+  Country Code, type "ru", and a native select highlights "RU - Russian Federation"; it is
   how anyone picks one of 248 entries. This theme replaces native selects with a styled `ui.Dropdown`
   (a native popup cannot be styled), and `ui.Dropdown` has **no letter search at all** — bootstrap only
   appears to have one because it leaves that field as a real `<select>`. Type-ahead is implemented for
@@ -1177,6 +1183,7 @@ line, not one per tag. The individual patch releases are in the git history.
 [0.7.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.1...v0.7.2
+[0.8.1]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.18...v0.8.0
 [0.7.18]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.17...v0.7.18
 [0.7.1]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.0...v0.7.1
