@@ -55,7 +55,7 @@ The `.col-N` weights need **no guard at all** and are unguarded in `theme/30-tab
 
 ## CSS architecture (critical)
 
-**`htdocs/luci-static/footstrap/cascade.css` is generated — never edit it.** It is gitignored and produced by `luci-theme-footstrap/build-css.sh`, which concatenates the `styles/` tree, strips comments and then squeezes the whitespace CSS ignores (~284 KB of source → **~112 KB**; uhttpd serves `/www/luci-static/*.css` with **no gzip**, so bytes are wire bytes). The squeeze deletes the space after `:`, the spaces around `{ } ; ,` and the last `;` of a block, and nothing else — it leaves the single space between selectors alone (`.a .b` is a descendant combinator, `.a.b` is not) and never touches `calc()` or a string. **All of that happens inside ONE string-aware awk pass, and the last `;` is dropped there too.** It used to be a `| sed 's/;}/}/g'` bolted onto the awk output, and sed cannot see strings: `content: ";}"` came out as `content: "}"`, and a data-URI containing `;}` was mangled the same way (both reproduced). Nothing in the tree happens to contain that byte pair — which is exactly how a bug like that waits for whoever adds the first one. Proven behaviour-neutral with `cssdiff` (0 diffs over ~4000 elements). The `/*!` licence banner is copied verbatim — it is an Apache-2.0 attribution, not formatting. It also enforces a **size budget** and refuses to write an oversized stylesheet. `build-css.sh` runs from the package `Makefile` (`Build/Prepare/luci-theme-footstrap`) and from `dev-sync.sh`; it needs only `cat`/`awk`, so an OpenWrt buildbot can run it. Use `--dev` to keep comments.
+**`htdocs/luci-static/footstrap/cascade.css` is generated — never edit it.** It is gitignored and produced by `luci-theme-footstrap/build-css.sh`, which concatenates the `styles/` tree, strips comments and then squeezes the whitespace CSS ignores (~255 KB of source → **~112 KB**; uhttpd serves `/www/luci-static/*.css` with **no gzip**, so bytes are wire bytes). The squeeze deletes the space after `:`, the spaces around `{ } ; ,` and the last `;` of a block, and nothing else — it leaves the single space between selectors alone (`.a .b` is a descendant combinator, `.a.b` is not) and never touches `calc()` or a string. **All of that happens inside ONE string-aware awk pass, and the last `;` is dropped there too.** It used to be a `| sed 's/;}/}/g'` bolted onto the awk output, and sed cannot see strings: `content: ";}"` came out as `content: "}"`, and a data-URI containing `;}` was mangled the same way (both reproduced). Nothing in the tree happens to contain that byte pair — which is exactly how a bug like that waits for whoever adds the first one. Proven behaviour-neutral with `cssdiff` (0 diffs over ~4000 elements). The `/*!` licence banner is copied verbatim — it is an Apache-2.0 attribution, not formatting. It also enforces a **size budget** and refuses to write an oversized stylesheet. `build-css.sh` runs from the package `Makefile` (`Build/Prepare/luci-theme-footstrap`) and from `dev-sync.sh`; it needs only `cat`/`awk`, so an OpenWrt buildbot can run it. Use `--dev` to keep comments.
 
 **One directory per cascade layer**; within each, the filename prefix is the source order:
 - `styles/00-header.css` — licence banner + the **only** `@layer` declaration.
@@ -154,15 +154,31 @@ LUCI_PW=<pw> python3 .claude/skills/footstrap-audit/cssdiff.py \
   admin/network/firewall admin/system/system admin/status/overview admin/system/opkg
 ```
 
-## Writing JS: comments are free, regex literals are not
+## Writing JS: comments cost no bytes but are not free, regex literals are not free either
 
-**Comment as densely as you like — the comments do not ship.** `luci.mk` runs the theme's
-JS through **jsmin** at package time (built from `luci-base/src/jsmin.c`; `luci-base/host`
-is already a build dependency, so it is on the buildbot). Half of this theme's JS is
-comments — **78 KB of 126 KB, i.e. 62%** — and jsmin takes the shipped bytes from **126 KB to 40 KB**
-(−57%) while the source in git keeps every word. uhttpd serves `/www` with **no
-compression**, so those were wire bytes *and* flash bytes on a 8–16 MB device. Explaining
-*why* a line exists costs the user nothing. Do it.
+**A comment costs the user nothing — it costs the reader.** `luci.mk` runs the theme's JS
+through **jsmin** at package time (built from `luci-base/src/jsmin.c`; `luci-base/host` is
+already a build dependency, so it is on the buildbot). Comments are **72 KB of the 127 KB**
+of source — **57%** — and jsmin takes the shipped bytes to **47 KB (−63%)** while the source
+in git keeps every word. uhttpd serves `/www` with **no compression**, so those would
+otherwise be wire bytes *and* flash bytes on an 8–16 MB device. The same holds for CSS:
+`build-css.sh` strips comments too. **So never trade a "why" away for bytes — there are none
+to save.**
+
+**The budget that is real is the reader's attention, and the rule is: minimally sufficient to
+see the problem and the reason.** A comment earns its place by naming the defect it guards
+against, the measurement that made the trade worth making, or the "do NOT" that saves the next
+person a rediscovery — a number with nothing behind it is a claim, and a claim with a number
+behind it is why this codebase keeps them. It does *not* earn its place by narrating what the
+next line does, restating what this file already said, repeating CLAUDE.md (a one-line pointer
+does that), or recounting how the code used to look — unless the old shape is a trap someone
+would re-introduce, and then it is one clause, not a paragraph.
+
+**A stale comment is worse than no comment, because the next person trusts it.** Around forty
+were once found describing code that no longer existed, and several stated the *opposite* of
+what the code did — `jsmin-verify`'s own header said a non-zero exit proves nothing, when the
+whole hazard is that jsmin exits **0**. When you change code, the comment above it is part of
+the change; when a comment cannot be made true, delete it.
 
 **The constraint is on regex literals, and it is a correctness rule, not style.**
 jsmin decides whether a `/` opens a **regex** or a **division** by looking at exactly ONE
@@ -257,8 +273,11 @@ npm run axes         # head.ut's pre-paint agrees with the live Appearance appli
   one gave its first-choice tool no timeout at all, and one was missing the https redirect pin —
   and nothing said a word, precisely because a diverged copy is invisible to a duplicate detector.
   Currently pinned: `table-card/{label,actions}` (CSS: `.fs-stacked` vs the config table's
-  `@container`) and `gh/{fetch,asset-host}` (shell: the installer vs the self-updater). Four groups,
-  two copies each. A `@mirror` group with only ONE copy is also a failure — a mirror of one enforces
+  `@container`), `gh/{fetch,asset-host,asset-urls}` (shell: the installer vs the self-updater) and
+  `theme/legacy-names` (the legacy theme list, in `uci-defaults` and again in the `Makefile`'s
+  `postrm`). Six groups, two copies each — plus one whole-file pin, `@same-file LICENSE`, because a
+  licence text cannot carry a marker comment without ceasing to be the licence text.
+  A `@mirror` group with only ONE copy is also a failure — a mirror of one enforces
   nothing.
 
 - **eslint** needs `ecmaFeatures.globalReturn` — a LuCI resource file is evaluated inside a

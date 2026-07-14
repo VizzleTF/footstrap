@@ -7,7 +7,7 @@
 # order within a dir. A later layer beats an earlier one whatever the specificity, so
 # nothing needs !important to override base (declared in styles/00-header.css).
 #
-# Minified unless --dev: ~296 KB of source -> ~112 KB (-62%). uhttpd serves CSS with NO
+# Minified unless --dev: ~255 KB of source -> ~112 KB (-56%). uhttpd serves CSS with NO
 # gzip, so every byte is a wire byte. Comments and whitespace go; a selector or a
 # declaration is never rewritten, which is why LuCI's csstidy stays off (it mangles
 # :has()/color-mix()). Needs only cat/awk, so an OpenWrt buildbot can run it.

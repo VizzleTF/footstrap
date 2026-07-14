@@ -34,6 +34,17 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   uci-defaults marker comment said "drop the marker" where the code **writes** it.
 
 ### Changed
+- **CLAUDE.md now asks for comments that are minimally sufficient, not maximally dense — and its own
+  stale numbers are fixed.** The guidance said "comment as densely as you like — the comments do not
+  ship", which is how forty lying paragraphs grew: bytes are genuinely free (jsmin and `build-css.sh`
+  strip them, so a "why" is never worth trading for bytes), but the reader's attention is not. The
+  rule is now to state the problem and the reason and stop, and to treat a comment that cannot be made
+  true as something to delete. Four of its own facts had rotted: the JS byte figures were measured on
+  a tree that no longer existed (it claimed 78 KB of comments in 126 KB of source, when the source was
+  really 159 KB before this release's rewrite; it is now 72 KB of 127 KB, minifying to 47 KB), the CSS
+  source is ~255 KB and not ~284 KB, and `@mirror` was described as pinning **four** groups when it
+  pins **six** — `gh/asset-urls` and `theme/legacy-names` went unlisted, along with the whole-file
+  `@same-file LICENSE` pin. That last one is the exact blindness the mechanism exists to prevent.
 - **Comments across the whole tree are cut to what states the problem and the reason, ~30–40% shorter.**
   The comments do not ship — jsmin and `build-css.sh` strip them — so this buys no bytes; it buys a
   reader who reaches the point. What went was narrative, rhetorical framing, restatement of the next
