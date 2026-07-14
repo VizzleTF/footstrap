@@ -90,8 +90,25 @@
 		grid-template-columns: repeat(auto-fit, minmax(126px, 200px)) !important;
 		margin-bottom: 0 !important;
 	}
-	/* the card: name across the top, speed left / traffic right (it stacks below 158 — see
-	 * the container query at the end) */
+	/* FLEX-WRAP, NOT A GRID WITH A THRESHOLD, and that is the fix for issue #7's "съезжает вёрстка".
+	 *
+	 * The card was `display: grid; grid-template-columns: 1fr auto` — speed left, traffic right —
+	 * and "do those two still fit side by side?" was answered by a @container threshold (158px).
+	 * That threshold is a PROXY for a question about the CONTENT, and a proxy calibrated on English:
+	 * `no link` is ~45px, `нет соединения` is ~100px, and the traffic figures are `nowrap` by design
+	 * (`▲ 151.2 MiB` ~85px, against ~35px when the counters are zero). On a Russian router a DOWN
+	 * port that had carried traffic needed ~193px inside a card whose content box is 178 — and a
+	 * grid does not wrap: the figures overflowed the card and ran UNDER THE NEXT ONE. With the
+	 * counters at zero the same card fitted, which is exactly what the reporter described.
+	 *
+	 * Flexbox asks the real question for free: the two cells sit on one row while they fit and the
+	 * traffic drops to its own row when they do not. No threshold to calibrate, no locale to get
+	 * wrong, and no JS — an observer would have to re-measure on every poll (29_ports.js rebuilds
+	 * these tiles every 5s) to compute what the layout algorithm already knows.
+	 *
+	 * `white-space: nowrap` on the speed cell (below) is what makes the TRAFFIC give way rather than
+	 * the speed: a flex item shrinks to its min-content, and for wrapping text that is its longest
+	 * word — the speed would silently break onto two lines instead. */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) {
 		margin: 0 !important;
 		min-width: 0 !important;
@@ -102,8 +119,14 @@
 		border-radius: var(--fs-radius-lg);
 		padding: 9px 11px;
 		container-type: inline-size; container-name: fs-port;
-		display: grid;
-		grid-template-columns: 1fr auto;
+		display: flex;
+		/* `flex-direction: row` is NOT redundant: base/95-luci.css paints every .ifacebox
+		 * `display: inline-flex; flex-direction: column`, and the grid this rule used to declare
+		 * made that direction moot. Switching to flex woke it up — the name, the speed and the
+		 * figures stacked into a column, `flex-basis: 100%` became a HEIGHT, and flex-grow grew the
+		 * wrong axis. Cost an hour; state the axis. */
+		flex-direction: row;
+		flex-wrap: wrap;
 		column-gap: 8px; row-gap: 3px;
 		align-items: baseline;
 	}
@@ -112,7 +135,13 @@
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > :nth-child(3) { display: none !important; }
 	/* name row + its ::after status dot */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-head:first-child {
-		grid-column: 1 / -1;
+		/* Its OWN row — and `width`, NOT `flex-basis: 100%`, which is the obvious way to write this
+		 * and does not work here: the card carries `container-type: inline-size`, so its main size is
+		 * not a definite length to resolve a percentage flex-basis against, and the browser falls
+		 * back to content sizing. Measured on the router: `flex: 0 0 100%` left the name 46px wide,
+		 * sitting beside the speed; `width: 100%` gives it the full 176. */
+		flex: 0 0 auto;
+		width: 100%;
 		display: flex; align-items: center; justify-content: space-between; gap: 6px;
 		font-size: 13px; font-weight: 600; color: var(--fs-text);
 	}
@@ -132,32 +161,46 @@
 	/* speed: green when linked, dim when not */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2) {
 		font-size: 13px; font-weight: 600; color: var(--fs-good); text-align: left;
+		/* Two halves of one mechanism.
+		 * `nowrap` (and NO `min-width: 0`) = "I do not give way": a flex item's automatic minimum
+		 * size is its min-content, which for nowrap text is the whole string — so the speed cannot be
+		 * squeezed and the TRAFFIC is what wraps. With min-width: 0 it would shrink instead and the
+		 * figures would overflow exactly as before.
+		 * `flex-grow: 1` = "I take the slack", which is what pushes the traffic to the right edge
+		 * while the two share a row. `margin-left: auto` on the traffic was the first attempt and is
+		 * wrong: Chrome counts it when breaking lines, so the figures took a row of their own even on
+		 * a card they fitted (measured). */
+		flex: 1 1 auto; white-space: nowrap;
 	}
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2) br { display: none; }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-body:nth-child(2) { color: var(--fs-dim); }
 	/* traffic: tx over rx, as stock's <br> leaves them — CSS cannot reorder br-separated
 	 * text runs. The 11px flag fights the inline `font-size:80%`. */
-	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { text-align: right; }
+	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) {
+		text-align: right;
+		/* Grows but never shrinks. Growing is what anchors the figures to the card's right edge on
+		 * EITHER row — sharing the speed's, or one of its own — since `text-align: right` then has a
+		 * box that reaches that edge. `margin-left: auto` would have done the same job on a shared
+		 * row and was the first attempt: wrong, because Chrome counts an auto margin when it breaks
+		 * lines, so the figures took a row of their own even on a card they fitted (measured).
+		 * `flex-shrink: 0` keeps the nowrap figures from being squeezed into an overflow. */
+		flex: 1 0 auto;
+	}
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container {
 		font-family: var(--fs-font-mono);
 		font-size: 11px !important;
 		color: var(--fs-dim);
 		line-height: 1.5;
 		white-space: nowrap;
-	}
-	/* This flag fights the element's own inline `text-align:left` (29_ports.js), and it is
-	 * scoped to the WIDE card on purpose: the narrow card WANTS that inline left, and an
-	 * unscoped flag would have overridden it — the plain declaration in the @container
-	 * below could never win back against an important one. */
-	@container fs-port not (max-width: 158px) {
-		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container { text-align: right !important; }
-	}
-	/* Card ≤158: too narrow for speed + traffic side by side — stack them, or the nowrap
-	 * figures spill past the edge. Keyed off the CARD, not the viewport, so it follows the
-	 * auto-fit shrink. (.cbi-tooltip-container needs no rule: its inline align is left.) */
-	@container fs-port (max-width: 158px) {
-		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2),
-		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { grid-column: 1 / -1; text-align: left; }
+		/* Fights the element's own inline `text-align:left` (29_ports.js) so the ▲/▼ lines align on
+		 * their right edge and the units form a column instead of a ragged edge.
+		 *
+		 * It used to be scoped to `@container fs-port not (max-width: 158px)`, with a SECOND
+		 * @container below it stacking the two cells on a narrow card. Both were the pixel threshold
+		 * the flex wrap above replaces: the cell now reaches the card's right edge on whichever row
+		 * it lands, so the alignment is one answer and there is no width at which to switch.
+		 * Deleting that threshold IS the fix — it is what had been calibrated on an English string. */
+		text-align: right !important;
 	}
 
 	/* Meter rows — any stock .table row carrying a .cbi-progressbar (Memory, Storage, CPU

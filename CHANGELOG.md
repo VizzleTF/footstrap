@@ -10,6 +10,30 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Fixed
+- **Port status: on a Russian router, a port that was DOWN but had carried traffic pushed its figures
+  out of its own card and under the next one** (issue #7). The tile is a two-column layout — speed on
+  the left, TX/RX on the right — and "do those two still fit side by side?" was answered by a
+  `@container` threshold of 158px. A threshold is a **proxy for a question about the content, and this
+  one was calibrated on English**: `no link` is ~45px against `нет соединения` at ~100px, and the
+  figures are `nowrap` by design (`▲ 151.2 MiB` ~85px against ~35px when the counters read zero). That
+  combination needs ~193px inside a card whose content box is 178 — so the threshold never fired, and
+  a grid does not wrap: it overflowed. With the counters at zero the same card fitted, which is exactly
+  what the reporter saw.
+  The layout is a wrapping flex row now, which asks the real question for free: the two cells share a
+  row while they fit and the figures take one of their own when they do not. Both `@container`
+  thresholds are deleted — **removing them is the fix**, not a side effect. No JS: an observer (the
+  first thing considered) would have to re-measure on every poll, since `29_ports.js` rebuilds these
+  tiles every 5 s, to compute what the layout algorithm already knows.
+  Three traps on the way, each caught by measuring rather than reading: `flex-basis: 100%` does not
+  resolve on this card (it carries `container-type: inline-size`, so the main size is not a definite
+  length — `width: 100%` is what works); `margin-left: auto` is counted when Chrome breaks lines, so
+  the figures wrapped even on a card they fitted; and switching the card from `grid` to `flex` woke up
+  a `flex-direction: column` that `base` has always set on every `.ifacebox` and that the grid had made
+  moot — everything stacked into a column until the axis was stated.
+
 ## [0.8.7] — 2026-07-14
 
 ### Fixed
@@ -1692,6 +1716,7 @@ line, not one per tag. The individual patch releases are in the git history.
   nested `calc()`, which broke the layout outright. JS minification came back in 0.7.12,
   once jsmin was proven safe by a token-equivalence gate.
 
+[Unreleased]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.7...HEAD
 [0.8.7]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.5...v0.8.6
 [0.7.17]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.16...v0.7.17
