@@ -80,7 +80,8 @@ You are a guest in a document you share with the theme and with every other app.
 - **Never restyle stock LuCI selectors from outside your page.** `.cbi-button-up`, `.cbi-value`,
   `.cbi-section-table-titles`, `ul.dropdown`, `table th` — the theme owns those, and your rule is
   unlayered, so it beats every cascade layer the theme has. Inside your own page, scope it:
-  `.myapp-root .cbi-value { … }`.
+  `.myapp-root .cbi-value { … }`. (That same fact is also in your favour — see §3.2 below: inside
+  your own subtree you outrank the theme automatically, and never need `!important`.)
 
 ---
 
@@ -92,20 +93,92 @@ Every LuCI theme exposes the same custom-property contract. Read it, with a lite
 color:            var(--text-color-high, #333);
 background-color: var(--background-color-low, #f5f5f5);
 border-color:     var(--border-color-medium, #ddd);
-/* status colours: primary / success / warning / error, each in high / medium / low */
+/* status colours: primary / success / warn / error, each in high / medium / low */
 color:            var(--error-color-medium, #f44336);
 /* text ON a filled surface has its own ink: */
 background-color: var(--success-color-high, #2e7d32);
 color:            var(--on-success-color, #fff);
 ```
 
-Rules:
+### 3.1. The export surface is exactly 26 names, and it is colour-only
 
-- **The names are exact.** `--warn-color-medium` (podkop, 7 uses) and `--text-color` (justclash,
-  6 uses) **do not exist** — those always fall through to the literal, on every theme. It is
-  `--warning-color-medium` and `--text-color-high`.
-- **`high` / `medium` / `low` is a ramp**, not three names for one colour. If you paint "no data"
-  in `--primary-color-low`, expect it to be visibly quieter than a live value.
+This is the whole contract. Nothing else is one.
+
+| Family | Names | Notes |
+|---|---|---|
+| Surfaces | `--background-color-high` / `-medium` / `-low` | an **elevation** axis: `high` = raised (a card), `low` = recessed (the page) |
+| Rules | `--border-color-high` / `-medium` / `-low` | `high` = the visible rule, `low` = the hairline |
+| Text | `--text-color-highest` / `-high` / `-medium` / `-low` | four levels, not three |
+| Accent | `--primary-color-high` / `-medium` / `-low` + `--on-primary-color` | |
+| OK | `--success-color-high` / `-medium` / `-low` + `--on-success-color` | |
+| Warning | `--warn-color-high` / `-medium` / `-low` + `--on-warn-color` | the family is **`warn`**, not `warning` |
+| Error | `--error-color-high` / `-medium` / `-low` + `--on-error-color` | |
+
+**Names that do not exist — anywhere — and therefore always fall through to your literal:**
+`--warning-color-*`, `--text-color` (no level), `--secondary-color-*`, `--font-sans`, `--font-mono`,
+`--disabled-opacity`. If you are reading one of those, you are not on the tier: you have a
+hardcoded colour with extra steps.
+
+- **`--warn-color-medium` is CORRECT.** podkop's `var(--warn-color-medium, orange)` (7 uses) resolves
+  on footstrap and paints the themed amber. Do **not** "fix" it to `--warning-color-medium` — that
+  name is defined by nothing, and the rename would silently drop every one of those 7 declarations
+  into the `orange` fallback. (An earlier version of this guide said the opposite. It was wrong.)
+- **`--text-color` (justclash, 6 uses) really does not exist.** It is `--text-color-high`.
+
+### 3.2. `--fs-*` is footstrap's PRIVATE tier — do not read it
+
+Open `cascade.css` and you will find 78 `--fs-*` custom properties with much better names than the
+export tier: `--fs-accent`, `--fs-panel2`, `--fs-radius`, `--fs-dim`, the whole z-index scale. **They
+are not yours.** They are internal, they are renamed and re-derived whenever the theme wants to, and
+no other LuCI theme has them at all. Only the `--*-color-*` names above are a contract.
+
+The two-tier split is not tidiness — it is the fix for a measured bug, and it is the same bug §2
+warns you about from the other side. `:root` is a **shared global scope**, and an app's stylesheet is
+**unlayered**, so it outranks every cascade layer the theme has. One app writing
+`:root { --accent: … }` — or `--text-color-high`, which is a LuCI *convention* and therefore the
+likelier name for an app to declare — used to repaint the theme itself: **312 of 336 elements
+changed colour** under a single hostile `:root` block. So footstrap now reads *only* its private
+`--fs-*` names internally and derives the export names *from* them. Same measurement after the split:
+**0 elements**. (`styles/02-tokens.css`; a CI gate fails the build if any theme rule reads an export
+name.)
+
+The practical consequence for you is the good half: **because the theme cannot be repainted by your
+`:root` any more, you can override anything the theme draws inside your own subtree — and you never
+need `!important` to do it.** Unlayered beats every layer, unconditionally. If you have an
+`!important` in your app's CSS to win against the theme, delete it; it was never what was winning.
+
+### 3.3. What the tier guarantees (and what to do with the guarantee)
+
+footstrap proves all of this in CI (`tools/export-tier.mjs`) across the full matrix of
+{light, dark} × {default, hicontrast} × six tint hues:
+
+- **Every level of `text` / `primary` / `success` / `warn` / `error` clears WCAG AA as TEXT** on all
+  three `--background-color-*` surfaces. So you may paint any of them as a `color:` and not check.
+- **The matching `--on-*-color` clears AA *on top of* its colour used as a fill.** So: **to put text
+  on a coloured fill, take the ink from `--on-*-color`. Do not invent one.** A hardcoded `#fff` on a
+  filled badge is the classic failure — it fell to **1.69:1** on seven of the eight dark-palette fills
+  before footstrap made the inks per-palette and per-mode.
+- **`high` / `medium` / `low` are three genuinely different colours**, not three aliases. If you paint
+  "no data" in `--primary-color-low`, it *will* read quieter than a live value. (Two caveats worth
+  knowing: `--background-color-*` runs the other way, `high` = raised; and footstrap's
+  `--text-color-low` is currently equal to `-medium` on purpose — the muted grey already sits on the
+  AA floor and a fainter step would be an illegible one. Do not build a design that needs text fainter
+  than `-medium`.)
+
+### 3.4. The palette and tint axes come free — but only on the tier
+
+footstrap is not just light/dark. `:root[data-palette="hicontrast"]` swaps the entire colour set, and
+a Tint slider re-hues every surface (`:root[data-tint]` with `--fs-tint-h` at any hue 1–360). Both
+axes move the export tier with them — which is why the CI matrix above sweeps exactly those axes.
+
+An app on the tier follows all of it for free and stays legible. A hardcoded "close enough" colour
+does not move: a `#f7f7f7` card chosen to match the default panel is wrong the instant the user picks
+hicontrast, and a hand-picked amber is wrong the instant they drag the tint 40°. **This is the real
+argument for this whole section** — not that literals are ugly, but that they are only right on the
+one configuration you happened to look at.
+
+### 3.5. The rest
+
 - **Never hardcode a surface.** `background: white` on a `position: fixed` modal (passwall) is a
   white box on a dark page. `#1e1e1e` on a log terminal (justclash) is a black box on a light page.
 - **Never put text of colour C on a translucent tint of C.** The tint drags the background toward
@@ -222,7 +295,10 @@ A modern theme may re-instantiate your view without ever reloading the document.
 | Every class, id and custom property prefixed with the app name | ✅ |
 | No `:root { … }`, no `* { … }`, no imported CSS framework | ✅ |
 | No stock `.cbi-*` / `table` / `pre` selector styled outside the app's own subtree | ✅ |
-| All colours from `--*-color-*` with a literal fallback; correct names | ✅ |
+| All colours from the 26 `--*-color-*` export names, with a literal fallback; `warn`, not `warning` | ✅ |
+| No `--fs-*` read anywhere — that is footstrap's private tier, not a contract | ✅ |
+| Text on a coloured fill takes its ink from `--on-*-color`, never a hardcoded `#fff` | ✅ |
+| No `!important` used to beat the theme — your CSS is unlayered and already outranks every layer | ✅ |
 | Dark mode read from `data-theme` / `data-bs-theme` / body luminance — never `prefers-color-scheme` | ✅ |
 | Editor theme chosen from the page's mode, not hardcoded | ✅ |
 | Layout keyed to the container, not the viewport | ✅ |

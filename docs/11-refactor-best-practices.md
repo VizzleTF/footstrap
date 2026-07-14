@@ -1,90 +1,62 @@
-# Рефакторинг по best practices (SOLID / KISS / DRY)
+# Ограничения LuCI, которые определили архитектуру
 
-Что применено и что в roadmap.
+Документ дизайн-фазы. Его roadmap закрыт целиком, а выводы переехали в рабочие
+места: CSS-слои и токены — в [docs/17](17-css-sborka-i-sloi.md) и CLAUDE.md,
+`!important`-храповик / coverage-контракт / `css-orphans` — в `npm run check` и
+CLAUDE.md. Здесь осталось то, что **больше нигде не записано**: ограничения
+платформы, из-за которых код выглядит так, как выглядит. Не трогайте их, не
+прочитав, — каждое проверено на живом LuCI и стоило отдельного захода.
 
-## Выводы (verified)
+## Выводы (verified) — куда они уехали
 
-1. **CSS — слои и токены против override-sprawl.** Слоёная архитектура
-   (ITCSS / нативные `@layer`): поздние слои побеждают вне зависимости от
-   специфичности → убирает эскалацию оверрайдов. Дизайн-токены (CSS custom
-   properties) — прямой DRY-антидот повторяющимся литералам. Реальные LuCI-темы
-   (kucat, aurora) гонят цвета из токенов. Снижать sprawl: объединять селекторы,
-   снижать специфичность, убирать дубли, избегать `!important`-гонки.
-2. **Client JS — baseclass + `E()` + декомпозиция.** Апстрим `menu-bootstrap.js`
-   = `baseclass.extend({...})`, строит DOM через `E()` (не innerHTML), render
-   делегирует в мелкие методы (renderModeMenu/renderMainMenu/renderTabMenu).
-   Для untrusted HTML — safe sinks (`textContent`) или DOMPurify (OWASP).
-3. **ucode-шаблоны — общие partials.** Каноничный LuCI-DRY: общий хром в
-   header/footer/sysauth-partials, подключаемые через `include()`.
-4. **Dead-rule elimination — осторожно.** Coverage-инструменты видят только
-   выполненное; JS-инъектируемые классы легко удалить по ошибке.
+1. **CSS — слои и токены против override-sprawl.** Слоёная архитектура (нативные
+   `@layer`): поздний слой побеждает вне зависимости от специфичности → снимает
+   эскалацию оверрайдов; дизайн-токены — прямой DRY-антидот повторяющимся
+   литералам. Эскалация специфичности и `!important`-гонка — главный враг.
+   *Сделано:* `styles/` разобран по слоям (`tokens, base, theme, page`),
+   `cascade.css` генерируется — docs/17. На это п.1 ссылается
+   [docs/16](16-research-audit.md) (M10).
+2. **Dead-rule elimination — осторожно.** Coverage-инструменты видят только
+   выполненное, а сторонний `luci-app-*` рисует виджеты, которых нет ни на одной
+   штатной странице. *Формализовано:* coverage-контракт (набор стилизуемых
+   селекторов только растёт) + `css-orphans`, который безопасен ровно потому, что
+   ограничен нашим `fs-`-неймспейсом.
 
-Источники: itcss (xfive), CSS cascade layers (Smashing/MDN), legacy CSS refactor
-(dev.to kathryngrayson), OWASP XSS Cheat Sheet, openwrt/luci, ThemesHowTo,
-luci-theme-kucat/aurora/argon.
+## 1. Required-модуль — это СИНГЛТОН, наследования между модулями нет
 
-## Ключевой урок из luci-app-podkop (itdoginfo/podkop)
+Зафиксировано экспериментом, а не вычитано:
 
-Podkop — не тема, но образцовый LuCI-фронтенд. Паттерн шаринга кода между
-модулями: **композиция, не наследование.** `'require view.podkop.main as main'`
-даёт singleton, у которого ВЫЗЫВАЮТ функции (`main.DashboardTab.render()`,
-`main.injectGlobalStyles()`); тонкие entrypoints (dashboard.js/section.js по 20
-строк) экспортят по одной функции-конфигуратору, а корневой view (`podkop.js`)
-их орхестрирует. Вариативность — через колбэки/параметры, не через override
-метода класса.
+- `base.extend` из другого модуля → **`base.extend is not a function`**: `'require X'`
+  отдаёт не класс, а уже созданный экземпляр.
+- Вернуть из модуля плоский объект вместо класса тоже нельзя →
+  **`factory yields invalid constructor`** (фабрика обязана вернуть класс).
 
-Это снимает ограничение, из-за которого «общая база» через `extend` не
-работала (required-модуль = singleton, класс-наследование недоступно).
+Отсюда — вся архитектура меню: **композиция через колбэк, а не наследование**.
+`menu-footstrap-common.js` экспортит `init(renderMainMenu)`; `menu-footstrap.js`
+делает `'require menu-footstrap-common as common'` и в `__init__` зовёт
+`common.init(renderMainMenu)` — рендер главного меню инжектится параметром (DI).
+Шов остаётся и сейчас, когда рендерер **один**: он не про две раскладки, а про
+то, что общий хром физически не может быть базовым классом.
 
-## Применено (проверено скриншотами, вывод не изменился)
+## 2. Урок luci-app-podkop: композиция — рабочий паттерн, а не костыль
 
-- **Menu JS DRY — через композицию (паттерн podkop).** Общая логика
-  (`renderTabMenu` / `renderModeMenu` / `wireAppearance` / `init`, ~90
-  строк дубля) вынесена в `menu-footstrap-common.js`, который экспортит
-  `init(renderMainMenu)`. Оба меню `'require menu-footstrap-common as
-  common'` и в `__init__` вызывают `common.init(<свой renderMainMenu>)` —
-  layout-специфичный рендер инжектится колбэком (SOLID DI). Осталось только
-  `renderMainMenu` в каждом файле (sidebar vertical-collapsible / top
-  horizontal-dropdown). Обе раскладки рендерятся, консоль чистая.
-- **ucode partials.** Дублированный хром вынесен в
-  `themes/footstrap/partials/` (`head` / `brand` / `appearance` / `logout` /
-  `notices` / `footer`), подключается `include()` из обоих header'ов и
-  footer'ов; вариативность — параметрами (`with_label`, `menu_module`).
-  Каноничный LuCI-DRY, один источник правды.
-- **(снято вместе с кастомным dashboard.)** `05_footstrap_dashboard.js`
-  рисовал overview целиком сам, и в нём были свои DRY-правки: `leasesCard(title,
-  subLabel, addrHeader, leases, addrOf)` вместо дубля DHCPv4/DHCPv6-таблиц и
-  `nf(label, value)` вместо 10 инлайновых `.fs-nf`; все интерполяции проходили
-  через `esc()` (XSS-safe). Инклуд ретайрнут (полное перерисовывание дерева на
-  каждый polling-тик мигало и сбрасывало скролл) — его заменил layout-only
-  `05_footstrap_overview_layout.js`, который не рендерит контент вообще.
-- **CSS токен `--accent-lt`.** Логотип-градиент `#7ec8ff` (дубль в 2 местах) →
-  токен `var(--accent-lt)`.
+Podkop — не тема, но образцовый LuCI-фронтенд, и он обходит ограничение №1 ровно
+так же: `'require view.podkop.main as main'` даёт синглтон, у которого **вызывают**
+функции (`main.DashboardTab.render()`, `main.injectGlobalStyles()`); тонкие
+entrypoint'ы (`dashboard.js`/`section.js`, по ~20 строк) экспортят по одной
+функции-конфигуратору, а корневой view (`podkop.js`) их оркестрирует.
+Вариативность — колбэками и параметрами, не override'ом метода класса.
 
-## Что НЕ работает в LuCI (зафиксировано)
+(Тот же podkop дал и второй урок, уже про SPA: `injectGlobalStyles()` он зовёт из
+`render()` без guard'а, поэтому каждый SPA-визит добавляет копию его `<style>` —
+см. дедуп в [docs/14](14-spa-router.md).)
 
-- Межмодульное **наследование классов** (`base.extend` из другого модуля) —
-  `base.extend is not a function` (required = singleton). Плоский объект —
-  `factory yields invalid constructor` (модуль обязан вернуть класс).
-  → использовать композицию (выше), не наследование.
+## 3. `E()` не умеет SVG
 
-## Отклонено с обоснованием (не просто «отложено»)
-
-- **CSS `@layer`-миграция — ПЕРЕСМОТРЕНО, сделано (см. docs/17).** Исходный
-  аргумент против: **все unlayered-правила побеждают любые layered**, а CSS
-  LuCI-приложений (`node.css` per-page: statistics и т.д.) — unlayered, значит
-  тема в слоях начнёт проигрывать app-CSS. На практике это не регрессия, а
-  ровно то поведение, которое и нужно: unlayered-уровень намеренно оставлен
-  пустым как аварийный люк, туда же попадает app'овый `node.css` — и он и так
-  грузился после темы, т.е. выигрывал и раньше. Внутри же темы слои
-  (`@layer tokens, base, theme, page;` — единственное объявление в
-  `styles/00-header.css`) убрали `!important`-гонку между базой и компонентами:
-  поздний слой побеждает вне зависимости от специфичности.
-- **Полный переход dashboard на `E()`** вместо innerHTML-шаблонов. Каноничнее,
-  но: `E()` использует `document.createElement` (HTML-namespace), а весь дизайн —
-  SVG (иконки/бары/кольца) → нужен `createElementNS`, чего `E()` не делает;
-  ~250 строк HTML → сотни вызовов. Текущее решение (innerHTML + `esc()` на всех
-  интерполяциях + `textContent` для user-данных в меню) XSS-безопасно. Переход
-  не оправдан. (Вопрос снят вместе с самим dashboard-инклудом: layout-only
-  `05_footstrap_overview_layout.js` строит DOM через `E()` и `createElement` —
-  своего контента у него нет.)
+`E()` строит узлы через `document.createElement` — это HTML-namespace. Любая
+SVG-графика (иконки меню, шевроны, бары, кольца) требует `createElementNS`, чего
+`E()` не делает. Поэтому SVG в теме собирается строкой (`menu-footstrap.js`:
+`iconSvg()` → `fs-ico`, `fs-chevron`) — разметка в ней фиксированная, а
+пользовательские данные (заголовок пункта) кладутся отдельно через `textContent`,
+то есть XSS-безопасно. Это не стилистический выбор, а namespace: «перевести всё
+на `E()`» **невозможно**, а не «не сделано».

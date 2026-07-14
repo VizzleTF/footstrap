@@ -102,9 +102,15 @@
 	}
 	.cbi-dropdown[open] > ul.dropdown > li:hover,
 	.cbi-dropdown[open] > ul.dropdown > li.focus { background: var(--fs-panel2); color: var(--fs-accent); }
-	/* after hover on purpose: hovering the selected row must keep the accent tint, not fall
-	 * back to the neutral hover pill */
-	.cbi-dropdown[open] > ul.dropdown > li[selected] { background: var(--fs-accent-soft); color: var(--fs-accent); }
+	/* After hover on purpose: hovering the selected row must still read as selected.
+	 * The surface is OPAQUE (--fs-panel2) and the accent is carried by the inset rail, not by a
+	 * tint of itself: accent text on --fs-accent-soft (a translucent tint of the accent) measured
+	 * 4.21:1 in dark, under the 4.5:1 AA floor — the tint drags the background toward the text and
+	 * eats its own contrast. axe never saw it because no gallery case rendered an OPEN dropdown
+	 * with a chosen value; the widget shipped that way on every dark router. */
+	.cbi-dropdown[open] > ul.dropdown > li[selected] {
+		background: var(--fs-panel2); color: var(--fs-accent); box-shadow: inset 2px 0 0 var(--fs-accent);
+	}
 	.cbi-dropdown[open] > ul.dropdown > li.create-item { border-top: 1px solid var(--fs-border); margin-top: 4px; }
 	/* The dropdown's "add item" field is a text input and takes the same radius as every other
 	 * one (theme/60-inputs.css). It said 8px here, and won or lost on source order. */

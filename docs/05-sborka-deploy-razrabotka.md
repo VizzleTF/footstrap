@@ -73,14 +73,76 @@ luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — r
 ```
 
 Скрипт делает всё разом (только `ssh`/`scp`, rsync на роутере не нужен):
-пересобирает `cascade.css` из `styles/` (`build-css.sh --dev`, с комментариями),
-копирует шаблоны обеих раскладок (`footstrap/` + `footstrap-top/`, включая
-`partials/`), статику, `menu-footstrap.js` / `menu-footstrap-top.js` /
-`menu-footstrap-common.js` / `fs-select.js` и overview-include, ставит скрипт
-самообновления с его rpcd-ACL, пересоздаёт симлинк `footstrap-top` → `footstrap`
-и вычищает легаси-каталоги вариантов, прогоняет `root/etc/uci-defaults/…`
-(единственный источник регистрации тем) и сбрасывает кэши.
-**Активную тему не меняет.**
+
+- пересобирает `cascade.css` из `styles/` (`build-css.sh --dev`, с комментариями);
+- копирует **единственный** каталог шаблонов `themes/footstrap/` вместе с `partials/`.
+  Второго каталога нет: sidebar и верхний бар — одна и та же разметка, которую морфит
+  `:root[data-layout]`;
+- копирует статику (`cascade.css`, шрифты, лого) и **все** resource-JS **глобом**
+  (`resources/*.js`: сейчас `menu-footstrap.js`, `menu-footstrap-common.js`, `fs-fit.js`,
+  `fs-select.js`) плюс overview-include. Именно глобом, а не списком имён: список был
+  багом — пятый файл попадал в пакет (`luci.mk` копирует `htdocs/` целиком), но на
+  дев-роутер молча не доезжал и впервые проверялся уже после релиза;
+- штампует версию из `git describe` в `FS_VERSION` внутри залитого
+  `menu-footstrap-common.js` — то же делает `Build/Prepare` в пакете, иначе поповер
+  показывает `dev` и проверка обновлений не работает;
+- компилирует каталог переводов `i18n/*/*.po` → `/usr/lib/lua/luci/i18n/footstrap-theme.<lang>.lmo`,
+  если в `$PATH` есть `po2lmo` (это host-tool `luci-base`; без него строки остаются
+  английскими, синк не падает);
+- ставит бэкенд самообновления `/usr/libexec/footstrap-selfupdate.sh` и его rpcd-ACL, затем
+  `rpcd reload` (**reload, а не restart**: rpcd держит сессии в памяти, restart разлогинит
+  всех);
+- **удаляет** (`rm -rf`) легаси-каталоги вариантов, включая `footstrap-top`: верхний бар
+  больше не тема, симлинка нет и создавать его не надо;
+- прогоняет `root/etc/uci-defaults/30_luci-theme-footstrap` — единственный источник
+  регистрации (ОДНА запись `luci.themes.Footstrap`) — и сбрасывает кэши.
+
+**Активную тему не меняет** (`PKG_UPGRADE=1` форсит upgrade-ветку uci-defaults).
+
+### Проверка изменения
+
+- **Шаблон** — тем же `trycompile`, что делает LuCI:
+  `ssh router 'ucode -T -c -o /dev/null /usr/share/ucode/luci/template/themes/footstrap/header.ut'`.
+  То же гоняет CI.
+- **CSS** — скриншотами проверять нельзя: живые счётчики (uptime, DHCP-лизы, сигнал wifi)
+  двигают 0.5–1.3% пикселей между двумя прогонами ОДНОГО И ТОГО ЖЕ стиля, а реальная
+  регрессия — 0.19%; сигнал под шумом. Дифф считается по computed-стилям: страница грузится
+  один раз, `<link>` подменяется на второй файл, снимок `getComputedStyle` по всем элементам —
+  DOM и данные те же, значит любая разница вызвана CSS.
+  ```sh
+  scp -q old.css router:/www/luci-static/footstrap/cascade-a.css
+  scp -q new.css router:/www/luci-static/footstrap/cascade-b.css
+  LUCI_PW=<pw> python3 .claude/skills/footstrap-audit/cssdiff.py \
+    admin/network/firewall admin/system/system admin/status/overview admin/system/opkg
+  ```
+
+## Правка JS: комментарии бесплатны, regex-литералы — нет
+
+`LUCI_MINIFY_JS` осознанно НЕ выключен (в отличие от `LUCI_MINIFY_CSS:=0`): `luci.mk` гонит JS
+темы через **jsmin** (`luci-base/src/jsmin.c`, он и так на билдботе). Это выгодно — ~72 КБ из
+127 КБ JS темы это комментарии, jsmin отдаёт 47 КБ, а uhttpd раздаёт `/www` **без сжатия**, т.е.
+это байты и на проводе, и во флеше. Комментировать можно сколько угодно: в пакет они не попадают.
+
+Плата — одно правило, и оно про корректность, а не про стиль. jsmin решает, `/` это regex или
+деление, по ОДНОМУ предыдущему символу из фиксированного списка (`( , = : [ ! & | ? + - ~ * / { } ;`).
+Ни `n` (последняя буква `return`), ни `>` (из `=>`) в него не входят:
+
+```js
+return /^https?:\/\//i.test(a);     // jsmin принимает // за начало комментария, СЪЕДАЕТ
+                                    // остаток файла и выходит с кодом 0
+return (/^https?:\/\//i.test(a));   // `(` в списке — безопасно
+```
+
+Это не теория: openwrt/luci#8299, #8020, #8021, #8256. **Нулевой код возврата jsmin ничего не
+доказывает** — порча молчаливая. Отсюда два гейта, оба в CI:
+
+- eslint `wrap-regex` — запрещает саму форму (`npx eslint --fix` расставит скобки);
+- `tools/jsmin-verify.mjs` — собирает тот же jsmin из коммита, закреплённого в
+  `luci-upstream.pin`, минифицирует каждый уходящий в пакет файл и падает, если поток токенов
+  (acorn) не совпал с исходником. Только он ловит порчу с exit 0.
+
+Regex как **аргумент** (`s.replace(/x/g, y)`) уже стоит за `(` или `,` — безопасен. Бэктик
+внутри `${…}` в шаблонной строке — тоже нельзя (jsmin теряет строку; падает громко).
 
 ## Сборка пакета .apk (OpenWrt 25.12 использует apk, не opkg)
 
@@ -149,16 +211,39 @@ src-git mytheme https://github.com/<you>/<repo>.git
 - Страницы: Status/Overview (таблицы, ifacebox), Network/Interfaces (zonebadge,
   модалки), Network/Firewall (section-table, dropdown), System/Software (прогресс),
   Realtime graphs (SVG), логин/логаут, Reboot.
-- Режимы: светлая/тёмная/auto, обе раскладки (sidebar / top-nav), палитры
-  (footstrap / hicontrast), мобильная ширина (мобильный тир — ≤767px; выше 768px
-  идёт «планшет/десктоп», у верхнего меню есть ещё компактный тир ≤1199px),
-  длинные hostname/SSID.
+- Режимы: светлая/тёмная/auto, обе раскладки (sidebar / top — это **клиентский**
+  переключатель в поповере Appearance, а не запись темы), палитры (footstrap /
+  hicontrast), узкое окно, длинные hostname/SSID.
+- **Брейкпойнтов для «влезает или нет» нет — это ИЗМЕРЕНИЕ.** Сайдбар уступает место
+  бару, когда ширина контентной колонки (`innerWidth − сайдбар/рельс − паддинги`) падает
+  ниже `--fs-content-min`: считает `fitShell()` (`menu-footstrap-common.js`), читая токены
+  `--fs-sidebar-w` / `--fs-rail-w` / `--fs-content-min` из CSS (`fs-fit.js` владеет
+  наблюдателем и коалесингом), и ставит `data-narrow` на `:root` — на него и смотрят CSS, и
+  `flyoutMode()`. Меню верхнего бара так же по измерению сначала ужимается (`.fs-dense1/2`)
+  и только потом переезжает на вторую строку (`.fs-bar-stack`): влезет оно или нет, зависит
+  от числа разделов на конкретном роутере, а не от экрана. Единственный литерал —
+  `@media (min-width: 521px)` в `20-shell.css`: пол, ниже которого никакой срез не оставит
+  читаемой колонки, и он же держит хром корректным при выключенном JS. Возвращать вьюпортный
+  брейкпойнт для этого вопроса нельзя: было `matchMedia('(max-width: 767px)')`, и в окне
+  768–779px хром рисовался баром, пока меню считало себя аккордеоном. Тест — тянуть окно
+  мышью, а не проверять точки.
 - Отдельно: страница `apply/rollback` (шторка подтверждения изменений) — рисуется
   ui.js поверх темы, часто ломается кастомными z-index.
-- Статические гейты (их же гоняет CI, docs/13): `build-css.sh` сам проверяет
-  баланс скобок и бюджет размера; `python3 .claude/skills/footstrap-audit/audit.py
-  --strict` (неопределённые `var()`, затенённые правила, лишние `!important`,
-  хардкод-цвета — с ненулевым кодом возврата); `npm run lint` (eslint по
-  `htdocs/`, stylelint по `styles/`); `npm run a11y` (axe-core по
-  `docs/gallery.html`, матрица light/dark × footstrap/hicontrast). Ничего из
-  `package.json` в пакет не попадает — на билдботе OpenWrt node нет.
+- Статические гейты (их же гоняет CI, docs/13). `build-css.sh` сам проверяет баланс скобок и
+  бюджет размера; остальное — двумя командами:
+  ```sh
+  npm run check                                          # перед пушем
+  python3 .claude/skills/footstrap-audit/audit.py --strict
+  ```
+  `npm run check` = `lint` (eslint по `htdocs/`, stylelint по `styles/`) → `css-metrics`
+  (ratchet: `!important` ≤ 33, максимальная специфичность, пустые правила) → `css-orphans`
+  (мёртвые `fs-*`-селекторы; безопасно только внутри своего неймспейса) → `css-dup`
+  (одинаковые тела правил под разными гардами: дубль обязан быть либо слит, либо закреплён
+  `@mirror`) → `mirror` (закреплённые копии, CSS и shell, побайтно совпадают) → `axes`
+  (пре-пейнт в `head.ut` согласован с живыми аппликаторами Appearance) → `export-tier`
+  (контракт `--*-color-*` со сторонними `luci-app-*`) → `i18n` (`.pot` актуален, пустых
+  msgstr нет) → `a11y` (axe-core по `docs/gallery.html`, матрица light/dark ×
+  footstrap/hicontrast). `audit.py --strict` — неопределённые `var()`, затенённые правила,
+  мёртвые декларации `base`, лишние `!important`, хардкод-цвета. CI сверх этого гоняет
+  `tools/jsmin-verify.mjs` (см. выше), `ucode -T -c` по шаблонам и бюджеты шрифтов/JS.
+  Ничего из `package.json` в пакет не попадает — на билдботе OpenWrt node нет.

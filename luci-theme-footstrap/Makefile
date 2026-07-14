@@ -39,8 +39,8 @@ LUCI_MINIFY_CSS:=0
 #
 # JS: DO let luci.mk minify it — LUCI_MINIFY_JS defaults to 1, so this is the absence of an
 # opt-out. That is jsmin (luci-base/src/jsmin.c, on the buildbot already since luci-base/host is
-# a build dep). ~78 KB of this theme's 126 KB of JS is comments, and uhttpd serves /www with NO
-# compression, so those are wire AND flash bytes: jsmin ships 40 KB, git keeps every word.
+# a build dep). ~72 KB of this theme's 127 KB of JS is comments, and uhttpd serves /www with NO
+# compression, so those are wire AND flash bytes: jsmin ships 47 KB, git keeps every word.
 #
 # The catch, and why the gates exist: jsmin decides `/` = regex-or-division from a ONE-character
 # lookback, and `n` (of `return`) and `>` (of `=>`) are not on its allow-list — so `return /re/`

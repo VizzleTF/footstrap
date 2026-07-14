@@ -234,7 +234,92 @@ option two</textarea></div>
 		<div class="cbi-dropdown" tabindex="0"><ul><li class="focus" display="0">Selected value</li></ul><span class="open">▾</span></div>
 		<div class="cbi-dropdown btn cbi-button cbi-button-action" tabindex="0"><ul><li>Button dropdown</li></ul><span class="open">▾</span></div>
 	</div>
-	<p class="g-note">The open list is rendered by ui.js at runtime; its rules are exercised on any real form page.</p>
+	<p class="g-note">Closed controls only. The open list — and the create-item row that goes with it —
+		is in the Combobox section below.</p>
+</div>
+
+<div class="g-sec">
+	<h2>Combobox (cbi-dropdown + custom value)</h2>
+	<!--
+	  ui.Combobox IS ui.Dropdown with `{ multiple: false, create: true, optional: true }` forced on
+	  (ui.js), so its markup is the dropdown's plus one extra row: a bare `<li data-value="-">` whose
+	  only child is `<input class="create-item-input">` — the field a user types a custom value into.
+	  That row is the whole reason this section exists; it is the one dropdown state no shipped LuCI
+	  page shows standing still, so nothing else in this gallery renders it.
+
+	  Everything below is what ui.js leaves in the DOM, written out by hand because there is no JS
+	  here to build it: bind() appends `<span class="more">` + `<span class="open">` + the trailing
+	  `<div>` that holds the hidden inputs, prepends the `<li placeholder>` when the widget is
+	  optional, and marks the shown item `selected` + `display="0"`.
+	-->
+	<div class="g-row">
+		<!-- closed, with a value chosen -->
+		<div class="cbi-dropdown" optional="" tabindex="0">
+			<ul tabindex="-1">
+				<li placeholder="">-- Please choose --</li>
+				<li data-value="wan">wan</li>
+				<li data-value="lan" selected="" display="0">lan</li>
+				<li data-value="wg0">wg0</li>
+				<li data-value="-"><input type="text" class="create-item-input" placeholder="-- custom --" inputmode="text" enterkeyhint="done"></li>
+			</ul>
+			<span class="more" tabindex="-1">···</span>
+			<span class="open" tabindex="-1">▾</span>
+			<div><input type="hidden" name="g-combo" value="lan"></div>
+		</div>
+
+		<!-- closed and unset: optional, so bind() puts `selected`/`display` on the placeholder li
+		     (and saveValues writes no hidden input for it) -->
+		<div class="cbi-dropdown" optional="" tabindex="0">
+			<ul tabindex="-1">
+				<li placeholder="" selected="" display="0">-- Please choose --</li>
+				<li data-value="wan">wan</li>
+				<li data-value="lan">lan</li>
+				<li data-value="-"><input type="text" class="create-item-input" placeholder="-- custom --" inputmode="text" enterkeyhint="done"></li>
+			</ul>
+			<span class="more" tabindex="-1">···</span>
+			<span class="open" tabindex="-1">▾</span>
+			<div></div>
+		</div>
+	</div>
+
+	<!-- OPEN. openDropdown() sets [open], clones the <ul> into a `ul.preview` (which is what you
+	     still see in the control's own box — every li but the `display`-marked one stays hidden, so
+	     the clone's copy of the create-item input is present but not shown; that duplicate is real,
+	     do not "fix" it), adds `.dropdown` to the original <ul>, hands each of ITS li a tabindex,
+	     and writes top/max-height inline. The list is absolutely positioned, hence the bottom margin
+	     on the row — gallery staging only, the same trick the Modal section uses. -->
+	<div class="g-row" style="margin-bottom:250px">
+		<div class="cbi-dropdown" optional="" open="" tabindex="0">
+			<ul class="dropdown" tabindex="-1" style="top:38px;max-height:280px">
+				<li placeholder="" tabindex="0">-- Please choose --</li>
+				<li data-value="wan" tabindex="0">wan</li>
+				<li data-value="lan" selected="" display="0" tabindex="0">lan</li>
+				<li data-value="wg0" tabindex="0">wg0</li>
+				<li data-value="-" tabindex="0"><input type="text" class="create-item-input" placeholder="-- custom --" inputmode="text" enterkeyhint="done"></li>
+			</ul>
+			<ul class="preview">
+				<li placeholder="">-- Please choose --</li>
+				<li data-value="wan">wan</li>
+				<li data-value="lan" selected="" display="0">lan</li>
+				<li data-value="wg0">wg0</li>
+				<li data-value="-"><input type="text" class="create-item-input" placeholder="-- custom --" inputmode="text" enterkeyhint="done"></li>
+			</ul>
+			<span class="more" tabindex="-1">···</span>
+			<span class="open" tabindex="-1">▾</span>
+			<div tabindex="0"><input type="hidden" name="g-combo-open" value="lan"></div>
+		</div>
+	</div>
+	<p class="g-note">What to look at: the create-item row must read as a text field, not as a choice —
+		it is the only row a user can type in. Base gives it <code>width: 100%</code> via
+		<code>li &gt; input.create-item-input:first-child:last-child</code>, which only matches because
+		the input is that li's sole child; the theme paints it as a normal input
+		(<code>theme/65-dropdown.css</code>). Check its focus ring, and check that the row's own hover
+		pill does not fight the field inside it.</p>
+	<p class="g-note">The theme also carries a rule for <code>li.create-item</code>, a class stock
+		LuCI does not emit anywhere (grepped: <code>ui.js</code> gives the li no class at all, only the
+		input gets <code>.create-item-input</code>). It is kept under the coverage contract — a
+		third-party app may still emit it — but it is deliberately not rendered here, because this
+		gallery shows the markup LuCI really produces.</p>
 </div>
 
 <div class="g-sec">

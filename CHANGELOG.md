@@ -13,6 +13,41 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 ## [Unreleased]
 
 ### Fixed
+- **Dark mode: the selected row of an open dropdown failed WCAG AA at 4.21:1.** It painted accent text
+  on `--fs-accent-soft` — a translucent tint of that same accent — and a tint drags the background
+  toward the text and eats its own contrast, which is the one chip/badge rule this project writes down.
+  Every dark-mode router showed it on every `<select>`, and the axe gate was green throughout: no
+  gallery case rendered an OPEN dropdown with a value chosen, so the widget was invisible to the check.
+  The row now sits on the opaque `--fs-panel2` with the accent carried by an inset rail, and the
+  gallery renders the open state so the gate can see it. Found only because deleting a redundant doc
+  (`docs/12`, which "covered" widgets in prose) forced its one real finding — the Combobox is missing
+  from the gallery — into the gallery, where it is checkable.
+- **The public styling guide told third-party app authors to break their own packages.**
+  `docs/20` said `--warn-color-medium` "does not exist" and to rename it to `--warning-color-medium`.
+  Exactly backwards: the theme exports `--warn-color-*` (and `--on-warn-color`), while
+  `--warning-color-*` exists nowhere in the tree. `luci-app-podkop` reads `var(--warn-color-medium,
+  orange)` and gets the themed amber today; following the guide would have dropped all seven of its
+  declarations into the `orange` fallback. The lie was faithfully mirrored into the Russian copy.
+- **Four docs instructed the reader to set `LUCI_MINIFY_JS:=0`**, which would triple the shipped JS.
+  The Makefile deliberately leaves jsmin ON (it takes 127 KB to 47 KB, and uhttpd serves `/www` with no
+  compression); what mangles modern CSS is csstidy, hence `LUCI_MINIFY_CSS:=0`. jsmin's real hazard —
+  a regex literal after `return`/`=>` makes it swallow the file and exit **0** — is now stated where
+  those docs used to give the wrong advice.
+- **A closed MITM hole was still documented as open** (`docs/16`, L11: "install.sh silently disables TLS
+  verification"). It has long been fixed — the installer pins `--proto-redir '=https'`, never disables
+  verification even as a retry, and refuses to install unless the sha256 GitHub publishes for the asset
+  matches. An audit doc that keeps a fixed finding open either sends the next reader chasing a ghost or
+  convinces them the project is unsafe.
+- **`docs/14` argued against the very fix `docs/15` describes.** Its teardown section said "not
+  `Poll.stop()`"; the router does `queue.length = 0; Poll.stop(); Poll.start()` — which is what stopped
+  the poller idling up to 5 s before its first tick. Two docs about adjacent things had drifted into
+  contradiction.
+- **Docs told you the login page needs no `sysauth.ut`, and that a theme should copy bootstrap's
+  hidden-`<section>` login view.** Both are false and both were tried: without the theme's own
+  `sysauth.ut` the generic template includes the header **without `blank_page`**, so the whole chrome is
+  drawn around the login form with dead controls; and the bootstrap view pattern gives a blank page with
+  no way to log in (the view bootstraps before a session exists, the RPC answers Access denied, `render()`
+  never runs).
 - **About forty source comments described code that no longer exists, and some of them described the
   opposite of what the code does.** Nothing a user can see, but a comment that lies is worse than no
   comment: the next person trusts it. The worst of them sat on the gates themselves. `jsmin-verify`'s
@@ -34,6 +69,17 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   uci-defaults marker comment said "drop the marker" where the code **writes** it.
 
 ### Changed
+- **The whole `docs/` tree now describes the theme that exists.** All twenty documents were checked
+  claim by claim against the code. Two were deleted: `docs/10` (85 of its 94 lines specified a
+  top-nav renderer that was removed — its one unique piece, `clampDropdown`, lives in
+  `menu-footstrap.js` with a fuller comment) and `docs/12` (80% a worse copy of `docs/gallery.html`,
+  and it "covered" a `.cbi-fileupload*` selector that exists in neither LuCI nor this theme). The rest
+  were corrected: every token name they printed was dead (`--accent` → `--fs-accent`; the export tier
+  was called a "bridge" when it is one-way and reading it from inside `styles/` fails the build), the
+  layout was still described as a server-side theme entry, `dev-sync.sh` was documented with 1 of 5
+  points right, and the benchmark numbers carried no version stamp. Exact byte counts were replaced
+  with approximations plus the budget — the sheet grew by 37 bytes during this very pass, which is how
+  precise numbers rot.
 - **The READMEs describe the theme that exists.** The package README promised **two** theme entries
   (`FootstrapSidebar` / `FootstrapOnTop`), a `/luci-static/footstrap-top` symlink, `-dark`/`-light`
   symlinks, a `mobile.css` and a `sysauth.js` — none of which exist — claimed the theme needs OpenWrt

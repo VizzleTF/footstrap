@@ -1,7 +1,20 @@
-# Архитектура LuCI в OpenWrt 25.12+: как рендерятся темы
+# Архитектура LuCI в OpenWrt 24.10 / 25.12+: как рендерятся темы
 
-> Источник: исходники `openwrt/luci` (master, из него собирается LuCI для 25.12),
-> проверено на живом роутере OpenWrt 25.12.2 (r32802, LuCI bootstrap 26.134).
+> Источник: исходники `openwrt/luci` (закреплённый коммит + ветка `openwrt-24.10`,
+> см. `luci-theme-footstrap/luci-upstream.pin` и док 07), проверено на живом роутере
+> OpenWrt 25.12.2 (r32802, LuCI bootstrap 26.134).
+
+**Тема поддерживает обе ветки, и API шаблонов у них одинаков** — это проверено против
+`openwrt-24.10`, а не предположено: на 24.10 LuCI **уже ucode** (`modules/luci-base/ucode/`
+там есть), и весь API, которым пользуется тема, на месте — `ctx.path`, `ctx.request_path`,
+`entityencode`, `striptags`, `dispatcher.build_url/lookup/lang`, `ubus.call`,
+`pkgs_update_time` (его определение на 24.10 уже умеет откатываться с `/lib/apk/db/installed`
+на `/usr/lib/opkg/status`). Блоб `L.env`, который печатает `header.ut` самого luci-base,
+**побайтово одинаков** между ветками, поэтому `L.env.dispatchpath` (на него завязаны меню и
+SPA-роутер) есть в обеих.
+
+Различие ровно одно — **менеджер пакетов**: apk на 25.12+, opkg/`.ipk` на 24.10. CI собирает
+оба формата; `install.sh` и `footstrap-selfupdate.sh` определяют, который стоит на роутере.
 
 ## Ключевой сдвиг: ucode вместо Lua
 
@@ -92,9 +105,22 @@ Bootstrap имеет свой: серверный `sysauth.ut` (скрытая `
 data для JS) + клиентский view `htdocs/luci-static/resources/view/bootstrap/sysauth.js`,
 который рисует форму через `ui.instantiateView('bootstrap.sysauth')`.
 
+**Практический вывод (его нет ни здесь, ни в доке 03): тема со своей "скорлупой" ОБЯЗАНА
+везти свой `sysauth.ut`.** Общий шаблон luci-base начинается с `{% include('header') %}` —
+**без `blank_page`** (проверено на роутере: `/usr/share/ucode/luci/template/sysauth.ut`). А
+`header.ut` темы прячет всю скорлупу именно под `{% if (!blank_page) %}`. Итог отсутствия
+своего sysauth: вокруг формы логина рисуется весь сайдбар/меню/футер, и все его контроли
+мертвы — сессии ещё нет, меню не грузится. Наш `sysauth.ut` существует ровно ради
+`{% include('header', { blank_page: true }) %}`; форму рендерит **сервер** (работает с
+выключенным JS и не ломается отклонённым промисом — копия bootstrap'овской схемы со скрытой
+`<section hidden>` + view давала здесь пустую страницу без возможности войти: view стартует
+до сессии, его RPC отвечают "Access denied", `render()` не выполняется).
+
 ## Меню — целиком на клиенте
 
-Серверный header темы выводит только пустые контейнеры:
+Серверный header темы выводит только пустые контейнеры по id, а наполняет их клиентский JS.
+Так это делает **bootstrap** (`style="display:none"` — его приём, а не контракт LuCI и не то,
+что делаем мы: у нас контейнеры видимы, скрывать их незачем):
 
 ```html
 <ul class="nav" id="topmenu" style="display:none"></ul>
@@ -102,14 +128,16 @@ data для JS) + клиентский view `htdocs/luci-static/resources/view/b
 <ul class="breadcrumb pull-right" id="modemenu" style="display:none"></ul>
 ```
 
-Footer темы грузит JS-модуль: `<script>L.require('menu-bootstrap')</script>`.
-Файл `htdocs/luci-static/resources/menu-<тема>.js` — baseclass, в `__init__`
-делает `ui.menu.load().then(tree => this.render(tree))` и наполняет контейнеры
-(`renderModeMenu` / `renderMainMenu` / `renderTabMenu`). Дерево меню приходит
+Footer темы грузит JS-модуль: `<script>L.require('menu-bootstrap')</script>` (у нас —
+`menu-footstrap` + `fs-select`). Файл `htdocs/luci-static/resources/menu-<тема>.js` —
+baseclass, в `__init__` делает `ui.menu.load().then(tree => this.render(tree))` и наполняет
+контейнеры (`renderModeMenu` / `renderMainMenu` / `renderTabMenu`). Дерево меню приходит
 с сервера JSON-ом (права уже отфильтрованы).
 
 **Важно**: menu-JS кладётся в `htdocs/luci-static/resources/` (не в каталог темы),
-потому что грузится через `L.require()`, который ищет в `resourcebase`.
+потому что грузится через `L.require()`, который ищет в `resourcebase`. Оттуда же
+подтягиваются зависимости по прагмам `'require <модуль> as <имя>'` — так у нас
+`menu-footstrap` тянет `fs-fit` и `menu-footstrap-common`.
 
 ## Регистрация темы в UCI
 
@@ -129,12 +157,42 @@ config internal 'themes'
 Выпадающий список тем в System → System → Language and Style строится из секции
 `themes`. Регистрация — через `uci-defaults` скрипт пакета (см. док 02).
 
+Обратите внимание: `BootstrapDark` — это приём **bootstrap** (отдельная тема-symlink на
+каждый режим). Footstrap регистрирует **одну** запись `Footstrap` → `/luci-static/footstrap`;
+режим, палитра и раскладка — клиентские оси (localStorage + атрибуты на `:root`, до первой
+отрисовки их проставляет `partials/head.ut`), а не записи в `luci.themes`. Легаси-имена
+(`FootstrapDark`, `FootstrapTop`, …) `uci-defaults` активно удаляет и мигрирует
+`mediaurlbase` на единственный оставшийся путь.
+
 ## Схема каталогов в рантайме (на роутере)
 
+Что кладёт `luci.mk`: `ucode/` → `/usr/share/ucode/luci`, `htdocs/` → `/www`, `root/` → `/`.
+Реальная раскладка footstrap:
+
 ```
-/usr/share/ucode/luci/template/themes/<тема>/   header.ut, footer.ut, [sysauth.ut]
-/www/luci-static/<тема>/                        cascade.css, logo.svg, ...
-/www/luci-static/resources/menu-<тема>.js       клиентский рендер меню
-/www/luci-static/resources/view/<тема>/         [опц.] JS-views темы (sysauth.js)
-/etc/uci-defaults/30_luci-theme-<тема>          регистрация в uci (выполняется 1 раз)
+/usr/share/ucode/luci/template/themes/footstrap/
+        header.ut, footer.ut, sysauth.ut, partials/*.ut
+        (sysauth.ut ОБЯЗАТЕЛЕН — см. раздел про sysauth выше)
+/www/luci-static/footstrap/             cascade.css (генерится build-css.sh), fonts/, logo.svg, …
+/www/luci-static/resources/
+        menu-footstrap.js               единственный рендерер меню (аккордеон/бар/флайаут)
+        menu-footstrap-common.js        общая скорлупа, SPA-роутер, попап Appearance
+        fs-fit.js                       общий «а влезает ли?» движок (ResizeObserver, rAF)
+        fs-select.js                    <select> → ui.Dropdown, карточный режим таблиц
+/www/luci-static/resources/view/status/include/05_footstrap_overview_layout.js
+        аддитивный layout-only инклюд Overview (LuCI сам подхватывает *.js из этого каталога)
+/usr/lib/lua/luci/i18n/footstrap-theme.<lang>.lmo
+        каталог переводов — едет ВНУТРИ пакета темы (не отдельным luci-i18n-*, см. док 13)
+/usr/libexec/footstrap-selfupdate.sh    бэкенд кнопки Update
+/usr/share/rpcd/acl.d/luci-theme-footstrap.json   ACL, разрешающий его exec
+/usr/share/luci-theme-footstrap/.installed        маркер «уже ставились» (см. ниже)
+/etc/uci-defaults/30_luci-theme-<тема>            регистрация в uci
 ```
+
+**`uci-defaults` у этого пакета выполняется ДВАЖДЫ за установку, а не один раз.** Его зовёт
+наш `postinst`, и вдобавок штатный `default_postinst` OpenWrt прогоняет (а затем удаляет)
+каждый `/etc/uci-defaults/*` из пакета. Скрипт идемпотентен, так что это безвредно.
+Свежая установка отличается от апгрейда **файлом-маркером** `/usr/share/luci-theme-footstrap/.installed`,
+который пишется в самом конце скрипта (первый проход видит именно свежую установку) и удаляется
+в `postrm`. Раньше guard'ом был `$PKG_UPGRADE`, но apk его никогда не выставляет — в проде
+условие было мёртвым (см. док 02).

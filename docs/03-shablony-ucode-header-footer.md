@@ -98,9 +98,10 @@ Bootstrap дополнительно показывает предупрежде
 `data-page` на `<body>` — важен: CSS luci-base и приложений таргетирует страницы
 по этому атрибуту (напр. `[data-page="admin-status-overview"]`).
 
-> **Реальный header footstrap отличается.** `ucode/template/themes/footstrap/header.ut`
-> и `footstrap-top/header.ut` — тонкие: `<head>`, бренд, notices, appearance и logout
-> вынесены в `themes/footstrap/partials/*.ut` (одни на оба layout'а).
+> **Реальный header footstrap отличается.** Каталог шаблонов **один** —
+> `ucode/template/themes/footstrap/`; `header.ut` тонкий: `<head>`, бренд, notices,
+> appearance и logout вынесены в `partials/*.ut`. Раскладка (сайдбар / верхний бар) —
+> **не второй шаблон**, а `:root[data-layout]` + CSS.
 >
 > - `data-page` собирается из **диспетч-пути**:
 >   `join('-', length(ctx.path) ? ctx.path : ctx.request_path)` — обратный порядок
@@ -111,14 +112,35 @@ Bootstrap дополнительно показывает предупрежде
 >   контейнер контента — `<main class="fs-main" id="maincontent" tabindex="-1">`, а меню
 >   сайдбара — `<nav class="fs-sidebar" aria-label>` (у `<aside>` роль `complementary`,
 >   по ней к меню нельзя перейти лендмарком).
-> - В обоих layout'ах есть `<h1 class="fs-title-main">` (визуально скрыт, контейнер
->   `[hidden]`) — без него у документа не было h1 вообще.
+> - Заголовок документа — `<h1 class="fs-title-main">` внутри `<div class="fs-title fs-sr">`.
+>   Контейнер **клиппится** (`.fs-sr`), а НЕ `hidden`: `hidden` — это `display:none`,
+>   который выкидывает элемент и из дерева доступности, т.е. h1 не было вообще, а
+>   SPA-роутер обновлял узел, недоступный скринридеру. Клиппнутый — остаётся в дереве.
 > - `partials/head.ut`: `cascade.css`, `node.css` и `cbi.js` идут с `?v={{ pkgs_update_time }}`
 >   (uhttpd не шлёт Cache-Control); preload двух latin-сабсетов Manrope; `<style>` без
 >   атрибута `title` (на `<style>` он объявляет alternate style sheet set, а не MIME);
 >   `<title>` и интерполяции — через `entityencode(striptags(...))`.
 > - Предупреждения (нет пароля root / initramfs / noscript) и `#tabmenu` — в
 >   `partials/notices.ut`, заголовки в них `<h2>`, а не `<h4>`.
+
+### `partials/head.ut`: `data-layout` и пре-пейнт — это контракт, а не украшение
+
+- **`<html data-layout="…">` сервер штампует ВСЕГДА и явным значением** (`sidebar` | `top`;
+  источник — `luci.main.footstrap_layout`, который uci-defaults ставит в `top` при миграции
+  со старой верхней темы). Два следствия: каждое layout-правило матчится **позитивно**
+  (будущая третья раскладка обязана явно подписаться, а не унаследовать правила сайдбара
+  просто «не будучи top» — что и сделал бы `:not([data-layout="top"])`, поэтому такой guard
+  писать нельзя), и хром корректен при выключенном JS.
+- Дальше идут **инлайновые пре-пейнт скрипты** — по одному на ось Appearance (тёмный режим,
+  палитра, обои, скругление, tint, accent, icon-rail, сохранённая раскладка). Они дублируют
+  живые applier'ы в `menu-footstrap-common.js` и **не могут** переиспользовать их код: этот
+  код выполняется до того, как появится загрузчик модулей.
+- **Свойство ставится ПЕРЕД атрибутом.** `root.style.setProperty('--fs-tint-h', …)`, и только
+  потом `root.setAttribute('data-tint', '')`. Наоборот — и перезагрузка рисует один кадр
+  предыдущим оттенком. Симптом — ровно один неверный кадр, о котором никто не сообщит;
+  поэтому контракт (ключи localStorage, атрибуты, свойства, диапазоны 1–360, дефолт
+  скругления, порядок) выводится **из JS** и сверяется с шаблоном гейтом `tools/axes.mjs`
+  (`npm run axes`).
 
 ## footer.ut
 
@@ -143,48 +165,41 @@ Bootstrap дополнительно показывает предупрежде
 На этот момент `L` уже определён (luci-base вставляет `luci.js` между header
 темы и контентом).
 
-> **У footstrap** `footstrap/footer.ut` и `footstrap-top/footer.ut` — по одной строке:
-> обе включают `partials/footer.ut`, передавая `menu_module` (`menu-footstrap` /
-> `menu-footstrap-top`). В общем футере: `<footer class="fs-footer" role="contentinfo">`
-> (роль явная — implicit `contentinfo` у `<footer>` есть, только когда его ближайший
-> предок `<body>`, а этот лежит внутри `<main>`), строки версии обёрнуты в
-> `entityencode`, и после меню грузится ещё `L.require('fs-select')`.
+> **У footstrap** `footer.ut` — **один** и в одну строку: `include('…/partials/footer')`
+> **без параметров**. Параметр `menu_module`, выбиравший рендерер, исчез вместе со вторым
+> рендерером: `partials/footer.ut` жёстко грузит `L.require('menu-footstrap')`, а следом
+> `L.require('fs-select')`. В общем футере: `<footer class="fs-footer" role="contentinfo">`
+> (роль явная — implicit `contentinfo` у `<footer>` есть, только когда ближайший предок —
+> `<body>`, а этот лежит внутри `<main>`), строки версии обёрнуты в `entityencode`.
 
-## sysauth.ut (страница логина) — опционально
+## sysauth.ut (страница логина) — ОБЯЗАТЕЛЕН для темы со своим хромом
 
-Если файла нет — рендерится generic `sysauth.ut` из luci-base (работает с любой
-темой). Свой нужен только для кастомного вида логина.
-
-Паттерн bootstrap: серверный шаблон отдаёт скрытую форму + JS-view рисует UI:
+**Не «опционально».** Без `sysauth.ut` в каталоге темы диспетчер откатывается на generic-шаблон
+luci-base, а тот включает header **без `blank_page`** — и весь хром (сайдбар, меню, футер)
+рисуется вокруг формы логина, причём все его контроли мертвы: сессии ещё нет. Единственное, что
+шаблон темы обязан изменить в generic-варианте, — это передать `blank_page: true`:
 
 ```
 {% include('header', { blank_page: true }) %}
-
-<section hidden>
-	<form method="post" class="cbi-map">
-		<input name="luci_username" id="luci_username" type="text" value="{{ entityencode(duser, true) }}">
-		<input name="luci_password" id="luci_password" type="password">
-		{# + auth_fields / auth_message / fuser — см. оригинал #}
-	</form>
-	<button class="btn cbi-button-positive important">{{ _('Log in') }}</button>
-</section>
-
-<div id="view">
-	<div class="spinning">{{ _('Loading view…') }}</div>
-	<script>
-		L.require('ui').then(function(ui) {
-			ui.instantiateView('mytheme.sysauth');
-		});
-	</script>
-</div>
-
+… форма …
 {% include('footer', { blank_page: true }) %}
 ```
 
-Переменные sysauth: `duser` (дефолтный логин), `fuser` (неудачный логин),
-`auth_fields`, `auth_message`, `auth_plugin`, `auth_html`, `auth_assets`
-(расширения аутентификации, напр. 2FA). Клиентский view кладётся в
-`htdocs/luci-static/resources/view/mytheme/sysauth.js`.
+Ровно это и делает `ucode/template/themes/footstrap/sysauth.ut` — **форму рендерит СЕРВЕР**.
 
-**Проще для старта**: не делать sysauth вообще — generic страница логина
-подхватит ваш CSS через header/footer с `blank_page`.
+### Паттерн bootstrap (`<section hidden>` + view-модуль) — ЗАПРЕЩЁН
+
+У bootstrap серверный шаблон прячет форму в `<section hidden>`, а рисует её клиентский view
+(`ui.instantiateView('<theme>.sysauth')` из `resources/view/<theme>/sysauth.js`). **Здесь это
+пробовали, и получилась ПУСТАЯ СТРАНИЦА, с которой невозможно залогиниться:** view
+бутстрапится до того, как существует сессия, его RPC отвечают «Access denied», промис
+реджектится — и `render()` не вызывается никогда. Форма так и остаётся под `hidden`.
+
+Серверный рендеринг лишён всех трёх проблем: работает с выключенным JS, не ломается от
+отклонённого промиса и не требует установленного `luci-theme-bootstrap`. Не возвращать.
+
+Переменные sysauth: `duser` (дефолтный логин), `fuser` (неудачный логин), `auth_fields`,
+`auth_message`, `auth_plugin`, `auth_html`, `auth_assets` (расширения аутентификации, напр. 2FA).
+
+Строки логина **намеренно без msgctxt** — пусть их переводит luci-base в тех ~40 языках, для
+которых у темы нет своего каталога (см. правило про msgid как глобальное имя в CLAUDE.md).
