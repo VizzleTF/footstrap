@@ -45,7 +45,7 @@
 ## Установка
 
 По SSH одной строкой — скрипт сам поймёт, apk у вас (25.12+) или opkg (24.10),
-скачает нужный пакет, **сверит его с sha256, который публикует GitHub**, и
+скачает нужные пакеты, **сверит каждый с sha256, который публикует GitHub**, и
 поставит:
 
 ```sh
@@ -54,12 +54,17 @@ wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/i
 
 Нужна конкретная версия — добавьте тег: `... | sh -s v0.8.0`.
 
-Вручную качайте raw-файл из [релизов](https://github.com/VizzleTF/luci-theme-footstrap/releases)
-(именно файл, а не zip-артефакт со страницы Actions):
+Ставится тема **и её перевод**, так что интерфейс темы следует за языком LuCI.
+`FOOTSTRAP_NO_I18N=1` — поставить только тему.
+
+Вручную качайте raw-файлы из [релизов](https://github.com/VizzleTF/luci-theme-footstrap/releases)
+(именно файлы, а не zip-артефакт со страницы Actions):
 
 ```sh
 apk add --allow-untrusted luci-theme-footstrap-*.apk   # 25.12+
+apk add --allow-untrusted luci-i18n-footstrap-ru-*.apk # перевод, по желанию
 opkg install luci-theme-footstrap_*.ipk                # 24.10
+opkg install luci-i18n-footstrap-ru_*.ipk              # перевод, по желанию
 ```
 
 Дальше выберите **Footstrap** в **System → System → Language and Style**, поле

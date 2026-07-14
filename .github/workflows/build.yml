@@ -365,6 +365,12 @@ jobs:
           ./scripts/feeds install -a
 
           echo 'CONFIG_PACKAGE_luci-theme-footstrap=m' >> .config
+          # The translation packages luci.mk derives from po/* are HIDDEN and default to off,
+          # so they are only built because the SDK builds every package a Makefile defines.
+          # Select them anyway: without the .lmo on the router every _() in the theme falls
+          # through to its English msgid — silently, by construction (issue #6) — so this is
+          # not a "nice to have" that may quietly drop out of a build.
+          echo 'CONFIG_PACKAGE_luci-i18n-footstrap-ru=m' >> .config
           if [ "${{ matrix.use_apk }}" = "y" ]; then
             echo 'CONFIG_USE_APK=y' >> .config
           fi
@@ -372,10 +378,20 @@ jobs:
           make package/luci-theme-footstrap/compile V=s FOOTSTRAP_VERSION="$FOOTSTRAP_VERSION"
 
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          find bin/ -type f \( -name 'luci-theme-footstrap-*.apk' -o -name 'luci-theme-footstrap_*.ipk' \) \
+          # Collect the theme AND its language packages. The old glob named only the theme, so
+          # luci-i18n-footstrap-ru was built by the SDK, sat in bin/ and was thrown away — the
+          # release carried no catalogue at all. (ipk puts an underscore before the version,
+          # apk a dash; the i18n name ends in -<lang>, so one `-*` glob covers both.)
+          find bin/ -type f \( -name 'luci-theme-footstrap-*.apk' -o -name 'luci-theme-footstrap_*.ipk' \
+                            -o -name 'luci-i18n-footstrap-*.apk'  -o -name 'luci-i18n-footstrap-*.ipk' \) \
             -exec cp {} "$GITHUB_WORKSPACE/dist/" \;
           ls -lah "$GITHUB_WORKSPACE/dist"
-          [ -n "$(ls -A "$GITHUB_WORKSPACE/dist")" ] || { echo "no ${{ matrix.fmt }} produced"; exit 1; }
+          # Assert BOTH, by name. "the dist dir is non-empty" is what let the missing catalogue
+          # ship: the theme alone satisfied it.
+          ls "$GITHUB_WORKSPACE/dist" | grep -q '^luci-theme-footstrap[-_]' \
+            || { echo "no theme ${{ matrix.fmt }} produced"; exit 1; }
+          ls "$GITHUB_WORKSPACE/dist" | grep -q '^luci-i18n-footstrap-ru[-_]' \
+            || { echo "no luci-i18n-footstrap-ru ${{ matrix.fmt }} produced — the theme would ship untranslated"; exit 1; }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

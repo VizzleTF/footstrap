@@ -301,9 +301,29 @@ translation cannot fail loudly by construction; that is why `--check` is a CI ga
 - It uses LuCI's own `build/i18n-scan.pl`, which knows how to lex a `.ut` (it rewrites the
   template into JS before xgettext) and also picks up the `rpcd` ACL title. A grep for `_('…')`
   would miss the ACL string and choke on any apostrophe.
-- **Nothing to add to the Makefile**: `LUCI_TYPE`/`LUCI_BASENAME` resolve to `theme`/`footstrap`,
-  `LUCI_LANG.ru` is already defined in `luci.mk`, and it runs `po2lmo` itself → the package
-  `luci-i18n-footstrap-ru` appears as soon as `po/ru/footstrap.po` exists.
+- **Almost nothing to add to the Makefile**: `LUCI_TYPE`/`LUCI_BASENAME` resolve to
+  `theme`/`footstrap`, `LUCI_LANG.ru` is already defined in `luci.mk`, and it runs `po2lmo` itself
+  → the package `luci-i18n-footstrap-ru` is *built* as soon as `po/ru/footstrap.po` exists. The one
+  thing that IS set is `PKG_PO_VERSION` — luci.mk versions the language packages from it and it
+  falls back to a git-or-mtime stamp, so an SDK build (no `.git`) stamped them `0.<yymmdd>.<secs>`:
+  unrelated to the release, and different on every rebuild of the same tag.
+- **Building it is not shipping it, and that gap ate eight releases (issue #6).** The package must
+  be (1) collected by CI — the build job's `find` glob named only `luci-theme-footstrap-*`, so the
+  `.lmo` went in the bin and the release carried no catalogue — and (2) INSTALLED, by both
+  `install.sh` and `footstrap-selfupdate.sh`, which install every `luci-i18n-footstrap-*` asset
+  next to the theme. Neither is optional and both are asserted: CI fails unless *both* packages are
+  in `dist/` **by name** (the old check was "the dist dir is non-empty", which the theme alone
+  satisfied).
+- **The failure is invisible from the inside, which is why the checks are by name.** LuCI serves
+  ONE merged client catalogue — `action_translations` calls `load_catalog(lang,
+  '/usr/lib/lua/luci/i18n')`, which reads *every* `.lmo` in the directory — so a missing catalogue
+  does not error: our msgids either fall through to English or resolve against **somebody else's**
+  translation of the same string. On the reporter's Russian router the layout toggle read
+  "Максимум", `luci-base`'s translation of the msgid "Top".
+- **An asset is selected by package NAME, never by extension.** A release now carries the theme and
+  the language packages, so `grep '\.apk$' | head -n1` picks whichever GitHub listed first — a
+  6 KB catalogue installed in place of the theme. Both scripts match `/<pkg-name>[-_]…` and the
+  matcher is `@mirror`-pinned (`gh/asset-urls`).
 - Verified end-to-end on the router (compiled `.lmo` → `uci set luci.main.lang=ru`), not
   merely by `msgfmt` exiting 0.
 

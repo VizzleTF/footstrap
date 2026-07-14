@@ -9,8 +9,14 @@
 # Optional: pin a release tag ->  ... | sh -s v0.3.1
 #
 # Detects the OpenWrt release and its package manager, then downloads the
-# matching asset from the latest (or given) GitHub release: .apk for apk-based
+# matching assets from the latest (or given) GitHub release: .apk for apk-based
 # systems (25.12+), .ipk for opkg-based systems (24.10). Licensed Apache-2.0.
+#
+# It installs the theme AND its luci-i18n-footstrap-<lang> translation packages.
+# The catalogue is not optional decoration: without the .lmo on the router, every
+# _() in the theme renders its English msgid and nothing reports it — the Appearance
+# popover said "Palette"/"Rounding"/"Cats" on a fully Russian LuCI (issue #6).
+# FOOTSTRAP_NO_I18N=1 installs the theme alone.
 
 set -e
 
@@ -72,8 +78,6 @@ else
 	exit 1
 fi
 ok "Package manager: $PM (installing .$EXT)"
-
-PKG="$TMP/luci-theme-footstrap.$EXT"
 
 # --- downloader -----------------------------------------------------------
 # Prefer tools that speak HTTPS on OpenWrt; fall back through what's present.
@@ -137,7 +141,30 @@ asset_host_ok() {
 }
 # @endmirror
 
-# --- resolve the asset url ------------------------------------------------
+# A release carries the THEME package and one luci-i18n-footstrap-<lang> package per
+# translation, so an asset has to be picked by package NAME. Matching on the extension
+# alone — `grep "\.apk$" | head -n1`, which is what this did — takes whichever asset
+# GitHub happens to list first, and once the language packages existed that could be a
+# 6 KB catalogue installed in place of the theme.
+#
+# `[-_]` right after the name is the separator both naming schemes use and it is what
+# keeps the two names apart (apk: `name-1.2.3-r1.apk`, ipk: `name_1.2.3-r1_all.ipk`);
+# anchoring on `/` in front means a repo or a tag that contains the package name cannot
+# match either.
+#
+# @mirror gh/asset-urls
+asset_urls() {		# <json> <package-name> -> every matching asset URL, one per line
+	jsonfilter -i "$1" -e '@.assets[*].browser_download_url' 2>/dev/null \
+		| grep -E "/$2[-_][^/]*\.$EXT\$" || true
+}
+asset_digest() {	# <json> <url> -> the sha256 GitHub publishes for THAT asset
+	# matched on the URL rather than on list position — the two `assets[*]` lists
+	# happen to be parallel today, but nothing promises it
+	jsonfilter -i "$1" -e "@.assets[@.browser_download_url=\"$2\"].digest" 2>/dev/null | head -n1
+}
+# @endmirror
+
+# --- resolve the assets ---------------------------------------------------
 if [ "$TAG" = "latest" ]; then
 	API="https://api.github.com/repos/$REPO/releases/latest"
 else
@@ -153,83 +180,105 @@ if ! fetch "$API" 20 "$JSON" || [ ! -s "$JSON" ]; then
 	exit 1
 fi
 
-# jsonfilter is in OpenWrt's base image, so this is the normal path. The grep
-# fallback exists only for a non-OpenWrt box; it is scoped to browser_download_url
-# (the old code grepped the WHOLE payload for any github URL ending in .apk, which
-# would happily match a URL inside a release BODY that anyone can write).
-if command -v jsonfilter >/dev/null 2>&1; then
-	ASSET_URL=$(jsonfilter -i "$JSON" -e '@.assets[*].browser_download_url' | grep -E "\.$EXT\$" | head -n1 || true)
-	# the digest of THAT asset, matched on the URL rather than on list position —
-	# the two `assets[*]` lists happen to be parallel today, but nothing promises it
-	DIGEST=$(jsonfilter -i "$JSON" -e "@.assets[@.browser_download_url=\"$ASSET_URL\"].digest" 2>/dev/null | head -n1 || true)
-else
-	ASSET_URL=$(grep -o "\"browser_download_url\": *\"[^\"]*\.$EXT\"" "$JSON" | grep -o 'https://[^"]*' | head -n1 || true)
-	DIGEST=""
-fi
+# jsonfilter is in OpenWrt's base image (this installer only ever runs on a router), and
+# it is what reads the sha256 out of the API answer — so without it there is no integrity
+# check at all and the install below is unverifiable bytes handed to root. Refuse, rather
+# than fall back to grepping the payload: the old fallback could only ever reach the
+# "no sha256 — refusing to install" branch anyway.
+command -v jsonfilter >/dev/null 2>&1 || {
+	err "jsonfilter not found — it is part of OpenWrt's base image."
+	err "This installer only supports OpenWrt."
+	exit 1
+}
 
-if [ -z "$ASSET_URL" ]; then
-	err "Could not find a .$EXT asset for release '$TAG'."
+THEME_URL=$(asset_urls "$JSON" luci-theme-footstrap | head -n1)
+if [ -z "$THEME_URL" ]; then
+	err "Could not find a luci-theme-footstrap .$EXT asset for release '$TAG'."
 	err "Check releases: https://github.com/$REPO/releases"
 	exit 1
 fi
-asset_host_ok "$ASSET_URL" || { err "Refusing an asset from an unexpected host: $ASSET_URL"; exit 1; }
-ok "Found: $ASSET_URL"
 
-# --- download -------------------------------------------------------------
-info "Downloading package..."
-if ! fetch "$ASSET_URL" 600 "$PKG" || [ ! -s "$PKG" ]; then
-	err "Download failed. If it is a TLS/cert error, install the CA bundle:"
-	if [ "$PM" = "apk" ]; then err "  apk add ca-bundle   (then re-run)"; else err "  opkg update && opkg install ca-bundle   (then re-run)"; fi
-	exit 1
-fi
-ok "Downloaded $(wc -c < "$PKG") bytes."
-
-# --- verify ---------------------------------------------------------------
-# The package is about to be installed as root with --allow-untrusted, i.e. with
-# no package signature to fall back on — so the sha256 the API publishes for the
-# asset is the only integrity check there is. It comes over the same TLS channel
-# as the URL, so it does not defend against a compromised api.github.com; what it
-# does defend against is a truncated or tampered download from the asset CDN,
-# which is a different host.
+# The translation packages. Every one of them, not the one language the router happens to
+# be set to today: a .lmo is a few KB, LuCI only loads the catalogue for the language it is
+# actually running in, and gating on `uci get luci.main.lang` would install nothing on the
+# stock router — its default is `auto`, which means "whatever the browser asks for", i.e.
+# potentially any of them. Without the catalogue every _() in the theme silently renders its
+# English msgid (issue #6). FOOTSTRAP_NO_I18N=1 skips them.
 #
-# A missing digest is therefore a REFUSAL, not a warning. Half of a two-link trust
-# chain cannot be optional: whatever makes $DIGEST empty — GitHub renaming the
-# field, jsonfilter absent on a non-OpenWrt box, the API answer not being what we
-# think it is — leaves us installing bytes we cannot account for, and printing a
-# line about it into a `curl | sh` scroll changes nothing about that. Set
-# FOOTSTRAP_ALLOW_UNVERIFIED=1 to override; it is deliberately something you have
-# to type.
-if [ -z "$DIGEST" ] || ! command -v sha256sum >/dev/null 2>&1; then
-	if [ "${FOOTSTRAP_ALLOW_UNVERIFIED:-0}" = "1" ]; then
-		warn "No sha256 available — installing UNVERIFIED because FOOTSTRAP_ALLOW_UNVERIFIED=1."
-	else
-		err "No sha256 available for this asset — refusing to install."
-		err "The package is installed with --allow-untrusted, so this checksum is the"
-		err "only integrity check there is."
-		err "To override anyway:  FOOTSTRAP_ALLOW_UNVERIFIED=1 sh install.sh"
-		exit 1
-	fi
-else
-	WANT="${DIGEST#sha256:}"
-	GOT=$(sha256sum "$PKG" | cut -d' ' -f1)
-	if [ "$WANT" != "$GOT" ]; then
-		err "Checksum MISMATCH — refusing to install."
-		err "  expected $WANT"
-		err "  got      $GOT"
-		exit 1
-	fi
-	ok "sha256 verified."
+# NOT `[ … ] && I18N_URLS=""`: with `set -e` an AND-list whose test fails is itself a
+# failing command at top level, and the installer would exit right here — on the normal
+# path, where FOOTSTRAP_NO_I18N is unset.
+I18N_URLS=$(asset_urls "$JSON" luci-i18n-footstrap)
+if [ "${FOOTSTRAP_NO_I18N:-0}" = "1" ]; then
+	I18N_URLS=""
+	info "Skipping the translation packages (FOOTSTRAP_NO_I18N=1)."
 fi
 
-# --- install --------------------------------------------------------------
-info "Installing with $PM..."
-if [ "$PM" = "apk" ]; then
-	apk add --allow-untrusted "$PKG"
-else
-	# local .ipk: opkg installs it directly; luci-base is already present on any
-	# LuCI system, so no repo fetch is needed.
-	opkg install "$PKG"
-fi
+# --- download, verify, install --------------------------------------------
+# Each package is installed as root with --allow-untrusted, i.e. with no package signature
+# to fall back on — so the sha256 the API publishes for the asset is the only integrity
+# check there is. It comes over the same TLS channel as the URL, so it does not defend
+# against a compromised api.github.com; what it does defend against is a truncated or
+# tampered download from the asset CDN, which is a different host.
+#
+# A missing digest is therefore a REFUSAL, not a warning. Half of a two-link trust chain
+# cannot be optional: whatever makes the digest empty — GitHub renaming the field, the API
+# answer not being what we think it is — leaves us installing bytes we cannot account for,
+# and printing a line about it into a `curl | sh` scroll changes nothing about that. Set
+# FOOTSTRAP_ALLOW_UNVERIFIED=1 to override; it is deliberately something you have to type.
+install_asset() {
+	_url="$1"
+	_name=$(basename "$_url")
+	_pkg="$TMP/$_name"
+
+	asset_host_ok "$_url" || { err "Refusing an asset from an unexpected host: $_url"; exit 1; }
+
+	info "Downloading $_name..."
+	if ! fetch "$_url" 600 "$_pkg" || [ ! -s "$_pkg" ]; then
+		err "Download failed. If it is a TLS/cert error, install the CA bundle:"
+		if [ "$PM" = "apk" ]; then err "  apk add ca-bundle   (then re-run)"; else err "  opkg update && opkg install ca-bundle   (then re-run)"; fi
+		exit 1
+	fi
+
+	_digest=$(asset_digest "$JSON" "$_url")
+	if [ -z "$_digest" ] || ! command -v sha256sum >/dev/null 2>&1; then
+		if [ "${FOOTSTRAP_ALLOW_UNVERIFIED:-0}" = "1" ]; then
+			warn "No sha256 for $_name — installing UNVERIFIED because FOOTSTRAP_ALLOW_UNVERIFIED=1."
+		else
+			err "No sha256 available for $_name — refusing to install."
+			err "The package is installed with --allow-untrusted, so this checksum is the"
+			err "only integrity check there is."
+			err "To override anyway:  FOOTSTRAP_ALLOW_UNVERIFIED=1 sh install.sh"
+			exit 1
+		fi
+	else
+		_want="${_digest#sha256:}"
+		_got=$(sha256sum "$_pkg" | cut -d' ' -f1)
+		if [ "$_want" != "$_got" ]; then
+			err "Checksum MISMATCH for $_name — refusing to install."
+			err "  expected $_want"
+			err "  got      $_got"
+			exit 1
+		fi
+		ok "sha256 verified: $_name ($(wc -c < "$_pkg") bytes)"
+	fi
+
+	info "Installing $_name with $PM..."
+	if [ "$PM" = "apk" ]; then
+		apk add --allow-untrusted "$_pkg"
+	else
+		# local .ipk: opkg installs it directly; luci-base is already present on any
+		# LuCI system, so no repo fetch is needed.
+		opkg install "$_pkg"
+	fi
+	rm -f "$_pkg"
+}
+
+# The theme first: the language packages DEPEND on it.
+install_asset "$THEME_URL"
+for u in $I18N_URLS; do
+	install_asset "$u"
+done
 
 # BOTH caches, as postinst/postrm/uci-defaults do. This dropped only the index cache, leaving
 # /tmp/luci-modulecache behind — and a stale module cache after installing a package that
@@ -249,6 +298,10 @@ fi
 
 printf '\n'
 ok "luci-theme-footstrap installed."
+if [ -n "$I18N_URLS" ]; then
+	ok "Translations installed. The theme follows the language set in"
+	info "System -> System -> Language and Style -> \"Language\"."
+fi
 info "Select \"Footstrap\" in System -> System -> Language and Style -> \"Design\"."
 info "Layout (sidebar / top bar), dark mode, palette, tint and accent all live in"
 info "the \"Appearance\" popover in the menu — they are per-browser, not per-router."

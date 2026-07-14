@@ -18,6 +18,13 @@ FOOTSTRAP_VERSION?=
 ifneq ($(FOOTSTRAP_VERSION),)
 PKG_VERSION:=$(FOOTSTRAP_VERSION)
 PKG_RELEASE:=1
+# The translation packages luci.mk generates from po/ (luci-i18n-footstrap-<lang>) take
+# their version from PKG_PO_VERSION, which defaults to a git-or-mtime stamp — and the SDK
+# build has no .git, so every CI run stamped them `0.<yymmdd>.<secs>`: a version unrelated
+# to the theme's and DIFFERENT on every build of the same commit. Pin them to the theme's
+# version, so the asset the installer downloads is named for the release it belongs to and
+# a rebuild of a tag is reproducible.
+PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)
 endif
 
 LUCI_TITLE:=Footstrap Theme

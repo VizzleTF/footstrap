@@ -128,67 +128,114 @@ asset_host_ok() {
 }
 # @endmirror
 
-do_update() {
-	if command -v apk >/dev/null 2>&1; then
-		EXT="apk"; TMP="$WD/pkg.apk"
-		install_pkg() { apk add --allow-untrusted "$1"; }
-	elif command -v opkg >/dev/null 2>&1; then
-		EXT="ipk"; TMP="$WD/pkg.ipk"
-		install_pkg() { opkg install "$1"; }
-	else
-		echo "ERR: no apk or opkg found" > "$STATUS"; return 1
-	fi
+# A release carries the THEME package and one luci-i18n-footstrap-<lang> package per
+# translation, so an asset has to be picked by package NAME. Matching on the extension
+# alone — `grep "\.apk$" | head -n1`, which is what this did — takes whichever asset
+# GitHub happens to list first, and once the language packages existed that could be a
+# 6 KB catalogue installed in place of the theme.
+#
+# `[-_]` right after the name is the separator both naming schemes use and it is what
+# keeps the two names apart (apk: `name-1.2.3-r1.apk`, ipk: `name_1.2.3-r1_all.ipk`);
+# anchoring on `/` in front means a repo or a tag that contains the package name cannot
+# match either.
+#
+# @mirror gh/asset-urls
+asset_urls() {		# <json> <package-name> -> every matching asset URL, one per line
+	jsonfilter -i "$1" -e '@.assets[*].browser_download_url' 2>/dev/null \
+		| grep -E "/$2[-_][^/]*\.$EXT\$" || true
+}
+asset_digest() {	# <json> <url> -> the sha256 GitHub publishes for THAT asset
+	# matched on the URL rather than on list position — the two `assets[*]` lists
+	# happen to be parallel today, but nothing promises it
+	jsonfilter -i "$1" -e "@.assets[@.browser_download_url=\"$2\"].digest" 2>/dev/null | head -n1
+}
+# @endmirror
 
-	# pick the .apk / .ipk asset URL from the latest release, and the sha256 GitHub
-	# publishes for THAT asset (matched on the URL, not on list position)
-	json="$WD/release.json"
-	fetch "$API" 20 "$json" || { echo "ERR: cannot reach the GitHub release API" > "$STATUS"; return 1; }
-	url="$(jsonfilter -i "$json" -e '@.assets[*].browser_download_url' 2>/dev/null | grep -E "\.${EXT}\$" | head -1)"
-	[ -n "$url" ] || { echo "ERR: no .${EXT} asset in latest release" > "$STATUS"; rm -f "$json"; return 1; }
-	asset_host_ok "$url" || { echo "ERR: asset from an unexpected host" > "$STATUS"; rm -f "$json"; return 1; }
-	digest="$(jsonfilter -i "$json" -e "@.assets[@.browser_download_url=\"$url\"].digest" 2>/dev/null | head -1)"
-	rm -f "$json"
+# Download ONE asset, verify it against the sha256 the release publishes for it, install it.
+# Writes ERR: to $STATUS and returns non-zero on any failure. $1 = url, $2 = release json.
+#
+# apk is called with --allow-untrusted, i.e. with no package signature to fall back on — so
+# this sha256 is the only integrity check the update has. It rides the same TLS channel as
+# the URL, so it does not defend against a compromised api.github.com; what it does defend
+# against is a truncated or tampered download from the asset CDN, which is a DIFFERENT host.
+# Refuse on a mismatch: installing a package whose bytes we cannot account for is the one
+# thing this script must never do.
+#
+# And refuse on a MISSING digest too, which is the case this used to wave through in
+# silence. `if [ -n "$digest" ]` fails OPEN: GitHub renaming the field, the jsonfilter
+# predicate ceasing to resolve, or jsonfilter being absent all leave $digest empty — and
+# the package then installed with no integrity check at all, reporting OK. Half of a
+# two-link trust chain cannot be optional: if we cannot verify the bytes, we do not
+# install them.
+fetch_verify_install() {
+	url="$1"; json="$2"
+	pkg="$WD/pkg.$EXT"
 
-	fetch "$url" 600 "$TMP" || { echo "ERR: download failed" > "$STATUS"; return 1; }
-	[ -s "$TMP" ] || { echo "ERR: empty download" > "$STATUS"; rm -f "$TMP"; return 1; }
+	asset_host_ok "$url" || { echo "ERR: asset from an unexpected host" > "$STATUS"; return 1; }
 
-	# apk is called with --allow-untrusted, i.e. with no package signature to fall
-	# back on — so this sha256 is the only integrity check the update has. It rides
-	# the same TLS channel as the URL, so it does not defend against a compromised
-	# api.github.com; what it does defend against is a truncated or tampered
-	# download from the asset CDN, which is a DIFFERENT host. Refuse on a mismatch:
-	# installing a package whose bytes we cannot account for is the one thing this
-	# script must never do.
-	#
-	# And refuse on a MISSING digest too, which is the case this used to wave through in
-	# silence. `if [ -n "$digest" ]` fails OPEN: GitHub renaming the field, the jsonfilter
-	# predicate ceasing to resolve, or jsonfilter being absent all leave $digest empty — and
-	# the package then installed with no integrity check at all, reporting OK. Half of a
-	# two-link trust chain cannot be optional: if we cannot verify the bytes, we do not
-	# install them.
+	fetch "$url" 600 "$pkg" || { echo "ERR: download failed" > "$STATUS"; return 1; }
+	[ -s "$pkg" ] || { echo "ERR: empty download" > "$STATUS"; rm -f "$pkg"; return 1; }
+
+	digest="$(asset_digest "$json" "$url")"
 	want="${digest#sha256:}"
 	case "$want" in
 		[0-9a-fA-F][0-9a-fA-F]*) ;;
 		*) echo "ERR: release lists no sha256 for the asset, refusing to install" > "$STATUS"
-		   rm -f "$TMP"; return 1 ;;
+		   rm -f "$pkg"; return 1 ;;
 	esac
-	got="$(sha256sum "$TMP" 2>/dev/null | cut -d' ' -f1)"
+	got="$(sha256sum "$pkg" 2>/dev/null | cut -d' ' -f1)"
 	[ -n "$got" ] && [ "$want" = "$got" ] || {
 		echo "ERR: checksum mismatch, refusing to install" > "$STATUS"
-		rm -f "$TMP"; return 1
+		rm -f "$pkg"; return 1
 	}
 
-	out="$(install_pkg "$TMP" 2>&1)"; rc=$?
-	rm -f "$TMP"
-	# drop the LuCI menu/dispatch + module caches so the new theme is served at once
-	rm -f /tmp/luci-indexcache* 2>/dev/null
-	rm -rf /tmp/luci-modulecache 2>/dev/null
-
+	out="$(install_pkg "$pkg" 2>&1)"; rc=$?
+	rm -f "$pkg"
 	# The protocol is one line; apk's failure output is many. Flatten and cap it.
 	[ "$rc" = 0 ] || {
 		reason="$(printf '%s' "$out" | tr '\n\t' '  ' | tail -c 200)"
 		echo "ERR: install failed: ${reason}" > "$STATUS"; return 1
 	}
+}
+
+do_update() {
+	if command -v apk >/dev/null 2>&1; then
+		EXT="apk"
+		install_pkg() { apk add --allow-untrusted "$1"; }
+	elif command -v opkg >/dev/null 2>&1; then
+		EXT="ipk"
+		install_pkg() { opkg install "$1"; }
+	else
+		echo "ERR: no apk or opkg found" > "$STATUS"; return 1
+	fi
+
+	json="$WD/release.json"
+	fetch "$API" 20 "$json" || { echo "ERR: cannot reach the GitHub release API" > "$STATUS"; return 1; }
+
+	theme_url="$(asset_urls "$json" luci-theme-footstrap | head -1)"
+	[ -n "$theme_url" ] || {
+		echo "ERR: no luci-theme-footstrap .${EXT} asset in latest release" > "$STATUS"
+		rm -f "$json"; return 1
+	}
+
+	# The language packages ship in the same release and are updated WITH the theme, in the
+	# same run — a catalogue that lags the theme is not an error anyone can see: an _() whose
+	# msgid the .lmo does not carry simply renders in English (issue #6). They are installed
+	# even when none is present, not merely upgraded: a router that installed the theme before
+	# these packages existed has no catalogue at all, and clicking Update is exactly the moment
+	# to give it one. A .lmo is a few KB, and LuCI only loads the one for the language it runs in.
+	i18n_urls="$(asset_urls "$json" luci-i18n-footstrap | tr '\n' ' ')"
+
+	# The theme first: the language packages DEPEND on it.
+	for url in $theme_url $i18n_urls; do
+		fetch_verify_install "$url" "$json" || { rm -f "$json"; return 1; }
+	done
+	rm -f "$json"
+
+	# drop the LuCI menu/dispatch + module caches so the new theme is served at once
+	rm -f /tmp/luci-indexcache* 2>/dev/null
+	rm -rf /tmp/luci-modulecache 2>/dev/null
+
 	echo "OK" > "$STATUS"
 }
 

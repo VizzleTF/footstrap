@@ -10,6 +10,40 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Fixed
+- **The theme's own strings rendered in English on a translated LuCI — the release never carried
+  the translation package.** `po/ru/footstrap.po` has been complete for releases, and CI already
+  fails if a msgstr is empty, but no `.lmo` ever reached a router: the OpenWrt SDK built
+  `luci-i18n-footstrap-ru`, the build job's `find` glob named only `luci-theme-footstrap-*`, and
+  the language package was thrown away with the rest of `bin/`. Reported on a fully Russian LuCI
+  (issue #6), where the Appearance popover read "Palette" / "Rounding" / "Cats" — and the layout
+  toggle read **"Максимум"**, which is `luci-base`'s translation of the msgid "Top": LuCI serves
+  ONE merged client catalogue (`load_catalog(lang, '/usr/lib/lua/luci/i18n')` reads every `.lmo`
+  in the directory), so an unshipped catalogue does not fail — its msgids quietly resolve against
+  somebody else's, or fall through to English. `install.sh` and the Appearance → Update button now
+  install the language packages alongside the theme, and CI asserts BOTH packages by name: "the
+  dist dir is non-empty" is exactly what let the missing catalogue ship for eight releases.
+- **`install.sh` and the self-updater could have installed a 6 KB language pack in place of the
+  theme.** Both picked the release asset by extension (`grep '\.apk$' | head -n1`), i.e. by
+  whatever order GitHub happened to list the assets in. That was harmless while a release carried
+  exactly one package; the moment the translation packages joined it, it became a coin flip. They
+  now match on the package NAME (`/luci-theme-footstrap[-_]…`), and the two copies of that matcher
+  are `@mirror`-pinned (`gh/asset-urls`) beside the `fetch()` and the host allowlist — the same
+  forced duplication, made un-rottable for the same reason.
+- **A language package is versioned with the theme it belongs to.** `luci.mk` versions them from
+  `PKG_PO_VERSION`, which falls back to a git-or-mtime stamp — and the SDK build has no `.git`, so
+  every CI run would have stamped them `0.<yymmdd>.<secs>`: a version unrelated to the release, and
+  a different one on every rebuild of the same tag.
+
+### Changed
+- **`install.sh` now requires `jsonfilter` instead of falling back to grepping the API payload.**
+  It is part of OpenWrt's base image and it is what reads the asset's sha256 — the only integrity
+  check there is behind `--allow-untrusted` — so the fallback could only ever walk into the
+  "no sha256 available — refusing to install" refusal anyway. Failing with one clear line beats
+  failing three steps later with a security message.
+
 ## [0.8.3] — 2026-07-14
 
 ### Fixed

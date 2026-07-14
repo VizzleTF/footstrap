@@ -45,8 +45,8 @@ login page and package manager.
 ## Install
 
 One line over SSH — the script works out whether you have apk (25.12+) or opkg
-(24.10), downloads the right package, **checks it against the sha256 GitHub
-publishes for it**, and installs it:
+(24.10), downloads the right packages, **checks each against the sha256 GitHub
+publishes for it**, and installs them:
 
 ```sh
 wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
@@ -54,13 +54,18 @@ wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/i
 
 For a specific version, pass the tag: `... | sh -s v0.8.0`.
 
-To install by hand, download the raw file from the
-[releases](https://github.com/VizzleTF/luci-theme-footstrap/releases) — the file
-itself, not the zip artifact from the Actions page:
+It installs the theme **and its translations**, so the theme follows whatever
+language LuCI is set to. `FOOTSTRAP_NO_I18N=1` installs the theme alone.
+
+To install by hand, download the raw files from the
+[releases](https://github.com/VizzleTF/luci-theme-footstrap/releases) — the files
+themselves, not the zip artifact from the Actions page:
 
 ```sh
 apk add --allow-untrusted luci-theme-footstrap-*.apk   # 25.12+
+apk add --allow-untrusted luci-i18n-footstrap-ru-*.apk # translation, optional
 opkg install luci-theme-footstrap_*.ipk                # 24.10
+opkg install luci-i18n-footstrap-ru_*.ipk              # translation, optional
 ```
 
 Then pick **Footstrap** in **System → System → Language and Style**, field
