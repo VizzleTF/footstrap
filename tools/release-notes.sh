@@ -71,18 +71,30 @@ extract() {
 	' "$1"
 }
 
+# A tag whose changelog section does not exist is a FAILED release, not a release with a
+# thin body. CLAUDE.md's rule — rename [Unreleased], commit that, then tag THAT commit — has
+# no other enforcement: warning to stderr and exiting 0 published a release page reading
+# "See the CHANGELOG" for a version the changelog had never heard of, which is precisely the
+# mistake the rule exists to prevent, made permanent and public.
 summary="$(extract "$changelog")"
 if [ -z "$summary" ]; then
-	# never ship an empty release body — fall back to a bare title so the tag still
-	# gets sensible notes even if the changelog heading is missing or malformed.
-	summary="See the [CHANGELOG](CHANGELOG.md)."
-	echo "warning: no changelog section for [$ver] in $changelog" >&2
+	echo "error: no '## [$ver]' section in $changelog." >&2
+	echo "       Tag a commit that already carries its own changelog entry:" >&2
+	echo "       rename [Unreleased] -> [$ver], commit, then tag that commit." >&2
+	exit 1
 fi
 
-# RU summary follows the EN one, under a divider, when the mirror has this version.
+# The RU mirror must carry the section too. A mirror that silently lags is worse than none:
+# the release page would show the English half only, and nobody would know which file was
+# stale. Same rule as the changelog itself — both are edited in the same commit.
 summary_ru=""
 if [ -f "$changelog_ru" ]; then
 	summary_ru="$(extract "$changelog_ru")"
+	if [ -z "$summary_ru" ]; then
+		echo "error: no '## [$ver]' section in $changelog_ru (the EN file has one)." >&2
+		echo "       CHANGELOG.md and CHANGELOG_ru.md are kept in lockstep." >&2
+		exit 1
+	fi
 fi
 
 cat <<EOF

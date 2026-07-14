@@ -60,6 +60,22 @@
 	.fs-skip:focus {
 		outline: 2px solid var(--fs-panel); outline-offset: 2px;
 	}
+	/* Visually hidden, but PRESENT — for the document <h1> and the router's live region.
+	 * The distinction is the whole point: `hidden`/display:none/visibility:hidden take the
+	 * element out of the accessibility tree as well as off the page, so an h1 written to fix
+	 * a broken heading outline fixed nothing, and a live region declared that way would never
+	 * announce. Clipping is what leaves a node readable to assistive tech while occupying no
+	 * space — the same reason .fs-skip above clips instead of hiding.
+	 * white-space: nowrap keeps a long title from being clipped into a 1px-wide column of
+	 * wrapped characters, which some screen readers read out one line at a time. */
+	.fs-sr {
+		position: absolute;
+		clip-path: inset(50%);
+		width: 1px; height: 1px;
+		margin: -1px; padding: 0;
+		overflow: hidden; white-space: nowrap;
+	}
+
 	/* the <main> the skip link targets carries tabindex="-1" so the browser will
 	 * actually MOVE focus there (Safari and Chrome refuse on a non-focusable target,
 	 * scrolling but leaving focus behind in the menu) — but it must not then paint a

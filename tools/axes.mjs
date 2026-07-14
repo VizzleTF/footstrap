@@ -24,17 +24,22 @@
  * axes out of menu-footstrap-common.js and then checks head.ut (and the CSS token, and
  * fs-orphans' ignore list) against them. Add an axis and the gate tells you what you forgot.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+const readTree = (p) => readdirSync(join(ROOT, p), { recursive: true })
+	.filter((f) => f.endsWith('.css'))
+	.map((f) => read(join(p, f)))
+	.join('\n');
 
 const COMMON = read('luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap-common.js');
 const MENU = read('luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap.js');
 const HEAD = read('luci-theme-footstrap/ucode/template/themes/footstrap/partials/head.ut');
 const TOKENS = read('luci-theme-footstrap/styles/02-tokens.css');
+const STYLES = readTree('luci-theme-footstrap/styles');
 const ORPHANS = read('tools/fs-orphans.mjs');
 
 const errors = [];
@@ -101,6 +106,46 @@ else if (!(jsRadius[1] === cssRadius[1] && cssRadius[1] === headRadius[1]))
 		+ `JS FS_RADIUS_DEFAULT=${jsRadius[1]}, CSS --fs-radius-base=${cssRadius[1]}px, head.ut r!==${headRadius[1]}. `
 		+ `head.ut cannot read the CSS token (it runs before the stylesheet), so this is the only thing checking it.`);
 else ok.push(`rounding default ${jsRadius[1]}px agrees in the JS, the CSS token and head.ut`);
+
+/* ---- 3b. the dark-mode attributes: the same SET, with the same values, in both places --
+ *
+ * Dark mode is announced three times over: `data-darkmode` (what this theme's own CSS reads)
+ * plus `data-theme` and `data-bs-theme` — the two dialects third-party apps sniff for. They are
+ * stamped by the pre-paint script in head.ut AND by stampDark() in the live applier, and an
+ * attribute added to one and forgotten in the other has a symptom nobody reports: an app's dark
+ * styles are dead on a fresh load and come alive the moment you touch the Appearance popover
+ * (or the other way round). Derive the set from the JS; hold the template to it. */
+const stampBody = (src, re) => (src.match(re) || [, null])[1];
+const attrsIn = (body) => new Map([...(body || '').matchAll(
+	/setAttribute\('([^']+)',\s*dark\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/g)].map((m) => [m[1], `${m[2]}/${m[3]}`]));
+
+const jsStamp = attrsIn(stampBody(COMMON, /function stampDark\([^)]*\)\s*\{([\s\S]*?)\n\}/));
+const headStamp = attrsIn(stampBody(HEAD, /function set\(dark\)\s*\{([\s\S]*?)\n\t\t\t\t\}/));
+
+if (!jsStamp.size) errors.push('no stampDark() found in menu-footstrap-common.js — did the dark-mode applier get renamed?');
+else if (!headStamp.size) errors.push('head.ut no longer stamps the dark-mode attributes in its pre-paint set(dark)');
+else {
+	for (const [attr, val] of jsStamp)
+		if (!headStamp.has(attr))
+			errors.push(`dark mode: stampDark() sets ${attr}, head.ut does not — an app sniffing it sees the `
+				+ `wrong mode until the user touches the Appearance popover`);
+		else if (headStamp.get(attr) !== val)
+			errors.push(`dark mode: ${attr} is '${val}' in the JS but '${headStamp.get(attr)}' in head.ut`);
+	for (const attr of headStamp.keys())
+		if (!jsStamp.has(attr))
+			errors.push(`dark mode: head.ut pre-paints ${attr}, but stampDark() never updates it — toggling the `
+				+ `mode live would leave it stating the mode the page loaded in`);
+	if (!errors.length)
+		ok.push(`dark mode  -> ${[...jsStamp.keys()].join(', ')}   (pre-paint and live applier stamp the same set)`);
+}
+
+/* The two compat names are OUTBOUND, like the --*-color-* export tier: apps read them, this
+ * theme must not. A styles/ rule keyed off data-theme would be silently hijackable by any app
+ * that stamps it (OpenClash writes data-darkmode on :root from its own luminance sniff). */
+for (const attr of ['data-theme', 'data-bs-theme'])
+	if (STYLES.includes(`[${attr}`))
+		errors.push(`styles/ keys a rule off [${attr}] — that name is OUTBOUND compatibility for third-party `
+			+ `apps, not a theme input. The theme's own dark rules read [data-darkmode].`);
 
 /* ---- 4. css-orphans must know every key, or a new axis breaks that gate -------------- */
 for (const k of jsKeys)

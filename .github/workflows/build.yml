@@ -11,8 +11,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only by default. Only the release job creates a release, and it declares the write
+# scope itself. The token was workflow-wide before, which handed it to every `pull_request`
+# run — including the `npm ci` in the lint job, i.e. to the lifecycle scripts of every dev
+# dependency. Nothing needs the write scope until there is a tag to publish.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   # Gates that need nothing but python3, awk and sh — so they cost seconds and can
@@ -28,11 +32,53 @@ jobs:
       - name: Shell syntax
         run: |
           set -eu
-          for f in luci-theme-footstrap/*.sh install.sh \
+          # tools/ is in the glob because release-notes.sh is only ever RUN by the release
+          # job — i.e. after both packages have already built. A syntax error in it used to
+          # be discovered at the one moment it costs the most.
+          for f in luci-theme-footstrap/*.sh install.sh tools/*.sh \
                    luci-theme-footstrap/root/usr/libexec/*.sh \
                    luci-theme-footstrap/root/etc/uci-defaults/*; do
             [ -f "$f" ] || continue
             sh -n "$f" || { echo "syntax error: $f"; exit 1; }
+          done
+
+      # THE TEMPLATES HAD NO PARSER. luci.mk copies ucode/ to the router verbatim and never
+      # compiles it, so a stray brace in header.ut built green, released, and then every
+      # user's LuCI silently fell back to a different theme (the "Theme fallback" indicator,
+      # docs/01) — the one way this repo could ship a completely broken UI with CI all green.
+      #
+      # `ucode -T -c` is LuCI's own trycompile, so this is the same check the router would do,
+      # run before the release instead of after it. ucode is not packaged for Ubuntu; it is
+      # built from the commit pinned in luci-upstream.pin, exactly as jsmin.c is, and for the
+      # same reason — a gate fetched from a moving master is whatever upstream pushed last.
+      - name: Compile-check the ucode templates
+        run: |
+          set -eu
+          . luci-theme-footstrap/luci-upstream.pin
+          sudo apt-get update && sudo apt-get install -y cmake libjson-c-dev
+          git clone -q https://github.com/jow-/ucode "$RUNNER_TEMP/ucode"
+          git -C "$RUNNER_TEMP/ucode" checkout -q "$UCODE_PIN"
+          cmake -S "$RUNNER_TEMP/ucode" -B "$RUNNER_TEMP/ucode/build" -DCMAKE_BUILD_TYPE=Release >/dev/null
+          cmake --build "$RUNNER_TEMP/ucode/build" -j"$(nproc)" >/dev/null
+          UC="$RUNNER_TEMP/ucode/build/ucode"
+          n=0
+          for f in $(find luci-theme-footstrap/ucode -name '*.ut'); do
+            "$UC" -T -c -o /dev/null "$f" || { echo "template does not compile: $f"; exit 1; }
+            n=$((n + 1))
+          done
+          [ "$n" -gt 0 ] || { echo "no .ut templates found — the glob is wrong"; exit 1; }
+          echo "$n ucode template(s) compile."
+
+      # rpcd SKIPS an acl.d file it cannot parse, and says nothing. A trailing comma here
+      # means file.exec on the self-update script is granted to nobody: the update badge and
+      # the Update button both die with "Access denied", for every user, and neither the
+      # package build nor any other gate notices.
+      - name: rpcd ACL is valid JSON
+        run: |
+          set -eu
+          for f in luci-theme-footstrap/root/usr/share/rpcd/acl.d/*.json; do
+            python3 -m json.tool "$f" >/dev/null || { echo "invalid JSON: $f"; exit 1; }
+            echo "ok: $f"
           done
 
       - name: Build the stylesheet (this also enforces the size budget)
@@ -259,7 +305,19 @@ jobs:
           SDK_FILE="$(curl -sfL "$BASE/" | grep -oE 'openwrt-sdk-[^"<]+\.tar\.(zst|xz)' | head -n1)"
           [ -n "$SDK_FILE" ] || { echo "SDK filename not found at $BASE"; exit 1; }
           echo "Using SDK: $SDK_FILE"
-          curl -fL "$BASE/$SDK_FILE" -o "$RUNNER_TEMP/sdk.tar"
+          curl -fL --proto '=https' --proto-redir '=https' "$BASE/$SDK_FILE" -o "$RUNNER_TEMP/sdk.tar"
+
+          # The SDK is the least verified input in this repo and the only one that ends up in
+          # the released package: jsmin.c and i18n-scan.pl — two LINTERS — are pinned by commit
+          # and sha256, while the toolchain that actually builds the artifact users install
+          # arrived on trust. OpenWrt publishes sha256sums next to the tarball; check it.
+          curl -sfL --proto '=https' --proto-redir '=https' "$BASE/sha256sums" -o "$RUNNER_TEMP/sha256sums"
+          WANT="$(grep -F " *$SDK_FILE" "$RUNNER_TEMP/sha256sums" | cut -d' ' -f1)"
+          [ -n "$WANT" ] || { echo "no sha256 published for $SDK_FILE"; exit 1; }
+          GOT="$(sha256sum "$RUNNER_TEMP/sdk.tar" | cut -d' ' -f1)"
+          [ "$WANT" = "$GOT" ] || { echo "SDK checksum mismatch: want $WANT, got $GOT"; exit 1; }
+          echo "SDK sha256 verified."
+
           case "$SDK_FILE" in
             *.zst) tar --zstd -xf "$RUNNER_TEMP/sdk.tar" -C "$RUNNER_TEMP" ;;
             *.xz)  tar -xJf   "$RUNNER_TEMP/sdk.tar" -C "$RUNNER_TEMP" ;;
@@ -303,6 +361,9 @@ jobs:
     name: Attach packages to release
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
+    # the one job that writes anything — see the workflow-level `permissions` above
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       # Checkout (this job only downloaded artifacts before) — the release body is

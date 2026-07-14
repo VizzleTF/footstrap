@@ -3,10 +3,17 @@
 #
 # Downloads the latest GitHub release package for THIS theme and installs it with
 # the platform package manager: apk on 25.12+, opkg on 24.10. The repo and the
-# GitHub API endpoint are hard-coded here and the script takes only two fixed
-# keywords, so the LuCI `file.exec` call that triggers it (ACL-gated to this exact
-# path) has no injection surface — it can only ever install this theme's own
+# GitHub API endpoint are hard-coded here and the script takes only fixed keywords,
+# so the LuCI `file.exec` call that triggers it (ACL-gated to this exact path) has
+# no injection surface — it can only ever install this theme's own
 # signed-by-nobody release, over HTTPS, when an authenticated admin asks for it.
+#
+# But note WHAT the ACL actually gates: rpcd's file.exec matches the command PATH,
+# and leaves both `params` and `env` to the caller. So the argument the caller
+# passes is not the two the client happens to send (`__run` is a third, and it is
+# the privileged worker entrypoint — see that branch), and the environment is not
+# ours either: PATH is pinned below, and so are the loader variables, because
+# LD_PRELOAD on /bin/sh is code execution as root for anyone holding this ACL.
 #
 # WHY IT DAEMONISES. The install runs far longer than either timeout on the RPC
 # path: LuCI's rpc.js aborts the XHR after `rpctimeout` (20 s by default) and
@@ -23,9 +30,14 @@
 # keyword, not the code.
 
 # rpcd hands the exec'd process an environment the CALLER can set, so nothing
-# here may be resolved through an inherited PATH.
+# here may be resolved through an inherited PATH — nor through the dynamic loader,
+# which PATH alone does not cover: LD_PRELOAD/LD_LIBRARY_PATH are honoured by
+# /bin/sh (it is not setuid, so the loader does not sanitise them), which turns
+# this ACL into arbitrary code as root. The proxy variables go too — they would
+# silently redirect the fetch through a host of the caller's choosing.
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
+unset LD_PRELOAD LD_LIBRARY_PATH LD_AUDIT IFS http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 
 # All state lives in /var/run (a symlink to /tmp/run), NOT in /tmp itself.
 # /tmp is 1777: any local unprivileged process can pre-create a predictable path
@@ -147,14 +159,24 @@ do_update() {
 	# download from the asset CDN, which is a DIFFERENT host. Refuse on a mismatch:
 	# installing a package whose bytes we cannot account for is the one thing this
 	# script must never do.
-	if [ -n "$digest" ]; then
-		want="${digest#sha256:}"
-		got="$(sha256sum "$TMP" 2>/dev/null | cut -d' ' -f1)"
-		[ -n "$got" ] && [ "$want" = "$got" ] || {
-			echo "ERR: checksum mismatch, refusing to install" > "$STATUS"
-			rm -f "$TMP"; return 1
-		}
-	fi
+	#
+	# And refuse on a MISSING digest too, which is the case this used to wave through in
+	# silence. `if [ -n "$digest" ]` fails OPEN: GitHub renaming the field, the jsonfilter
+	# predicate ceasing to resolve, or jsonfilter being absent all leave $digest empty — and
+	# the package then installed with no integrity check at all, reporting OK. Half of a
+	# two-link trust chain cannot be optional: if we cannot verify the bytes, we do not
+	# install them.
+	want="${digest#sha256:}"
+	case "$want" in
+		[0-9a-fA-F][0-9a-fA-F]*) ;;
+		*) echo "ERR: release lists no sha256 for the asset, refusing to install" > "$STATUS"
+		   rm -f "$TMP"; return 1 ;;
+	esac
+	got="$(sha256sum "$TMP" 2>/dev/null | cut -d' ' -f1)"
+	[ -n "$got" ] && [ "$want" = "$got" ] || {
+		echo "ERR: checksum mismatch, refusing to install" > "$STATUS"
+		rm -f "$TMP"; return 1
+	}
 
 	out="$(install_pkg "$TMP" 2>&1)"; rc=$?
 	rm -f "$TMP"
@@ -199,23 +221,38 @@ status)
 	exit 0
 	;;
 __run)
+	# The privileged worker entrypoint — and it is REACHABLE OVER RPC. rpcd's file.exec ACL
+	# matches the command PATH only; `params` are free, so any session holding the ACL can
+	# call this script with __run directly. That runs do_update in the FOREGROUND and
+	# WITHOUT taking $LOCK: it can race a normal spawn into two concurrent `apk add` runs on
+	# the same package — the exact bug the lock below was written to fix — and rpcd kills it
+	# at its 30 s timeout, possibly mid-install, leaving /www/luci-static/footstrap half
+	# written. (The header's claim that this script takes "two fixed keywords" was one short.)
+	#
+	# The staged copy is the only legitimate caller: the spawn below execs "$WORKER", so
+	# that is what $0 must be. An RPC caller names the installed path and gets nothing.
+	[ "$0" = "$WORKER" ] || { echo "ERR: unknown argument"; exit 1; }
 	do_update
 	rm -f "$WORKER"
 	rmdir "$LOCK" 2>/dev/null
 	exit 0
 	;;
 "")
-	# A worker that died (rebooted, OOM-killed) would leave RUNNING behind and
-	# wedge the button forever. The worker removes its own staged copy when it
-	# finishes, so RUNNING without that copy means the run is stale — retry.
-	if [ "$(cat "$STATUS" 2>/dev/null)" = "RUNNING" ] && [ -f "$WORKER" ]; then
-		echo "RUNNING"; exit 0
-	fi
-
-	# ...but that test is not the whole story: read-then-write is not atomic, so two
-	# RPCs arriving together BOTH read "not running" and BOTH spawned a worker — two
-	# concurrent `apk add` runs on the same package. Reproduced by firing the script
-	# twice at once: two workers, two installs.
+	# Two RPCs arriving together must not both start an install: read-then-write is not
+	# atomic, so a status check followed by a spawn had both callers read "not running" and
+	# both spawn a worker — two concurrent `apk add` runs on the same package. Reproduced by
+	# firing the script twice at once: two workers, two installs.
+	#
+	# THE LOCK IS THE STATE, and it is the only thing that may decide this. There used to be
+	# a pre-check here — "$STATUS is RUNNING and the staged $WORKER still exists → answer
+	# RUNNING" — sitting in front of the mkdir, and it wedged the Update button for good: a
+	# worker SIGKILLed mid-`apk add` (OOM on a 128 MB router, and apk is the memory-hungry
+	# part) leaves both of those true FOREVER, because only the worker's own exit removes
+	# them. Every later click then answered RUNNING, the client polled for its 300 s and
+	# reported "timed out waiting for the installer", until the router was rebooted. Worse,
+	# the stale-lock reclaim below — written for exactly that OOM case — could never fire,
+	# because the pre-check returned before it. Deleting the pre-check loses nothing: a live
+	# run holds the lock, so mkdir fails and the answer is RUNNING either way.
 	#
 	# mkdir IS atomic — it fails if the name exists — so it is the lock. The subtle
 	# part is RECLAIMING a lock whose worker was killed (OOM) and never cleaned up.

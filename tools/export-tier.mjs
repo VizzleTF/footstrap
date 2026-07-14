@@ -143,6 +143,47 @@ for (const { palette, mode, tint } of MATRIX) {
 			failures.push(`${where}: --${family}-color-high and -low are ${got.toFixed(3)} apart, need ${need} ` +
 				`(${hi} vs ${lo}) — the ramp is FLAT: an app asking for a gradation gets one colour three times`);
 	}
+
+	/* ---- dark mode has to be SNIFFABLE, and <body> is what everyone sniffs ---------------
+	 *
+	 * An app that ships dark styles must decide whether the page is dark, and there is no
+	 * standard to ask. Surveyed across the LuCI app ecosystem, the one method that works with
+	 * no cooperation from the theme — and therefore the one that everybody falls back to — is
+	 * the LUMINANCE OF `getComputedStyle(document.body).backgroundColor`: luci-app-ssclash
+	 * (0.299/0.587/0.114 over `body`), OpenClash (`common.js` isDarkBackground, 0.2126/0.7152/
+	 * 0.0722, and it then stamps `data-darkmode` on OUR :root from the result), and passwall's
+	 * four node-widgets (YIQ, and they clone the colour into an injected stylesheet).
+	 *
+	 * So `body` must carry an OPAQUE background colour, on the correct side of the midpoint,
+	 * in every palette x mode. Two ways to lose that, both plausible: paint the page on :root
+	 * (or an ::after wallpaper layer) and leave `body` transparent, or fade it with an alpha.
+	 * Either makes the readback `rgba(0, 0, 0, 0)` — and OpenClash's sniffer does not even
+	 * match that against its /rgb\(/ test, so it silently concludes "light" and repaints our
+	 * DARK page in its light palette. A theme cannot be dark and unrecognisably dark.
+	 *
+	 * The canvas rasterises whatever the background computes to, so an alpha shows up as the
+	 * white page showing through: a faded dark body reads back light, which is exactly the
+	 * failure this must catch. */
+	const bodyBg = await page.evaluate(() => {
+		const cv = document.createElement('canvas');
+		cv.width = cv.height = 1;
+		const cx = cv.getContext('2d', { willReadFrequently: true });
+		const bg = getComputedStyle(document.body).backgroundColor;
+		cx.clearRect(0, 0, 1, 1);
+		cx.fillStyle = bg;
+		cx.fillRect(0, 0, 1, 1);
+		const d = cx.getImageData(0, 0, 1, 1).data;
+		return { raw: bg, rgb: [d[0], d[1], d[2]], alpha: d[3] };
+	});
+	checks++;
+	/* what every one of those sniffers computes, in the notation they compute it in */
+	const luma = (0.299 * bodyBg.rgb[0] + 0.587 * bodyBg.rgb[1] + 0.114 * bodyBg.rgb[2]) / 255;
+	if (bodyBg.alpha !== 255)
+		failures.push(`${where}: body background is ${bodyBg.raw} — not opaque. Every third-party dark-mode `
+			+ `sniffer reads its luminance, and a transparent body reads back as LIGHT.`);
+	else if ((mode === 'dark') !== (luma < 0.5))
+		failures.push(`${where}: body background ${bodyBg.raw} has luminance ${luma.toFixed(2)}, which every `
+			+ `third-party sniffer will read as "${luma < 0.5 ? 'dark' : 'light'}" — the page is ${mode}.`);
 }
 
 await browser.close();

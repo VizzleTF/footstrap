@@ -190,8 +190,26 @@ ok "Downloaded $(wc -c < "$PKG") bytes."
 # asset is the only integrity check there is. It comes over the same TLS channel
 # as the URL, so it does not defend against a compromised api.github.com; what it
 # does defend against is a truncated or tampered download from the asset CDN,
-# which is a different host. Do not skip it silently.
-if [ -n "$DIGEST" ] && command -v sha256sum >/dev/null 2>&1; then
+# which is a different host.
+#
+# A missing digest is therefore a REFUSAL, not a warning. Half of a two-link trust
+# chain cannot be optional: whatever makes $DIGEST empty — GitHub renaming the
+# field, jsonfilter absent on a non-OpenWrt box, the API answer not being what we
+# think it is — leaves us installing bytes we cannot account for, and printing a
+# line about it into a `curl | sh` scroll changes nothing about that. Set
+# FOOTSTRAP_ALLOW_UNVERIFIED=1 to override; it is deliberately something you have
+# to type.
+if [ -z "$DIGEST" ] || ! command -v sha256sum >/dev/null 2>&1; then
+	if [ "${FOOTSTRAP_ALLOW_UNVERIFIED:-0}" = "1" ]; then
+		warn "No sha256 available — installing UNVERIFIED because FOOTSTRAP_ALLOW_UNVERIFIED=1."
+	else
+		err "No sha256 available for this asset — refusing to install."
+		err "The package is installed with --allow-untrusted, so this checksum is the"
+		err "only integrity check there is."
+		err "To override anyway:  FOOTSTRAP_ALLOW_UNVERIFIED=1 sh install.sh"
+		exit 1
+	fi
+else
 	WANT="${DIGEST#sha256:}"
 	GOT=$(sha256sum "$PKG" | cut -d' ' -f1)
 	if [ "$WANT" != "$GOT" ]; then
@@ -201,8 +219,6 @@ if [ -n "$DIGEST" ] && command -v sha256sum >/dev/null 2>&1; then
 		exit 1
 	fi
 	ok "sha256 verified."
-else
-	warn "No sha256 published for this asset — installing unverified."
 fi
 
 # --- install --------------------------------------------------------------

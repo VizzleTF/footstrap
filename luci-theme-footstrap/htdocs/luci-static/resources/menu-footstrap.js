@@ -28,7 +28,9 @@ function iconSvg(name) {
 		|| ((/serv|dnsmasq|cron/).test(key) ? ICONS.services : null)
 		|| ((/stat|overview|dash/).test(key) ? ICONS.status : null)
 		|| ICONS._default;
-	return '<svg class="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+	/* aria-hidden like every SVG in the templates: the icon repeats the label that sits
+	 * right beside it, and an unlabelled <svg> is announced as a graphic of its own. */
+	return '<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
 		'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
 }
 
@@ -211,12 +213,17 @@ function renderMainMenu(tree, url, level) {
 			saveOpenSections();
 		}
 		const chevron = hasSub
-			? '<svg class="fs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
+			? '<svg class="fs-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 			: '';
 
+		/* `active` is a CLASS — it paints the item and says nothing to a screen reader, which
+		 * is how the menu ended up with no "you are here" at all. aria-current="page" is that
+		 * statement, and it belongs on the leaf only: a section header is a disclosure button,
+		 * not a link to the current page. */
 		const link = E('a', {
 			'href': hasSub ? '#' : L.url(url, child.name),
-			'class': (isActive && !hasSub) ? 'active' : ''
+			'class': (isActive && !hasSub) ? 'active' : '',
+			'aria-current': (isActive && !hasSub) ? 'page' : null
 		});
 		link.innerHTML = (level ? '' : iconSvg(child.name)) + '<span class="fs-label"></span>' + chevron;
 		link.querySelector('.fs-label').textContent = _(child.title);

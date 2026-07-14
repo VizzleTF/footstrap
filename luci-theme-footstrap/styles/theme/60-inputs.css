@@ -161,11 +161,17 @@
 	 * selects/dropdowns (styles/base leaves them at radius 3 / white).
 	 * Excludes checkbox/radio (styled as toggles) and file (styled above).
 	 * ================================================================== */
+	/* The type list has to be exhaustive, because an omission does not fall back to
+	 * "unstyled" — it falls back to BASE, which still paints a stock white 3px-radius
+	 * field. color/datetime-local/month/week were missing, and rendered as visibly
+	 * different widgets sitting next to a themed input in the same form. */
 	.cbi-input-text, .cbi-input-password, .cbi-input-textarea,
 	.cbi-section-create-name, .cbi-value-field input.create-item-input,
 	input[type="text"], input[type="password"], input[type="number"],
 	input[type="email"], input[type="url"], input[type="search"],
 	input[type="tel"], input[type="date"], input[type="time"],
+	input[type="datetime-local"], input[type="month"], input[type="week"],
+	input[type="color"],
 	textarea {
 		background: var(--fs-panel2);
 		border: 1px solid var(--fs-border);
@@ -234,8 +240,17 @@
 		outline: none;
 	}
 
-	/* invalid state keeps the danger cue */
-	.cbi-input-invalid, input.cbi-input-invalid, textarea.cbi-input-invalid {
+	/* Invalid state keeps the danger cue.
+	 *
+	 * `.cbi-value-error input` is the LUA-CBI path and it belongs here, not in base.
+	 * base/70-buttons.css does declare a red border-color for it — but the rule above
+	 * sets the `border` SHORTHAND, and a shorthand in a later layer wipes the longhand
+	 * out regardless of specificity. Probed on the gallery: the field rendered
+	 * --fs-border grey, so every third-party app on luci-compat (which emits
+	 * .cbi-value-error from full_valueheader.htm) had lost its field-error cue
+	 * entirely, while the modern .cbi-input-invalid path worked. */
+	.cbi-input-invalid, input.cbi-input-invalid, textarea.cbi-input-invalid,
+	.cbi-value-error input, .cbi-value-error textarea {
 		border-color: var(--fs-danger);
 		box-shadow: var(--fs-focus-ring-invalid);
 	}

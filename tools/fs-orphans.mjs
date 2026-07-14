@@ -42,8 +42,11 @@ const IGNORE_EXACT = new Set([
 	'fs-rail', 'fs-layout', 'fs-menu-open', 'fs-menu-autocollapse', 'fs-update-check',
 	/* custom events / id prefixes */
 	'fs-autocollapse', 'fs-sub-', 'fs-topsub-',
-	/* the module/select helper, not a class */
-	'fs-select',
+	/* MODULE NAMES, not classes — they appear as `require fs-x as y` and in prose. Every
+	 * resource module the theme adds has to land here, and fs-fit did not: it sat in the
+	 * report as a permanent "NEW: style it, delete it, or justify it" line, which is how a
+	 * report teaches you to stop reading it. */
+	'fs-select', 'fs-fit',
 ]);
 const IGNORE_PREFIX = ['--fs-'];		/* custom properties */
 
@@ -106,8 +109,9 @@ for (const f of SRC) {
  * here is new and wants a look. */
 const JUSTIFIED_UNSTYLED = {
 	'fs-rail-toggle': 'a JS hook (getElementById); the button is styled by its .fs-railtoggle class',
-	'fs-title': 'the visually-hidden document <h1> wrapper — the container is [hidden]',
+	'fs-title': 'the document <h1> wrapper; hidden by the .fs-sr clip utility beside it, so it stays in the a11y tree',
 	'fs-title-main': 'that <h1>; it rides on base h1 styles and the SPA router keeps its text in sync',
+	'fs-nav-status': 'a JS hook (getElementById): the router\'s aria-live region, hidden by .fs-sr',
 };
 
 const orphanCss = [...styled.keys()].filter(c => !emitted.has(c)).sort();

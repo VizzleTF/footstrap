@@ -35,7 +35,16 @@
 				    saved = null;
 				try { saved = localStorage.getItem('fs-darkmode'); } catch (e) {}
 				var mq = window.matchMedia('(prefers-color-scheme: dark)');
-				function set(dark) { root.setAttribute('data-darkmode', dark ? 'true' : 'false'); }
+				/* data-darkmode is what the THEME's CSS keys off. data-theme and data-bs-theme
+				   are the two dialects third-party apps sniff for (luci-app-justclash keys 21
+				   rules off data-theme; luci-app-ssclash reads data-bs-theme first) — outbound
+				   compatibility only, never read from styles/. Must stay identical to
+				   stampDark() in menu-footstrap-common.js; tools/axes.mjs proves it. */
+				function set(dark) {
+					root.setAttribute('data-darkmode', dark ? 'true' : 'false');
+					root.setAttribute('data-theme', dark ? 'dark' : 'light');
+					root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+				}
 				if (saved === 'true' || saved === 'false')
 					set(saved === 'true');
 				else
@@ -137,7 +146,11 @@
 		   Chrome duly warned that the preload went unused. #}
 		<link rel="preload" href="{{ media }}/fonts/manrope-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 		<link rel="preload" href="{{ media }}/fonts/manrope-700-latin.woff2" as="font" type="font/woff2" crossorigin>
-		<link rel="stylesheet" href="{{ media }}/cascade.css?v={{ pkgs_update_time }}">
+		{# `data-fs-shell` marks the SHELL's own CSS — the stylesheet the server emitted, which
+		   belongs to the document and not to any view. The SPA router asks "did a VIEW put CSS
+		   in this document?" on every navigation, and this attribute is how it tells its own
+		   sheet apart from an app's without guessing. See menu-footstrap-common.js. #}
+		<link rel="stylesheet" data-fs-shell href="{{ media }}/cascade.css?v={{ pkgs_update_time }}">
 		<link rel="icon" href="{{ media }}/logo_48.png" sizes="48x48">
 		<link rel="icon" href="{{ media }}/logo.svg" sizes="any">
 		{% if (node?.css): %}
@@ -151,12 +164,11 @@
 		   STYLE SHEET SET, which turns this into a "preferred" alternate sheet the
 		   user can switch off in Firefox's View -> Page Style.
 
-		   `data-fs-shell` marks this as the SHELL's stylesheet — the one the server
-		   emitted, which belongs to the document and not to any view. The SPA router
-		   sweeps every OTHER <style> on navigation, because a view that injects one
-		   (luci-app-filemanager does) would otherwise leave it behind to restyle every
-		   page the user visits afterwards. This attribute is how the router tells the
-		   two apart without guessing. See menu-footstrap-common.js. #}
+		   `data-fs-shell`: the same mark as on the cascade.css <link> above — this <style> is
+		   the shell's, not a view's. Every OTHER stylesheet in <head> came from an app, and the
+		   SPA router treats an invasive one as a document it must not hand to the next page
+		   (luci-app-filemanager, luci-app-banip and luci-app-adblock all inject one). See
+		   menu-footstrap-common.js. #}
 		<style data-fs-shell>{{ css }}</style>
 		{% endif %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>

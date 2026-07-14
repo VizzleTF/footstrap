@@ -71,14 +71,29 @@
 
 			<main class="fs-main" id="maincontent" tabindex="-1">
 				{# The document's <h1>. LuCI views start their content at <h2>, so without
-				   this the page had no h1 at all and the heading outline began mid-way
-				   down. Visually hidden (the container is [hidden]) — the sidebar shows
-				   the page title in the menu, not as a banner — and the SPA router keeps
-				   its text in sync on navigation (it queries .fs-title-main). Same markup
-				   as the top-nav layout, so one router branch serves both. #}
-				<div class="fs-title" hidden>
+				   this the page has no h1 at all and the heading outline begins mid-way
+				   down. It is not shown — the chrome already names the page — but it must
+				   still EXIST for a screen reader, and `hidden` did not do that: `hidden`
+				   is display:none, which removes the element from the accessibility tree
+				   as thoroughly as from the page. So the h1 the fix was written to provide
+				   was never there, and the SPA router's .fs-title-main text sync was
+				   updating a node no assistive tech could read.
+
+				   .fs-sr is the clip-based visually-hidden utility (theme/10-chrome.css) —
+				   the same technique .fs-skip already relies on, and for the same reason:
+				   clipped stays in the tree, display:none does not. #}
+				<div class="fs-title fs-sr">
 					<h1 class="fs-title-main">{{ entityencode(striptags(dispatched?.title ? _(dispatched.title) : (boardinfo.hostname ?? 'OpenWrt')), true) }}</h1>
 				</div>
+
+				{# The SPA router swaps the page without reloading, and a screen reader has
+				   no way to notice: no document load fires, focus is destroyed along with
+				   the menu <a> that was clicked (renderChrome() empties #topmenu), and the
+				   new <title> is not announced. The router writes the incoming page's title
+				   here after every navigation, so the change is spoken; on a full load the
+				   region is empty and says nothing, which is correct — the load itself is
+				   the announcement. #}
+				<div id="fs-nav-status" class="fs-sr" role="status" aria-live="polite"></div>
 
 				<div class="fs-content">
 					{% include('themes/footstrap/partials/notices', { boardinfo, empty_password }) %}

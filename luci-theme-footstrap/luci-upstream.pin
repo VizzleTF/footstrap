@@ -16,3 +16,17 @@
 LUCI_PIN=5cf20c5741dc34eea0faaf7324ef3751b05fa1f3
 JSMIN_SHA256=0568b14873f27f339cf66a9c43603d0bc8ca501ff62522ea924c6e8daf1be215
 I18N_SCAN_SHA256=a1823d1fdd942f31a105e1e53b401e146bc10527f231e016930b1a5123ef21d3
+
+# The ucode interpreter, built in CI to COMPILE-CHECK the theme's .ut templates. It is the
+# same class of borrowed, executed tool as the two above, so it is pinned in the same place.
+#
+# Why it has to exist: a LuCI theme's templates are copied to the router verbatim and are
+# never parsed at build time — so a stray brace in header.ut builds green, releases, and then
+# every user's LuCI silently falls back to another theme (docs/01). Nothing else in this repo
+# can catch that: sh -n covers the shell, eslint the JS, stylelint the CSS, and the .ut files
+# had no parser at all.
+#
+# Pinned by COMMIT rather than by a tarball sha256 on purpose: a git object name IS the
+# checksum of its content, and GitHub's generated archives are not guaranteed byte-stable.
+# v0.0.20250529 (a release tag, not master).
+UCODE_PIN=be92ebd706339fd4a848b88ee516b1ac4eb62ef8

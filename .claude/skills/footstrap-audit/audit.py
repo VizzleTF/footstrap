@@ -145,6 +145,18 @@ def base_hardcoded(lines):
 # --- rule parsing (enough CSS to spot duplicate selectors; no nesting beyond
 # --- @layer / @media / @supports / @container, which is all this tree uses)
 def _strip_comments(src):
+    """Remove comments but PRESERVE the line count.
+
+    A comment used to be deleted along with its newlines, and rules() derives every
+    `file:line` it reports from this stripped copy — so every line number the audit has
+    ever printed was shifted UP by however many comment lines sat above the rule. In a
+    tree whose comments outweigh its code that is a big shift: the focus block reported
+    as `30-forms.css:336` really lives at :353, and `95-luci.css:304` at :319. A finding
+    that points at the wrong line is a finding you go and "fix" in the wrong rule.
+
+    Substituting the same number of newlines keeps every subsequent line where it is,
+    and the parser cannot tell the difference — a newline is whitespace to it either way.
+    """
     out, i = [], 0
     while i < len(src):
         j = src.find("/*", i)
@@ -153,6 +165,7 @@ def _strip_comments(src):
         out.append(src[i:j])
         k = src.find("*/", j + 2)
         if k < 0: break
+        out.append("\n" * src.count("\n", j, k + 2))
         i = k + 2
     return "".join(out)
 

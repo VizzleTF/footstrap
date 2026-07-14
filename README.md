@@ -80,4 +80,8 @@ notice and text ship beside the fonts, as the licence requires.
 
 ---
 
+**Writing a `luci-app-*`?** [How to style a LuCI app so it works under any theme](docs/20-luci-app-styling-guide.md)
+— CSS lifetime, namespacing, the colour contract, dark-mode detection, and what this theme does when
+an app breaks the rules. Drawn from 30 real apps, verified on a router.
+
 Internals, the build and development notes live in [docs/](docs/) (Russian).

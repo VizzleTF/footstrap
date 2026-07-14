@@ -210,24 +210,38 @@ squeeze() {
 	' "$1"
 }
 
+# Count the braces in a file and echo "<open> <close>". Fails loudly rather than let an
+# unbalanced block ship. The braces are matched as bracket expressions: a bare /{/ is an
+# interval-expression ambiguity that some awks warn about or reject.
+brace_count() {
+	awk '{ o += gsub(/[{]/, "&"); c += gsub(/[}]/, "&") } END {
+		if (o != c) { printf "build-css: %s: unbalanced braces (%d { vs %d })\n", FILENAME, o, c > "/dev/stderr"; exit 1 }
+		if (o < 100) { printf "build-css: %s: suspiciously few rules (%d)\n", FILENAME, o > "/dev/stderr"; exit 1 }
+		print o
+	}' "$1"
+}
+
 # The brace check runs on a COMMENT-STRIPPED copy, always — including in --dev,
 # where comments survive into the output. It used to count braces in the raw file,
 # so a comment containing a stray "{" (prose, an example) failed the build on
 # perfectly valid CSS.
 strip_comments "$TMP" > "$TMP.min"
-
-# Fail loudly rather than ship a stylesheet with an unbalanced block. The braces
-# are matched as bracket expressions: a bare /{/ is an interval-expression
-# ambiguity that some awks warn about or reject.
-awk '{ o += gsub(/[{]/, "&"); c += gsub(/[}]/, "&") } END {
-	if (o != c) { printf "build-css: unbalanced braces (%d { vs %d })\n", o, c > "/dev/stderr"; exit 1 }
-	if (o < 100) { print "build-css: suspiciously few rules" > "/dev/stderr"; exit 1 }
-}' "$TMP.min"
+RULES_BEFORE=$(brace_count "$TMP.min") || exit 1
 
 if [ "$DEV" -eq 0 ]; then
 	# comments gone; now squeeze the whitespace CSS ignores
 	squeeze "$TMP.min" > "$TMP"
 	rm -f "$TMP.min"
+
+	# AND CHECK AGAIN, on what actually ships. The check above validated the squeeze's
+	# INPUT — while the squeeze is the pass most capable of corrupting the sheet: it is the
+	# one that tracks strings, joins lines and deletes the `;` before a `}`. Its output was
+	# never looked at. A rule count that survives it unchanged is what says so.
+	RULES_AFTER=$(brace_count "$TMP") || exit 1
+	if [ "$RULES_BEFORE" != "$RULES_AFTER" ]; then
+		echo "build-css: the squeeze changed the rule count ($RULES_BEFORE -> $RULES_AFTER)." >&2
+		exit 1
+	fi
 else
 	# --dev keeps comments AND formatting: this output is for reading, not shipping
 	rm -f "$TMP.min"
@@ -243,9 +257,21 @@ echo "build-css: $SIZE bytes -> $OUT"
 # docs/18), so every byte here is a byte on the wire, on a device whose whole point
 # is to be small. The gate is deliberately checked only for the real minified build.
 # Raise it consciously, or not at all.
+#
+# The FLOOR is not symmetry for its own sake: the only gate on the finished file used to be
+# an upper bound, so every way of producing a *short* file — a truncated write, a full disk,
+# a squeeze that ate the tail — passed the build and shipped a stylesheet with its second
+# half missing. An upper bound cannot see that; the rule-count check above catches the gross
+# case, and this catches the rest.
 BUDGET=${FS_CSS_BUDGET:-117760}   # 115 KB — the sheet is ~109 KB, so this is real headroom, not slack
+FLOOR=${FS_CSS_FLOOR:-81920}      # 80 KB — well under the real sheet; only a mangled build lands here
 if [ "$DEV" -eq 0 ] && [ "$SIZE" -gt "$BUDGET" ]; then
 	echo "build-css: cascade.css is $SIZE bytes, over the $BUDGET-byte budget." >&2
 	echo "build-css: uhttpd cannot compress it, so this is $SIZE bytes on the wire." >&2
+	exit 1
+fi
+if [ "$DEV" -eq 0 ] && [ "$SIZE" -lt "$FLOOR" ]; then
+	echo "build-css: cascade.css is only $SIZE bytes, under the $FLOOR-byte floor." >&2
+	echo "build-css: that is not a smaller stylesheet, that is a broken one." >&2
 	exit 1
 fi

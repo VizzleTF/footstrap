@@ -59,8 +59,12 @@ function renderTabMenu(tree, url, level) {
 
 	children.forEach(child => {
 		const isActive = (L.env.dispatchpath[3 + (level || 0)] === child.name);
+		/* aria-current="page", not just the `active` class: the class is paint, and paint is
+		 * the one thing a screen reader cannot see. Same rule as the main menu's leaves.
+		 * E() drops an attribute whose value is null (luci.js: `attr[key] == null` → skip),
+		 * so the inactive tabs carry nothing. */
 		ul.appendChild(E('li', { 'class': 'tabmenu-item-%s %s'.format(child.name, isActive ? 'active' : '') }, [
-			E('a', { 'href': L.url(url, child.name) }, [ _(child.title) ])
+			E('a', { 'href': L.url(url, child.name), 'aria-current': isActive ? 'page' : null }, [ _(child.title) ])
 		]));
 		if (isActive)
 			activeNode = child;
@@ -327,13 +331,36 @@ function applyWallpaper(val) {
 	if (val === 'cats') { lsSet('fs-wallpaper', 'cats'); root.setAttribute('data-wallpaper', 'cats'); }
 	else { lsDel('fs-wallpaper'); root.removeAttribute('data-wallpaper'); }
 }
+/* ---- dark mode is announced in three dialects, because apps SNIFF for it ---------------
+ *
+ * A third-party app ships its own dark styles and has to guess whether the page is dark. There
+ * is no standard for that, and a survey of what LuCI apps actually do turned up exactly three
+ * dialects: an attribute on :root (`data-theme="dark"` — `luci-app-justclash` keys 21 rules off
+ * it), Bootstrap's `data-bs-theme` (`luci-app-ssclash` reads it first), and, when neither is
+ * present, the LUMINANCE of the body background (ssclash's fallback — the only one that needs no
+ * cooperation from the theme, and the reason its editor chrome is right today).
+ *
+ * We stamp all three names for the same fact. Measured on the router before this: every one of
+ * justclash's `[data-theme="dark"]` rules was dead, so its LIGHT fills were what a dark page
+ * rendered. The cost is two attributes; the alternative is every app that supports dark mode
+ * looking broken under this theme and correct under the theme it was written against.
+ *
+ * `data-darkmode` remains the name the theme's OWN CSS keys off. The other two are OUTBOUND
+ * compatibility — exactly like the `--*-color-*` export tier — and nothing inside `styles/` may
+ * read them; `tools/axes.mjs` fails the build if it does. */
+function stampDark(root, dark) {
+	root.setAttribute('data-darkmode', dark ? 'true' : 'false');
+	root.setAttribute('data-theme', dark ? 'dark' : 'light');
+	root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+}
+
 const _mqDark = window.matchMedia('(prefers-color-scheme: dark)');
 function applyMode(val) {
 	const root = document.documentElement;
 	if (val === 'auto') lsDel('fs-darkmode');
 	else lsSet('fs-darkmode', val === 'dark' ? 'true' : 'false');
 	const dark = (val === 'dark') || (val === 'auto' && _mqDark.matches);
-	root.setAttribute('data-darkmode', dark ? 'true' : 'false');
+	stampDark(root, dark);
 }
 /* "Auto" means "follow the OS" — but it only did so at page load, so an OS that
  * flips to dark on its own schedule left the open page in light until a reload. */
@@ -803,6 +830,50 @@ function viewClassFor(node) {
 	return null;
 }
 
+/* The view class the page CURRENTLY on screen wants — i.e. what _curPath resolves to.
+ * Read by the stale-render repair below to tell "the superseded render happened to paint
+ * the right view anyway" from "it painted the wrong one". */
+function currentViewClass() {
+	const segs = segsFromPath(_curPath);
+	const res = segs && resolveSegs(segs);
+	return viewClassFor(res && res.node);
+}
+
+/* ---- a superseded FIRST render cannot be cancelled, so undo it -----------------------
+ *
+ * _navGen stops a stale require() from calling `new view.constructor()` — but that only
+ * covers the CACHED path. On a FIRST visit the require() *is* the render (see the long note
+ * in navigate()): LuCI's require constructs the view, and a view's __init__ runs
+ * load() → render() → dom.content(#view) and registers its pollers. That construction is
+ * already under way inside a promise we do not own; there is nothing to cancel.
+ *
+ * So the fast double-click is a real bug, not a theoretical one: click Firewall (uncached —
+ * module fetch plus its load() RPCs, seconds on a slow router), then click Wireless 100 ms
+ * later. navigate(Wireless) flushes L.Poll's queue BEFORE Firewall's poller is ever added.
+ * Firewall's load() then resolves, paints into the #view that now belongs to Wireless, and
+ * registers its poller — which the flush can no longer catch. The user is left with Wireless
+ * in the URL, the title, the menu and body[data-page], Firewall's content on screen, and
+ * Firewall's poller running on every page they visit afterwards. Returning quietly on a
+ * stale generation left all of that standing.
+ *
+ * Repair by re-running the navigation that is actually current: navigate() is exactly the
+ * "put the document back the way a fresh load leaves it" routine — it flushes the poll
+ * queue, kills stray intervals, hides stray modals and re-instantiates the view. push is
+ * false: the URL never moved, only the DOM under it did. If it declines (the superseded view
+ * injected CSS into <head>), the reload does the same job the hard way.
+ *
+ * The className check is what terminates this. If the superseded render painted the class the
+ * current path wants anyway (click A → B → A while A was still loading), the DOM is correct
+ * and its poller is the one this page needs — repairing would re-render for nothing, and with
+ * two uncached views racing it is also what would let a repair trigger a repair. */
+function repairStaleRender(className) {
+	if (className === currentViewClass())
+		return;
+	console.warn('footstrap: a superseded view (' + className + ') rendered into the live page; re-rendering ' + _curPath);
+	if (!navigate(_curPath, false))
+		window.location.reload();
+}
+
 /* Build the exact URL LuCI.require() will fetch for a class name, cache-bust and
  * all (base_url/<dotted→slashed>.js?v=resource_version). Matching it byte-for-byte
  * is what makes a hover prefetch a warm cache hit for the subsequent require(). */
@@ -878,41 +949,225 @@ function ensureOverviewHelpers() {
 	/* eslint-enable no-var */
 }
 
-/* ---- a view's injected CSS dies with the view ---------------------------------------
+/* ---- a view's injected CSS: never DELETE it, and leave a poisoned document by a real load ----
  *
- * A view may inject a <style> into <head> at render time — `luci-app-filemanager` does, and
- * so does its hex editor. On a full page load that stylesheet is discarded with the document,
- * so it only ever affects the page that asked for it. Our SPA nav never reloads, so it stayed
- * in <head> FOREVER and went on restyling every page the user visited afterwards.
+ * A view may inject a <style> into <head> at render time. On a full page load that stylesheet is
+ * discarded with the document, so it only ever affects the page that asked for it. Our SPA nav
+ * never reloads, so it stays in <head> and goes on restyling every page visited afterwards.
  *
- * That is not cosmetic. The file manager's blob carries
+ * That is not cosmetic. `luci-app-filemanager` injects
  *     .cbi-button-apply, .cbi-button-reset, .cbi-button-save:not(.custom-save-button)
  *         { display: none !important }
  * (it hides the stock buttons because it has its own), and being UNLAYERED with !important it
  * outranks every cascade layer. Measured on the router: open the file manager once, then go to
- * System → Save and Reset are GONE, and stay gone until a full reload. Any config page you
- * touch after visiting that app is unsavable.
+ * System → Save and Reset are GONE, and stay gone until a full reload. Any config page touched
+ * after visiting that app is unsavable.
  *
- * So sweep them, exactly as the router already sweeps the outgoing view's pollers, its stray
- * setIntervals and its open modals: put the document back into the state a fresh page load
- * would leave it in.
+ * The router used to answer that by DELETING every injected <style> on nav, alongside the
+ * outgoing view's pollers, its stray setIntervals and its open modals. **Deleting CSS does not
+ * belong in that family**, and the difference is what broke SSClash. A poller can always be
+ * re-registered by re-rendering the view; a stylesheet only comes back if whoever injected it
+ * injects it AGAIN — and a library that imports its CSS at MODULE EVAL never will, because its
+ * module is cached for the life of the document. ACE is exactly that: `ace_editor.css` (14 KB —
+ * the absolutely-positioned layers, the gutter, the line boxes) is imported once per document,
+ * while its THEME and MODE sheets ride along with the per-editor lazy-loaded files and do come
+ * back. Measured: open SSClash → Configuration, SPA-nav to Log and back, and the editor is a
+ * black rectangle with no text — the theme repainted it, the structure never returned — and the
+ * unpositioned layers blow the page out to 2 007 346 px tall. Deletion was silently one-way.
  *
- * WHAT IS AND IS NOT SWEPT, and why the rule is safe:
+ * So the sweep is gone. Two facts decide what replaces it:
+ *
+ *  1. A sheet that can only match its OWN app's widgets is inert everywhere else. Ace's four
+ *     sheets name nothing but `.ace_*` (and `[ace_nocontext]`); the stock overview's CPU include
+ *     names `.cpu-status-view-mode-entry`. Left in <head> they restyle exactly nothing on the
+ *     next page — so leave them, and ace keeps working across SPA navs.
+ *  2. A sheet that reaches into the widget universe the THEME itself styles (`.cbi-button-save`,
+ *     `pre`, `:root`, …) can repaint any page — and, being unlayered, outranks every layer. That
+ *     document is spent. We cannot delete our way out of it (fact 1's libraries would die), so we
+ *     leave it standing and refuse to hand it to another view: the nav falls back to a REAL page
+ *     load. The outgoing app keeps the CSS it is still using, the incoming page starts from a
+ *     clean document, and the cost is one ordinary navigation — exactly what stock LuCI does on
+ *     every link, on every theme. Speed is traded, never correctness, and only on pages that
+ *     inject invasively.
+ *
+ * `invasiveSheet()` is that test, and its universe is not a hand-written list of names: it is
+ * read back from cascade.css itself (same-origin, so `cssRules` is readable), so it tracks the
+ * theme instead of drifting from it. Two shapes count as invasive — a selector naming a class or
+ * id the theme styles, and a selector with no class/id/attribute at all (`pre`, `*`, `:root`),
+ * which matches stock markup by construction. Everything else is namespaced to its author.
+ * Measured on the router: 0.3 ms per nav, and it correctly splits ace + the CPU include (kept)
+ * from the file manager's blob (real load).
+ *
+ * WHAT IS EXEMPT, and why:
  *  - `[data-fs-shell]` — the ONE <style> the server emits (partials/head.ut). It belongs to the
  *    document, not to a view. Marked server-side rather than guessed at.
- *  - anything inside `#view` — already dies with the content swap; skip it.
+ *  - anything inside `#view` — dies with the content swap on its own; it can never outlive the
+ *    view, so it can never poison another page.
  *  - LuCI core injects no <style> at runtime at all (checked: luci.js, ui.js, cbi.js), so every
  *    other one in the document came from a view.
- * Removal is safe because a re-visit re-instantiates the view (see `_seen` below), which re-runs
- * render() — and that is where an app injects its CSS. The one shape this would break is a view
- * that injects at MODULE EVAL: `require()` caches the module, so it would never re-inject. No
- * LuCI app does that, and one that did would already be broken by its own logic on a full load
- * of any other page. */
-function sweepViewStyles() {
-	document.querySelectorAll('style:not([data-fs-shell])').forEach((el) => {
-		if (!el.closest('#view'))
-			el.remove();
+ * Self-healing: the full load produces a document with no view CSS in it, so SPA nav resumes
+ * immediately after. One slow navigation per poisoned page, not a mode the session gets stuck in.
+ *
+ * If cascade.css cannot be read at all (no universe), every view sheet counts as invasive — the
+ * conservative answer is the slow one, never the broken one. */
+let _themeNames = null;
+
+function themeNames() {
+	if (_themeNames) return _themeNames;
+	const names = new Set();	/* every class and id the theme styles */
+	const props = new Set();	/* every custom property it declares or reads */
+	const walk = (rules) => {
+		for (const r of rules) {
+			if (r.selectorText)
+				(r.selectorText.match(/[.#][A-Za-z_][\w-]*/g) || []).forEach((n) => names.add(n));
+			if (r.cssText)
+				(r.cssText.match(/--[A-Za-z_][\w-]*/g) || []).forEach((p) => props.add(p));
+			if (r.cssRules) walk(r.cssRules);
+		}
+	};
+	for (const ss of document.styleSheets) {
+		if (!ss.href || !(/\/cascade\.css/).test(ss.href)) continue;
+		try { walk(ss.cssRules); } catch (e) { return null; }
+	}
+	_themeNames = names.size ? { names, props } : null;
+	return _themeNames;
+}
+
+/* A rule whose SELECTOR is bare (`:root`, `pre`, `*`) still cannot touch us if none of its
+ * DECLARATIONS can: a custom property this theme never reads is inert — it sits in the cascade
+ * doing nothing but waiting for the app's own CSS to `var()` it.
+ *
+ * This is not a nicety, it is the difference between an app costing a full page load and not.
+ * `luci-app-temp-status` (top-30 by stars) opens with `:root { --app-temp-status-temp: #147aff; … }`,
+ * and `luci-app-filemanager`'s hex editor with `:root { --clr-background: … }` — namespaced, inert,
+ * and both would otherwise have been read as "this document is spent" on the strength of the
+ * selector alone.
+ *
+ * What still counts as invasive here, and why each is right:
+ *  - any STANDARD property on a bare selector — `:root { color-scheme: light dark }` is exactly what
+ *    the stock file manager writes, and it re-points every UA widget in the document at the OS
+ *    preference instead of the theme's mode;
+ *  - a custom property the THEME reads — the whole point of the private `--fs-*` tier is that an app
+ *    writing `--accent` or `--radius` on `:root` cannot repaint us, and the check has to keep it
+ *    that way for the names we DO read. */
+function inertDeclarations(rule, props) {
+	const st = rule.style;
+	if (!st || !st.length) return false;	/* no declarations to judge -> judge by selector */
+	for (let i = 0; i < st.length; i++) {
+		const p = st.item(i);
+		if (p.slice(0, 2) !== '--') return false;	/* a real property: it paints something */
+		if (props.has(p)) return false;			/* a custom property the theme itself reads */
+	}
+	return true;
+}
+
+/* true when this sheet can repaint a page that is not its own.
+ *
+ * A <link> whose sheet is not readable — still loading, 404, cross-origin — is invasive by
+ * default: unknown CSS is treated as the dangerous kind, so the fallback is the slow path and
+ * never the broken one. */
+function invasiveSheet(el, universe) {
+	let sheet;
+	try { sheet = el.sheet; } catch (e) { return true; }
+	if (!sheet) return true;
+
+	const { names, props } = universe;
+	let invasive = false;
+	const walk = (rules) => {
+		for (const r of rules) {
+			if (invasive) return;
+			if (r.selectorText) {
+				for (const part of r.selectorText.split(',')) {
+					const p = part.trim();
+					if (!p) continue;
+					/* no class, no id, no attribute anywhere: a bare type/universal selector, which
+					 * matches stock markup on every page (`pre`, `*`, `svg text`, `:root`) — unless
+					 * everything it declares is inert here (see inertDeclarations) */
+					if (!(/[.#[]/).test(p)) {
+						if (inertDeclarations(r, props)) continue;
+						invasive = true;
+						return;
+					}
+					/* A rule may name a stock widget and still be harmless, if it can only ever
+					 * MATCH inside the app's own markup: `#cbi-podkop-section > .cbi-section-remove`
+					 * needs podkop's section to exist, and `.bandix-table th.sortable.active` needs
+					 * bandix's table. What decides it is whether the selector carries any name the
+					 * theme does NOT know — that name is the app's, and it is what pins the rule to
+					 * the app's subtree. A selector made ENTIRELY of stock names has nothing pinning
+					 * it, and matches the same widgets on every other page.
+					 *
+					 * Functional pseudo-class arguments are stripped before looking for that pin,
+					 * and that is the whole difference between podkop and the file manager:
+					 * `.cbi-button-save:not(.custom-save-button)` mentions an app class too, but
+					 * inside a NEGATION — it does not require the app's markup, it excludes it. */
+					const themeHit = (p.match(/[.#][A-Za-z_][\w-]*/g) || []).some((n) => names.has(n));
+					if (!themeHit) continue;
+					const pinned = (p.replace(/:[a-z-]+\([^)]*\)/gi, ' ').match(/[.#][A-Za-z_][\w-]*/g) || [])
+						.some((n) => !names.has(n));
+					if (!pinned) { invasive = true; return; }
+				}
+			}
+			if (r.cssRules) walk(r.cssRules);
+		}
+	};
+	try { walk(sheet.cssRules); } catch (e) { return true; }
+	return invasive;
+}
+
+/* Both element kinds count, and the <link> half is not hypothetical: `luci-app-banip` and
+ * `luci-app-adblock` append `<link rel=stylesheet href=…/custom.css>` to <head> at MODULE EVAL,
+ * and that file styles `.cbi-input-text` / `.cbi-input-select` — stock widgets, on every page,
+ * unlayered. A <link> INSIDE the view tree is a different thing and needs no handling
+ * (`luci-app-nlbwmon` does that): it dies with the content swap like any other node. */
+const VIEW_SHEETS = 'style:not([data-fs-shell]), link[rel~="stylesheet"]:not([data-fs-shell])';
+
+function documentPoisoned() {
+	const names = themeNames();
+	return Array.prototype.some.call(
+		document.querySelectorAll(VIEW_SHEETS),
+		(el) => !el.closest('#view') && (!names || invasiveSheet(el, names)));
+}
+
+/* ---- the one thing that IS safe to remove: a byte-identical second copy ----------------
+ *
+ * Not deleting view CSS has a cost, and an app that injects on EVERY render is where it shows:
+ * `luci-app-podkop` calls injectGlobalStyles() from its render() (a 4 KB blob appended to <head>
+ * with no guard), and `luci-app-mosdns` re-appends three CodeMirror <link>s the same way. Each
+ * SPA re-visit adds another copy, and the copies never stop being parsed.
+ *
+ * Dropping an EXACT duplicate is the one deletion that cannot break anyone, and for the reason
+ * the sweep failed: the rules do not go away. The surviving copy is byte-identical, so the
+ * cascade is unchanged (two identical sheets resolve to the same computed value as one), and a
+ * library's "have I already imported this?" check — the thing ACE's structural CSS died on —
+ * still finds its sheet in the document.
+ *
+ * Keep the FIRST copy, not the last: it is the one already matched by any handle the app kept. */
+function dedupeViewSheets() {
+	const seen = new Set();
+	document.querySelectorAll(VIEW_SHEETS).forEach((el) => {
+		if (el.closest('#view')) return;
+		const key = el.tagName + '|' + (el.tagName === 'LINK' ? el.href : el.textContent);
+		if (seen.has(key)) el.remove();
+		else seen.add(key);
 	});
+}
+
+/* Watch <head> rather than deduping on navigation, because the copy arrives too late to catch
+ * otherwise: podkop injects from its render(), which resolves AFTER the router's require() callback
+ * (measured — a nav-time sweep left the document permanently carrying one stale duplicate, bounded
+ * but never zero). The observer collapses the copy in the same microtask it appears in.
+ *
+ * It cannot loop: removing a node produces a mutation with no ADDED nodes, and the handler bails
+ * unless a stylesheet was added. */
+function watchViewSheets() {
+	new MutationObserver((muts) => {
+		for (const m of muts)
+			for (const n of m.addedNodes)
+				if (n.nodeName === 'STYLE' || n.nodeName === 'LINK') {
+					dedupeViewSheets();
+					return;
+				}
+	}).observe(document.head, { childList: true });
 }
 
 /* Attempt an in-place navigation to `pathname`. Returns true if handled as a
@@ -921,6 +1176,10 @@ function sweepViewStyles() {
 function navigate(pathname, push) {
 	const segs = segsFromPath(pathname);
 	if (!segs) return false;
+
+	/* The view on screen injected CSS that can repaint any page: this document is spent, and
+	 * the only exit that leaves BOTH pages correct is a real navigation. See invasiveSheet(). */
+	if (documentPoisoned()) return false;
 
 	/* `segs` is what the user clicked, `rsegs` the leaf it resolves to — the two
 	 * differ for an alias/firstchild link, and a full load keeps BOTH: the URL and
@@ -997,7 +1256,6 @@ function navigate(pathname, push) {
 	if (_updTimer) { window.clearTimeout(_updTimer); _updTimer = null; }
 	_updGen++;	/* and disown any fs.exec already in flight (see _updGen) */
 	try { if (typeof ui.hideModal == 'function') ui.hideModal(); } catch (e) {}
-	sweepViewStyles();	/* …and the CSS the outgoing view injected into <head> */
 
 	/* point the runtime env at the new node so views, tabs and highlighting read
 	 * the right path. For a fully-matched leaf, request == dispatch path. */
@@ -1026,8 +1284,15 @@ function navigate(pathname, push) {
 	 * body[data-page=…] rule at once. */
 	document.body.setAttribute('data-page', rsegs.join('-'));
 
+	/* A re-navigation to the page already on screen must REPLACE its history entry, not
+	 * push a second one. Clicking the active menu item (or the brand, from the overview)
+	 * is a perfectly ordinary thing to do, and pushing a duplicate entry makes the Back
+	 * button do nothing: popstate fires, `location.pathname === _curPath`, and the
+	 * fragment-change guard below correctly returns without navigating — so the user is
+	 * left pressing Back once per stray click before anything moves. A full page load has
+	 * no such trap: re-visiting the same URL is one entry, not two. */
 	if (push)
-		history.pushState({ fsnav: true }, '', pathname);
+		history[pathname === window.location.pathname ? 'replaceState' : 'pushState']({ fsnav: true }, '', pathname);
 
 	/* titles: <host> | <page> */
 	const host = (document.title.split('|')[0] || '').trim();
@@ -1043,6 +1308,27 @@ function navigate(pathname, push) {
 	 * replays (push=false) keep the browser's own scroll handling. */
 	if (push)
 		window.scrollTo(0, 0);
+
+	/* ---- what a full page load does for a keyboard/screen-reader user, and the SPA did not
+	 *
+	 * A real navigation resets focus to the top of the new document and the browser announces
+	 * it. Neither happens here, and it is worse than merely missing: renderChrome() above has
+	 * just done `#topmenu.innerHTML = ''`, so the very <a> the user activated with Enter no
+	 * longer exists. Focus falls back to <body>, the next Tab restarts at the skip link, and
+	 * nothing anywhere says the page changed — the URL, the title and #view all moved in
+	 * silence. A sighted mouse user never notices; for everyone else the page simply stops
+	 * being navigable.
+	 *
+	 * So do what the browser would: put focus on the <main> (it already carries tabindex="-1"
+	 * for the skip link, and #maincontent:focus is already outline-less, so this is visible to
+	 * nobody who was not already keyboarding), and speak the new title through the polite live
+	 * region in header.ut. preventScroll because the scroll position is decided just above —
+	 * focus() would otherwise drag a popstate replay back to the top and undo the browser's
+	 * own restoration. */
+	const main = document.getElementById('maincontent');
+	if (main) main.focus({ preventScroll: true });
+	const live = document.getElementById('fs-nav-status');
+	if (live) live.textContent = node.title ? _(node.title) : '';
 
 	/* Require + instantiate through the runtime singleton `window.L`, NOT the
 	 * bare `L` a LuCI module factory is handed. They are different objects: the
@@ -1077,9 +1363,18 @@ function navigate(pathname, push) {
 	const cached = _seen.has(className);
 	_seen.add(className);
 	RT.require(className).then(view => {
-		if (gen !== _navGen) return;	/* a newer navigation superseded this one */
 		if (!(view instanceof RT.view))
 			throw new TypeError('Loaded class ' + className + ' is not a view');
+		if (gen !== _navGen) {
+			/* A newer navigation superseded this one. On the CACHED path nothing has
+			 * happened yet — skipping the constructor below is the whole cancellation.
+			 * On the FIRST-visit path the require() we are being called back from has
+			 * ALREADY rendered into the live page and registered its pollers, and there
+			 * was never anything to cancel: undo it. See repairStaleRender(). */
+			if (!cached)
+				repairStaleRender(className);
+			return;
+		}
 		if (cached)
 			new view.constructor();	/* singleton: its __init__ already ran, re-run it */
 	}).catch((e) => {
@@ -1500,8 +1795,14 @@ function wireAppearance() {
 		const gen = ++_updGen;
 		const stale = () => gen !== _updGen;
 		const modal = (body) => { if (!stale()) ui.showModal(_('Update Footstrap'), body); };
+		/* The message is an ARRAY child, and that is not a style choice: luci.js's dom.append()
+		 * assigns a BARE STRING child via `node.innerHTML`, and only an array is turned into a
+		 * text node. What lands here is raw installer output — footstrap-selfupdate.sh reports
+		 * `ERR: install failed: <apk/opkg stderr>` — plus RPC exception text, i.e. the one
+		 * string in this theme that neither the theme nor LuCI composed. Markup in it would be
+		 * parsed. Every other E() here already passes an array; these did not. */
 		const fail = (msg) => modal([
-			E('p', {}, _('Update failed') + ': ' + String(msg || _('unknown error')).replace(/^ERR:\s*/, '').trim()),
+			E('p', {}, [ _('Update failed') + ': ' + String(msg || _('unknown error')).replace(/^ERR:\s*/, '').trim() ]),
 			E('div', { 'class': 'right' }, E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Close')))
 		]);
 		modal([
@@ -1699,6 +2000,7 @@ return baseclass.extend({
 			wireRouter();
 			wireVisibility();
 			wireTabFit();
+			watchViewSheets();
 		/* This file warns about exactly this in renderTabMenu ("an unhandled
 		 * rejection here kills every menu") and then left the root chain bare: a
 		 * throw anywhere in the six calls above took out the menu, the router and
