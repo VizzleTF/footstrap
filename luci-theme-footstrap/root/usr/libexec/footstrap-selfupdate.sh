@@ -218,18 +218,16 @@ do_update() {
 		rm -f "$json"; return 1
 	}
 
-	# The language packages ship in the same release and are updated WITH the theme, in the
-	# same run — a catalogue that lags the theme is not an error anyone can see: an _() whose
-	# msgid the .lmo does not carry simply renders in English (issue #6). They are installed
-	# even when none is present, not merely upgraded: a router that installed the theme before
-	# these packages existed has no catalogue at all, and clicking Update is exactly the moment
-	# to give it one. A .lmo is a few KB, and LuCI only loads the one for the language it runs in.
-	i18n_urls="$(asset_urls "$json" luci-i18n-footstrap | tr '\n' ' ')"
-
-	# The theme first: the language packages DEPEND on it.
-	for url in $theme_url $i18n_urls; do
-		fetch_verify_install "$url" "$json" || { rm -f "$json"; return 1; }
-	done
+	# ONE asset, and the release is required to keep it that way — see the Makefile note.
+	# The version of THIS script that a router already runs is the one that decides what an
+	# update installs, and it cannot be fixed remotely: v0.8.4 added a second .apk to the
+	# release (the language package), and every self-updater in the field picked it instead of
+	# the theme, because it selects with `grep '\.apk$' | head -1` and GitHub returns the asset
+	# list sorted by NAME — `luci-i18n-…` sorts before `luci-theme-…`. Users got the catalogue,
+	# no theme update, and a badge that kept asking forever (issue #6). Matching by package name
+	# below is the fix for the NEXT such mistake; keeping the release single-asset is the fix for
+	# the routers that will never run this code.
+	fetch_verify_install "$theme_url" "$json" || { rm -f "$json"; return 1; }
 	rm -f "$json"
 
 	# drop the LuCI menu/dispatch + module caches so the new theme is served at once

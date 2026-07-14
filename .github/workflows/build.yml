@@ -365,12 +365,6 @@ jobs:
           ./scripts/feeds install -a
 
           echo 'CONFIG_PACKAGE_luci-theme-footstrap=m' >> .config
-          # The translation packages luci.mk derives from po/* are HIDDEN and default to off,
-          # so they are only built because the SDK builds every package a Makefile defines.
-          # Select them anyway: without the .lmo on the router every _() in the theme falls
-          # through to its English msgid — silently, by construction (issue #6) — so this is
-          # not a "nice to have" that may quietly drop out of a build.
-          echo 'CONFIG_PACKAGE_luci-i18n-footstrap-ru=m' >> .config
           if [ "${{ matrix.use_apk }}" = "y" ]; then
             echo 'CONFIG_USE_APK=y' >> .config
           fi
@@ -378,20 +372,28 @@ jobs:
           make package/luci-theme-footstrap/compile V=s FOOTSTRAP_VERSION="$FOOTSTRAP_VERSION"
 
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          # Collect the theme AND its language packages. The old glob named only the theme, so
-          # luci-i18n-footstrap-ru was built by the SDK, sat in bin/ and was thrown away — the
-          # release carried no catalogue at all. (ipk puts an underscore before the version,
-          # apk a dash; the i18n name ends in -<lang>, so one `-*` glob covers both.)
-          find bin/ -type f \( -name 'luci-theme-footstrap-*.apk' -o -name 'luci-theme-footstrap_*.ipk' \
-                            -o -name 'luci-i18n-footstrap-*.apk'  -o -name 'luci-i18n-footstrap-*.ipk' \) \
+          find bin/ -type f \( -name 'luci-theme-footstrap-*.apk' -o -name 'luci-theme-footstrap_*.ipk' \) \
             -exec cp {} "$GITHUB_WORKSPACE/dist/" \;
           ls -lah "$GITHUB_WORKSPACE/dist"
-          # Assert BOTH, by name. "the dist dir is non-empty" is what let the missing catalogue
-          # ship: the theme alone satisfied it.
+
+          # EXACTLY ONE package per format, and this check is load-bearing — it is not tidiness.
+          #
+          # `footstrap-selfupdate.sh` as it exists on routers ALREADY IN THE FIELD picks the
+          # release asset with `grep -E '\.apk$' | head -1`, and the GitHub API returns the asset
+          # list sorted BY NAME. v0.8.4 added a second package (luci-i18n-footstrap-ru), which
+          # sorts BEFORE luci-theme-footstrap — so every existing router's Update button installed
+          # a 6 KB translation catalogue instead of the theme, reported success, and went on
+          # offering the same update forever (issue #6). That script cannot be fixed remotely; the
+          # only thing we control is what the release contains. So: one asset per format, and the
+          # catalogue travels inside the theme package (see the Makefile).
+          #
+          # If a second package is ever genuinely needed, it must sort AFTER the theme by NAME in
+          # BOTH schemes (apk `name-1.2.3-r1.apk`, ipk `name_1.2.3-r1_all.ipk` — note '-' < '_'),
+          # and that is a decision to make deliberately, not by adding a glob.
+          n=$(ls "$GITHUB_WORKSPACE/dist" | grep -c "\.${{ matrix.fmt }}$" || true)
+          [ "$n" = 1 ] || { echo "expected exactly 1 .${{ matrix.fmt }}, got $n — see the note above"; exit 1; }
           ls "$GITHUB_WORKSPACE/dist" | grep -q '^luci-theme-footstrap[-_]' \
             || { echo "no theme ${{ matrix.fmt }} produced"; exit 1; }
-          ls "$GITHUB_WORKSPACE/dist" | grep -q '^luci-i18n-footstrap-ru[-_]' \
-            || { echo "no luci-i18n-footstrap-ru ${{ matrix.fmt }} produced — the theme would ship untranslated"; exit 1; }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

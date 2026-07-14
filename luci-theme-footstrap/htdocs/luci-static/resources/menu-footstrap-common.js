@@ -1638,63 +1638,80 @@ function wireAppearance() {
 	 * the cats wallpaper, which is now its own Wallpaper axis (composes with either
 	 * palette). Tint sits next to Palette because it composes with it too: it hues the
 	 * surfaces of whichever palette is on, and its job is identifying the ROUTER, not
-	 * choosing a look. */
+	 * choosing a look.
+	 *
+	 * EVERY LABEL IN HERE CARRIES THE 'footstrap' CONTEXT — `_(str, ctx)`, whose key is
+	 * `ctx\1str`. That is not decoration: LuCI serves ONE MERGED catalogue to the client
+	 * (`load_catalog()` loads every *.<lang>.lmo in /usr/lib/lua/luci/i18n, and a lookup
+	 * returns the first archive that has the hash), so a msgid is a GLOBAL name shared with
+	 * every luci-app on the router, and the winner is decided by readdir order. Our layout
+	 * toggle rendered "Максимум" on a user's Russian router (issue #6) — somebody else's
+	 * catalogue translates the msgid "Top" as "maximum", which is perfectly correct in a
+	 * bandwidth dialog and nonsense on a layout switch. Contexting cannot be selective by
+	 * string either: whatever we leave bare is a name anyone may take.
+	 *
+	 * The chrome (Menu, Logout, Skip to content) and the login/notice sentences are
+	 * deliberately NOT contexted — they are standard LuCI phrasings, and inheriting a
+	 * translation from luci-base is a feature in the ~40 languages this theme has no
+	 * catalogue of its own for. The three overview section titles (System/Memory/Storage in
+	 * 05_footstrap_overview_layout.js) must not be contexted either — that include MATCHES
+	 * the stock section headings, so it needs exactly the translation luci-mod-status uses. */
 	const groups = [
 		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Layout') ]),
+			E('div', { 'class': 'fs-ap-label' }, [ _('Layout', 'footstrap') ]),
 			segControl(currentLayout(), [
-				{ val: 'sidebar', label: _('Sidebar') },
-				{ val: 'top',     label: _('Top') }
-			], applyLayout, _('Layout'))
+				{ val: 'sidebar', label: _('Sidebar', 'footstrap') },
+				{ val: 'top',     label: _('Top', 'footstrap') }
+			], applyLayout, _('Layout', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Theme') ]),
+			E('div', { 'class': 'fs-ap-label' }, [ _('Theme', 'footstrap') ]),
 			segControl(currentMode(), [
-				{ val: 'auto',  label: _('Auto') },
-				{ val: 'light', label: _('Light') },
-				{ val: 'dark',  label: _('Dark') }
-			], applyMode, _('Theme'))
+				{ val: 'auto',  label: _('Auto', 'footstrap') },
+				{ val: 'light', label: _('Light', 'footstrap') },
+				{ val: 'dark',  label: _('Dark', 'footstrap') }
+			], applyMode, _('Theme', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Palette') ]),
+			E('div', { 'class': 'fs-ap-label' }, [ _('Palette', 'footstrap') ]),
 			segControl(currentPalette(), [
 				{ val: 'footstrap',  label: 'Footstrap' },
 				{ val: 'hicontrast', label: 'Hi-Contrast' }
-			], applyPalette, _('Palette'))
+			], applyPalette, _('Palette', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Wallpaper') ]),
+			E('div', { 'class': 'fs-ap-label' }, [ _('Wallpaper', 'footstrap') ]),
 			segControl(currentWallpaper(), [
-				{ val: 'off',  label: _('Off') },
-				{ val: 'cats', label: _('Cats') }
-			], applyWallpaper, _('Wallpaper'))
+				{ val: 'off',  label: _('Off', 'footstrap') },
+				{ val: 'cats', label: _('Cats', 'footstrap') }
+			], applyWallpaper, _('Wallpaper', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			/* the caption says what the axis is FOR, not what it does — "Tint" alone
 			 * reads as decoration and nobody would look for the router-identity cue
 			 * under it */
-			E('div', { 'class': 'fs-ap-label' }, [ _('Tint (router identification)') ]),
+			E('div', { 'class': 'fs-ap-label' }, [ _('Tint (router identification)', 'footstrap') ]),
 			/* step 5 = 72 hues, which is finer than anyone can name and coarse enough
 			 * that the same router lands on the same colour when it is set again. */
-			sliderControl(currentTint(), 0, 360, applyTint, _('Tint (router identification)'), {
+			sliderControl(currentTint(), 0, 360, applyTint, _('Tint (router identification)', 'footstrap'), {
 				step: 5,
 				cls: 'fs-range-hue',
-				fmt: v => (v ? v + '°' : _('Off'))
+				fmt: v => (v ? v + '°' : _('Off', 'footstrap'))
 			})
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Accent') ]),
+			E('div', { 'class': 'fs-ap-label' }, [ _('Accent', 'footstrap') ]),
 			/* recolours the accented CONTROLS (buttons/toggles/sliders/focus rings), not
 			 * the canvas the way Tint does — same hue slider, off at 0 = palette default */
-			sliderControl(currentAccent(), 0, 360, applyAccent, _('Accent'), {
+			sliderControl(currentAccent(), 0, 360, applyAccent, _('Accent', 'footstrap'), {
 				step: 5,
 				cls: 'fs-range-hue fs-range-accent',
-				fmt: v => (v ? v + '°' : _('Off'))
+				fmt: v => (v ? v + '°' : _('Off', 'footstrap'))
 			})
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding') ]),
-			sliderControl(currentRadius(), 0, 20, applyRadius, _('Rounding'))
+			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding', 'footstrap') ]),
+			sliderControl(currentRadius(), 0, 20, applyRadius, _('Rounding', 'footstrap'))
 		])
 	];
 
@@ -1714,11 +1731,11 @@ function wireAppearance() {
 	 * off the same :root[data-layout] every other layout rule reads makes it correct on load,
 	 * correct on toggle, and correct with no JS state at all. */
 	groups.push(E('div', { 'class': 'fs-ap-group fs-ap-submenus' }, [
-		E('div', { 'class': 'fs-ap-label' }, [ _('Submenus') ]),
+		E('div', { 'class': 'fs-ap-label' }, [ _('Submenus', 'footstrap') ]),
 		segControl(currentAutoCollapse() ? 'on' : 'off', [
-			{ val: 'off', label: _('Keep open') },
-			{ val: 'on',  label: _('Auto-collapse') }
-		], applyAutoCollapse, _('Submenus'))
+			{ val: 'off', label: _('Keep open', 'footstrap') },
+			{ val: 'on',  label: _('Auto-collapse', 'footstrap') }
+		], applyAutoCollapse, _('Submenus', 'footstrap'))
 	]));
 
 	/* version line + "new version" badge + one-click Update button (the last two
@@ -1732,11 +1749,11 @@ function wireAppearance() {
 
 	/* opt-out toggle for the update check */
 	groups.push(E('div', { 'class': 'fs-ap-group' }, [
-		E('div', { 'class': 'fs-ap-label' }, [ _('Updates') ]),
+		E('div', { 'class': 'fs-ap-label' }, [ _('Updates', 'footstrap') ]),
 		segControl(currentUpdateCheck() ? 'on' : 'off', [
-			{ val: 'on',  label: _('Check') },
-			{ val: 'off', label: _('Off') }
-		], applyUpdateCheck, _('Updates'))
+			{ val: 'on',  label: _('Check', 'footstrap') },
+			{ val: 'off', label: _('Off', 'footstrap') }
+		], applyUpdateCheck, _('Updates', 'footstrap'))
 	]));
 
 	groups.push(E('div', { 'class': 'fs-ap-footer' }, [

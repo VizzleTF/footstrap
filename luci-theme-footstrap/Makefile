@@ -18,13 +18,6 @@ FOOTSTRAP_VERSION?=
 ifneq ($(FOOTSTRAP_VERSION),)
 PKG_VERSION:=$(FOOTSTRAP_VERSION)
 PKG_RELEASE:=1
-# The translation packages luci.mk generates from po/ (luci-i18n-footstrap-<lang>) take
-# their version from PKG_PO_VERSION, which defaults to a git-or-mtime stamp — and the SDK
-# build has no .git, so every CI run stamped them `0.<yymmdd>.<secs>`: a version unrelated
-# to the theme's and DIFFERENT on every build of the same commit. Pin them to the theme's
-# version, so the asset the installer downloads is named for the release it belongs to and
-# a rebuild of a tag is reproducible.
-PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)
 endif
 
 LUCI_TITLE:=Footstrap Theme
@@ -171,5 +164,46 @@ define Build/Prepare/luci-theme-footstrap
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
+
+# THE TRANSLATION CATALOGUE SHIPS INSIDE THE THEME PACKAGE. That is deliberate, it is not
+# how a luci-app does it, and undoing it re-opens two bugs that were both hit in production.
+#
+# The conventional way is luci.mk's own machinery: a `po/` directory makes it emit a SEPARATE
+# `luci-i18n-footstrap-<lang>` package per language. v0.8.4 shipped exactly that — and it
+# broke the update button for every existing install:
+#
+#   1. A release then carries several assets, and `footstrap-selfupdate.sh` (in every version
+#      users already have) picks one with `grep -E '\.apk$$' | head -1`. GitHub returns the
+#      asset list sorted BY NAME, and `luci-i18n-footstrap-ru-…apk` sorts before
+#      `luci-theme-footstrap-…apk`. So clicking Update installed the 6 KB catalogue INSTEAD of
+#      the theme: the strings became Russian, the theme stayed on the old version, the badge
+#      kept offering the update — and it would have done that forever, because the script that
+#      picks the wrong asset is the one that never gets replaced. Reported as issue #6.
+#      A router's installed self-updater cannot be fixed remotely; the RELEASE has to stay
+#      pickable by the script the router already runs. One asset per format does that.
+#   2. Two packages can drift: theme new, catalogue old. An _() whose msgid the catalogue does
+#      not carry renders in English with nothing reported — the whole failure mode this file's
+#      i18n gate exists to prevent. Bundled, they cannot disagree.
+#
+# The cost is a few KB of catalogue on a router whose LuCI is English. That is the price, and
+# it is small: the .lmo is ~3.6 KB.
+#
+# `po/` is therefore renamed to `i18n/` — LUCI_LANGUAGES is `$(wildcard po/*)`, so the rename
+# is what stops luci.mk generating the language packages at all. po2lmo is the same host tool
+# luci.mk would have used (luci-base/host is already a build dependency, so it is on the
+# buildbot). The basename is `footstrap-theme`, NOT `footstrap`: lmo_load_catalog globs
+# `*.<lang>.lmo`, so any basename is loaded — and a router that installed v0.8.4 still OWNS
+# `footstrap.ru.lmo` through the old luci-i18n-footstrap-ru package. Writing that same path
+# here would be a file conflict and apk would refuse the upgrade — i.e. it would break the
+# very update this change exists to fix.
+#
+# Build/Compile is defined AFTER the include on purpose: luci.mk defines an empty one (there
+# is no src/Makefile), and for `define`, the last definition wins.
+define Build/Compile
+	$(INSTALL_DIR) $(PKG_BUILD_DIR)/root/usr/lib/lua/luci/i18n
+	$(foreach po,$(wildcard $(CURDIR)/i18n/*/*.po), \
+		po2lmo $(po) \
+			$(PKG_BUILD_DIR)/root/usr/lib/lua/luci/i18n/footstrap-theme.$(notdir $(patsubst %/,%,$(dir $(po)))).lmo;)
+endef
 
 # call BuildPackage - OpenWrt buildroot signature

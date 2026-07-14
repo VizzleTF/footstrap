@@ -1,22 +1,28 @@
 #!/bin/sh
-# Regenerate po/templates/footstrap.pot from the theme sources and merge it into every
-# po/<lang>/footstrap.po. Run it after adding or changing ANY _('…') string.
+# Regenerate i18n/templates/footstrap.pot from the theme sources and merge it into every
+# i18n/<lang>/footstrap.po. Run it after adding or changing ANY _('…') string.
 #
 #   ./update-po.sh            rescan, merge, report what is still untranslated
 #   ./update-po.sh --check    change nothing; fail if the .pot is stale or a string is
 #                             untranslated. This is the CI gate.
 #
 # WHY THIS EXISTS AT ALL. The theme's strings were wrapped in _() from the start, but
-# there was no po/ directory — and luci.mk derives LUCI_LANGUAGES from `po/*`, so no
-# language package was ever built. Every _() therefore fell through to its English
-# msgid: the Appearance popover said "Palette"/"Rounding"/"Cats" on a LuCI running in
-# Russian, and nothing anywhere reported a problem. A translation that is never compiled
-# fails silently by construction, which is exactly why the --check mode is a gate and
-# not a suggestion.
+# there was no catalogue — and every _() therefore fell through to its English msgid: the
+# Appearance popover said "Palette"/"Rounding"/"Cats" on a LuCI running in Russian, and
+# nothing anywhere reported a problem. A translation that is never compiled fails silently
+# by construction, which is exactly why the --check mode is a gate and not a suggestion.
 #
-# Nothing here runs on the buildbot: luci.mk finds po/ and calls po2lmo itself. This
-# script is for the developer and for CI, and needs perl + gettext (xgettext, msgmerge,
-# msgfmt), none of which the OpenWrt build needs.
+# THE DIRECTORY IS `i18n/`, NOT `po/`, AND THAT IS LOAD-BEARING. luci.mk derives
+# LUCI_LANGUAGES from `$(wildcard po/*)` and emits a separate luci-i18n-footstrap-<lang>
+# package for each — which is the conventional layout, and which broke the update button for
+# every existing install (a release then has several assets, and the self-updater every router
+# already runs takes the FIRST .apk by name — the language pack). See the long note in the
+# Makefile. The catalogue is compiled into the theme package instead; renaming this directory
+# is what stops luci.mk building the language packages.
+#
+# Nothing here runs on the buildbot: the Makefile calls po2lmo itself. This script is for the
+# developer and for CI, and needs perl + gettext (xgettext, msgmerge, msgfmt), none of which
+# the OpenWrt build needs.
 #
 # The scanner is LuCI's OWN build/i18n-scan.pl, not a hand-rolled grep: it knows how to
 # lex a .ut template (it rewrites the template into JavaScript before handing it to
@@ -36,7 +42,7 @@ cd "$(dirname "$0")"
 . ./luci-upstream.pin
 SCANNER_URL="https://raw.githubusercontent.com/openwrt/luci/${LUCI_PIN}/build/i18n-scan.pl"
 SCANNER_SHA256="$I18N_SCAN_SHA256"
-POT='po/templates/footstrap.pot'
+POT='i18n/templates/footstrap.pot'
 CHECK=0
 [ "${1:-}" = '--check' ] && CHECK=1
 
@@ -63,17 +69,19 @@ else
 	}
 fi
 
-mkdir -p po/templates
+mkdir -p i18n/templates
 fresh="$(mktemp)"
 # htdocs = the theme JS, ucode = the templates, root = the rpcd ACL title
 perl "$scanner" htdocs ucode root > "$fresh"
 
 if [ "$CHECK" = 1 ]; then
-	# Compare msgids only. Line-number comments churn on every edit and say nothing
-	# about whether a string is missing.
+	# Compare msgids AND msgctxt. Line-number comments churn on every edit and say nothing
+	# about whether a string is missing — but the CONTEXT is part of the key (po2lmo hashes
+	# "ctxt\1msgid"), so a .pot that still carries the same msgids with the context dropped
+	# describes a completely different catalogue. Comparing msgid alone waved that through.
 	old_ids="$(mktemp)"; new_ids="$(mktemp)"
-	grep '^msgid' "$POT" | sort > "$old_ids"
-	grep '^msgid' "$fresh" | sort > "$new_ids"
+	grep '^msgid\|^msgctxt' "$POT" | sort > "$old_ids"
+	grep '^msgid\|^msgctxt' "$fresh" | sort > "$new_ids"
 	if ! cmp -s "$old_ids" "$new_ids"; then
 		echo "update-po: $POT is STALE — a string was added or removed without rerunning ./update-po.sh" >&2
 		diff "$old_ids" "$new_ids" | grep '^[<>]' >&2 || true
@@ -83,7 +91,7 @@ if [ "$CHECK" = 1 ]; then
 	rm -f "$fresh" "$old_ids" "$new_ids"
 
 	rc=0
-	for po in po/*/*.po; do
+	for po in i18n/*/*.po; do
 		[ -e "$po" ] || continue
 		# an empty msgstr means the string renders in English for that language
 		missing="$(msgfmt --statistics -o /dev/null "$po" 2>&1 | grep -o '[0-9]* untranslated' || true)"
@@ -100,7 +108,7 @@ fi
 mv "$fresh" "$POT"
 echo "scanned -> $POT ($(grep -c '^msgid' "$POT") strings)"
 
-for po in po/*/*.po; do
+for po in i18n/*/*.po; do
 	[ -e "$po" ] || continue
 	msgmerge --quiet --update --backup=none "$po" "$POT"
 	echo "merged  -> $po: $(msgfmt --statistics -o /dev/null "$po" 2>&1 | tr '\n' ' ')"

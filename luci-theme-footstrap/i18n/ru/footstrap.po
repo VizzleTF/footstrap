@@ -7,12 +7,13 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1325
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1328
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1703
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1706
+msgctxt "footstrap"
 msgid "Accent"
 msgstr "Акцент"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1394
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1772
 #: ucode/template/themes/footstrap/partials/appearance.ut:12
 #: ucode/template/themes/footstrap/partials/appearance.ut:14
 msgid "Appearance"
@@ -22,40 +23,45 @@ msgstr "Оформление"
 msgid "Authorization Required"
 msgstr "Требуется авторизация"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1292
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1670
+msgctxt "footstrap"
 msgid "Auto"
 msgstr "Авто"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1359
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1737
+msgctxt "footstrap"
 msgid "Auto-collapse"
 msgstr "Сворачивать"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1444
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1828
 msgid "Cancel"
 msgstr "Отмена"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1308
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1686
+msgctxt "footstrap"
 msgid "Cats"
 msgstr "Коты"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1376
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1754
+msgctxt "footstrap"
 msgid "Check"
 msgstr "Проверить"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1439
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1823
 msgid "Close"
 msgstr "Закрыть"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1579
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1963
 #: ucode/template/themes/footstrap/header.ut:53
 msgid "Collapse menu"
 msgstr "Свернуть меню"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1294
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1672
+msgctxt "footstrap"
 msgid "Dark"
 msgstr "Тёмная"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1442
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1826
 msgid ""
 "Download and install the latest Footstrap release from GitHub? The page "
 "reloads when done."
@@ -63,11 +69,11 @@ msgstr ""
 "Скачать и установить последний выпуск Footstrap с GitHub? По завершении "
 "страница перезагрузится."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1501
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1885
 msgid "Downloading and installing…"
 msgstr "Загрузка и установка…"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1579
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1963
 msgid "Expand menu"
 msgstr "Развернуть меню"
 
@@ -91,16 +97,19 @@ msgstr "Неверное имя пользователя и/или пароль!
 msgid "JavaScript required!"
 msgstr "Требуется JavaScript!"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1358
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1736
+msgctxt "footstrap"
 msgid "Keep open"
 msgstr "Не сворачивать"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1283
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1287
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1661
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1665
+msgctxt "footstrap"
 msgid "Layout"
 msgstr "Раскладка"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1293
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1671
+msgctxt "footstrap"
 msgid "Light"
 msgstr "Светлая"
 
@@ -108,7 +117,7 @@ msgstr "Светлая"
 msgid "Log in"
 msgstr "Войти"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1472
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1856
 msgid "Log in again"
 msgstr "Войти снова"
 
@@ -130,8 +139,8 @@ msgstr "Память"
 msgid "Menu"
 msgstr "Меню"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1369
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1410
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1747
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1788
 msgid "New version available"
 msgstr "Доступна новая версия"
 
@@ -147,15 +156,17 @@ msgstr ""
 msgid "No password set!"
 msgstr "Пароль не установлен!"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1307
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1321
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1331
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1377
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1685
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1699
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1709
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1755
+msgctxt "footstrap"
 msgid "Off"
 msgstr "Выкл."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1298
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1302
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1676
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1680
+msgctxt "footstrap"
 msgid "Palette"
 msgstr "Палитра"
 
@@ -167,14 +178,16 @@ msgstr "Пароль"
 msgid "Please enter your username and password."
 msgstr "Введите имя пользователя и пароль."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1335
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1336
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1713
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1714
+msgctxt "footstrap"
 msgid "Rounding"
 msgstr "Скругление"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1285
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1663
+msgctxt "footstrap"
 msgid "Sidebar"
-msgstr "Боковая панель"
+msgstr "Сбоку"
 
 #: ucode/template/themes/footstrap/header.ut:42
 msgid "Skip to content"
@@ -184,8 +197,9 @@ msgstr "Перейти к содержимому"
 msgid "Storage"
 msgstr "Накопитель"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1356
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1360
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1734
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1738
+msgctxt "footstrap"
 msgid "Submenus"
 msgstr "Подменю"
 
@@ -197,8 +211,9 @@ msgstr "Система"
 msgid "System running in recovery (initramfs) mode."
 msgstr "Система работает в режиме восстановления (initramfs)."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1290
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1295
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1668
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1673
+msgctxt "footstrap"
 msgid "Theme"
 msgstr "Тема"
 
@@ -210,28 +225,30 @@ msgstr ""
 "На этом роутере не задан пароль. Установите пароль root, чтобы защитить веб-"
 "интерфейс."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1315
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1318
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1693
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1696
+msgctxt "footstrap"
 msgid "Tint (router identification)"
 msgstr "Оттенок (опознание роутера)"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1286
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1664
+msgctxt "footstrap"
 msgid "Top"
 msgstr "Сверху"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1445
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1829
 msgid "Update"
 msgstr "Обновить"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1436
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1814
 msgid "Update Footstrap"
 msgstr "Обновление Footstrap"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1438
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1822
 msgid "Update failed"
 msgstr "Не удалось обновить"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1468
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1852
 msgid ""
 "Update installed. The router restarted its session service, so you have been "
 "logged out — sign in again to load the new theme."
@@ -239,16 +256,17 @@ msgstr ""
 "Обновление установлено. Роутер перезапустил службу сессий, поэтому сеанс "
 "завершён — войдите снова, чтобы загрузить новую тему."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1370
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1748
 msgid "Update now"
 msgstr "Обновить сейчас"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1485
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1869
 msgid "Updated. Reloading…"
 msgstr "Обновлено. Перезагрузка…"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1374
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1378
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1752
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1756
+msgctxt "footstrap"
 msgid "Updates"
 msgstr "Обновления"
 
@@ -256,8 +274,9 @@ msgstr "Обновления"
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1305
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1309
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1683
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1687
+msgctxt "footstrap"
 msgid "Wallpaper"
 msgstr "Обои"
 
@@ -267,11 +286,11 @@ msgid ""
 msgstr ""
 "Включите JavaScript в браузере, иначе LuCI не будет работать корректно."
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1478
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1862
 msgid "timed out waiting for the installer"
 msgstr "истекло время ожидания установщика"
 
-#: htdocs/luci-static/resources/menu-footstrap-common.js:1438
+#: htdocs/luci-static/resources/menu-footstrap-common.js:1822
 msgid "unknown error"
 msgstr "неизвестная ошибка"
 

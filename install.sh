@@ -9,14 +9,10 @@
 # Optional: pin a release tag ->  ... | sh -s v0.3.1
 #
 # Detects the OpenWrt release and its package manager, then downloads the
-# matching assets from the latest (or given) GitHub release: .apk for apk-based
+# matching asset from the latest (or given) GitHub release: .apk for apk-based
 # systems (25.12+), .ipk for opkg-based systems (24.10). Licensed Apache-2.0.
 #
-# It installs the theme AND its luci-i18n-footstrap-<lang> translation packages.
-# The catalogue is not optional decoration: without the .lmo on the router, every
-# _() in the theme renders its English msgid and nothing reports it — the Appearance
-# popover said "Palette"/"Rounding"/"Cats" on a fully Russian LuCI (issue #6).
-# FOOTSTRAP_NO_I18N=1 installs the theme alone.
+# One package, translations included: the theme carries its own .lmo catalogue.
 
 set -e
 
@@ -198,21 +194,11 @@ if [ -z "$THEME_URL" ]; then
 	exit 1
 fi
 
-# The translation packages. Every one of them, not the one language the router happens to
-# be set to today: a .lmo is a few KB, LuCI only loads the catalogue for the language it is
-# actually running in, and gating on `uci get luci.main.lang` would install nothing on the
-# stock router — its default is `auto`, which means "whatever the browser asks for", i.e.
-# potentially any of them. Without the catalogue every _() in the theme silently renders its
-# English msgid (issue #6). FOOTSTRAP_NO_I18N=1 skips them.
-#
-# NOT `[ … ] && I18N_URLS=""`: with `set -e` an AND-list whose test fails is itself a
-# failing command at top level, and the installer would exit right here — on the normal
-# path, where FOOTSTRAP_NO_I18N is unset.
-I18N_URLS=$(asset_urls "$JSON" luci-i18n-footstrap)
-if [ "${FOOTSTRAP_NO_I18N:-0}" = "1" ]; then
-	I18N_URLS=""
-	info "Skipping the translation packages (FOOTSTRAP_NO_I18N=1)."
-fi
+# There is exactly ONE package, and the translation catalogue rides inside it. v0.8.4 shipped
+# the catalogue as a separate luci-i18n-footstrap-<lang> package and that broke the update
+# button on every router already in the field — see the long note in the package Makefile.
+# The release must stay pickable by the self-updater the router ALREADY runs, and that one
+# takes the first asset of its extension; so a release carries one asset per format.
 
 # --- download, verify, install --------------------------------------------
 # Each package is installed as root with --allow-untrusted, i.e. with no package signature
@@ -274,11 +260,7 @@ install_asset() {
 	rm -f "$_pkg"
 }
 
-# The theme first: the language packages DEPEND on it.
 install_asset "$THEME_URL"
-for u in $I18N_URLS; do
-	install_asset "$u"
-done
 
 # BOTH caches, as postinst/postrm/uci-defaults do. This dropped only the index cache, leaving
 # /tmp/luci-modulecache behind — and a stale module cache after installing a package that
@@ -297,11 +279,7 @@ if [ -x /etc/init.d/rpcd ]; then
 fi
 
 printf '\n'
-ok "luci-theme-footstrap installed."
-if [ -n "$I18N_URLS" ]; then
-	ok "Translations installed. The theme follows the language set in"
-	info "System -> System -> Language and Style -> \"Language\"."
-fi
+ok "luci-theme-footstrap installed (translations included)."
 info "Select \"Footstrap\" in System -> System -> Language and Style -> \"Design\"."
 info "Layout (sidebar / top bar), dark mode, palette, tint and accent all live in"
 info "the \"Appearance\" popover in the menu — they are per-browser, not per-router."

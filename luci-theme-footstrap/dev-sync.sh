@@ -46,6 +46,24 @@ if [ -n "$FS_V" ] && expr "$FS_V" : '[0-9A-Za-z._-]*$' >/dev/null; then
 	ssh "$R" "sed -i \"s#const FS_VERSION = '[^']*'#const FS_VERSION = '$FS_V'#\" /www/luci-static/resources/menu-$N-common.js"
 fi
 
+# the translation catalogue, which the PACKAGE compiles in Build/Compile. po2lmo is a host
+# tool from luci-base and is not on a dev machine by default, so this is best-effort: with it
+# on $PATH the router gets the current catalogue, without it the strings stay English and the
+# sync still succeeds. (Build it once from the pinned luci commit: cc -o po2lmo po2lmo.c
+# lib/lmo.c lib/plural_formula.c — see luci-upstream.pin.) Same basename as the package uses.
+if command -v po2lmo >/dev/null 2>&1; then
+	ssh "$R" "mkdir -p /usr/lib/lua/luci/i18n"
+	for po in "$D"/i18n/*/*.po; do
+		[ -e "$po" ] || continue
+		lang="$(basename "$(dirname "$po")")"
+		po2lmo "$po" "/tmp/footstrap-theme.$lang.lmo"
+		scp -q "/tmp/footstrap-theme.$lang.lmo" "$R":/usr/lib/lua/luci/i18n/
+		rm -f "/tmp/footstrap-theme.$lang.lmo"
+	done
+else
+	echo "  (po2lmo not found — skipping the translation catalogue; strings stay English)"
+fi
+
 # self-update backend: the exec script + its rpcd ACL (file.exec of that one path)
 ssh "$R" "mkdir -p /usr/libexec /usr/share/rpcd/acl.d"
 scp -q  "$D"/root/usr/libexec/footstrap-selfupdate.sh          "$R":/usr/libexec/
