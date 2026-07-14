@@ -10,7 +10,7 @@
 
 Каждый коммит пишет в `[Unreleased]`. При выпуске тега заголовок переименовывается.
 
-## [Unreleased]
+## [0.8.7] — 2026-07-14
 
 ### Исправлено
 - **Файловый браузер обрезал собственные кнопки: `Delete` выдавался срезанным рамкой виджета.**
@@ -1696,6 +1696,7 @@
   вложенный `calc()`, что ломало вёрстку напрочь. Минификация JS вернулась в 0.7.12, когда
   безопасность jsmin подтвердил гейт эквивалентности токенов.
 
+[0.8.7]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.5...v0.8.6
 [0.7.17]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.16...v0.7.17
 [0.7.16]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.15...v0.7.16
