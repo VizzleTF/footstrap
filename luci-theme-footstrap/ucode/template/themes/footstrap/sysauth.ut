@@ -16,14 +16,17 @@
  rejects and render() never runs. Do not re-introduce it. The SERVER renders the form: works
  with JS off, cannot be broken by a rejected promise, needs no luci-theme-bootstrap installed.
 
- styles/pages/10-login.css makes it the centred card, keyed off the username field. The strings
+ styles/pages/10-login.css makes it the centred card, keyed off `.fs-login` below. The strings
  carry no msgctxt on purpose — luci-base translates them in the ~40 languages this theme has no
  catalogue for.
 -#}
 
 {% include('header', { blank_page: true }) %}
 
-<form method="post">
+{# The class is what 10-login.css hooks: the form used to be found by
+   `form:has(> .cbi-map input[name="luci_username"])` — 49 characters written 17 times, ~0.8 KB —
+   because the markup was assumed to be stock LuCI's. It is OURS: name the form instead. #}
+<form method="post" class="fs-login">
 	{% if (fuser): %}
 		<div class="alert-message warning">
 			<p>{{ _('Invalid username and/or password! Please try again.') }}</p>

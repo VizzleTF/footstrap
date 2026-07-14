@@ -12,6 +12,27 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [Unreleased]
 
+### Performance
+- **A page load no longer spawns a CGI process to fetch an empty translation catalogue — 31 ms off
+  every full load on an English router.** `<head>` loaded `admin/translations/<lang>` synchronously,
+  and at `lang=en` that spent 31 ms (measured, five runs) to deliver **13 bytes** — `window.TR={};` —
+  because there is no English catalogue to deliver: the msgids already are English. The process was
+  the cost, not the data. The template now emits those 13 bytes inline when the language has no
+  catalogue, and keeps the tag when it has one. The probe mirrors the server's own rule (`*.<lang>.lmo`
+  in `/usr/lib/lua/luci/i18n`, which is what `load_catalog` globs), so a router that does ship an
+  English catalogue still gets the tag; deciding by language name would have silently dropped it. It
+  fails **open** — a throwing probe keeps the tag — because a missing catalogue makes every `_()`
+  render English and report nothing. `defer` was rejected, not overlooked: `footer.ut` runs
+  `L.require('menu-footstrap')` inline while the parser is still going, so a module's `_()` would race
+  a deferred `window.TR` and lose silently.
+- **The login page dropped its 17 copies of a 49-character `:has()` selector — 663 bytes of CSS.**
+  Every rule keyed off `form:has(> .cbi-map input[name="luci_username"])`, on the assumption that the
+  markup was stock LuCI's and therefore unnameable. It is ours: `sysauth.ut` renders that form, so it
+  now carries `class="fs-login"`. The audit's stated blocker — that `ui.js` might re-render the login
+  form for its session-expiry modal — was checked and is false: `ui.js` contains no `luci_username`
+  and builds no login form at all, so nothing else ever matched those selectors. Computed styles on
+  the live router are identical in light and dark (0 property diffs over every element of the page).
+
 ### Fixed
 - **Dark mode: the selected row of an open dropdown failed WCAG AA at 4.21:1.** It painted accent text
   on `--fs-accent-soft` — a translucent tint of that same accent — and a tint drags the background

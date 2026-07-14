@@ -23,3 +23,6 @@ dist/
 # package-lock.json IS committed on purpose: it pins the transitive dependency
 # tree, so CI lints with exactly what was verified here.
 node_modules/
+
+# python bytecode from the audit tooling
+__pycache__/

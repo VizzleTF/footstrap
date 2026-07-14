@@ -142,8 +142,26 @@
 		   invasive one as a page it must not hand on (filemanager, banip, adblock inject one). #}
 		<style data-fs-shell>{{ css }}</style>
 		{% endif %}
+		{# The catalogue is a CGI SPAWN on the critical path — 30 ms measured on the router — and at
+		   lang=en it spends them to deliver 13 bytes (`window.TR={};`): there is no en catalogue,
+		   because the msgids already ARE English. The process is the cost, not the data. So emit
+		   those 13 bytes inline when this language has no catalogue, and keep the tag when it has.
+		   The probe MIRRORS the server: action_translations calls load_catalog(lang,
+		   '/usr/lib/lua/luci/i18n'), which loads every `*.<lang>.lmo` there — so a router that does
+		   ship an en catalogue still gets the tag. Deciding by language NAME would silently drop it.
+		   Fails OPEN (a throwing probe keeps the tag): a missing catalogue makes every `_()` render
+		   English and report nothing, which is the one failure this must never risk. #}
+		{%- let has_catalog = true;
+		    try { has_catalog = length(require('fs').glob(`/usr/lib/lua/luci/i18n/*.${dispatcher.lang}.lmo`)) > 0; } catch (e) {} %}
+		{% if (has_catalog): %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
+		{% else %}
+		<script>window.TR={};</script>
+		{% endif %}
 		{# the one asset stock LuCI leaves without a cache key. Must stay SYNCHRONOUS and
-		   un-deferred: luci.js captures `window.cbi_init` in its constructor. #}
+		   un-deferred: luci.js captures `window.cbi_init` in its constructor. `defer` is not an
+		   option for the catalogue above either — footer.ut runs `L.require('menu-footstrap')`
+		   inline while the parser is still running, so a module's `_()` would race a deferred
+		   window.TR and win silently. #}
 		<script src="{{ resource }}/cbi.js?v={{ pkgs_update_time }}"></script>
 	</head>

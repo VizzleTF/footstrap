@@ -1,6 +1,11 @@
 @layer page {
-	/* LOGIN — the SERVER-rendered form of themes/footstrap/sysauth.ut, as a centred card,
-	 * scoped by the username field so nothing else on the site is touched.
+	/* LOGIN — the SERVER-rendered form of themes/footstrap/sysauth.ut, as a centred card.
+	 *
+	 * Scoped by `.fs-login`, a class that template puts on the form. It used to be found by
+	 * `form:has(> .cbi-map input[name="luci_username"])`, on the assumption that the markup was
+	 * stock LuCI's and unnameable — 49 characters × 17 rules, ~0.8 KB of the stylesheet. The
+	 * form is ours; naming it is free. (ui.js builds no login form of its own — it has no
+	 * `luci_username` anywhere — so nothing else ever matched those selectors.)
 	 *
 	 * The theme ships its own sysauth.ut so the page carries NO chrome: without one, LuCI
 	 * falls back to the generic template, which includes the header WITHOUT blank_page and
@@ -10,7 +15,7 @@
 	 * Tried: BLANK PAGE, NO WAY TO LOG IN — the view runs before a session exists, its RPCs
 	 * answer "Access denied", the promise rejects, render() never runs. Server-rendered, the
 	 * form works with JS off. */
-	form:has(> .cbi-map input[name="luci_username"]) {
+	.fs-login {
 		/* A DEFINITE width, never `max-width`: the card is a direct flex item of <body>
 		 * (base/20-typography.css makes body a flex column so the footer can margin-top:auto),
 		 * and on the cross axis an `auto` side margin overrides the stretch and sizes the item
@@ -23,47 +28,47 @@
 		 * a heavy grey cloud under a white card in light mode. */
 		padding: 26px 26px 24px; box-shadow: var(--fs-shadow-pop);
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-map,
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-section,
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-section-node {
+	.fs-login .cbi-map,
+	.fs-login .cbi-section,
+	.fs-login .cbi-section-node {
 		background: none; border: 0; padding: 0; margin: 0; box-shadow: none;
 	}
 	/* the login card IS the panel — the generic "heading gets its own card" rule would
 	 * draw a second frame inside it */
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2,
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr {
+	.fs-login .cbi-map > h2,
+	.fs-login .cbi-map-descr {
 		background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2 {
+	.fs-login .cbi-map > h2 {
 		font-size: 21px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr { color: var(--fs-dim); font-size: 13px; margin: 0 0 20px; }
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-value {
+	.fs-login .cbi-map-descr { color: var(--fs-dim); font-size: 13px; margin: 0 0 20px; }
+	.fs-login .cbi-value {
 		display: block; border: 0; padding: 0 0 15px; margin: 0;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-title {
+	.fs-login .cbi-value-title {
 		display: block; text-align: left; width: auto; max-width: none; padding: 0 0 6px;
 		font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--fs-faint);
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-field {
+	.fs-login .cbi-value-field {
 		width: 100%; margin: 0; padding: 0;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-value-field input {
+	.fs-login .cbi-value-field input {
 		width: 100%; margin: 0; box-sizing: border-box;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: var(--fs-radius); }
+	.fs-login .alert-message { margin: 0 0 14px; border-radius: var(--fs-radius); }
 	/* a column, not a block: some auth plugins add a second action (Reset), and the
 	 * full-width buttons below carry margin:0 — they ended up glued together */
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions {
+	.fs-login .cbi-page-actions {
 		display: flex; flex-direction: column; gap: 10px;
 		background: none; border: 0;
 		padding: 0; margin: 6px 0 0; text-align: left;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn,
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions input[type="submit"] {
+	.fs-login .cbi-page-actions .btn,
+	.fs-login .cbi-page-actions input[type="submit"] {
 		width: 100%; box-sizing: border-box; min-height: 44px; margin: 0; border-radius: var(--fs-radius-lg);
 		background: var(--fs-accent); color: var(--fs-on-accent);
 		border: 0; font-weight: 700; font-size: 14px;
 	}
-	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions .btn:hover { filter: var(--fs-hover-lift); }
+	.fs-login .cbi-page-actions .btn:hover { filter: var(--fs-hover-lift); }
 }
