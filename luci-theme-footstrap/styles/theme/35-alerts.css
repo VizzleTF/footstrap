@@ -18,16 +18,37 @@
 	.alert-message.error, .alert-message.danger { border-color: var(--fs-danger); }
 	.alert-message.success, .alert-message.notice { border-left-color: var(--fs-good); }
 
-	/* h2 is what the theme's own notices emit (the document had no heading above h4 at all).
-	 * h4 stays in the list: a third-party alert may use it, and coverage only grows. */
-	.alert-message :is(h2, h3, h4) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--fs-text); }
+	/* h2 is what the theme's own notices emit (the document had no heading above h4 at all); h4 is
+	 * here because a third-party alert may use it, and coverage only grows. h5/h6 joined for the
+	 * same reason — base styled them and the theme did not, so an alert heading looked like an
+	 * alert heading down to h4 and then fell back to a bootstrap one. */
+	.alert-message :is(h2, h3, h4, h5, h6) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--fs-text); }
 	.alert-message p { margin: 4px 0; color: var(--fs-dim); font-size: 13px; }
+	/* …and the body elements an alert may carry. Absorbed from base/90-widgets.css, same values:
+	 * the theme had claimed only <p> out of that rule's six selectors. */
+	.alert-message :is(ul, ol, li, pre) { color: var(--fs-text); margin: .25em 0; }
 	/* inner table (firmware Current/Available) — flatten so it does not read as a nested card
 	 * on the alert panel; subtle row dividers only */
 	.alert-message .table { margin: 10px 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
 	.alert-message .table .th { color: var(--fs-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 	.alert-message .table .th, .alert-message .table .td { padding: 7px 14px 7px 0; background: transparent; border-color: color-mix(in srgb, var(--fs-border) 60%, transparent); }
 	.alert-message .table .td { color: var(--fs-text); }
+
+	/* The validation tooltip (ui.js pops it on a .cbi-tooltip-container). Its colour words were the
+	 * ONE status surface the theme never claimed — base/60-modal.css said so in as many words —
+	 * and nothing could see it: docs/gallery.html rendered a plain `.cbi-tooltip` only, so the
+	 * absorption backlog for these could not be settled either way. An un-rendered widget shows no
+	 * diff, and no diff reads as "already dead". The gallery renders all four now.
+	 *
+	 * The fill stays SOLID, unlike `.label` below: a tooltip floats over arbitrary content, so a
+	 * border carrying the status would have to read against whatever happens to be behind it. The
+	 * ink is the role's own `--fs-on-*`, which 03-palettes.css sizes per palette AND per mode — a
+	 * global white failed AA on seven of the eight dark-palette fills. Same paint as base's, in the
+	 * theme's flat notation rather than a `linear-gradient(C, C)`. */
+	.cbi-tooltip.info { background: var(--fs-accent); border-color: var(--fs-accent); color: var(--fs-on-accent); }
+	.cbi-tooltip.success { background: var(--fs-good); border-color: var(--fs-good); color: var(--fs-on-good); }
+	.cbi-tooltip.error { background: var(--fs-danger); border-color: var(--fs-danger); color: var(--fs-on-danger); }
+	.cbi-tooltip.notice { background: var(--fs-panel2); border-color: var(--fs-border); color: var(--fs-text); }
 
 	/* The `.label` pill. LuCI core barely uses it, but any luci-app-* may reach for it, so the
 	 * theme owns it in tokens (base's copy is absorbed). `.important` is the conventional name

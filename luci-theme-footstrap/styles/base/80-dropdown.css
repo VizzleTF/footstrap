@@ -1,14 +1,21 @@
 @layer base {
 	/* The .cbi-dropdown widget. ui.js drives it purely through attributes — [open],
 	 * [multiple], [empty], [more], [display], [selected] — and these rules turn those
-	 * into a working combobox. The eight !important flags below are the widget's own
-	 * display/padding machinery: drop one and the popup collapses. See docs/17. */
+	 * into a working combobox. The SIX !important flags below are the widget's own display
+	 * machinery — its states ([open], [multiple], [empty], [optional]) override each other, and the
+	 * flags are how upstream resolves that. Drop one and the popup collapses; measured, not assumed
+	 * (docs/gallery.html renders the closed, open, button, combobox and spinning states).
+	 *
+	 * There were EIGHT. The two on `.cbi-dropdown` itself (display + padding) fought no widget state
+	 * at all — they fought base's own generic form-field rule and the theme's button padding, i.e.
+	 * OUR css, which a later layer beats for free. They are theme/65-dropdown.css's now, unflagged.
+	 * See docs/17. */
 	.cbi-dropdown {
-		display: inline-flex !important;
+		display: inline-flex;
 		cursor: pointer;
 		height: auto;
 		position: relative;
-		padding: 0 !important;
+		padding: 0;
 	}
 
 	/* closed-control paint: theme/65-dropdown.css — absorbed */
@@ -43,6 +50,8 @@
 		display: none;
 	}
 
+	/* line-height + padding: theme/65-dropdown.css — absorbed. Both halves of this strip are the
+	 * theme's now (`.open` is the chevron, `.more` the overflow "…"). */
 	.cbi-dropdown > .open,
 	.cbi-dropdown > .more {
 		flex-grow: 0;
@@ -51,8 +60,6 @@
 		flex-direction: column;
 		justify-content: center;
 		text-align: center;
-		line-height: 2em;
-		padding: 0 .3em;
 	}
 
 	.cbi-dropdown.btn > .open,
@@ -80,11 +87,10 @@
 		color: inherit;
 	}
 
+	/* padding + color: theme/65-dropdown.css — absorbed (one menu row, both dropdown kinds). */
 	.cbi-dropdown > ul.dropdown > li,
 	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li {
 		min-height: 20px;
-		padding: .25em;
-		color: var(--fs-text);
 	}
 
 	.cbi-dropdown > ul > li .hide-open { display: initial; }

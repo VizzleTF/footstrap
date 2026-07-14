@@ -1,0 +1,15 @@
+@layer page {
+	/* Associated stations (Overview and Network → Wireless render the same `.assoclist` table).
+	 *
+	 * theme/30-tables.css lets ANY data cell break to fit (`overflow-wrap: anywhere`) — which is
+	 * what reflows a wide table into the content column instead of scrolling it. On a MAC address
+	 * that is wrong: `48:E1:5C:9F:26:20` split over two lines at whatever character happened to
+	 * land on the edge (issue #5), and the column is only ~103px, so it split every time. Stock
+	 * LuCI keeps it on one line.
+	 *
+	 * Exactly the shape pages/50-leases.css already uses, and for the same reason — see the note
+	 * there about why the nowrap is also the table's floor, and why `:not(.fs-stacked)` is the
+	 * whole guard: once fs-select.js has measured that the table no longer fits and carded it, the
+	 * cells must be free to wrap again. */
+	#view table.fs-dt.assoclist:not(.fs-stacked) .td[data-title="MAC address"] { white-space: nowrap; }
+}

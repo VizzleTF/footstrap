@@ -92,12 +92,9 @@
 		height: 30px;
 	}
 
-	.cbi-dropdown:not(.btn):not(.cbi-button),
-	.cbi-dynlist {
-		min-width: 210px;
-		max-width: 400px;
-		width: auto;
-	}
+	/* width: theme/65-dropdown.css (the dropdown) and theme/60-inputs.css (the dynlist) — absorbed.
+	 * They shared one rule here while the theme sized only the dynlist, so half of one decision
+	 * stayed behind in a layer the theme cannot see. */
 
 	.cbi-dynlist {
 		height: auto;

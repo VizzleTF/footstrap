@@ -312,10 +312,10 @@
 		font-size: smaller;
 	}
 
+	/* color: theme/60-inputs.css — absorbed. */
 	div.cbi-value var,
 	.td.cbi-value-field var {
 		font-style: italic;
-		color: var(--fs-accent);
 	}
 
 	div.cbi-value var[data-tooltip],
@@ -441,14 +441,12 @@
 		margin: 15vh auto;
 	}
 
-	/* Room for the ::before spinner glyph. The !important is load-bearing: a spinning
-	 * dropdown-button (the Save & Apply split control while applying) is a .cbi-dropdown,
-	 * whose `padding: 0 !important` (80-dropdown.css) would otherwise win — only a later
-	 * same-layer important longhand outranks that important shorthand. It also holds the
-	 * 32px against theme's own .btn padding. */
+	/* padding-left (room for the ::before spinner glyph): theme/55-buttons.css — absorbed, and the
+	 * !important it used to need went with it. It was there to beat `padding: 0 !important` on
+	 * .cbi-dropdown (80-dropdown.css) — a flag that is itself gone now — and the theme's own button
+	 * padding. Both are answered by specificity in a later layer instead. */
 	.spinning {
 		position: relative;
-		padding-left: 32px !important;
 	}
 
 	/* Rotate in CSS, NEVER with a SMIL <animateTransform> inside the data-URI: that runs in
@@ -507,11 +505,12 @@
 		overflow: hidden;
 	}
 
+	/* padding: theme/60-inputs.css — absorbed. The zero side padding here was what let a 36px
+	 * themed button touch this element's own clip box and lose its corners to it. */
 	.cbi-filebrowser > * {
 		max-width: 100%;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		padding: 0 0 .25em 0;
 		margin: .25em .25em 0px .25em;
 		white-space: nowrap;
 		border-bottom: 1px solid var(--fs-border);
@@ -530,21 +529,20 @@
 		flex-direction: row;
 	}
 
-	/* row hover surface: theme/60-inputs.css — absorbed */
+	/* row hover surface, and the row's whole flex sizing: theme/60-inputs.css — absorbed. The
+	 * proportional split that lived here (name `flex: 10` / actions `flex: 3`) fitted base's ~20px
+	 * buttons and not the theme's 36px ones, which is how a file row came to clip its own Delete. */
 	.cbi-filebrowser > ul > li > div:first-child {
-		flex: 10;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
 	.cbi-filebrowser > ul > li > div:last-child {
-		flex: 3;
 		text-align: right;
 	}
 
 	.cbi-filebrowser > ul > li > div:last-child > button {
 		padding: .125em .25em;
-		margin: 1px 0 1px .25em;
 	}
 
 	.cbi-filebrowser .upload {

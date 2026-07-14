@@ -20,29 +20,29 @@
 		white-space: pre;
 	}
 
+	/* border-color: theme/60-inputs.css — absorbed. The ink stays: theme paints no colour here. */
 	.cbi-input-invalid,
 	.cbi-input-invalid.cbi-dropdown:not(.btn):not(.cbi-button),
 	.cbi-input-invalid.cbi-dropdown:not([open]) > ul > li,
 	.cbi-value-error input {
 		color: var(--fs-danger);
-		border-color: var(--fs-danger);
 	}
 
+	/* `--on-color` ONLY. The `border-color: var(--on-color)` that used to sit in each of these was
+	 * dead on arrival and had been for as long as the theme has painted buttons: theme/55-buttons.css
+	 * sets `border` on `.cbi-button, .btn`, and a later layer beats this one whatever the
+	 * specificity — so a `.cbi-button-edit` never wore the accent border declared here, it wore
+	 * `--fs-border` from the theme. (Proven, not reasoned: stripping them changes no computed style
+	 * over docs/gallery.html, which renders every one of these variants.)
+	 *
+	 * `--on-color` stays because it is NOT paint: base/95-luci.css masks the spinner glyph
+	 * (`.spinning::before`) with it, so it has to track the button's variant. The colour a variant
+	 * WEARS is theme/55-buttons.css's business, in one place. */
 	.cbi-button-positive,
 	.cbi-button-fieldadd,
 	.cbi-button-add,
 	.cbi-button-save {
 		--on-color: var(--fs-good);
-		border-color: var(--on-color);
-	}
-
-	.cbi-button-neutral,
-	.cbi-button-download,
-	.cbi-button-find,
-	.cbi-button-link,
-	.cbi-button-up,
-	.cbi-button-down {
-		color: var(--fs-text);
 	}
 
 	.btn.primary,
@@ -51,7 +51,6 @@
 	.cbi-button-reload,
 	.cbi-button-edit {
 		--on-color: var(--fs-accent);
-		border-color: var(--on-color);
 	}
 
 	.cbi-button-negative,
@@ -59,7 +58,6 @@
 	.cbi-button-reset,
 	.cbi-button-remove {
 		--on-color: var(--fs-danger);
-		border-color: var(--on-color);
 	}
 
 	.cbi-page-actions::after {
@@ -77,23 +75,20 @@
 		margin-right: .4em;
 	}
 
-	/* Fills: theme/55-buttons.css — absorbed. --on-color stays because it is not paint:
-	 * the spinner glyph (.spinning::before, 95-luci.css) masks itself with it and must
-	 * track the button's variant. border-color stays too — theme does not set it on
-	 * .cbi-page-actions .cbi-button-apply. */
+	/* Fills and borders: theme/55-buttons.css — absorbed. --on-color stays (the spinner mask, see
+	 * above). The `border-color` that used to be here carried a stale note claiming theme did not
+	 * set it on `.cbi-page-actions .cbi-button-apply` — theme/55-buttons.css sets `border: 1px solid
+	 * transparent` on exactly that selector, and has for a while. */
 	.btn.primary,
 	.cbi-button-action.important,
 	.cbi-page-actions .cbi-button-apply,
 	.cbi-section-actions .cbi-button-edit {
 		--on-color: var(--fs-on-accent);
-		border-color: var(--fs-accent);
 	}
 
 	.cbi-button-positive.important,
 	.cbi-page-actions .cbi-button-save {
 		--on-color: var(--fs-on-good);
-		background: linear-gradient(var(--fs-good), var(--fs-good));
-		border-color: var(--fs-good);
 	}
 
 	.cbi-button-negative.important {

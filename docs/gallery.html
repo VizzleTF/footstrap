@@ -193,8 +193,59 @@ option two</textarea></div>
 --dpi-desync-repeats=6</textarea></div>
 			</div>
 			<div class="cbi-value">
-				<label class="cbi-value-title" for="g-file">File upload</label>
+				<label class="cbi-value-title" for="g-file">File upload (bare input)</label>
 				<div class="cbi-value-field"><input id="g-file" type="file"></div>
+			</div>
+			<!-- ui.FileUpload, CLOSED — what a form shows before you click it. The browser below is
+			     the same widget with .open on it; LuCI only ever has one of the two visible. -->
+			<div class="cbi-value">
+				<label class="cbi-value-title">File upload (ui.FileUpload, closed)</label>
+				<div class="cbi-value-field">
+					<div>
+						<button class="btn open-file-browser">Select file…</button>
+						<div class="cbi-filebrowser"></div>
+						<input type="hidden" name="g-fb0" value="">
+					</div>
+				</div>
+			</div>
+			<!-- ui.FileUpload, OPEN. Markup copied from ui.js (renderListing + renderUpload), classes
+			     and nesting included: the listing rows are <li> with .name / .mtime.hide-xs / a button
+			     div, and the upload strip is [Browse…] [filename input] [Upload file] in one .upload
+			     flex row. Both are only reachable after two clicks on a live router, which is why the
+			     row that could not hold its button went unseen. -->
+			<div class="cbi-value">
+				<label class="cbi-value-title">File upload (ui.FileUpload, browser open)</label>
+				<div class="cbi-value-field">
+					<div>
+						<button class="btn open-file-browser" style="display:none">Select file…</button>
+						<div class="cbi-filebrowser open">
+							<p><a href="#">/etc/luci-uploads</a> » <a href="#">certs</a></p>
+							<ul>
+								<li>
+									<div class="name"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1 3h5l1 2h8v9H1z' fill='%23888'/%3E%3C/svg%3E" width="16" class="middle" alt=""> <a href="#">subdir</a></div>
+									<div class="mtime hide-xs"> 2026-07-14 18:31:07 </div>
+									<div><button class="btn cbi-button-negative">Delete</button></div>
+								</li>
+								<li>
+									<div class="name"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 1h7l3 3v11H3z' fill='%23888'/%3E%3C/svg%3E" width="16" class="middle" alt=""> <a href="#" style="font-weight:bold">fullchain.pem</a></div>
+									<div class="mtime hide-xs"> 2026-07-14 18:29:55 </div>
+									<div><button class="btn">Deselect</button><button class="btn">Download</button><button class="btn cbi-button-negative">Delete</button></div>
+								</li>
+							</ul>
+							<div class="right">
+								<div class="upload">
+									<input type="file" style="display:none">
+									<button class="btn">Browse…</button>
+									<div><input type="text" placeholder="Filename"></div>
+									<button class="btn cbi-button-save">Upload file</button>
+								</div>
+								<a href="#" class="btn cbi-button">Create</a>
+								<a href="#" class="btn">Cancel</a>
+							</div>
+						</div>
+						<input type="hidden" name="g-fb1" value="">
+					</div>
+				</div>
 			</div>
 			<div class="cbi-value">
 				<label class="cbi-value-title" for="g-range">Range slider</label>
@@ -233,6 +284,10 @@ option two</textarea></div>
 	<div class="g-row">
 		<div class="cbi-dropdown" tabindex="0"><ul><li class="focus" display="0">Selected value</li></ul><span class="open">▾</span></div>
 		<div class="cbi-dropdown btn cbi-button cbi-button-action" tabindex="0"><ul><li>Button dropdown</li></ul><span class="open">▾</span></div>
+		<!-- The Save & Apply split control WHILE APPLYING: a .cbi-dropdown that is also a spinning
+		     button. Its padding has to out-rank the dropdown box's own `padding: 0` — the one case
+		     the spinner's !important used to exist for, and the one nothing rendered. -->
+		<div class="cbi-dropdown btn cbi-button cbi-button-apply spinning" tabindex="0"><ul><li>Applying…</li></ul><span class="open">▾</span></div>
 	</div>
 	<p class="g-note">Closed controls only. The open list — and the create-item row that goes with it —
 		is in the Combobox section below.</p>
@@ -349,6 +404,47 @@ option two</textarea></div>
 		<p>Some explanatory body text.</p>
 		<div><button class="cbi-button">Stop showing</button> <button class="cbi-button">Dismiss</button></div>
 	</div>
+	<!-- The rest of what base styles inside an alert: h5, a list, and a <pre>. Only h4 and <p> were
+	     here, so the audit's absorption backlog for `.alert-message li/ul/pre/h5` could not be
+	     settled either way — an un-rendered widget shows no diff, which reads as "already dead". -->
+	<div class="alert-message danger">
+		<h5>Heading 5 inside an alert</h5>
+		<p>Body.</p>
+		<ul><li>a list item</li><li>another one</li></ul>
+		<pre>a &lt;pre&gt; block inside an alert</pre>
+	</div>
+</div>
+
+<div class="g-sec">
+	<h2>Tooltips (.cbi-tooltip — the colour words too)</h2>
+	<!-- ui.js pops these on a .cbi-tooltip-container; the colour variants are what a third-party
+	     luci-app-* uses for a validation hint, and NOTHING else in this gallery renders them. -->
+	<div style="position:relative;height:190px">
+		<div class="cbi-tooltip" style="position:static;display:block;opacity:1;margin:0 0 6px">plain .cbi-tooltip</div>
+		<div class="cbi-tooltip info" style="position:static;display:block;opacity:1;margin:0 0 6px">.cbi-tooltip.info</div>
+		<div class="cbi-tooltip success" style="position:static;display:block;opacity:1;margin:0 0 6px">.cbi-tooltip.success</div>
+		<div class="cbi-tooltip error" style="position:static;display:block;opacity:1;margin:0 0 6px">.cbi-tooltip.error</div>
+		<div class="cbi-tooltip notice" style="position:static;display:block;opacity:1">.cbi-tooltip.notice</div>
+	</div>
+</div>
+
+<div class="g-sec">
+	<h2>.cbi-select (the non-JS select fallback)</h2>
+	<!-- What LuCI renders when fs-select.js has not (yet) turned a &lt;select&gt; into a ui.Dropdown,
+	     and what a third-party package emits directly. base styles it as a field; the theme names
+	     every input TYPE but never this class, so it was invisible to every check. -->
+	<div class="cbi-value">
+		<label class="cbi-value-title" for="g-cbisel">.cbi-select</label>
+		<div class="cbi-value-field">
+			<select id="g-cbisel" class="cbi-select"><option>one</option><option>two</option></select>
+		</div>
+	</div>
+	<div class="cbi-value">
+		<label class="cbi-value-title" for="g-cbisel-bad">.cbi-select.cbi-input-invalid</label>
+		<div class="cbi-value-field">
+			<select id="g-cbisel-bad" class="cbi-select cbi-input-invalid"><option>rejected value</option></select>
+		</div>
+	</div>
 </div>
 
 <div class="g-sec">
@@ -417,6 +513,29 @@ option two</textarea></div>
 				<td class="td">iPhone</td><td class="td">10.11.12.182</td>
 				<td class="td">F4:A3:10:96:E0:53</td><td class="td">8h 56m 4s</td>
 				<td class="td"><button class="cbi-button cbi-button-apply">Reserve IP</button></td>
+			</tr>
+		</table>
+	</div>
+
+	<h2>The forcing utilities (.left/.right/.center + .top/.middle/.bottom)</h2>
+	<!-- LuCI writes these on a cell to OVERRIDE the table's own alignment — `<td class="td right">`
+	     — which is why they carry the theme's only legitimate `!important`s outside the
+	     reduced-motion block: a bare `.right` (0,1,0) loses to the theme's `.cbi-section .table .td`
+	     (0,3,0) on specificity alone. Nothing rendered them, so stripping the flags showed no diff
+	     and read as "the flags do nothing". They do. -->
+	<div class="cbi-section">
+		<table class="table" id="forcing-utils">
+			<tr class="tr table-titles">
+				<th class="th left">left</th><th class="th center">center</th><th class="th right">right</th>
+				<th class="th top">top</th><th class="th middle">middle</th><th class="th bottom">bottom</th>
+			</tr>
+			<tr class="tr cbi-rowstyle-1">
+				<td class="td left">left</td>
+				<td class="td center">center</td>
+				<td class="td right">right</td>
+				<td class="td top">top<br>two lines</td>
+				<td class="td middle">middle<br>two lines</td>
+				<td class="td bottom">bottom<br>two lines</td>
 			</tr>
 		</table>
 	</div>

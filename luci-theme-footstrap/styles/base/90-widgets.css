@@ -107,18 +107,17 @@
 		margin-top: 1px;
 	}
 
+	/* color + margin: theme/35-alerts.css — absorbed. */
 	.alert-message h4,
 	.alert-message h5,
 	.alert-message pre,
 	.alert-message ul,
 	.alert-message li,
 	.alert-message p {
-		color: inherit;
 		border: none;
 		line-height: inherit;
 		background: transparent;
 		padding: 0;
-		margin: .25em 0;
 	}
 
 	.alert-message button {

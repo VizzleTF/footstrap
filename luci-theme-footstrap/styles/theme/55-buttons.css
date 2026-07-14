@@ -141,6 +141,18 @@
 		border-color: var(--fs-danger-line-hi);
 	}
 
+	/* Room for the spinning glyph base draws with a ::before. This is the padding of whatever is
+	 * spinning, so it has to out-rank that thing's OWN padding — the theme's `.cbi-button` (0,1,0),
+	 * and, on the Save & Apply split control, the dropdown box's `padding: 0` (up to 0,3,0). Hence
+	 * the ladder: every member is one class more specific than the rule it must beat. base used to
+	 * do this with an !important, which inverts the layer order and is the thing this codebase does
+	 * not want in `base`. */
+	.spinning, .cbi-button.spinning, .btn.spinning,
+	.cbi-dropdown.btn.spinning, .cbi-dropdown.cbi-button.spinning,
+	.cbi-dropdown:not(.btn):not(.cbi-button).spinning {
+		padding-left: 32px;
+	}
+
 	input[type="file"]::file-selector-button {
 		margin-right: 12px; padding: 8px 14px;
 		font-family: var(--fs-font-sans); font-size: 12px; font-weight: 600;

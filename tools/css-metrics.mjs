@@ -5,9 +5,12 @@
  * nothing enforced:
  *
  *   IMPORTANTS — which declarations may carry `!important` is documented (16 in theme+pages, each
- *     fighting an inline or unlayered declaration; 17 in base): a fact about the cascade, not a
+ *     fighting an inline or unlayered declaration; 14 in base): a fact about the cascade, not a
  *     preference. stylelint's `declaration-no-important` + allowlist stops a NEW file adding one;
- *     this stops the allowlisted files growing more.
+ *     this stops the allowlisted files growing more. A RATCHET: it was 33 while three flags in base
+ *     were fighting footstrap's own rules rather than an inline one — the cascade answers that with
+ *     a later layer, so they are gone and the number came down with them. Tighten it again whenever
+ *     a flag goes, so it cannot drift back.
  *   MAX SPECIFICITY — "do not let source order carry meaning… win on specificity instead." A rule
  *     needing a wilder selector than anything else is usually fighting a battle a cascade layer
  *     should have won for it.
@@ -28,7 +31,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const LIMITS = {
 	/* 16 (theme+pages, each fighting an inline or unlayered declaration) + 17 (base) */
-	importants: 33,
+	importants: 30,
 	/* The widest selector the theme needs; see the layer rules in CLAUDE.md.
 	 *
 	 * Raised 6 -> 7 when the vertical sidebar's guard gained `:not([data-narrow])`. Not sprawl:

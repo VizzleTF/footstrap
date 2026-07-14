@@ -15,13 +15,20 @@
 		position: relative;
 	}
 
+	/* NO per-cell border-top, and that is a fix, not an omission. The theme draws a table's
+	 * separators on the ROW (theme/30-tables.css: header `border-bottom`, then every body row but
+	 * the last), and it reset the cell border only inside `.cbi-section`. A `.table` that LuCI
+	 * renders straight into `#view` — the apk package list, Status → Firewall's nftables — is
+	 * outside that reset, so it kept base's cell border on top of the theme's row border: every
+	 * separator drawn twice, and, because that cell line is straight and runs to the table's very
+	 * edge while the theme's frame is rounded, a square corner cutting across the radius (issue #7,
+	 * "лишняя граница, не имеющая скругления"). */
 	.table .th, .table .td {
 		display: table-cell;
 		vertical-align: middle; /* Fixme */
 		padding: 10px 10px 9px;
 		line-height: 18px;
 		text-align: left;
-		border-top: 1px solid var(--fs-border);
 	}
 
 	.table .tr:first-child .th {

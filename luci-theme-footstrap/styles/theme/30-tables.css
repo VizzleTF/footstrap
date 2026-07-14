@@ -156,6 +156,14 @@
 	/* denser data tables (dhcp static leases, section-tables) */
 	.cbi-section-table .th, .cbi-section-table .td,
 	.table.cbi-section-table .th, .table.cbi-section-table .td { padding: 8px 12px 8px 0; }
+	/* The zero padding-LEFT above is right only INSIDE a card: the .cbi-section supplies that gutter
+	 * itself, so the first column lines up with the card's own 16px. Outside one it is wrong —
+	 * Status → Firewall renders `.table.cbi-section-table` in a bare <div>, so the table draws its
+	 * OWN frame (`.table`, below) and the header text ended up glued to that frame's rounded corner
+	 * (issue #7). A table carrying its own frame pads its own cells, like every other standalone
+	 * data table here. */
+	.table.cbi-section-table:not(.cbi-section *):not(.cbi-section-node *) .th,
+	.table.cbi-section-table:not(.cbi-section *):not(.cbi-section-node *) .td { padding: 10px 11px; }
 	.cbi-section-table .tr.cbi-section-table-titles .th,
 	.cbi-section-table .tr.table-titles .th { font-size: 10px; letter-spacing: .05em; line-height: 1.25; }
 
@@ -167,10 +175,24 @@
 		overflow: hidden;
 		background: var(--fs-panel);
 	}
+	/* SEPARATORS GO ON THE CELLS, NOT ON THE ROWS, and that is not a preference: the frame above
+	 * needs `border-collapse: separate` (a collapsed table silently drops the radius), and in the
+	 * separated model a ROW's border is not painted at all. These two rules used to sit on the .tr,
+	 * so on every framed data table — the apk package list, Processes, Routes — they painted
+	 * NOTHING. What actually drew the lines was base's per-cell `border-top`, which nobody had asked
+	 * for and which also ran along the table's TOP edge, straight across the frame's rounded corners
+	 * (issue #7: "лишняя граница, не имеющая скругления"). base no longer sets it, and the lines are
+	 * declared here, where they paint. Remove one and the other is not a fallback — you get a table
+	 * with no separators at all, which is exactly what the first attempt at this shipped.
+	 *
+	 * `:not(:last-child)` lives IN the body-row selector: a trailing bottom border draws a straight
+	 * line the full width and pokes past the frame's rounded bottom corners (overflow: visible). */
+	.table .tr.table-titles > .th,
+	.table .tr.cbi-section-table-titles > .th { border-bottom: 1px solid var(--fs-border); }
+	.table .tr:not(.table-titles):not(.cbi-section-table-titles):not(:last-child) > .td { border-bottom: 1px solid var(--fs-border); }
 	/* descendant combinator (not >) so a real <table>'s browser-inserted <tbody> is covered
 	 * too — one rule themes every data table, div- or table-based. */
 	.table .tr.table-titles, .table .tr.cbi-section-table-titles {
-		border-bottom: 1px solid var(--fs-border);
 		background: transparent;	/* drop the base panel2 header bar — match the dashboard's faint-label + underline look */
 	}
 	.table .tr.table-titles .th, .table .tr.cbi-section-table-titles .th {
@@ -180,13 +202,6 @@
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles) {
 		transition: background var(--fs-dur);
-	}
-	/* Separator on every body row BUT the last: a trailing border-bottom draws a straight line the
-	 * full width and pokes past the frame's rounded bottom corners (overflow:visible).
-	 * `:not(:last-child)` lives IN this rule — a separate `.tr:last-child` override (0,3,0) lost to
-	 * this selector's two :not()s (0,4,0). On an overflow:hidden .table it was merely clipped. */
-	.table .tr:not(.table-titles):not(.cbi-section-table-titles):not(:last-child) {
-		border-bottom: 1px solid var(--fs-border);
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles):hover { background: var(--fs-panel2); }
 	/* keep section/modal tables flush (no forced hover-card look) */

@@ -35,16 +35,54 @@
 	.cbi-value-field *:where(:not(.btn, .cbi-button, .cbi-value-description)) { font-family: var(--fs-font-mono); }
 	.cbi-value-description { font-family: var(--fs-font-sans); }
 
+	/* A text field in a CBI form was a fixed 210px — base's width, straight out of bootstrap's
+	 * cascade. The same 210px holds far LESS here: the field is monospaced (the rule above) and
+	 * padded 11px a side instead of 4, so Attended Sysupgrade's server URL was clipped mid-domain
+	 * — while the .cbi-dynlist directly under it on that same page is 440px wide, which is what
+	 * makes the mismatch the thing you actually see (issue #5). Elastic now, with the dynlist's own
+	 * ceiling so the two line up. Number/date/time keep the fixed width: they hold short values,
+	 * and a 440px box for a port number reads as a mistake. */
+	.cbi-value-field input[type="text"],
+	.cbi-value-field input[type="url"],
+	.cbi-value-field input[type="search"] { width: 100%; max-width: 440px; }
+
 	/* --- live components that bypassed the theme --- */
 	/* A SURFACE token, not an ink one. This once read --fs-on-accent (the ink meant to go ON an
 	 * accent fill), which resolves to plain white and painted a white listbox in dark mode. */
 	select[multiple] { background-color: var(--fs-panel2); color: var(--fs-text); }
-	.td.cbi-value-field var { color: var(--fs-accent); }
+	/* A CBI row is a <div class="cbi-value"> on a form and a <td class="cbi-value-field"> in a
+	 * section table — same <var>, and the theme had claimed only the table half. */
+	div.cbi-value var, .td.cbi-value-field var { color: var(--fs-accent); }
 	.td.cbi-value-field var.cbi-tooltip-container { border-bottom-color: var(--fs-accent); }
 	.cbi-filebrowser { border-color: var(--fs-border); background: var(--fs-panel); border-radius: var(--fs-radius-lg); }
-	.cbi-filebrowser > * { border-bottom-color: var(--fs-border); }
 	.cbi-filebrowser > ul > li:hover { background: var(--fs-panel2); }
 	.cbi-filebrowser .upload { border-top-color: var(--fs-border); }
+
+	/* A FILE-BROWSER ROW COULD NOT HOLD ITS OWN BUTTONS, and the row CLIPPED what did not fit
+	 * instead of showing it — `Delete` came out sliced by the browser's border. base sizes the row
+	 * by PROPORTION (name `flex: 10`, actions `flex: 3`), which was sound for base's own ~20px
+	 * buttons sitting in a text-height row; this theme's button is 36px tall with 14px of side
+	 * padding, and a file row carries up to three of them (Deselect, Download, Delete). At 23% of
+	 * the row they do not fit, base gives the browser's children no padding, and
+	 * `.cbi-filebrowser > *` is `overflow: hidden` — so a button touched the clip box on BOTH axes,
+	 * right edge and top edge, and lost its rounded corners to it. A shaved corner reads as a broken
+	 * button, not as a missing 8px.
+	 *
+	 * So: size the action column to its CONTENT and let the name give way (a name can ellipsize, a
+	 * button cannot), give the children a real gutter, and space the rows — with none, one row's
+	 * button ran into the next row's. It wraps rather than clips when even that is not enough.
+	 *
+	 * This widget takes two clicks inside luci-app-firewall's ipsets or the wireless page to reach
+	 * on a router, which is why it went unseen; docs/gallery.html now renders it open. */
+	.cbi-filebrowser > * { border-bottom-color: var(--fs-border); padding: 6px 8px; }
+	.cbi-filebrowser > ul { display: flex; flex-direction: column; gap: 4px; }
+	.cbi-filebrowser > ul > li { align-items: center; flex-wrap: wrap; gap: 8px; }
+	.cbi-filebrowser > ul > li > div:first-child { flex: 1 1 auto; min-width: 0; }
+	.cbi-filebrowser > ul > li > div:last-child {
+		flex: 0 0 auto;
+		display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
+	}
+	.cbi-filebrowser > ul > li > div:last-child > button { margin: 0; }
 
 	/* Form widgets — toggles, file input. Applies to every CBI form. */
 
@@ -219,6 +257,11 @@
 		border-color: var(--fs-danger);
 		box-shadow: var(--fs-focus-ring-invalid);
 	}
+	/* The same rejected value shown by a ui.Dropdown rather than an <input>: the widget itself and,
+	 * when it is closed, the <li> that displays the value. base carried these two and the theme only
+	 * the input, so half of one state lived in a layer the theme cannot reach. */
+	.cbi-input-invalid.cbi-dropdown:not(.btn):not(.cbi-button),
+	.cbi-input-invalid.cbi-dropdown:not([open]) > ul > li { border-color: var(--fs-danger); }
 
 	/* dynamic list: keep base's layout (inline-flex column of chips + one add-item row) — do NOT
 	 * set display/flex-wrap here or the add row breaks. Only colours, rounding, a compact +
@@ -252,15 +295,19 @@
 	}
 	.cbi-dynlist > .add-item:focus-within { border-color: var(--fs-accent); box-shadow: var(--fs-focus-ring); }
 	.cbi-dynlist > .add-item > input,
+	/* `width: auto` keeps the flex basis in charge: this input sits INSIDE .cbi-value-field, so the
+	 * elastic width above would otherwise hand it 100% of the field on top of `flex: 1 1 auto`. */
 	.cbi-dynlist > .add-item > .cbi-input-text {
-		flex: 1 1 auto; min-width: 0;
+		flex: 1 1 auto; min-width: 0; width: auto;
 		border: 0; background: transparent;
 		box-shadow: none; min-height: 32px; border-radius: 0;
 	}
 
-	/* password reveal: input + ∗ button as ONE seamless rounded group */
+	/* password reveal: input + ∗ button as ONE seamless rounded group.
+	 * `gap: 0` is load-bearing: base gives every .control-group a gap, and this is the one group
+	 * whose members must touch — the group draws the single border and clips them. */
 	.control-group:has(> .cbi-input-password) {
-		display: inline-flex; align-items: stretch;
+		display: inline-flex; align-items: stretch; gap: 0;
 		background: var(--fs-panel2);
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius);

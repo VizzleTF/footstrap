@@ -34,14 +34,34 @@
 		color: var(--fs-text);
 		min-height: 38px;
 		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
+		/* Width absorbed from base/30-forms.css, where it was grouped with .cbi-dynlist's — so the
+		 * theme sized the dynlist and base still sized the dropdown, two halves of the same
+		 * decision in two layers. Same numbers, and they are NOT the dynlist's (240/440): a
+		 * dropdown holds one value, a dynlist a column of them. */
+		min-width: 210px;
+		max-width: 400px;
+		width: auto;
+		/* The widget's own box. In base these two carried `!important` — not to beat an inline
+		 * style, but to beat base's OWN generic form-field rule, which sets `display: inline-block`
+		 * and `padding: 4px` on this very selector at a higher specificity (0,3,0 vs 0,1,0). A later
+		 * LAYER beats it for free, which is exactly what the layer split is for. */
+		display: inline-flex;
+		padding: 0;
 	}
+	/* …and the button dropdown (the Save & Apply split control), where the flag was beating the
+	 * theme's own `.cbi-button` padding. Specificity does it: 0,2,0 over 0,1,0. */
+	.cbi-dropdown.btn, .cbi-dropdown.cbi-button { display: inline-flex; padding: 0; }
 	.cbi-dropdown:not(.btn):not(.cbi-button):hover { border-color: var(--fs-dim); }
 	.cbi-dropdown:focus, .cbi-dropdown[open] {
 		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 		outline: none;
 	}
-	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li {
+	/* `.cbi-dropdown > ul.dropdown > li` is the same menu row on a BUTTON dropdown (the Save & Apply
+	 * split control), which the `:not(.btn):not(.cbi-button)` guard excludes — so that menu kept
+	 * base's .25em rows while every other dropdown got these. One menu, one row. */
+	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li,
+	.cbi-dropdown > ul.dropdown > li {
 		padding: 8px 12px; color: var(--fs-text);
 		font-family: var(--fs-font-sans);
 	}
@@ -61,6 +81,10 @@
 		align-items: center;
 		cursor: pointer;
 	}
+	/* `.more` is the "…" a multi-value dropdown shows when its chips overflow. base wrote it in ONE
+	 * rule with `.open`; the theme took `.open` for the chevron above and left its twin behind, so
+	 * the two halves of the same toggle strip sat in different layers. Same geometry, absorbed. */
+	.cbi-dropdown > .more { line-height: 2em; padding: 0 .3em; }
 	.cbi-dropdown > .open > * { display: none; }
 	.cbi-dropdown > .open::after {
 		content: ""; position: absolute; inset: 0; margin: auto;

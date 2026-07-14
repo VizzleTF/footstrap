@@ -70,41 +70,12 @@
 		line-height: 18px;
 	}
 
-	.btn.danger,
-	.alert-message.danger,
-	.btn.error,
-	.alert-message.error,
-	.cbi-tooltip.error {
-		background: linear-gradient(var(--fs-danger), var(--fs-danger));
-		color: var(--fs-on-danger);
-		border-color: var(--fs-danger) var(--fs-danger) var(--fs-danger);
-	}
-
-	/* --fs-on-GOOD, never --fs-on-danger (it once was, and no tool caught it: every shipped
-	 * palette gives all four inks the same value today, so cssdiff, axe and audit.py all
-	 * pass — it breaks on the next colourway, which 03-palettes.css tells the author to give
-	 * danger its own ink). .cbi-tooltip.success is the exposed member: theme repaints
-	 * .btn/.alert-message, not the tooltip. */
-	.btn.success, .alert-message.success, .cbi-tooltip.success {
-		background: linear-gradient(var(--fs-good), var(--fs-good));
-		color: var(--fs-on-good);
-		border-color: var(--fs-good) var(--fs-good) var(--fs-good);
-	}
-
-	.btn.info, .alert-message.info, .cbi-tooltip.info {
-		background: linear-gradient(var(--fs-accent), var(--fs-accent));
-		color: var(--fs-on-accent);
-		border-color: var(--fs-accent) var(--fs-accent) var(--fs-accent);
-	}
-
-	.alert-message.notice, .cbi-tooltip.notice {
-		background: linear-gradient(var(--fs-panel2), var(--fs-panel2));
-		border-color: var(--fs-panel) var(--fs-panel) var(--fs-panel2);
-		color: var(--fs-text);
-	}
-
-	/* `.alert-message.warning` + `.modal.alert-message`: theme/35-alerts.css — absorbed.
-	 * Do not re-add them: theme paints plain `.alert-message`, and a later layer beats
-	 * this one whatever the specificity. (The .cbi-tooltip variants above stay — theme
-	 * does not claim those.) */
+	/* THE WHOLE COLOUR-WORD BLOCK IS ABSORBED — do not re-add any of it.
+	 *
+	 * `.btn.<word>` -> theme/55-buttons.css. `.alert-message.<word>` -> theme/35-alerts.css, which
+	 * paints plain `.alert-message`: a later layer beats this one whatever the specificity, so
+	 * every variant here was already dead for the alert. `.cbi-tooltip.<word>` -> theme/35-alerts.css
+	 * as well; those were genuinely alive and genuinely un-themed, and the note that used to sit
+	 * here said so ("theme does not claim those") for as long as nothing rendered them. The gallery
+	 * renders all four now, which is what turned the claim into a measurement. */
 }

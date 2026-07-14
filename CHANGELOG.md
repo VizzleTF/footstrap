@@ -10,6 +10,113 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Fixed
+- **The file browser clipped its own buttons: `Delete` was served sliced by the widget's border.**
+  LuCI's `ui.FileUpload` sizes a listing row by proportion — name `flex: 10`, actions `flex: 3` —
+  which fitted the ~20px buttons stock LuCI draws there. This theme's button is 36px tall with 14px
+  of side padding, and a file row carries up to three (Deselect, Download, Delete): at 23% of the row
+  they do not fit, and the row is `overflow: hidden`, so a button touched the clip box on **both**
+  axes and lost its rounded corners to it — which reads as a broken button, not as a missing 8px.
+  With no space between rows, one row's button also ran into the next row's. The action column is
+  sized to its content now (a name can ellipsize; a button cannot), the browser has a real gutter,
+  and the rows are spaced. Reaching this widget on a router takes two clicks inside a page most
+  users never open, which is why it went unseen — `docs/gallery.html` now renders it open, so the
+  next regression there is visible without a router.
+
+- **Data tables rendered outside a CBI section drew a straight border across their own rounded
+  corner, and every separator twice.** The apk package list and Status → Firewall's nftables tables
+  are the live cases (issue #7). The theme declared a table's separators on the `.tr` — but the
+  frame those tables carry needs `border-collapse: separate`, and **in the separated model a row's
+  border is never painted**, so those rules drew nothing at all. What actually drew the lines was a
+  per-cell `border-top` left over in `base`, which nobody had asked for: it also ran along the
+  table's top edge, straight across the frame's radius. The separators are declared on the cells
+  now, where they paint. Note this is one fix, not two — the first attempt removed the base border
+  alone and shipped a package list with no separators whatsoever.
+- **A button in a `.control-group` sat on top of the input next to it** — package-manager's
+  Filter/Clear and "Download and install"/OK (issue #7). `.control-group` is bootstrap's *joined*
+  input-group: base pulled the button back over the input so their 1px borders would coincide, and
+  squared its left corners to match. This theme does not join controls, and a cascade layer beats
+  base unconditionally, so the squared corners never applied while the pull-back still did — the
+  button's rounded corner landed on the input's. They get a real gap now. The password reveal is the
+  one group that genuinely is joined, and it builds its own seam.
+- **Status → Firewall (nftables): the table header text was glued to the table's rounded frame.**
+  Those tables carry `.cbi-section-table` but sit in a bare `<div>`, and that class zeroes the cells'
+  left padding — correct only inside a `.cbi-section`, whose own 16px is the gutter. A table that
+  draws its own frame now pads its own cells.
+- **A MAC address in the associated-stations table broke across two lines** (issue #5); stock LuCI
+  keeps it on one. Data cells may break anywhere — that is what reflows a wide table into the
+  content column instead of scrolling it — but a MAC is not a breakable string, and at ~103px the
+  column split it every time. Same targeted `nowrap` the DHCP leases table already uses.
+- **A text field in a CBI form was too narrow to show its own value** — Attended Sysupgrade's server
+  URL was clipped mid-domain (issue #5). The field was a fixed 210px, inherited from bootstrap's
+  cascade, and that width holds far less here: the field is monospaced and padded 11px a side
+  instead of 4. It is elastic now, capped at the same 440px as the `.cbi-dynlist` directly beneath
+  it on that page — the mismatch between the two is what made the field look broken.
+
+- **The README screenshots advertised a dashboard the theme does not have.** They were taken the day
+  before the custom overview include was retired (it rebuilt a page-tall tree on every poll, which
+  flickered and reset scroll on a phone), so they showed a Network card and a port grid this theme
+  has not rendered since — and a user reasonably filed that difference as a rendering bug (issue #5).
+  Regenerated from the current theme. The GIF was recorded after the change and was already correct.
+- **The favicon was a flat cyan tile that fought every browser's tab strip.** The mark stays
+  OpenWrt's on purpose — a tab icon says which *device* this is, not which theme paints it — but the
+  solid square it was pasted on is gone: the icon is transparent now, so it sits in whatever the
+  browser draws (issue #7). The SVG also lightens its dark ring under `prefers-color-scheme: dark`,
+  where a near-black ring on a dark tab strip was all but invisible; `logo_48.png` is the fallback
+  for browsers without SVG favicons and carries the light variant. It is also **320 bytes now,
+  against 2 337** — uhttpd serves `/www` with no compression, so that is wire bytes.
+
+### Changed
+- **Three `!important`s are gone from `styles/base` (33 → 30), and they are the three that should
+  never have been there.** A flag in `base` is a flag aimed at the theme — `!important` inverts the
+  layer order — so the rule this project writes down is that a flag must fight an *inline* or
+  *unlayered* declaration, never another footstrap rule. These three fought footstrap: `.cbi-dropdown`'s
+  `display` and `padding` were flagged to beat **base's own** generic form-field rule (which sets
+  `display: inline-block` / `padding: 4px` on that very selector at a higher specificity), and
+  `.spinning`'s `padding-left` was flagged to beat *them*. A later layer answers the first two for
+  free and one specificity ladder answers the third, which is exactly what the layer split is for.
+  Computed styles are identical — over the gallery and over three router pages, 0 diffs — and the
+  ratchet is tightened to 30 so they cannot drift back.
+  The remaining 30 all earn their place, and now provably: the six dropdown-state flags, the six
+  forcing utilities (`.td.right` and friends — LuCI writes them on a cell *to* override the table's
+  own alignment, and they lose to it on specificity alone), and the flags that fight an inline
+  `style=`, an unlayered `<style>` blob, or `prefers-reduced-motion`.
+- **The validation tooltip is themed at last, and half of the base layer's absorption backlog is
+  gone with it (50 declarations → 25).** `.cbi-tooltip`'s colour words were the one status surface
+  the theme had never claimed — base carried them, and a comment there said so in as many words.
+  Nothing could contradict it: the gallery rendered a *plain* tooltip only, and an un-rendered
+  widget shows no diff, which reads as "that rule is already dead". The gallery renders all four
+  now, and the measurement said the opposite — they were alive and un-themed. They are the theme's,
+  in tokens.
+  The same instrument then settled the rest of the backlog by measurement rather than by reading:
+  every `border-color` base declared for a button variant (`.cbi-button-edit`, `-apply`, `-save`, …)
+  turned out to be **dead on arrival** — the theme sets `border` on `.cbi-button`, and a later layer
+  beats an earlier one whatever the specificity, so those buttons never wore the colour base
+  declared. Deleted. What was genuinely alive got absorbed: the dropdown's width and its menu rows
+  (the Save & Apply split button's menu had kept base's tight rows while every other dropdown was
+  themed), the `…` overflow chip beside the chevron, the `<var>` in a form row, the invalid state of
+  a `ui.Dropdown`, and an alert's `h5`/`ul`/`li`/`pre`.
+  What remains in base is base doing its documented job — the focus ring and the transition every
+  *unnamed* `input`, `button` and `select` falls back on. Absorbing those would mean the theme
+  claiming every bare element selector, and the layer split exists precisely so overrides do not
+  depend on source order.
+
+### Added
+- **The widget gallery renders LuCI's real `ui.FileUpload`** — closed, and with the file browser
+  open: the listing rows, the breadcrumb and the `Browse… / Filename / Upload file` strip, with the
+  class names `ui.js` actually emits. It was represented by a bare `<input type="file">`, which
+  shares none of that markup and so hid the clipped-button bug above from every check the theme has.
+- **The gallery also renders the tooltip colour words, `.cbi-select` (valid and rejected) and an
+  alert's full body** (`h5`, a list, a `<pre>`) — the widgets whose styling could not be settled
+  either way while nothing drew them.
+- **`galdiff.py`: a computed-style differ for the gallery**, and the reason the change above could
+  be made safely. `cssdiff.py` drives a live router page, so it only ever sees widgets some page
+  renders — exactly *not* the ones the absorption backlog is about; on those it reports no diff
+  whatever you delete. The gallery has them all, so a base rule that still does work shows up as a
+  real diff. It needs no router.
+
 ## [0.8.6] — 2026-07-14
 
 ### Security

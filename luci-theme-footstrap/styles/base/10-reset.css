@@ -98,15 +98,18 @@
 		font-family: var(--fs-font-mono);
 	}
 
+	/* LuCI's .control-group is bootstrap's JOINED input-group: the trailing button was pulled back
+	 * over the input so their 1px borders coincided, and its left corners were squared to match.
+	 * This theme does not join controls — theme/55-buttons.css gives every button the full token
+	 * radius, and a LAYER beats base unconditionally, so the squared corners never applied while
+	 * the pull-back still did: the button's ROUNDED left corner sat on top of the input's rounded
+	 * right corner (issue #7 — package-manager's Filter/Clear and "Download and install"/OK).
+	 * Separate controls with a real gap instead.
+	 *
+	 * The password reveal is the one group that IS joined, and theme/60-inputs.css builds that seam
+	 * itself (one border around the group, `gap: 0`) — it does not need the pull-back either. */
 	.control-group {
 		display: inline-flex;
-		gap: .2em;
-	}
-
-	.control-group > input + :not(input):not(select),
-	.control-group > select + :not(input):not(select) {
-		margin-left: calc(-.2em + -2px);
-		border-radius: 0 3px 3px 0;
-		padding: 0 6px;
+		gap: 8px;
 	}
 }
