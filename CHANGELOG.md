@@ -10,6 +10,172 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [0.8.3] — 2026-07-14
+
+### Fixed
+- **The ACE editor apps embed (SSClash, and any other app shipping ace.js) rendered as a black
+  rectangle with no text, spilling out of the layout.** The SPA router used to DELETE every
+  `<style>` a view had injected into `<head>` when navigating away — the right answer for the
+  file manager's blob (see below), the wrong one for CSS the injector cannot put back. ACE
+  imports `ace_editor.css` (14 KB: the absolutely-positioned layers, the gutter, the line boxes)
+  once per DOCUMENT, at module eval, so a re-render never re-injects it, while its theme and mode
+  sheets — loaded per editor — do come back. Measured on the router: open SSClash → Configuration,
+  SPA-nav to Log and back, and the theme repaints the editor black while its structure never
+  returns; the unpositioned layers blow the page out to 2 007 346 px tall. Deleting CSS was
+  silently one-way, so the router no longer deletes any: a sheet that can only match its own app's
+  widgets (`.ace_*`, the stock overview's `.cpu-status-view-mode-entry`) is inert on every other
+  page and now simply stays, and SPA nav through those apps keeps working.
+- **Apps that ship dark styles were rendering their LIGHT ones on a dark page.** An app has to
+  guess whether the theme is dark, and a survey of the LuCI ecosystem found three dialects for
+  asking: `data-theme="dark"` on `:root` (`luci-app-justclash` keys 21 rules off it),
+  Bootstrap's `data-bs-theme` (`luci-app-ssclash` reads it first), and the luminance of the body
+  background (OpenClash, passwall, and ssclash's fallback). The theme stamped only its own
+  `data-darkmode`, so justclash's dark rules were all dead. It now stamps all three names for the
+  same fact — `data-darkmode` stays the one the theme's own CSS reads, the other two are outbound
+  compatibility like the `--*-color-*` export tier, and `tools/axes.mjs` fails the build if a
+  `styles/` rule ever reads them or if the pre-paint template and the live applier drift apart.
+- **The body background is now provably opaque, because that is what every dark-mode sniffer
+  reads.** OpenClash, passwall and ssclash all decide light-vs-dark from the luminance of
+  `getComputedStyle(document.body).backgroundColor` — and OpenClash's regex does not even match
+  `rgba(0, 0, 0, 0)`, so a transparent body makes it conclude "light" and repaint a dark page in
+  its light palette (it then writes `data-darkmode` onto our `:root` itself). Moving the page
+  colour onto `:root` or fading it with an alpha would do exactly that, silently, so
+  `tools/export-tier.mjs` now proves the body background is opaque and on the correct side of the
+  luminance midpoint across the whole palette × mode × tint matrix.
+- **An app that re-injects its CSS on every render no longer stacks copies of it.**
+  `luci-app-podkop` appends a 4 KB `<style>` to `<head>` from its `render()` with no guard, and
+  `luci-app-mosdns` re-appends three CodeMirror `<link>`s the same way; with the sweep gone, every
+  SPA re-visit left another copy behind. Dropping a byte-identical duplicate is the one deletion
+  that cannot break anyone — the rules do not go away, so a library's "already imported?" check
+  still finds its sheet — and it is now the only one the router performs.
+- **A view's CSS still cannot follow you to the next page — and that now includes a `<link>`.**
+  `luci-app-banip` and `luci-app-adblock` append `<link rel=stylesheet href=…/custom.css>` to
+  `<head>` at module eval, and that file styles `.cbi-input-text` / `.cbi-input-select` — stock
+  widgets, on every page, unlayered. The old sweep only ever looked at `<style>`, so this leaked
+  silently. What replaces the sweep is a test, not a list: a sheet is *invasive* if it can paint a
+  page that is not its own. That means a bare selector (`h4`, `svg text`, `div > label + select`,
+  `:root { color-scheme: … }`), or a selector made ENTIRELY of names the theme itself styles, with
+  nothing of the app's own to pin it to the app's markup. Both shapes match stock widgets on every
+  page, and being unlayered they outrank every cascade layer. The universe of names is read back
+  from `cascade.css` at runtime, so it tracks the theme instead of drifting from it. A document
+  carrying such a sheet is spent: the next navigation falls back to a REAL page load, which is what
+  stock LuCI does on every link anyway.
+  The two exemptions are what keep this from taxing the innocent, and both were measured against
+  real apps: a stock class **pinned** by a name of the app's own (`#cbi-podkop-section >
+  .cbi-section-remove`, `.bandix-table th.sortable.active`) cannot match without that app's markup —
+  though a `:not()` argument is not a pin, which is exactly why `luci-app-filemanager`'s
+  `.cbi-button-save:not(.custom-save-button)` still counts; and a bare selector declaring nothing but
+  custom properties the theme never reads (`:root { --app-temp-status-temp: … }`) has nothing to
+  paint with. Checked against the eight apps installed on the dev router: ACE/ssclash, podkop, the
+  overview's CPU include and the hex editor keep SPA navigation, while `luci-app-filemanager`
+  (`.cbi-button-save`), stock `luci-app-openvpn` (`h4 { white-space: nowrap }`), `luci-app-bandix`
+  (`.error`), `luci-app-wrtbwmon` (`div > label + select`) and `luci-app-temp-status`
+  (`svg text { fill }`) take the full load. Save/Apply/Reset are all still present on System after
+  visiting the file manager. Measured at 0.3 ms per navigation.
+- **Two fast clicks could leave you on one page while looking at another — and leave its poller
+  running forever.** On a FIRST visit to a page the SPA router's `require()` *is* the render, so
+  it cannot be cancelled: click Firewall (uncached — its module plus its `load()` RPCs, seconds
+  on a slow link), click Wireless 100 ms later, and the router flushes the poll queue *before*
+  Firewall's poller is ever added. Firewall then paints into the `#view` that now belongs to
+  Wireless and registers a poller the flush can no longer catch. Reproduced on the live router
+  with 1.2 s of added latency: the URL, the title, the menu and `body[data-page]` all said
+  System while the Firewall's zone editor sat on screen. A superseded first render is now
+  detected and undone — the current page is re-rendered, which is also what kills the orphaned
+  poller.
+- **Clicking the page you are already on no longer kills the Back button.** The router pushed a
+  history entry unconditionally, so a click on the active menu item added a duplicate; Back then
+  fired `popstate`, found the path unchanged, and correctly did nothing — once per stray click.
+  A re-navigation to the current URL now replaces its entry, as a full page load does.
+- **The Update button could wedge until the router was rebooted.** A worker killed mid-`apk add`
+  (an OOM on a 128 MB box, and apk is the memory-hungry part) left `status=RUNNING` and its
+  staged copy behind forever, and a pre-check in front of the lock answered `RUNNING` to every
+  later click — the client polled its full 300 s and reported "timed out waiting for the
+  installer", permanently. Worse, the stale-lock reclaim written for exactly that case could
+  never run, because the pre-check returned first. The atomic `mkdir` lock is now the only thing
+  that decides, which is what it was always for.
+- **The keyboard and the screen reader can follow a navigation again.** Every SPA nav rebuilds
+  the menu, so the `<a>` the user had just activated with Enter was removed from the document
+  and focus fell back to `<body>` — the next Tab restarted at the skip link — while nothing
+  announced that the page had changed at all. Focus now moves to `<main>` (which already carried
+  `tabindex="-1"` for the skip link) and the new page title is spoken through a polite live
+  region.
+- **The document `<h1>` was not in the accessibility tree at all.** It was hidden with the
+  `hidden` attribute, i.e. `display: none`, which removes an element for assistive tech as
+  thoroughly as it does for the eye — so the heading outline the `<h1>` was added to repair
+  still began at the views' `<h2>`, and the router's title sync was updating a node nothing
+  could read. It is now clipped (`.fs-sr`), the same technique the skip link already uses.
+  Verified against Chrome's ARIA snapshot on the live router.
+- **The menu never said "you are here".** The active leaf and the active section tab carried a
+  CSS class and nothing else; they now carry `aria-current="page"`. The JS-generated icons and
+  chevrons carry `aria-hidden="true"`, like every SVG in the templates.
+- **A Lua-CBI form showed no red border on an invalid field.** `styles/base` does declare one for
+  `.cbi-value-error input`, but the theme's `input { border: 1px solid … }` shorthand in a later
+  layer wipes a longhand out regardless of specificity — so the field rendered plain grey. The
+  modern `.cbi-input-invalid` path was fine; only `luci-compat`, i.e. every third-party app still
+  on the Lua CBI, had lost the cue. Probed, not reasoned: grey `#d0d7de` before, danger red after.
+- **Four input types rendered as stock white 3px-radius boxes** next to themed fields in the same
+  form: `color`, `datetime-local`, `month` and `week` were missing from the theme's type list, and
+  a missing type does not fall back to "unstyled" — it falls back to `base`.
+
+### Security
+- **The self-updater installed without checking the sha256 whenever it could not find one.** The
+  check was `if [ -n "$digest" ]`, with no `else`: GitHub renaming the field, the `jsonfilter`
+  predicate ceasing to resolve, or `jsonfilter` being absent all left the digest empty — and the
+  package was then installed with `--allow-untrusted` and no integrity check whatsoever, while
+  reporting success. Half of a two-link trust chain cannot be optional; a missing digest is now
+  a refusal. `install.sh` refuses too (`FOOTSTRAP_ALLOW_UNVERIFIED=1` overrides, deliberately by
+  hand).
+- **`__run`, the privileged worker entrypoint, was reachable over RPC.** rpcd's `file.exec` ACL
+  matches the command *path* — `params` are free — so any session holding the ACL could invoke
+  the self-update script with `__run` directly, which ran the install in the foreground and
+  **without taking the lock**: two concurrent `apk add` runs on the same package, the exact race
+  the lock exists to stop, with rpcd killing one of them at its 30 s timeout, possibly
+  mid-install. It now runs only when invoked as the staged worker copy.
+- **The dynamic loader was left to the caller.** rpcd also hands the exec'd process an
+  environment the caller controls: `PATH` was pinned, but `LD_PRELOAD`/`LD_LIBRARY_PATH` on
+  `/bin/sh` are arbitrary code as root for anyone holding this ACL, and the proxy variables
+  would have redirected the fetch. All of them are unset.
+- **The release token is no longer handed to every pull request.** `permissions: contents: write`
+  was workflow-wide, so it was in reach of the `npm ci` in the lint job — i.e. of the lifecycle
+  scripts of every dev dependency — on a `pull_request` run. Only the release job declares it now.
+
+### Added
+- **CI compile-checks the ucode templates.** They had no parser anywhere: `luci.mk` copies them
+  to the router verbatim, so a stray brace in `header.ut` built green, released, and then every
+  user's LuCI silently fell back to a different theme. CI now builds `ucode` from a pinned
+  upstream commit — the same discipline `jsmin.c` already gets, and for the same reason — and
+  runs LuCI's own `ucode -T -c` over every `.ut`.
+- **CI validates the rpcd ACL as JSON.** rpcd skips a file it cannot parse and says nothing, so a
+  trailing comma there would have taken the update badge and the Update button away from every
+  user with no other symptom.
+- **The OpenWrt SDK is checksummed.** Two *linters* were pinned by commit and sha256 while the
+  toolchain that actually builds the released package arrived on trust; its published
+  `sha256sums` is now checked, and the download pins https across redirects.
+
+### Changed
+- **`build-css.sh` checks the file it actually writes, and refuses one that is too small.** The
+  brace/rule-count check ran on the squeeze's *input* — while the squeeze is the pass most able
+  to corrupt a stylesheet, being the one that tracks strings, joins lines and drops the last
+  `;` — and the only gate on the finished file was an upper size bound, so every way of
+  producing a *truncated* `cascade.css` passed silently. The rule count must now survive the
+  squeeze unchanged, and the sheet has a floor as well as a ceiling.
+- **A tag whose changelog section is missing now fails the release.** `release-notes.sh` warned
+  to stderr and exited 0, publishing a release page reading "See the CHANGELOG" for a version
+  the changelog had never heard of — precisely the mistake the "never tag first" rule exists to
+  prevent, made permanent and public. The Russian mirror is required too.
+- The installer's failure modal builds its message as a text node rather than through
+  `innerHTML`: `luci.js` assigns a *bare string* child via `innerHTML` and only text-nodes an
+  array, and what lands there is raw `apk`/`opkg` stderr — the one string in this theme that
+  neither the theme nor LuCI composed.
+- `tools/fs-orphans.mjs` no longer reports the `fs-fit` *module* as an unstyled class. A
+  permanent false "NEW" line in a report is how a report teaches you to stop reading it.
+- **`audit.py` reported the wrong line for every finding it has ever printed.** Stripping a
+  comment deleted its newlines too, and the line numbers are derived from that stripped copy —
+  so each `file:line` was shifted up by however many comment lines sat above the rule. In a tree
+  where the comments outweigh the code that is a large shift: the focus block it called
+  `30-forms.css:336` really lives at `:353`. A finding that points at the wrong line is a finding
+  you go and "fix" in the wrong rule.
+
 ## [0.8.2] — 2026-07-13
 
 ### Changed
@@ -1223,6 +1389,7 @@ line, not one per tag. The individual patch releases are in the git history.
 [0.7.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.1...v0.7.2
+[0.8.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.18...v0.8.0
