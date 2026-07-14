@@ -13,7 +13,13 @@
 	 *
 	 * No @container guard, and do not re-add one — the old 800px was a guess at "the row no
 	 * longer fits". Overflow is the trigger now, and fs-select.js measures it (.fs-stacked). */
-	#packages.fs-stacked .tr { display: block; padding: 12px 16px; }
+	/* `:not(...)` on the header rows, and it is load-bearing: this selector carries an ID, so it
+	 * is (1,1,0) in the PAGE layer — it beat theme/30-tables.css's
+	 * `.table.fs-stacked .tr.cbi-section-table-titles { display: none }` and put the column
+	 * header back on screen in card mode, where every cell already prints its own label. */
+	#packages.fs-stacked .tr:not(.cbi-section-table-titles):not(.cbi-section-table-descr) {
+		display: block; padding: 12px 16px;
+	}
 	#packages.fs-stacked .td {
 		display: flex; align-items: baseline; justify-content: space-between;
 		gap: 14px; padding: 5px 0; border: 0; text-align: right;

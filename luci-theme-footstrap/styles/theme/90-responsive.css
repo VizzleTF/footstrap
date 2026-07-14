@@ -21,7 +21,17 @@
 		 * !important because package-manager.js injects an UNLAYERED inline <style>
 		 * (`.controls{display:flex}` + `.controls > *{…}`), and unlayered outranks every layer. */
 		body[data-page='admin-system-package-manager'] #view .controls { display: block !important; }
-		body[data-page='admin-system-package-manager'] #view .controls > div { display: block !important; min-width: 0; margin-bottom: 8px; }
+		/* `:not(.pager)` — the page reuses `.controls` for the « / "Displaying 1-100 of 7677" / »
+		 * pager, and its .pager is a <div> too. Blocking it stacked those three onto three lines
+		 * (reported). Only the LABELLED control groups want stacking; the pager is a row. */
+		body[data-page='admin-system-package-manager'] #view .controls > div:not(.pager) { display: block !important; min-width: 0; margin-bottom: 8px; }
+		/* …and the pager itself: a centred row that stays one. `.text` is the only part that may
+		 * give way, so the two buttons keep their size instead of being squeezed. */
+		body[data-page='admin-system-package-manager'] #view .controls > .pager {
+			display: flex; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 8px;
+		}
+		body[data-page='admin-system-package-manager'] #view .controls > .pager > .btn { flex: 0 0 auto; }
+		body[data-page='admin-system-package-manager'] #view .controls > .pager > .text { flex: 0 1 auto; min-width: 0; }
 		/* the bar's ::after value ("63% used …") normally floats above the bar, but the "Disk
 		 * space:" label already sits there — on a phone the long value text overlapped label +
 		 * bar. Drop it BELOW. The bar is a fixed 10px box, so a static ::after cannot push the

@@ -13,6 +13,19 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 ## [Unreleased]
 
 ### Fixed
+- **Software page on a phone: the pager broke onto three lines, and the package list still printed a
+  column header it no longer needed.** Both are the same shape of bug — a rule aimed at one thing
+  hitting another that merely shares its element name.
+  The pager (`«` / `Displaying 1-100 of 7677` / `»`) is a `<div class="pager">` inside a `.controls`,
+  and the phone rule that stacks that page's *labelled control groups* is written for
+  `.controls > div` — so it blocked the pager too and its three children went one per line, 97px tall
+  where 43 will do. It excludes `.pager` now.
+  The header is the same story one layer up: `pages/30-software.css` shapes a carded row with
+  `#packages.fs-stacked .tr`, and an **ID selector in the `page` layer** outranks
+  `theme/30-tables.css`'s `.table.fs-stacked .tr.cbi-section-table-titles { display: none }` — so the
+  column header came back on a screen where every cell already prints its own label. Both header rows
+  are excluded from that rule.
+  Desktop is untouched: 0 computed-style diffs over the package list, the overview and DHCP.
 - **Port status: on a Russian router, a port that was DOWN but had carried traffic pushed its figures
   out of its own card and under the next one** (issue #7). The tile is a two-column layout — speed on
   the left, TX/RX on the right — and "do those two still fit side by side?" was answered by a
