@@ -10,7 +10,7 @@
 
 Каждый коммит пишет в `[Unreleased]`. При выпуске тега заголовок переименовывается.
 
-## [Unreleased]
+## [0.8.5] — 2026-07-14
 
 ### Исправлено
 - **Кнопка «Обновить» ставила 6-килобайтный каталог перевода вместо темы.** В 0.8.4 в релизе
@@ -1454,6 +1454,7 @@
 [0.7.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.1...v0.7.2
+[0.8.5]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.1...v0.8.2

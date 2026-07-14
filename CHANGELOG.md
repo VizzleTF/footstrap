@@ -10,7 +10,7 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
-## [Unreleased]
+## [0.8.5] — 2026-07-14
 
 ### Fixed
 - **The Update button installed a 6 KB translation catalogue instead of the theme.** v0.8.4 added a
@@ -1451,6 +1451,7 @@ line, not one per tag. The individual patch releases are in the git history.
 [0.7.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.7.1...v0.7.2
+[0.8.5]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.1...v0.8.2
