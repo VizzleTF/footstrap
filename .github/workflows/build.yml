@@ -104,6 +104,28 @@ jobs:
             echo "ok: $f"
           done
 
+      # The release public key has to exist TWICE and neither copy can go: the package ships it
+      # (the self-updater reads it off the disk), and install.sh embeds it because `curl | sh`
+      # runs before any package exists. Nothing in the cascade can catch a divergence — the
+      # installer would simply reject every release with "BAD SIGNATURE", i.e. the failure looks
+      # exactly like the attack the key is there to stop. Compare the two.
+      - name: The installer embeds the key the package ships
+        run: |
+          set -eu
+          pub=luci-theme-footstrap/root/usr/share/luci-theme-footstrap/release.pub
+          want=$(grep -v '^untrusted comment:' "$pub" | tr -d '\n')
+          [ -n "$want" ] || { echo "no key line in $pub"; exit 1; }
+          # every key-shaped line in the installer, deduplicated: a stale copy left behind by a
+          # rotation shows up here as a second value, not as a silent second key
+          got=$(grep -oE 'RW[A-Za-z0-9+/=]{40,}' install.sh | sort -u)
+          [ "$got" = "$want" ] || {
+            echo "install.sh embeds a different release key than the package ships"
+            echo "  package:   $want"
+            echo "  installer: ${got:-<none>}"
+            exit 1
+          }
+          echo "release key matches in both copies."
+
       - name: Build the stylesheet (this also enforces the size budget)
         run: luci-theme-footstrap/build-css.sh /tmp/cascade.css
 
@@ -430,6 +452,76 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+
+      # SIGN. This is the only step that can vouch for the bytes a router installs.
+      #
+      # Why a detached signature and not the package manager's own: `apk add` verifies against
+      # /etc/apk/keys, and putting our key there would make footstrap a trust anchor for
+      # EVERYTHING the router installs — far more authority than a theme needs. opkg (24.10)
+      # cannot verify a standalone .ipk at all. usign, which base-files puts on every OpenWrt
+      # image, verifies both formats with a key that authorises nothing but this package.
+      #
+      # Why it is needed at all, given the sha256 the installer already checks: GitHub COMPUTES
+      # that digest from the uploaded asset. Replace the asset — a leaked write-scoped PAT is
+      # enough, no CI run involved — and the digest is recomputed to match. The checksum then
+      # verifies the attacker's package. The signing key is not in the repository, and a secret
+      # cannot be read back out of GitHub, so that same swap fails here.
+      #
+      # Signing lives in the RELEASE job, not the build job: the build job also runs on every
+      # pull_request, and a secret must never be reachable from a fork's code.
+      - name: Sign the packages
+        env:
+          FOOTSTRAP_USIGN_KEY: ${{ secrets.FOOTSTRAP_USIGN_KEY }}
+        run: |
+          set -euo pipefail
+          [ -n "${FOOTSTRAP_USIGN_KEY:-}" ] || {
+            echo "FOOTSTRAP_USIGN_KEY is not set — a release without a signature is a release"
+            echo "no current installer will accept. Refusing to publish one."
+            exit 1
+          }
+
+          # Built from the commit the ROUTER's own usign is built from (luci-upstream.pin), so
+          # signer and verifier are the same code. No cmake, no libubox: the six sources plus
+          # the bundled base64 compile with plain cc.
+          . luci-theme-footstrap/luci-upstream.pin
+          git clone -q https://github.com/openwrt/usign "$RUNNER_TEMP/usign"
+          git -C "$RUNNER_TEMP/usign" checkout -q "$USIGN_PIN"
+          ( cd "$RUNNER_TEMP/usign" && cc -O2 -o usign ed25519.c edsign.c f25519.c fprime.c sha512.c main.c base64.c )
+          U="$RUNNER_TEMP/usign/usign"
+
+          # The secret is the base64 of usign's two-line secret-key FILE — one canonical form,
+          # so nothing has to guess whether newlines survived a copy-paste.
+          umask 077
+          printf '%s' "$FOOTSTRAP_USIGN_KEY" | base64 -d > "$RUNNER_TEMP/sec.key"
+          trap 'shred -u "$RUNNER_TEMP/sec.key" 2>/dev/null || rm -f "$RUNNER_TEMP/sec.key"' EXIT
+
+          pub=luci-theme-footstrap/root/usr/share/luci-theme-footstrap/release.pub
+          n=0
+          for p in $(find dist -maxdepth 1 -type f \( -name '*.apk' -o -name '*.ipk' \) | sort); do
+            "$U" -S -m "$p" -s "$RUNNER_TEMP/sec.key" -x "$p.sig"
+            # Verify with the key the ROUTER will use. A secret rotated in GitHub without the
+            # public half being committed would otherwise publish a package that every installer
+            # rejects — and the rejection reads "BAD SIGNATURE", which is indistinguishable from
+            # the attack. Catch it here, where it is a red build instead of a scare.
+            "$U" -V -q -m "$p" -x "$p.sig" -p "$pub" || {
+              echo "signature does not verify against $pub — the secret and the shipped key disagree"
+              exit 1
+            }
+            echo "signed + verified: $(basename "$p")"
+            n=$((n + 1))
+          done
+          [ "$n" -ge 2 ] || { echo "expected both packages to sign, signed $n"; exit 1; }
+
+          # The .sig assets must not disturb the asset pick of a self-updater ALREADY IN THE
+          # FIELD: it takes the first asset matching /luci-theme-footstrap[-_][^/]*\.apk$ (older
+          # ones: `\.apk$`). A name ending in `.sig` matches neither. Assert it, because the cost
+          # of being wrong is every router in the field installing a 150-byte signature file as
+          # its theme — which is issue #6, exactly.
+          ls dist | grep -E '\.(apk|ipk)$' | grep -q '\.sig' && {
+            echo "a .sig asset matches the package glob — fielded self-updaters would install it"
+            exit 1
+          } || true
+          ls -l dist
 
       # Turn the tag's CHANGELOG section into a short release body: one line per
       # change (the bold lead of each bullet), grouped by Fixed/Added/…, with the

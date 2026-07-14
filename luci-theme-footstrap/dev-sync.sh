@@ -59,10 +59,12 @@ else
 	echo "  (po2lmo not found — skipping the translation catalogue; strings stay English)"
 fi
 
-# self-update backend: the exec script + its rpcd ACL (file.exec of that one path)
-ssh "$R" "mkdir -p /usr/libexec /usr/share/rpcd/acl.d"
-scp -q  "$D"/root/usr/libexec/footstrap-selfupdate.sh          "$R":/usr/libexec/
-scp -q  "$D"/root/usr/share/rpcd/acl.d/luci-theme-footstrap.json "$R":/usr/share/rpcd/acl.d/
+# root/usr -> /usr as a TREE, never as a list of names. luci.mk installs root/ wholesale, so a
+# file named here one-by-one is a file that ships in the package and silently never reaches the
+# dev router — first noticed after a release. This directory now carries three unrelated things
+# (the self-update backend, its rpcd ACL, the release public key), and the next one must arrive
+# for free. tar, not `scp -r`, because scp's merge semantics on an existing /usr are ambiguous.
+tar -C "$D/root" -cf - usr | ssh "$R" "tar -C / -xf -"
 ssh "$R" "chmod +x /usr/libexec/footstrap-selfupdate.sh; /etc/init.d/rpcd reload 2>/dev/null; rm -f /tmp/luci-indexcache*"
 
 ssh "$R" "

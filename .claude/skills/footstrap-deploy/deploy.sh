@@ -37,10 +37,15 @@ dest() {
 # the old backend. The package ships root/ (luci.mk installs it to /), so this must too.
 collect() {
 	if [ "$1" = "--all" ]; then
-		find htdocs/luci-static ucode/template root -type f \
+		# root/ is taken WHOLE — an extension allowlist is a hand-written list wearing a
+		# different hat, and it had already dropped a file: the release public key
+		# (root/usr/share/luci-theme-footstrap/release.pub) is neither .sh nor .json, so a
+		# theme deployed here would have verified updates against a key that never arrived.
+		# luci.mk copies root/ wholesale; so does this.
+		find htdocs/luci-static ucode/template -type f \
 			\( -name '*.css' -o -name '*.js' -o -name '*.ut' -o -name '*.woff2' \
-			   -o -name '*.svg' -o -name '*.png' -o -name '*.sh' -o -name '*.json' \
-			   -o -path 'root/etc/uci-defaults/*' \)
+			   -o -name '*.svg' -o -name '*.png' \)
+		find root -type f
 	elif [ $# -gt 0 ]; then
 		printf '%s\n' "$@"
 	else

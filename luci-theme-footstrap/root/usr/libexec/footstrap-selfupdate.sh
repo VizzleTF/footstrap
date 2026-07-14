@@ -54,6 +54,13 @@ CACHE_TTL=300
 REPO="VizzleTF/luci-theme-footstrap"
 API="https://api.github.com/repos/${REPO}/releases/latest"
 
+# The release public key, shipped BY THIS PACKAGE. Read from disk rather than embedded, so the
+# key travels with the code that trusts it: a key rotation is then one file in one release, and
+# the router that installs that release is the one that starts trusting the new key. install.sh
+# is the one place that has to carry a second copy — it runs from `curl | sh`, before any package
+# exists — and CI fails if the two ever differ.
+PUBKEY=/usr/share/luci-theme-footstrap/release.pub
+
 # fetch <url> <max-seconds> [outfile]   — stdout when no outfile.
 #
 # curl is NOT on a stock OpenWrt router — the base image ships `uclient-fetch`, curl is a
@@ -68,9 +75,10 @@ API="https://api.github.com/repos/${REPO}/releases/latest"
 #
 # The certificate is always verified, and the scheme is pinned on the REDIRECT too: the asset hops
 # to objects.githubusercontent.com, and without --proto-redir a redirect to http:// would be
-# followed, handing an on-path attacker the package about to be installed as root. The install is
-# --allow-untrusted (no signature), so this channel plus the sha256 below ARE the trust chain —
-# never add a `-k` fallback.
+# followed, handing an on-path attacker the package about to be installed as root. The package
+# manager itself still installs --allow-untrusted (it holds no key of ours), so what makes the
+# package trustworthy is the ed25519 signature checked below — but this channel is what delivers
+# the release metadata that names the asset and its signature. Never add a `-k` fallback.
 # @mirror gh/fetch
 fetch() {
 	_u="$1"; _t="$2"; _o="$3"
@@ -130,22 +138,48 @@ asset_digest() {	# <json> <url> -> the sha256 GitHub publishes for THAT asset
 	# happen to be parallel today, but nothing promises it
 	jsonfilter -i "$1" -e "@.assets[@.browser_download_url=\"$2\"].digest" 2>/dev/null | head -n1
 }
+sig_url() {		# <json> <package-url> -> the detached signature published for THAT package
+	# Looked UP in the asset list, never derived by appending ".sig" to the URL: a derived URL
+	# is a URL nobody published, and it would send the fetch after a file the release does not
+	# claim to have. -Fx = whole line, literal.
+	jsonfilter -i "$1" -e '@.assets[*].browser_download_url' 2>/dev/null | grep -Fx "$2.sig" || true
+}
 # @endmirror
 
-# Download ONE asset, verify it against the sha256 the release publishes for it, install it.
+# usign is on EVERY OpenWrt image — base-files depends on it — so verifying the release signature
+# costs the theme no new runtime dependency (see LUCI_DEPENDS in the Makefile: the curl lesson).
+# The key is the package's own; it is not added to /etc/apk/keys, so nothing this package does
+# makes footstrap a trust anchor for the router's package manager at large.
+# @mirror gh/verify-sig
+verify_sig() {		# <file> <sigfile> <pubkey-file> -> 0 iff the signature is ours and intact
+	command -v usign >/dev/null 2>&1 || return 2
+	usign -V -q -m "$1" -x "$2" -p "$3"
+}
+# @endmirror
+
+# Download ONE asset, verify it, install it.
 # Writes ERR: to $STATUS and returns non-zero on any failure. $1 = url, $2 = release json.
 #
-# --allow-untrusted = NO package signature, so this sha256 is the only integrity check the update
-# has. Same TLS channel as the URL, so it is no defence against a compromised api.github.com; it
-# IS one against a tampered or truncated download from the asset CDN, a DIFFERENT host.
+# TWO checks, and they answer DIFFERENT attackers:
 #
-# Mismatch => refuse, and a MISSING digest => refuse too: `if [ -n "$digest" ]` fails OPEN — a
-# renamed field, a predicate that stops resolving, jsonfilter absent, all leave $digest empty, and
-# this used to install with no integrity check at all, reporting OK. Half of a two-link trust
-# chain cannot be optional: bytes we cannot verify, we do not install.
+#  - the ed25519 SIGNATURE is the real one. The sha256 below cannot stand alone, and the reason
+#    is specific: GitHub COMPUTES `@.assets[*].digest` from the bytes that were uploaded. Anyone
+#    who can replace a release asset — a leaked PAT with write scope, no CI run needed — gets the
+#    digest recomputed for them, and the checksum then verifies the attacker's package happily.
+#    The signing key is not in the repository and cannot be read back out of GitHub, so a
+#    replaced asset fails here.
+#  - the sha256 still earns its place: it catches a tampered or TRUNCATED download from the asset
+#    CDN (objects.githubusercontent.com — a different host from api.github.com) with a clearer
+#    failure than a signature mismatch, and it is the check that survives if usign is ever absent.
+#
+# Both fail CLOSED. A missing digest, a missing .sig asset, no usign on the box: all refuse. The
+# `if [ -n "$digest" ]` shape this once had fails OPEN — a renamed field, a predicate that stops
+# resolving, an absent tool, all leave the variable empty, and it installed with no integrity
+# check at all while reporting OK. Bytes we cannot account for, we do not hand to root.
 fetch_verify_install() {
 	url="$1"; json="$2"
 	pkg="$WD/pkg.$EXT"
+	sig="$pkg.sig"
 
 	asset_host_ok "$url" || { echo "ERR: asset from an unexpected host" > "$STATUS"; return 1; }
 
@@ -162,6 +196,25 @@ fetch_verify_install() {
 	got="$(sha256sum "$pkg" 2>/dev/null | cut -d' ' -f1)"
 	[ -n "$got" ] && [ "$want" = "$got" ] || {
 		echo "ERR: checksum mismatch, refusing to install" > "$STATUS"
+		rm -f "$pkg"; return 1
+	}
+
+	surl="$(sig_url "$json" "$url")"
+	[ -n "$surl" ] && asset_host_ok "$surl" || {
+		echo "ERR: release publishes no signature for the package, refusing to install" > "$STATUS"
+		rm -f "$pkg"; return 1
+	}
+	fetch "$surl" 60 "$sig" && [ -s "$sig" ] || {
+		echo "ERR: cannot download the package signature" > "$STATUS"
+		rm -f "$pkg" "$sig"; return 1
+	}
+	verify_sig "$pkg" "$sig" "$PUBKEY"; rc=$?
+	rm -f "$sig"
+	[ "$rc" = 0 ] || {
+		case "$rc" in
+			2) echo "ERR: usign is missing, cannot verify the package signature" > "$STATUS" ;;
+			*) echo "ERR: BAD SIGNATURE — the package is not the one we published" > "$STATUS" ;;
+		esac
 		rm -f "$pkg"; return 1
 	}
 

@@ -73,11 +73,12 @@ ok "Package manager: $PM (installing .$EXT)"
 # --- downloader -----------------------------------------------------------
 # fetch <url> <max-seconds> [outfile]  — stdout when no outfile.
 #
-# EVERY fetch VERIFIES THE CERTIFICATE. This runs as root from `curl | sh` and installs what it
-# downloads --allow-untrusted (no package signature), so this TLS channel plus the sha256 below
-# ARE the trust chain. Never `-k` / `--no-check-certificate`, not even as a retry: a failed
-# verification IS the MITM case, and `ca-bundle` is in OpenWrt's DEFAULT_PACKAGES, so the
-# insecure path buys nothing.
+# EVERY fetch VERIFIES THE CERTIFICATE. This runs as root from `curl | sh`, and the package
+# manager installs --allow-untrusted (it holds no key of ours), so what vouches for the package
+# is the ed25519 signature checked below — but this channel is what delivers the release metadata
+# that names the asset, its checksum and its signature. Never `-k` / `--no-check-certificate`,
+# not even as a retry: a failed verification IS the MITM case, and `ca-bundle` is in OpenWrt's
+# DEFAULT_PACKAGES, so the insecure path buys nothing.
 #
 # Signature pinned to footstrap-selfupdate.sh's fetch(): the two cannot share a file (this one
 # runs before the package exists) and had already drifted — this one took (url, outfile),
@@ -144,7 +145,39 @@ asset_digest() {	# <json> <url> -> the sha256 GitHub publishes for THAT asset
 	# happen to be parallel today, but nothing promises it
 	jsonfilter -i "$1" -e "@.assets[@.browser_download_url=\"$2\"].digest" 2>/dev/null | head -n1
 }
+sig_url() {		# <json> <package-url> -> the detached signature published for THAT package
+	# Looked UP in the asset list, never derived by appending ".sig" to the URL: a derived URL
+	# is a URL nobody published, and it would send the fetch after a file the release does not
+	# claim to have. -Fx = whole line, literal.
+	jsonfilter -i "$1" -e '@.assets[*].browser_download_url' 2>/dev/null | grep -Fx "$2.sig" || true
+}
 # @endmirror
+
+# usign is on EVERY OpenWrt image — base-files depends on it — so verifying the release signature
+# costs the theme no new runtime dependency (see LUCI_DEPENDS in the Makefile: the curl lesson).
+# The key is the package's own; it is not added to /etc/apk/keys, so nothing this package does
+# makes footstrap a trust anchor for the router's package manager at large.
+# @mirror gh/verify-sig
+verify_sig() {		# <file> <sigfile> <pubkey-file> -> 0 iff the signature is ours and intact
+	command -v usign >/dev/null 2>&1 || return 2
+	usign -V -q -m "$1" -x "$2" -p "$3"
+}
+# @endmirror
+
+# THE ONLY COPY of the release public key outside the package, and it has to exist: this script is
+# fetched with `curl | sh` and runs BEFORE the package that ships the key. The package's copy is
+# root/usr/share/luci-theme-footstrap/release.pub, the self-updater reads THAT one, and CI fails
+# the build if the two ever say different things.
+#
+# A public key is public — pinning it here is the point, not a leak. It is what makes a tampered
+# release asset unusable even though the API answer that names the asset comes from the same host
+# as its checksum.
+release_pubkey() {	# writes the key to $1
+	cat > "$1" <<-'EOF'
+	untrusted comment: luci-theme-footstrap release key
+	RWQYxjhl4rz41tNZc3dXmnRplRO1ydN1q8as++iPUjZc6SRUCb952L/T
+	EOF
+}
 
 # --- resolve the assets ---------------------------------------------------
 if [ "$TAG" = "latest" ]; then
@@ -183,13 +216,25 @@ fi
 # extension and cannot be fixed remotely — see the Makefile note and issue #6.
 
 # --- download, verify, install --------------------------------------------
-# --allow-untrusted = NO package signature, so the sha256 the API publishes for the asset is the
-# only integrity check there is. Same TLS channel as the URL, so it is no defence against a
-# compromised api.github.com; it IS one against a tampered or truncated download from the asset
-# CDN, a different host. A MISSING digest is a REFUSAL, not a warning: half of a two-link trust
-# chain cannot be optional, and whatever empties it (a renamed field, an unexpected answer) leaves
-# us installing bytes we cannot account for. FOOTSTRAP_ALLOW_UNVERIFIED=1 overrides — deliberately
-# something you have to type.
+# TWO checks, answering DIFFERENT attackers, and both fail CLOSED.
+#
+#  - the ed25519 SIGNATURE is the one that matters. The sha256 cannot stand alone: GitHub
+#    COMPUTES `@.assets[*].digest` from the uploaded bytes, so anyone who can replace a release
+#    asset (a leaked write-scoped PAT — no CI run needed) gets the digest recomputed for them and
+#    the checksum then cheerfully verifies the attacker's package. The signing key lives nowhere
+#    in this repository and cannot be read back out of GitHub, so a replaced asset fails to
+#    verify. `apk add --allow-untrusted` means the PACKAGE MANAGER holds no key of ours — it does
+#    not mean the package is unverified; this script is what verifies it.
+#  - the sha256 still earns its place: it catches a tampered or truncated download from the asset
+#    CDN (a different host from api.github.com) with a clearer message, and it is what remains if
+#    usign is somehow absent.
+#
+# A MISSING digest or a MISSING signature is a REFUSAL, not a warning: half of a trust chain
+# cannot be optional, and whatever empties it (a renamed field, an unexpected answer) leaves us
+# installing bytes we cannot account for. FOOTSTRAP_ALLOW_UNVERIFIED=1 overrides — deliberately
+# something you have to type, and its one honest use is pinning a release older than the signing
+# key (`sh -s v0.9.0`). A signature that is PRESENT and WRONG is never overridable: that is not a
+# missing check, that is a failed one.
 install_asset() {
 	_url="$1"
 	_name=$(basename "$_url")
@@ -210,8 +255,8 @@ install_asset() {
 			warn "No sha256 for $_name — installing UNVERIFIED because FOOTSTRAP_ALLOW_UNVERIFIED=1."
 		else
 			err "No sha256 available for $_name — refusing to install."
-			err "The package is installed with --allow-untrusted, so this checksum is the"
-			err "only integrity check there is."
+			err "The release must account for every byte it hands to root; half a trust chain"
+			err "is not one."
 			err "To override anyway:  FOOTSTRAP_ALLOW_UNVERIFIED=1 sh install.sh"
 			exit 1
 		fi
@@ -225,6 +270,41 @@ install_asset() {
 			exit 1
 		fi
 		ok "sha256 verified: $_name ($(wc -c < "$_pkg") bytes)"
+	fi
+
+	_sig_url=$(sig_url "$JSON" "$_url")
+	_sig="$_pkg.sig"
+	_pub="$TMP/release.pub"
+	release_pubkey "$_pub"
+	if [ -z "$_sig_url" ] || ! command -v usign >/dev/null 2>&1; then
+		if [ "${FOOTSTRAP_ALLOW_UNVERIFIED:-0}" = "1" ]; then
+			warn "No signature check for $_name — installing UNVERIFIED because FOOTSTRAP_ALLOW_UNVERIFIED=1."
+		elif [ -z "$_sig_url" ]; then
+			err "This release publishes no signature for $_name — refusing to install."
+			err "Releases up to and including v0.8.5 were published before signing existed."
+			err "To install one of those anyway:"
+			err "  FOOTSTRAP_ALLOW_UNVERIFIED=1 sh install.sh $TAG"
+			exit 1
+		else
+			err "usign not found — it is part of OpenWrt's base image (base-files depends on it)."
+			err "Without it the release signature cannot be checked, and the package is installed"
+			err "with --allow-untrusted. Refusing."
+			exit 1
+		fi
+	else
+		asset_host_ok "$_sig_url" || { err "Refusing a signature from an unexpected host: $_sig_url"; exit 1; }
+		if ! fetch "$_sig_url" 60 "$_sig" || [ ! -s "$_sig" ]; then
+			err "Could not download the signature for $_name — refusing to install."
+			exit 1
+		fi
+		if ! verify_sig "$_pkg" "$_sig" "$_pub"; then
+			err "BAD SIGNATURE for $_name — refusing to install."
+			err "The bytes downloaded are NOT the package we published. Do not install them by"
+			err "hand; report it at https://github.com/$REPO/issues"
+			exit 1
+		fi
+		ok "signature verified: $_name (usign, key $(usign -F -p "$_pub" 2>/dev/null))"
+		rm -f "$_sig"
 	fi
 
 	info "Installing $_name with $PM..."

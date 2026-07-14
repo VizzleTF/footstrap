@@ -27,3 +27,12 @@ I18N_SCAN_SHA256=a1823d1fdd942f31a105e1e53b401e146bc10527f231e016930b1a5123ef21d
 # Pinned by COMMIT, not by a tarball sha256: a git object name IS the checksum of its content,
 # and GitHub's generated archives are not guaranteed byte-stable. (= tag v0.0.20250529.)
 UCODE_PIN=be92ebd706339fd4a848b88ee516b1ac4eb62ef8
+
+# usign — OpenWrt's ed25519 signer. CI builds it to SIGN each release package; the router
+# verifies with the /usr/bin/usign it already has (base-files depends on usign, so it is on
+# every OpenWrt image — the signature costs the theme no new runtime dependency).
+#
+# This is the commit the router's own binary is built from (`usign-2025.10.03~c4c72b1b`), so the
+# signer in CI and the verifier in the field are the same code. It needs neither cmake nor
+# libubox: `cc *.c` over the six sources plus the bundled base64.c is the whole build.
+USIGN_PIN=c4c72b1b07945ee192361dc751291a7c98d6adcd
