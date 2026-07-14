@@ -1,10 +1,6 @@
 @layer theme {
-	/* ==================================================================
-	 * FOOTSTRAP SHELL — variant 1A Sidebar Console
-	 * Layout + chrome + component tuning over styles/base.
-	 * Markup: ucode/template/themes/footstrap/header.ut
-	 * Spec:   docs/09-realizatsiya-sidebar.md
-	 * ================================================================== */
+	/* FOOTSTRAP SHELL — layout + chrome over styles/base.
+	 * Markup: ucode/template/themes/footstrap/header.ut · spec: docs/09 */
 
 
 	body {
@@ -14,18 +10,14 @@
 	}
 	/* placement only — the look lives in 10-chrome.css */
 	.fs-brand { flex: 1 1 auto; min-width: 0; }
-	/* A hostname is user-supplied and can be far longer than any column or bar can hold.
-	 * `overflow-wrap: anywhere` lets it wrap, breaking mid-word when a single "word" is
-	 * itself wider than the box — and, unlike `word-break: break-all`, it only does so
-	 * when there is no better break, so a normal hostname still breaks at its dots. It
-	 * also lets the flex item's min-content size shrink, which is what stops a long name
-	 * from pushing the menu out of the bar. (It used to be nowrap + ellipsis, which
-	 * silently truncated the one string that identifies the router.) */
+	/* A hostname is user-supplied and can outgrow any bar or column. `overflow-wrap: anywhere`
+	 * wraps it mid-word only when no better break exists (unlike word-break: break-all, a
+	 * normal hostname still breaks at its dots), and it lets the flex item's min-content size
+	 * shrink — which is what stops a long name pushing the menu out of the bar. It used to be
+	 * nowrap + ellipsis, which truncated the one string that identifies the router. */
 	.fs-wordmark { overflow-wrap: anywhere; min-width: 0; }
-	/* collapse the sidebar to an icon rail */
-	/* the rail toggle only EXISTS in the vertical sidebar (the bar hides it, and the
-	 * vertical override is what turns it back on) — so its `display` is declared there,
-	 * not here, or it would just be shadowed. */
+	/* collapse the sidebar to an icon rail. The toggle only EXISTS in the vertical sidebar,
+	 * so its `display` is declared there, not here, or it would just be shadowed. */
 	.fs-railtoggle {
 		align-items: center; justify-content: center;
 		width: 28px; height: 28px; padding: 0; flex: 0 0 auto;
@@ -53,31 +45,28 @@
 	.fs-sidebar ul.nav ul {
 		list-style: none;
 	}
-	/* .fs-logout's display/align/colour are the shared chrome in 10-chrome.css — do not
-	 * restate them here; only its LAYOUT (square button vs full-width row) belongs to a
-	 * layout block. */
+	/* .fs-logout's display/align/colour are shared chrome (10-chrome.css) — do not restate
+	 * them; only its LAYOUT (square button vs full-width row) belongs to a layout block. */
 
 
 	/* ==================================================================
 	 * THE BAR — the default chrome, and the ONLY copy of it.
 	 *
-	 * The chrome is a horizontal bar unless something says otherwise: that is true for
-	 * the TOP layout at every width, and for the SIDEBAR layout collapsed onto a phone.
-	 * The vertical sidebar is the exception, and it is written once, below, as a single
-	 * guarded override.
+	 * The chrome is a bar unless something says otherwise: the TOP layout at every width,
+	 * and the SIDEBAR layout collapsed onto a phone. The vertical sidebar is the exception,
+	 * written once below as a single guarded override.
 	 *
-	 * It is this way round on purpose. The bar is needed when
+	 * Why this way round: the bar is needed when
 	 *     (viewport <= 767px)  OR  (:root[data-layout="top"])
-	 * and CSS cannot OR a media query with an attribute selector in ONE selector. Writing
-	 * the bar under both guards therefore meant writing it TWICE — measured: 55 of ~75
-	 * declarations were identical, i.e. free to drift apart in silence. Inverting it (bar
-	 * = base, vertical = the one override) states each of the three states exactly once.
+	 * and CSS cannot OR a media query with an attribute selector in ONE selector — so
+	 * writing the bar under both guards meant writing it TWICE (measured: 55 of ~75
+	 * declarations identical, i.e. free to drift in silence). Inverted, each of the three
+	 * chrome states is stated exactly once.
 	 *
 	 * The override wins on SPECIFICITY, never on source order:
-	 *   :root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar  (0,4,0)  beats  .fs-sidebar  (0,1,0).
-	 *   (four class-level parts: :root, [data-layout], :not([data-narrow]) — a :not() contributes
-	 *    the specificity of its argument — and .fs-sidebar. It said 0,3,0, which was the count
-	 *    before :not([data-narrow]) joined the guard.)
+	 *   :root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar  (0,4,0)  beats  .fs-sidebar  (0,1,0)
+	 *   (:root, [data-layout], :not([data-narrow]) — a :not() contributes its argument's
+	 *    specificity — and .fs-sidebar.)
 	 * ================================================================== */
 	.fs-shell {
 		display: flex; flex-direction: column;
@@ -96,25 +85,23 @@
 		/* the submenu popups anchor to this bar and must escape it */
 		overflow: visible;
 	}
-	/* A hostname is user-supplied and can be enormous. Three things have to be true at
-	 * once, and each is load-bearing:
-	 *   flex: 0 1 auto + min-width: 0  — the brand may SHRINK (0 0 auto would let it push
-	 *     the menu and the right cluster out of the bar);
-	 *   max-width — it must also be CAPPED. Shrinking alone is not enough: the bar is
-	 *     flex-wrap, so instead of squeezing the brand, flexbox happily wraps the other
-	 *     items away and lets the brand sit on its own line 600px wide. The cap is what
-	 *     actually forces the wrap onto .fs-wordmark;
+	/* A hostname can be enormous. Three things must be true at once:
+	 *   flex: 0 1 auto + min-width: 0 — the brand may SHRINK (0 0 auto would let it push the
+	 *     menu and the right cluster out of the bar);
+	 *   max-width — it must also be CAPPED: the bar is flex-wrap, so instead of squeezing the
+	 *     brand, flexbox wraps the OTHER items away and lets the brand sit alone on a 600px
+	 *     line. The cap is what actually forces the wrap onto .fs-wordmark;
 	 *   and the bar grows in height (min-height, 50-toplayout.css) to hold the extra line.
-	 * 30ch tracks the text, not the viewport: a wide screen should not license a wider
-	 * hostname, it should license more MENU. */
+	 * 30ch tracks the text, not the viewport: a wide screen licenses more MENU, not a wider
+	 * hostname. */
 	.fs-brandrow { flex: 0 1 auto; order: 1; min-width: 0; max-width: min(100%, 30ch); padding: 0; }
 	/* the bar has no section caption, no column to collapse, and its height follows its
 	 * content — so the flex filler has nothing to fill */
 	.fs-navlabel, .fs-spacer, .fs-railtoggle, .fs-modemenu { display: none; }
 
 	/* the menu on its own full-width row beneath the brand. The DESKTOP bar lifts it back
-	 * onto the brand's row whenever it fits — that decision is measured, not a breakpoint
-	 * (menu-footstrap-common.js (fitChrome) adds .fs-bar-stack when it does NOT fit). */
+	 * onto the brand's row whenever it fits — MEASURED, not a breakpoint
+	 * (menu-footstrap-common.js fitChrome adds .fs-bar-stack when it does NOT fit). */
 	.fs-sidebar ul.nav {
 		order: 3; flex: 1 1 100%;
 		flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px;
@@ -130,8 +117,8 @@
 	.fs-sidebar ul.nav > li > a .fs-ico,
 	.fs-sidebar ul.nav > li > a .fs-chevron { display: none; }
 
-	/* submenu = a popup card. Sized to its content rather than stretched across the bar,
-	 * and capped to the viewport so a long label wraps instead of overflowing. */
+	/* submenu = a popup card: sized to its content rather than stretched across the bar, and
+	 * capped to the viewport so a long label wraps instead of overflowing. */
 	.fs-sidebar ul.nav ul,
 	.fs-sidebar ul.nav > li.open > ul {
 		display: none;
@@ -149,19 +136,16 @@
 		.fs-sidebar ul.nav > li.has-sub:hover > ul { display: block; }
 	}
 	.fs-sidebar ul.nav > li.has-sub.open > ul { display: block; }
-	/* a submenu link is the same link in every layout — only its PADDING differs (a denser
-	 * rhythm inside a popup than inside the accordion), so that is all the vertical
-	 * override restates. */
+	/* a submenu link is the same link in every layout — only its PADDING differs (denser
+	 * inside a popup than in the accordion), which is all the vertical override restates. */
 	.fs-sidebar ul.nav ul a {
 		display: block; padding: 9px 12px; border-radius: var(--fs-radius-sm);
 		color: var(--fs-dim); font-size: 13px; font-weight: 600;
 	}
 
 	/* right cluster: the poll pill, then Appearance and Log out as square icon buttons.
-	 * #indicators is earlier in the DOM, so when it is non-empty IT takes the free space;
-	 * .fs-themerow keeps its own auto for when the pill is empty and collapsed. */
-	/* LuCI's #indicators (poll "Refreshing", unsaved changes). Empty → collapsed, so it only
-	 * shows when there is something to report. */
+	 * LuCI's #indicators (poll "Refreshing", unsaved changes) collapses when empty, so it
+	 * only shows when there is something to report. */
 	.fs-sidebar #indicators {
 		display: flex; flex-wrap: wrap; gap: 6px;
 		order: 2; margin-left: auto; padding: 0;
@@ -178,12 +162,11 @@
 		text-align: left; cursor: pointer;
 		transition: background var(--fs-dur), border-color var(--fs-dur), color var(--fs-dur);
 	}
-	/* Exactly ONE member of the right cluster may carry margin-left:auto, and it must be
-	 * the FIRST one that is actually rendered. #indicators is earlier in the DOM, so when
-	 * the poll pill is showing IT opens the gap — and .fs-themerow's own auto then has to
-	 * stand down, or flexbox splits the free space between the two autos and the pill
-	 * drifts away from the buttons instead of hugging them. .fs-themerow keeps its auto for
-	 * the case the pill is empty and collapsed (#indicators:empty). */
+	/* Exactly ONE member of the right cluster may carry margin-left:auto, and it must be the
+	 * FIRST one actually rendered. #indicators is earlier in the DOM, so when the poll pill
+	 * shows IT opens the gap and .fs-themerow's auto must stand down — otherwise flexbox
+	 * SPLITS the free space between the two and the pill drifts away from the buttons.
+	 * .fs-themerow keeps its own auto for when the pill is empty and collapsed. */
 	.fs-sidebar #indicators:not(:empty) ~ .fs-themerow { margin-left: 0; }
 	.fs-logout {
 		flex: 0 0 auto; order: 2; justify-content: center;
@@ -202,26 +185,23 @@
 	.fs-sidebar ul.nav .fs-ico { flex: 0 0 auto; }
 
 	/* ==================================================================
-	 * THE VERTICAL SIDEBAR — the single override, and the ONLY thing that is not a bar.
-	 * Guarded positively: the sidebar layout, wide enough for a column. Everything the
-	 * bar declared above has to be answered here, which is exactly what makes this
-	 * checkable — cssdiff proves the column is byte-identical to the pre-merge theme.
-	 * ================================================================== */
-	/* WHEN the vertical sidebar applies. Not "the viewport is at least 768px" — that number
-	 * said nothing about the thing that actually matters, which is how much room is left for
-	 * the CONTENT once the sidebar has taken its cut. And the sidebar's cut is not constant:
-	 * it is 224px expanded and 68px as a rail, so the two must give way at DIFFERENT widths,
-	 * which one viewport breakpoint cannot express. `data-narrow` is set by
-	 * menu-footstrap-common.js when the content column would fall below --fs-content-min
-	 * (02-tokens.css — a real token now; this comment used to cite one that did not exist,
-	 * while the JS carried its own uncoupled copy of the number), measured from the
-	 * sidebar's actual cut — so the rail keeps its column ~156px
-	 * further down than the expanded sidebar does, which is exactly the room it gave back.
+	 * THE VERTICAL SIDEBAR — the single override, the ONLY thing that is not a bar. Guarded
+	 * positively (never write a `:not([data-layout=…])` guard). Everything the bar declared
+	 * above must be answered here — which is what makes it checkable: cssdiff proves the
+	 * column is byte-identical to the pre-merge theme.
 	 *
-	 * The `min-width: 521px` is not a second guess: it is a floor that keeps the chrome
-	 * correct with JavaScript disabled. No JS means no data-narrow, so without it a phone
-	 * would render the desktop sidebar. Below 521 no sidebar cut leaves 500px anyway, so the
-	 * floor never contradicts the measurement — it just states its conclusion in advance. */
+	 * WHEN it applies is NOT "viewport >= 768px": what matters is how much room is left for
+	 * the CONTENT once the sidebar takes its cut, and that cut is not constant — 224px
+	 * expanded, 68px as a rail — so the two must give way at DIFFERENT widths, which one
+	 * breakpoint cannot express. `data-narrow` is set by menu-footstrap-common.js when the
+	 * content column would fall below --fs-content-min (02-tokens.css), measured from the
+	 * sidebar's ACTUAL cut, so the rail keeps its column ~156px further down than the
+	 * expanded sidebar does — exactly the room it gave back.
+	 *
+	 * `min-width: 521px` is not a second guess: it is a floor keeping the chrome correct
+	 * with JS DISABLED (no JS = no data-narrow, so a phone would render the desktop
+	 * sidebar). Below 521 no cut leaves 500px anyway — it states the measurement's
+	 * conclusion in advance. */
 	@media (min-width: 521px) {
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-shell { flex-direction: row; }
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar {
@@ -233,14 +213,14 @@
 			backdrop-filter: none; -webkit-backdrop-filter: none;
 			border-right: 1px solid var(--fs-border); border-bottom: 0;
 			box-shadow: none;
-			/* `overflow: auto`, not overflow-y alone: the bar sets `overflow: visible` so
-			 * its popups can escape, and a lone overflow-y here would leave overflow-x
-			 * visible — which the spec then forces back to auto anyway. Say both. */
+			/* `overflow: auto`, not overflow-y alone: the bar sets `overflow: visible` for its
+			 * popups, and a lone overflow-y here would leave overflow-x visible — which the
+			 * spec forces back to auto anyway. Say both. */
 			overflow: auto;
 			z-index: auto;
 		}
-		/* the column is already 224px wide — that IS the cap, so the bar's 30ch one has to
-		 * go, or the brand would be capped twice and at the wrong value */
+		/* the column is already 224px wide — that IS the cap, so the bar's 30ch one must go
+		 * or the brand is capped twice, at the wrong value */
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-brandrow {
 			display: flex; align-items: center; gap: 6px;
 			flex: 0 0 auto; order: 0; min-width: auto; max-width: none; padding: 0 4px 20px 8px;
@@ -281,9 +261,9 @@
 		/* nested submenu -> an inline accordion, not a popup */
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar ul.nav ul {
 			display: none;
-			/* the bar anchors this panel under the bar (absolute + top/left); an accordion
-			 * is just the next block in the column, so the offsets have to go back to auto
-			 * or they linger in the computed style */
+			/* the bar anchors this panel under itself (absolute + top/left); an accordion is
+			 * just the next block in the column, so the offsets must go back to auto or they
+			 * linger in the computed style */
 			position: static; top: auto; left: auto; right: auto; z-index: auto;
 			width: auto; min-width: 0; max-width: none;
 			flex-direction: column; gap: 2px;
@@ -320,10 +300,9 @@
 			flex-wrap: wrap; gap: 6px;
 			padding: 0 6px 4px;
 		}
-		/* In the column the indicator is not one of a row of buttons, it is one of a stack of
-		 * ROWS — Appearance and Log out below it run the full width of the sidebar. A pill
-		 * floating at 87px in the middle of a 195px column read as a stray chip; give it the
-		 * width its neighbours have and the footer lines up. */
+		/* In the column the indicator is not one of a row of buttons but one of a stack of
+		 * ROWS — Appearance and Log out below it run the sidebar's full width. A pill floating
+		 * at 87px in a 195px column read as a stray chip; give it its neighbours' width. */
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar #indicators .label,
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar #indicators [data-indicator] {
 			flex: 1 1 100%;
@@ -332,11 +311,10 @@
 	}
 
 
-	/* Appearance popover panel (Mode + Palette quick switch). The trigger is
-	 * .fs-themerow (sidebar) / .fs-appearance-btn (top-nav, look in 10-chrome);
-	 * the popover itself is parented to <body> and positioned by
-	 * menu-footstrap-common.js — .fs-sidebar is `overflow-y: auto`, which clips
-	 * an absolutely-positioned child. */
+	/* Appearance popover (Mode, Palette, Tint, Accent, Rounding, Layout). The trigger is
+	 * .fs-themerow in every layout; the popover itself is parented to <body> and positioned
+	 * by menu-footstrap-common.js, because the vertical .fs-sidebar sets `overflow: auto`,
+	 * which would clip an absolutely-positioned child. */
 	.fs-appearance-pop {
 		position: fixed; z-index: var(--fs-z-popover); left: 0; top: 0;
 		min-width: 216px; padding: 12px;
@@ -348,11 +326,10 @@
 	.fs-appearance-pop[hidden] { display: none; }
 
 	.fs-ap-group { display: flex; flex-direction: column; gap: 6px; }
-	/* The accordion switch is meaningless in the top layout — its sections are hover dropdowns
-	 * and already exclusive. Hidden HERE, not by a branch in the JS that builds the popover:
-	 * that popover is built once, at init, so a branch froze the control to whatever layout the
-	 * page happened to load in and the live toggle could never change it. Same
-	 * :root[data-layout] every other layout rule reads. */
+	/* The accordion switch is meaningless in the top layout — its sections are hover dropdowns,
+	 * already exclusive. Hidden HERE, not by a branch in the JS: the popover is built once at
+	 * init, so a branch froze the control to whatever layout the page loaded in and the live
+	 * toggle could never change it. */
 	:root[data-layout="top"] .fs-ap-submenus { display: none; }
 	.fs-ap-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fs-faint); }
 
@@ -383,9 +360,9 @@
 	.fs-ap-badge[hidden] { display: none; }
 	.fs-ap-badge:hover { filter: var(--fs-hover-lift); }
 
-	/* update indicator: a green dot at the top-right of the Appearance trigger,
-	 * matching the overview port-status link dot. Added by menu-*-common.js when a
-	 * newer release is found. The panel-coloured ring lifts it off the icon. */
+	/* update indicator: a green dot on the Appearance trigger, added by
+	 * menu-footstrap-common.js when a newer release is found. The panel-coloured ring lifts
+	 * it off the icon. */
 	#fs-appearance { position: relative; overflow: visible; }
 	#fs-appearance.fs-has-update::after {
 		content: ''; position: absolute; top: 3px; right: 3px;
@@ -405,12 +382,11 @@
 	.fs-seg button:hover { color: var(--fs-text); }
 	.fs-seg button.active { background: var(--fs-accent); color: var(--fs-on-accent); }
 
-	/* Rounding axis = a range slider + live px readout (segControl's sibling in the
-	 * popover). Track/thumb are styled on both WebKit and Firefox pseudo-elements.
-	 * Written as `input[type="range"].fs-range` on purpose: the generic form-widget
-	 * rule `input[type="range"]` in theme/60-inputs.css is (0,1,1) and later in the
-	 * cascade, so a bare `.fs-range` (0,1,0) silently lost every one of these
-	 * declarations and the popover rendered the generic 6px/16px slider instead. */
+	/* Rounding axis = a range slider + live px readout; track/thumb styled on both the WebKit
+	 * and the Firefox pseudo-elements. Written as `input[type="range"].fs-range` on purpose:
+	 * the generic `input[type="range"]` rule in theme/60-inputs.css is (0,1,1) and later in
+	 * the cascade, so a bare `.fs-range` (0,1,0) silently lost every declaration here and the
+	 * popover rendered the generic 6px/16px slider. */
 	.fs-rangewrap { display: flex; align-items: center; gap: 10px; }
 	input[type="range"].fs-range {
 		flex: 1 1 auto; min-width: 0; height: 4px; margin: 6px 0;
@@ -435,18 +411,18 @@
 		font-size: 11px; font-weight: 600; color: var(--fs-dim); font-variant-numeric: tabular-nums;
 	}
 
-	/* Tint axis — the same slider, but the track IS the value: a hue wheel laid flat,
-	 * so the control shows what it picks before it is dragged (a bare grey track under
-	 * a "215°" readout means nothing to anyone). The stops are the six primaries of the
-	 * wheel at a fixed lightness/chroma; the browser interpolates between them, so the
-	 * pixel under the thumb is roughly the hue the thumb selects.
+	/* Tint axis — the same slider, but the track IS the value: a hue wheel laid flat, so the
+	 * control shows what it picks before it is dragged (a grey track under a "215°" readout means
+	 * nothing). The stops are the wheel's six primaries at fixed lightness/chroma; the browser
+	 * interpolates, so the pixel under the thumb is roughly the hue it selects.
 	 *
-	 * The gradient is written once into an element-scoped local: Firefox paints the
-	 * TRACK pseudo-element over the input's own background, so the same image has to be
-	 * declared twice, and two copies of a seven-stop gradient are two things to drift.
-	 * Position 0 (= off) deliberately still shows red rather than a grey notch: the
-	 * readout says "Off" and the surfaces are visibly untinted, which is unambiguous,
-	 * and a notch would cost a stop that the interpolation reads as a hue. */
+	 * The gradient goes into an element-scoped local because Firefox paints the TRACK
+	 * pseudo-element over the input's own background — the same image must be declared twice, and
+	 * two copies of a seven-stop gradient are two things to drift.
+	 *
+	 * Position 0 (= off) still shows red, not a grey notch: the readout says "Off" and the
+	 * surfaces are visibly untinted, and a notch would cost a stop the interpolation reads as a
+	 * hue. */
 	input[type="range"].fs-range-hue {
 		--fs-hue-track: linear-gradient(to right,
 			oklch(.72 .17 0), oklch(.72 .17 60), oklch(.72 .17 120),
@@ -454,9 +430,9 @@
 		background: var(--fs-hue-track);
 	}
 	input[type="range"].fs-range-hue::-moz-range-track { background: var(--fs-hue-track); }
-	/* the thumb carries the CHOSEN hue while the tint is on — the one place in the
-	 * popover that shows the raw colour rather than the wash it produces. :not() so the
-	 * shared rainbow track class doesn't hijack the accent slider's thumb below. */
+	/* the thumb carries the CHOSEN hue while the tint is on — the one place in the popover
+	 * showing the raw colour rather than the wash it produces. :not() so the shared rainbow
+	 * track class doesn't hijack the accent slider's thumb below. */
 	:root[data-tint] input[type="range"].fs-range-hue:not(.fs-range-accent)::-webkit-slider-thumb {
 		background: oklch(.65 .17 var(--fs-tint-h));
 	}
@@ -472,22 +448,18 @@
 	}
 
 	/* ==================================================================
-	 * Collapsed sidebar (icon rail) — <html data-rail="true">, toggled by
-	 * #fs-rail-toggle, persisted in localStorage and re-applied before paint by
-	 * head.ut. Labels collapse away; a section's submenu becomes a flyout panel
-	 * anchored to the right of its icon, opened on hover (desktop) or on focus,
-	 * which is what a tap on the <a href="#"> section link produces on touch.
+	 * Collapsed sidebar (icon rail) — <html data-rail="true">, persisted in localStorage and
+	 * re-applied before paint by head.ut. Labels collapse; a section's submenu becomes a
+	 * flyout anchored right of its icon, opened on hover (desktop) or on focus — which is
+	 * what a tap on the section link produces on touch.
 	 *
-	 * THE GUARD MUST BE EXACTLY THE VERTICAL SIDEBAR'S GUARD — the same media floor and the
-	 * same :not([data-narrow]). It used to say `min-width: 768px` while the vertical block
-	 * said 521, and that gap is a trap: between 521 and 767 with the rail collapsed, the
-	 * VERTICAL rules applied but the RAIL rules did not, so the sidebar sprang back open to
-	 * its full 224px — it EXPANDED as the window shrank. Worse, the measurement in
-	 * menu-footstrap-common.js was subtracting the rail's 68px while the sidebar was really
-	 * taking 224px, so it believed the content still fitted when it did not.
-	 *
-	 * The rule: the rail is a MODE of the vertical sidebar, so it can never be visible under
-	 * conditions the vertical sidebar is not.
+	 * THE GUARD MUST BE EXACTLY THE VERTICAL SIDEBAR'S — same media floor, same
+	 * :not([data-narrow]). It once said `min-width: 768px` against the vertical block's 521:
+	 * between 521 and 767 with the rail collapsed the VERTICAL rules applied but the RAIL
+	 * rules did not, so the sidebar sprang back to its full 224px — it EXPANDED as the window
+	 * shrank — while the JS measurement was subtracting the rail's 68px and believed the
+	 * content still fitted. The rail is a MODE of the vertical sidebar: it can never be
+	 * visible under conditions the vertical sidebar is not.
 	 * ================================================================== */
 	@media (min-width: 521px) {
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar {
@@ -509,15 +481,14 @@
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar ul.nav > li > a > .fs-label,
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-themerow > .fs-label,
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-logout > .fs-label,
-		/* The chevron is an affordance for a section you can UNFOLD. A rail item has no
-		 * label and no accordion — its children fly out to the side — so the chevron says
-		 * nothing and just crowds the icon.
+		/* The chevron is an affordance for a section you can UNFOLD; a rail item has no label
+		 * and no accordion (its children fly out to the side), so it says nothing and crowds
+		 * the icon.
 		 *
-		 * The selector has to be this long. The vertical override above turns the chevron
-		 * back on with `…[data-layout="sidebar"] .fs-sidebar ul.nav > li > a .fs-chevron`,
-		 * which is (0,4,3); a plainer `.fs-sidebar .fs-chevron` here is only (0,4,0) and
-		 * LOSES — which is exactly why the chevrons reappeared in the rail. Match its shape
-		 * and add the rail attribute: (0,5,3). */
+		 * The selector must be this long: the vertical override turns the chevron back on at
+		 * (0,4,3), so a plainer `.fs-sidebar .fs-chevron` here is only (0,4,0) and LOSES —
+		 * which is exactly why the chevrons reappeared in the rail. Match its shape and add
+		 * the rail attribute: (0,5,3). */
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar ul.nav > li > a .fs-chevron { display: none; }
 
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar ul.nav > li > a,
@@ -539,10 +510,10 @@
 		}
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar ul.nav > li:not(.has-sub) > a:hover::after { opacity: 1; }
 
-		/* the flyout panel: opened by hover on a mouse, or by .open which the menu JS
-		 * toggles on tap/click (exclusively — see menu-footstrap.js flyoutMode). The
-		 * hover rule is gated on a real pointer: mobile browsers leave :hover stuck
-		 * on the tapped element, which would block tap-to-close. */
+		/* the flyout: opened by hover on a mouse, or by .open which the menu JS toggles on tap
+		 * (exclusively — menu-footstrap.js flyoutMode). The hover rule is gated on a real
+		 * pointer: mobile browsers leave :hover stuck on the tapped element, which would block
+		 * tap-to-close. */
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar ul.nav > li.has-sub > ul {
 			display: none;
 			position: absolute; left: 100%; top: -8px; margin: 0 0 0 10px;
@@ -580,44 +551,40 @@
 	.fs-sidebar #indicators:empty { display: none; }
 	.fs-indicators { flex-wrap: wrap; }
 
-	/* Collapsed rail: swap the "Refreshing" word for a spinning green two-arrows
-	 * refresh glyph — a masked SVG tinted with --fs-good so it follows the palette.
-	 * Only the poll-status indicator becomes an icon; others (unsaved changes …)
-	 * keep their pill. Expanded, poll-status shows the word (shared pill rule). */
+	/* Collapsed rail: swap the "Refreshing" word for a green refresh glyph — a masked SVG
+	 * tinted with --fs-good, so it follows the palette. Only poll-status becomes an icon;
+	 * other indicators (unsaved changes …) keep their pill. */
 	:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar #indicators [data-indicator="poll-status"] {
 		font-size: 0; width: 30px; height: 30px; padding: 0;
 		border: 0; box-shadow: none; background: var(--fs-good);
 		-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M3 21v-5h5'/%3E%3C/svg%3E") center / 19px no-repeat;
 		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M3 21v-5h5'/%3E%3C/svg%3E") center / 19px no-repeat;
-		/* STATIC, deliberately. A spinner is a progress indicator — it promises that
-		 * something is happening that you are waiting for. This is a poll running quietly in
-		 * the background, forever; a permanently spinning glyph in the corner of the eye is
-		 * just noise, and it makes an idle router look busy. Green and still says the same
-		 * thing without moving. (Its click still pauses the poll — see the pill. The SPIN was
-		 * what broke that click: a target that never stops moving cannot be hit.) */
+		/* STATIC, deliberately. A spinner promises something you are WAITING for; this is a
+		 * poll running quietly in the background forever, and a permanently spinning glyph
+		 * makes an idle router look busy. The spin also broke the click that pauses the poll —
+		 * a target that never stops moving cannot be hit. */
 	}
 
-	/* paused: the same glyph, gone quiet. Without this the rail kept saying GREEN while the
-	 * poll was stopped — the one thing the indicator exists to tell you, and it was lying.
-	 * (The pill gets this for free: its --fs-good only applies to [data-style="active"].) */
+	/* paused: the same glyph gone quiet. Without this the rail kept saying GREEN while the poll
+	 * was stopped — the one thing the indicator exists to tell you, and it was lying. (The pill
+	 * gets this for free: its --fs-good only applies to [data-style="active"].) */
 	:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar #indicators [data-indicator="poll-status"]:not([data-style="active"]) {
 		background: var(--fs-dim);
 	}
 	.fs-content { padding: 22px var(--fs-content-pad); flex: 1 1 auto; width: 100%; max-width: var(--fs-content-max); margin: 0 auto; }
 
 	/* ---------- footer ----------
-	 * Bare `footer`, not `footer.fs-footer`: the theme owns footer paint outright
-	 * (absorbed from styles/base, which keeps only the flex skeleton), so a
-	 * third-party view emitting its own <footer> stays themed too. */
+	 * Bare `footer`, not `footer.fs-footer`: the theme owns footer paint outright (absorbed
+	 * from base, which keeps only the flex skeleton), so a third-party view emitting its own
+	 * <footer> stays themed too. */
 	footer {
 		padding: 14px var(--fs-content-pad); border-top: 1px solid var(--fs-border);
 		color: var(--fs-dim); font-size: 12px; background: var(--fs-bg);
-		/* CENTRE THE FLEX LINE, not just the text. `text-align: center` alone did nothing:
-		 * base makes the footer a flex container, and it used to add
-		 * `justify-content: space-between` — a leftover from a two-column footer — which with
-		 * the single <span> this theme emits parked the line at the START. The span shrinks to
-		 * its content, so text-align had nothing to centre inside it and the credit line sat
-		 * hard left. (base's space-between and its `footer span` margin are now deleted, since
+		/* CENTRE THE FLEX LINE, not just the text: `text-align: center` alone did nothing.
+		 * base makes the footer a flex container and used to add `justify-content:
+		 * space-between` (a two-column-footer leftover), which parked the single <span> this
+		 * theme emits at the START — and the span shrinks to its content, so text-align had
+		 * nothing to centre inside it. (base's space-between and `footer span` margin are gone;
 		 * this rule made them dead.) */
 		justify-content: center;
 		text-align: center;
@@ -631,11 +598,8 @@
 	}
 
 
-	/* ==================================================================
-	 * FOOTSTRAP notifications — ui.addNotification prepends
-	 * .alert-message as first child of #maincontent (.fs-main).
-	 * Order it above the content and give it card spacing.
-	 * ================================================================== */
+	/* Notifications — ui.addNotification prepends .alert-message as the first child of
+	 * #maincontent (.fs-main). Order it above the content and give it card spacing. */
 	.fs-main > .alert-message {
 		order: 1; margin: 16px auto 0;
 		width: calc(100% - var(--fs-content-pad) * 2);
@@ -648,39 +612,32 @@
 		.fs-main > .alert-message { margin: 12px 16px 0; }
 	}
 
-	/* Phone: alerts (e.g. the "New Firmware Available" sysupgrade banner, injected by
-	 * ui.addNotification as a `.fs-main > .alert-message` — a SIBLING of #view, not a
-	 * child) lay their action buttons in a nowrap flex row, so on a ~344px screen the
-	 * trailing Dismiss button was shoved past the panel and clipped by .fs-main's
-	 * overflow-x:clip. Scope to .fs-main so it covers both those top-level alerts and
-	 * any inside #view; let the row wrap and drop margin pushes so buttons stack. */
+	/* Phone: alerts (e.g. the sysupgrade banner, injected by ui.addNotification as a
+	 * `.fs-main > .alert-message` — a SIBLING of #view, not a child) lay their action buttons
+	 * in a nowrap flex row, so on a ~344px screen the trailing Dismiss button was shoved past
+	 * the panel and clipped by .fs-main's overflow-x: clip. Scoped to .fs-main so it covers
+	 * those top-level alerts and any inside #view. */
 	@media (max-width: 767px) {
 		.fs-main .alert-message { flex-wrap: wrap; }
 		.fs-main .alert-message > * { min-width: 0; margin-left: 0; }
-		/* the action row (Stop showing… + Dismiss) is a nested flex that stayed nowrap,
-		 * so the first button's label got clipped when Dismiss sat beside it. Wrap the
-		 * inner rows and let button labels break instead of truncate. */
+		/* the action row is a nested flex that stayed nowrap, so the first button's label got
+		 * clipped when Dismiss sat beside it. Wrap the inner rows; let labels break. */
 		.fs-main .alert-message div { flex-wrap: wrap; min-width: 0; }
 		.fs-main .alert-message .btn,
 		.fs-main .alert-message button { white-space: normal; max-width: 100%; }
 	}
 
-	/* ==================================================================
-	 * FOOTSTRAP review polish: subtle poll indicator, outline row buttons
-	 * ================================================================== */
-	/* topnav poll-status ("Refreshing") — subtle, not a loud accent chip */
+	/* poll-status ("Refreshing") — subtle, not a loud accent chip */
 	.fs-indicators .label,
 	.fs-indicators [data-indicator],
 	#indicators .label,
 	#indicators [data-indicator] {
-		/* An indicator sits in a ROW of controls — in the bar it is followed by the Appearance
-		 * and Log out buttons — so it has to look like one of them, or the cluster reads as
-		 * three unrelated things instead of one row. Same height (they are 34px; a box whose
-		 * height came out of its font's line-box was 28px, six pixels short and visibly the
-		 * odd one out) and the same CORNER: --fs-radius, the control radius every button in
-		 * the theme takes, not --fs-radius-pill. A capsule beside two 10px-rounded squares
-		 * announced itself as a different KIND of object, which it is not — it is a control
-		 * you can click to pause the poll. Its WIDTH stays its content's: it says a word. */
+		/* An indicator sits in a ROW of controls — in the bar, followed by Appearance and Log
+		 * out — so it must look like one of them or the cluster reads as three unrelated
+		 * things. Same 34px height (a box sized by its font's line-box came out 28px, visibly
+		 * the odd one out) and the same --fs-radius corner, not --fs-radius-pill: a capsule
+		 * beside two rounded squares announced itself as a different KIND of object, which it
+		 * is not — it is a control you click to pause the poll. WIDTH stays its content's. */
 		display: inline-flex; align-items: center;
 		min-height: 34px;
 		text-transform: none;
@@ -692,9 +649,9 @@
 	}
 	.fs-indicators [data-indicator][data-style="active"],
 	#indicators [data-indicator][data-style="active"] { color: var(--fs-good); }
-	/* the base only gives clickable indicators a pointer cursor under a <header>,
-	 * which exists in the top-nav layout but not in the sidebar one (its indicators
-	 * sit in the sidebar footer) — so "Refreshing" showed a text caret there. */
+	/* nothing else gives a clickable indicator a pointer cursor (base's `header
+	 * [data-indicator]` rule carries geometry only, and this theme emits no <header> at all),
+	 * so "Refreshing" showed a text caret. */
 	.fs-indicators [data-indicator][data-clickable],
 	#indicators [data-indicator][data-clickable] { cursor: pointer; }
 }

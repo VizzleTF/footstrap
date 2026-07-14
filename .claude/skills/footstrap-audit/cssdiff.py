@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Compare computed styles of every element under two stylesheets.
 
-Loads a LuCI page once, snapshots getComputedStyle for a fixed property set on
-every element (keyed by a stable DOM path), swaps the theme <link> to the second
-stylesheet, snapshots again, diffs. Same DOM, same live data — so any difference
-is caused by CSS, not by an uptime counter ticking.
+Screenshots cannot verify a CSS change on a live router: the page's own counters
+(uptime, DHCP leases, wifi signal) move 0.5-1.3% of the pixels between two runs of the
+SAME stylesheet, while a real regression can be 0.19% — the signal sits under the noise.
+
+So: load the page ONCE, snapshot getComputedStyle for a fixed property set on every
+element (keyed by a stable DOM path), swap the theme <link> to the second stylesheet,
+snapshot again, diff. Same DOM, same live data, so every difference is caused by CSS.
 
 Both stylesheets must already be on the router under /www/luci-static/footstrap/.
 """
@@ -52,10 +55,9 @@ SWAP = """(href) => new Promise((res) => {
   n.href = href;
   n.onload = () => {
     l.remove();
-    // Both stylesheets declare the same @font-face rules. Swapping the <link>
-    // restarts font matching, and a snapshot taken before the webfont is ready
-    // measures fallback metrics — every width in the page shifts by a pixel or
-    // two and drowns the real diff. Wait for the fonts, then two frames.
+    // Swapping the <link> restarts font matching (both sheets declare the same
+    // @font-face rules). Snapshotting before the webfont is ready measures fallback
+    // metrics — every width shifts a pixel or two and drowns the real diff.
     document.fonts.ready.then(() =>
       requestAnimationFrame(() => requestAnimationFrame(res)));
   };
@@ -72,13 +74,12 @@ def main():
     ap.add_argument("--layout", default="/luci-static/footstrap")
     ap.add_argument("--mode", default="dark")
     ap.add_argument("--ssh-host", default="router")
-    # The stylesheet's behaviour is a FUNCTION of width, so a diff taken only at 1440 never
-    # enters the narrow states. Three things change with width and none of them is visible at
-    # the default: the overview grid (@container fs-view 800), the config table's card
+    # Behaviour is a FUNCTION of width, and a diff taken only at 1440 never enters the
+    # narrow states: the overview grid (@container fs-view 800), the config table's card
     # (@container fs-content 960 — which in the sidebar layout can fire on a 1200px DESKTOP,
-    # since the column is viewport-224-56), and the data tables, which are not a container
-    # query at all any more but MEASURED (.fs-stacked, fs-select.js) and can card anywhere.
-    # Verify a change to any of them at a width inside each band.
+    # the column being viewport-224-56), and the data tables (MEASURED, not a container
+    # query: .fs-stacked / fs-select.js — they can card at any width). Touch any of those,
+    # re-run inside each band.
     ap.add_argument("--width", type=int, default=1440)
     ap.add_argument("--height", type=int, default=900)
     ap.add_argument("--ls", action="append", default=[], metavar="KEY=VALUE",
@@ -91,12 +92,11 @@ def main():
     base = f"http://{host}"
 
     def sh(c): return subprocess.run(["ssh",args.ssh_host,c],capture_output=True,text=True)
-    # This script SWITCHES the router's active theme and puts it back in a finally block, so
-    # `orig` is the only thing standing between a dev router and a broken UI. It used to be a
-    # bare .strip() with no fallback: a failed ssh (or a router with the key unset) made it the
-    # EMPTY STRING, and the finally block then ran `uci set luci.main.mediaurlbase=` — blanking
-    # theme selection. preview.py and bench/nav-benchmark.py both default to bootstrap here;
-    # this one did not. Refuse to start rather than restore something we never read.
+    # This script SWITCHES the router's active theme and restores it in a finally block, so
+    # `orig` is all that stands between a dev router and a broken UI. A failed ssh (or an
+    # unset key) used to leave it the EMPTY STRING, and finally then ran
+    # `uci set luci.main.mediaurlbase=`, blanking theme selection. Refuse to start rather
+    # than restore a value we never read.
     orig = sh("uci get luci.main.mediaurlbase").stdout.strip()
     if not orig:
         sys.exit("cannot read luci.main.mediaurlbase from the router — refusing to switch the "

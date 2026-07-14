@@ -1,8 +1,6 @@
 @layer base {
-	/* Document scaffolding: the body box, links, and the typographic scale a view
-	 * inherits when it emits plain <h1>/<p>/<ul>/<pre> markup. */
-	/* body background/padding/font-family are owned by the theme shell
-	 * (theme/20-shell.css `body` rule, both layouts) — absorbed. */
+	/* The body box, links, and the type scale a view inherits from plain markup.
+	 * body background/padding/font-family: theme/20-shell.css — absorbed. */
 	body {
 		font-size: 13px;
 		font-weight: normal;
@@ -11,8 +9,8 @@
 		min-height: 100%;
 		display: flex;
 		flex-direction: column;
-		/* stable gutter, not a permanent scrollbar: same no-reflow guarantee, without
-		 * a dead scrollbar drawn down the side of every short page. */
+		/* gutter, not `overflow-y: scroll`: same no-reflow guarantee, without a dead
+		 * scrollbar down every short page. */
 		scrollbar-gutter: stable;
 	}
 
@@ -29,12 +27,11 @@
 	}
 
 	.nowrap:not(span) {
-	/*	Sometimes you need to wrap: badges on narrow screens look weird 
-		and nowrap defeats other width constraints, so exclude span */
+	/*	:not(span) — a badge must be free to wrap on a narrow screen, and nowrap
+		defeats every other width constraint on it */
 		white-space: nowrap;
 	}
 
-	/* Headings, body text, lists, code and preformatted blocks. */
 	p,
 	.cbi-map-descr,
 	.cbi-section-descr,
@@ -186,8 +183,7 @@
 		margin-bottom: 18px;
 	}
 
-	/* no shared padding: BOTH members set their own below (code 1px 3px, pre 8.5px), so
-	 * the one written here never reached anything. */
+	/* no shared padding: both members set their own below (code 1px 3px, pre 8.5px) */
 	code, pre {
 		font-family: var(--fs-font-mono);
 		font-size: 12px;
@@ -195,9 +191,8 @@
 	}
 
 	code {
-		/* was --border-color-low: in dark that is #444c56, and --fs-text on it measures
-		 * 4.40:1 — under AA. The panel2 surface <pre> already uses gives 6.45 and still
-		 * reads as a chip. */
+		/* panel2 (6.45:1), not a border-level surface: --fs-text on the latter is 4.40:1
+		 * in dark — under AA. Still reads as a chip. */
 		background-color: var(--fs-panel2);
 		color: var(--fs-text);
 		padding: 1px 3px;

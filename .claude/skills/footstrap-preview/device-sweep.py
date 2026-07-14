@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Sweep LuCI pages at popular device widths and report horizontal overflow.
 
-Loads each page at each device's logical (CSS) viewport width in the footstrap
-theme, then flags any element whose right edge crosses the viewport — i.e. content
-that gets clipped by `.fs-main { overflow-x: clip }` or forces a page-level scroll.
-It also measures the phantom-scroll gap (scrollHeight past the footer).
+Loads each page at each device's logical (CSS) width and flags any element whose right
+edge crosses the viewport — content that `.fs-main { overflow-x: clip }` silently cuts
+off, or that forces a page-level scroll. Also measures the phantom-scroll gap
+(scrollHeight past the footer).
 
-One login, one browser, theme flipped to footstrap for the run and ALWAYS reverted.
+One login, one browser; the theme is flipped to footstrap for the run and ALWAYS reverted.
 
   LUCI_PW=<pw> .claude/tooling/preview-venv/bin/python \
     .claude/skills/footstrap-preview/device-sweep.py [--devices ...] [--pages ...] [--layout ...]
@@ -69,9 +69,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--devices", default="", help="comma list of device keys (default all)")
     ap.add_argument("--pages", default="", help="space/comma list of LuCI paths (default broad set)")
-    # sidebar/top are CLIENT preferences (localStorage 'fs-layout'), not theme entries.
-    # This used to offer "footstrap-top" and point mediaurlbase at /luci-static/footstrap-top —
-    # a media dir the rest of the repo deletes, so the sweep screenshotted a broken UI.
+    # A layout is a CLIENT preference (localStorage 'fs-layout'), not a theme entry. This
+    # used to offer "footstrap-top" and point mediaurlbase at /luci-static/footstrap-top —
+    # a media dir the rest of the repo deletes, so the sweep measured LuCI's theme fallback.
     ap.add_argument("--layout", choices=["sidebar", "top"], default="sidebar")
     ap.add_argument("--mode", choices=["dark", "light"], default="dark")
     ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router"))

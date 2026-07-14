@@ -1,14 +1,9 @@
 @layer theme {
-	/* ==================================================================
-	 * WCAG 2.2 SC 1.4.1 (Use of Color, level A): inside a block of text, a link may
-	 * not be identified by COLOUR ALONE. It needs either a non-colour cue, or 3:1
-	 * contrast against the surrounding text — and --fs-accent against --fs-text measures
-	 * 1.4:1 in dark mode, nowhere near it. So: underline links that sit in prose.
-	 *
-	 * Scoped to prose deliberately. Navigation links, buttons, pills and table cells
-	 * are identified by position and shape, not by being the only coloured thing in a
-	 * paragraph, and underlining them would be noise.
-	 * ================================================================== */
+	/* WCAG 2.2 SC 1.4.1 (Use of Color, A): inside a block of text a link may not be identified
+	 * by COLOUR ALONE — it needs a non-colour cue or 3:1 against the surrounding text, and
+	 * --fs-accent on --fs-text measures 1.4:1 in dark mode. So: underline links in prose.
+	 * Scoped to prose deliberately — nav links, buttons, pills and table cells are identified
+	 * by position and shape, and underlining them would be noise. */
 	p a, dd a,
 	.cbi-value-description a,
 	.alert-message a:not(.btn):not(.cbi-button) {
@@ -16,44 +11,37 @@
 	}
 
 	/* ==================================================================
-	 * A <strong>/<b> is a LABEL, and a label is UI text — so it takes the UI face, even
-	 * when it sits on a monospaced surface. LuCI builds every status readout as
-	 * `<strong>MAC:</strong> ac:1f:6b:…`: the strong names the datum, the text after it
-	 * IS the datum. The theme puts mono on those surfaces (.cbi-value-field, data-table
-	 * cells, ifacebox bodies), the strong inherited it, and <strong> also means weight
-	 * 700 — so the label asked for a BOLD MONO face that exists for no other reason.
-	 * Measured on the live router: 227 elements across seven pages, and 20 KB of
-	 * jetbrains-mono-600 fetched to draw them — 30% of the theme's whole font payload,
-	 * spent on the word "MAC:". They render in Manrope 700 now, which every page has
-	 * already downloaded, so this costs zero bytes and saves twenty thousand.
+	 * A <strong>/<b> is a LABEL, and a label is UI text — so it takes the UI face even on a
+	 * monospaced surface. LuCI builds every status readout as `<strong>MAC:</strong>
+	 * ac:1f:6b:…`: the strong names the datum, the text after it IS the datum. The theme puts
+	 * mono on those surfaces (.cbi-value-field, data-table cells, ifacebox bodies), the strong
+	 * inherited it, and <strong> also means weight 700 — so the label asked for a BOLD MONO
+	 * face that exists for no other reason. Measured on the live router: 227 elements across
+	 * seven pages, 20 KB of jetbrains-mono-600 fetched to draw them — 30% of the theme's whole
+	 * font payload, spent on the word "MAC:". Manrope 700 is already downloaded: zero bytes.
 	 *
-	 * Note it must SET the face, not just be excluded from the mono rule: an element
-	 * left out of a declaration still inherits its parent's. That was the first attempt
-	 * and it changed nothing at all.
+	 * It must SET the face, not merely be excluded from the mono rule — an excluded element
+	 * still INHERITS its parent's. That was the first attempt and it changed nothing.
 	 *
-	 * pre/code/#syslog/textarea are exempt: there a <strong> is part of the monospaced
-	 * CONTENT (a highlighted line of a config file, a log level), not a label for it —
-	 * and their bold resolves onto the mono 400 face, which is still shipped.
+	 * pre/code/#syslog/textarea are exempt: there a <strong> is part of the monospaced CONTENT
+	 * (a highlighted config line, a log level), not a label for it, and its bold resolves onto
+	 * the mono 400 face, which is still shipped.
 	 * ================================================================== */
 	:is(strong, b):not(pre *, code *, #syslog *, textarea *) {
 		font-family: var(--fs-font-sans);
 	}
 
-	/* Same argument, the last two holdouts — found by measuring, not by reading:
+	/* Same argument, the last two holdouts — found by measuring:
+	 * .ifacebadge is a BADGE — chrome, not a value. It sits in a mono cell and
+	 * .ifacebadge-active makes it bold, so the four active firewall zone badges were the last
+	 * thing on the router asking for a bold mono face. Sans keeps the active/inactive weight cue
+	 * (WCAG 1.4.1 — that distinction is not carried by colour) with faces the page already has.
+	 * <code>/<pre> hold a LITERAL, which does not inherit its container's emphasis:
+	 * `<code>/etc/ethers</code>` inside a .cbi-value-title (600) was asking for bold mono.
 	 *
-	 * .ifacebadge is a BADGE (icon + interface name) — chrome, not a value. It sits in
-	 * a mono cell and .ifacebadge-active makes it bold, so the four active zone badges
-	 * on the firewall page were the last thing on the router asking for a bold mono
-	 * face. Sans keeps the active/inactive weight cue (WCAG 1.4.1 — the distinction is
-	 * not carried by colour) using faces the page already has.
-	 *
-	 * <code>/<pre> hold a LITERAL, and a literal does not inherit its container's
-	 * emphasis: `<code>/etc/ethers</code>` inside a .cbi-value-title (weight 600) was
-	 * being asked to render in bold mono for exactly one element on one page. */
-	/* The second selector is not redundant: the mono rule in theme/60-inputs.css is
-	 * `.cbi-value-field *:where(…)`, which is (0,1,0) — a tie with a bare `.ifacebadge`,
-	 * and a tie is settled by source order, which 60-inputs would win. Win on
-	 * SPECIFICITY instead (0,2,0), the way this stylesheet is supposed to. */
+	 * The second selector is not redundant: the mono rule in theme/60-inputs.css is
+	 * `.cbi-value-field *:where(…)` = (0,1,0), a TIE with a bare `.ifacebadge` — and a tie is
+	 * settled by SOURCE ORDER, which 60-inputs would win. Win on specificity (0,2,0) instead. */
 	.ifacebadge,
 	.cbi-value-field .ifacebadge { font-family: var(--fs-font-sans); }
 	code, pre { font-weight: 400; }
@@ -66,69 +54,51 @@
 	.close:hover { opacity: 1; }
 	.ifacebox { background: var(--fs-panel); border-color: var(--fs-border); }
 	.ifacebox .ifacebox-head { background: var(--fs-panel2); color: var(--fs-text); }
-	/* The active-interface highlight. It has to live in THIS layer, next to the head
-	 * it overrides: the same rule in base was dead, because a layer beats specificity
-	 * and the plain `.ifacebox-head` above repainted `.active` along with the rest. */
+	/* The active-interface highlight lives in THIS layer, next to the head it overrides: the
+	 * same rule in base was dead — a layer beats specificity, and the plain `.ifacebox-head`
+	 * above repainted `.active` along with the rest. */
 	.ifacebox .ifacebox-head.active { background: var(--fs-accent); color: var(--fs-on-accent); }
 	.ifacebadge { background: var(--fs-panel2); border-color: var(--fs-border); }
 	.ifacebadge-active { border-color: var(--fs-accent); }
 	.zonebadge-empty { border-color: var(--fs-border); color: var(--fs-dim); }
 
 	/* ==================================================================
-	 * The @container PLUMBING for the responsive tables. The card rules themselves are
-	 * NOT here: a CBI section table (firewall zones, port forwards …) cards under
-	 * `@container fs-content (max-width: 960px)` in theme/65-dropdown.css, and a data
-	 * table cards by MEASUREMENT (.fs-stacked, fs-select.js) at any width. All this file
-	 * declares is WHICH boxes are query containers, and under what names.
-	 * ================================================================== */
-	/* Query the actual content width, not the viewport — the sidebar eats width, so
-	 * a viewport breakpoint would stack too late (or too early) depending on layout. */
-	/* NAMED, and the pair of names is deliberate. An unnamed @container binds to the
-	 * nearest ancestor that happens to have a container-type — so giving container-type
-	 * to any new component would silently re-target every unnamed query underneath it.
+	 * The @container PLUMBING for the responsive tables — only WHICH boxes are query containers,
+	 * under what names. The card rules are NOT here: a CBI section table cards under `@container
+	 * fs-content (max-width: 960px)` (theme/65-dropdown.css), a data table cards by MEASUREMENT
+	 * (.fs-stacked, fs-select.js) at any width — which is why no data-table threshold appears in
+	 * this file.
+	 *
+	 * Query the CONTENT width, not the viewport: the sidebar eats width, so a viewport breakpoint
+	 * would stack too late (or too early) depending on layout.
+	 *
+	 * NAMED, deliberately — an unnamed @container binds to the nearest ancestor that happens to
+	 * have a container-type, so giving container-type to any new component would silently
+	 * re-target every unnamed query underneath it.
 	 *   fs-map     this element specifically (a CBI form's content column)
-	 *   fs-content "whatever content column I am in" — #view carries this name too, so
-	 *              a query for fs-content resolves to the NEAREST of the two, which is
-	 *              exactly what the unnamed queries did, only now on purpose. */
-	.cbi-map { container-type: inline-size; container-name: fs-map fs-content; }
-
-	/* ==================================================================
-	 * #view is a query container under TWO names, and both are still used — but NOT by
-	 * the data tables any more. Those are measured now (.fs-stacked), which is why no
-	 * threshold for them appears anywhere in this file.
 	 *   fs-view    the overview's grid (pages/20-overview.css, @container 800)
-	 *   fs-content "whatever content column I am in" — the config table's card
-	 *              (@container 960, theme/65-dropdown.css) resolves to the NEAREST of
-	 *              #view and .cbi-map, which is the point of sharing the name.
+	 *   fs-content "whatever content column I am in" — carried by BOTH .cbi-map and #view, so a
+	 *              query resolves to the NEAREST of the two. That is the point of sharing it.
 	 * ================================================================== */
+	.cbi-map { container-type: inline-size; container-name: fs-map fs-content; }
 	#view { container-type: inline-size; container-name: fs-view fs-content; }
 
 	/* A modal is NOT inside #view — ui.js appends #modal_overlay to <body> — so every
-	 * @container query above resolved to nothing in there and no table stacked: on a
-	 * phone the Edit-interface dialog rendered its form at desktop widths and cut the
-	 * inputs off at the dialog's right edge. Carry BOTH names so a dialog stacks its
-	 * .cbi-section-table (fs-content) and its data tables (fs-view) exactly like the
-	 * page would. This is what makes any third-party app's modal work unchanged. */
+	 * @container query above resolved to nothing in there and no table stacked: on a phone the
+	 * Edit-interface dialog rendered its form at desktop widths and cut the inputs off at the
+	 * dialog's right edge. Carry BOTH names so a dialog stacks its .cbi-section-table
+	 * (fs-content) and its data tables (fs-view) exactly like the page — including any
+	 * third-party app's modal. */
 	.modal { container-type: inline-size; container-name: fs-view fs-content; }
 
-	/* pager (pagination row: « prev · text · » next) — generic component, not page
-	 * scoped: any .pager gets an inline centred row with compact square buttons. */
+	/* pager (« prev · text · next ») — generic, not page-scoped: any .pager gets an inline
+	 * centred row with compact square buttons. */
 	.pager.center { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 10px; padding: 14px 0; }
 	.pager .text { flex: 0 0 auto; font-size: 12px; color: var(--fs-dim); }
 
-	/* ==================================================================
-	 * FOOTSTRAP: page heading + tab strips as cards
-	 *
-	 * Everything that sits directly on the page background gets the same
-	 * frame as a .cbi-section card, so a page reads as a stack of panels
-	 * instead of loose text floating over the (possibly patterned) bg.
-	 *   - the map/view heading and its description form ONE card;
-	 *   - every tab strip (page tabs, mode tabs, CBI form tabs) is a pill
-	 *     row; the active pill is an --fs-accent fill (design mock).
-	 * Appended last: source order beats the earlier tab/heading rules.
-	 * ================================================================== */
-
-	/* ---------- heading card (h2 + .cbi-map-descr) ---------- */
+	/* Heading card (h2 + .cbi-map-descr): everything sitting directly on the page background
+	 * gets a .cbi-section card's frame, so a page reads as a stack of panels instead of loose
+	 * text floating over the (possibly patterned) background. */
 	.cbi-map > h2,
 	#view > h2 {
 		background: var(--fs-panel);
@@ -141,8 +111,8 @@
 		font-weight: 700;
 		color: var(--fs-text);
 	}
-	/* a heading followed by a description: split the card across the two
-	 * siblings (no wrapper element exists to hold them both) */
+	/* a heading followed by a description: split the card across the two siblings (no wrapper
+	 * element exists to hold both) */
 	.cbi-map > h2:has(+ .cbi-map-descr),
 	#view > h2:has(+ .cbi-map-descr) {
 		border-bottom: 0;
@@ -165,23 +135,18 @@
 		line-height: 1.5;
 	}
 
-	/* Action-button row (a `.right` wrapper holding an Add/Save button) that sits
-	 * directly under a field had no gap above it — the apk "Repo Public Keys ->
-	 * Add key" paste box, and the same paste-a-value-then-submit layout elsewhere,
-	 * pinned the button to the textarea. Give it a top gap. Scoped to a `.right`
-	 * that immediately follows a form control so it never touches right-aligned
-	 * text/table cells. */
+	/* An action-button row (a `.right` wrapper holding Add/Save) sitting directly under a field
+	 * had no gap above it — the apk "Repo Public Keys -> Add key" paste box, and every other
+	 * paste-a-value-then-submit layout, pinned its button to the textarea. Scoped to a `.right`
+	 * immediately following a form control, so it never touches right-aligned text or cells. */
 	#view :is(textarea, input[type="text"], input[type="password"], .cbi-dropdown) + .right {
 		margin-top: 10px;
 	}
 
-	/* A row of buttons that belongs to the PAGE TITLE rather than to any section — LuCI emits
-	 * it as `.cbi-title-section > .cbi-title-buttons` (Status → Channel Analysis puts its
-	 * "Refresh Channels" there; a third-party luci-app-* may put anything there).
-	 *
-	 * Nothing gave it a bottom margin, so the button sat flush against the top edge of the
-	 * first .cbi-section below it, reading as part of that card instead of as a page-level
-	 * action. Same 16px every .cbi-section already uses to separate itself from the next one,
-	 * so the rhythm of the page is unchanged — the gap was simply missing. */
+	/* A button row belonging to the PAGE TITLE rather than to any section (`.cbi-title-section >
+	 * .cbi-title-buttons`; Status → Channel Analysis puts "Refresh Channels" there, a
+	 * third-party app may put anything). Nothing gave it a bottom margin, so it sat flush
+	 * against the first .cbi-section below and read as part of that card instead of as a
+	 * page-level action. Same 16px every .cbi-section already uses. */
 	.cbi-title-buttons { margin-bottom: 16px; }
 }

@@ -1,28 +1,22 @@
 #!/usr/bin/env node
-/* The Appearance axes exist TWICE, in two languages, and nothing held them together.
+/* Every Appearance axis (dark mode, palette, wallpaper, rounding, tint, accent, rail, layout) is
+ * implemented TWICE, and nothing held the copies together:
  *
- * WHY THERE ARE TWO COPIES AT ALL — and why they cannot simply be merged.
- * Every axis (dark mode, palette, wallpaper, rounding, tint, accent, the icon rail, the
- * layout) is applied in two places:
- *
- *   1. `partials/head.ut` — four inline <script> blocks that read localStorage and stamp
- *      :root BEFORE THE FIRST PAINT. They must be inline and they must run before any module
- *      loads, or the page flashes the wrong theme on every reload. They cannot `require` a
- *      LuCI module, because the module loader does not exist yet.
+ *   1. `partials/head.ut` — inline <script>s that read localStorage and stamp :root BEFORE THE
+ *      FIRST PAINT, or the page flashes the wrong theme on every reload. They cannot `require` a
+ *      LuCI module: the module loader does not exist yet.
  *   2. `menu-footstrap-common.js` — the live appliers behind the Appearance popover.
  *
- * So the duplication is forced, like the @mirror cases. But unlike those, the two copies are
- * not byte-identical and never can be (one is ES5-ish inline script, the other a module), so
- * mirror.mjs cannot hold them. What CAN be held is the CONTRACT they share: the localStorage
- * key names, the :root attributes, the custom properties, the valid ranges, the default — and
- * the one rule that is load-bearing and easy to fix in only one place:
+ * Forced duplication, like the @mirror cases — but these two can never be byte-identical (inline
+ * script vs module), so mirror.mjs cannot hold them. What CAN be held is the CONTRACT: key names,
+ * :root attributes, custom properties, valid ranges, the default — and the load-bearing rule:
  *
  *      set the custom property BEFORE the attribute that switches the mixes on,
  *      or a fresh load paints one frame with the previous hue.
  *
- * THE CONTRACT IS DERIVED FROM THE JS, not written out here a third time. This tool reads the
- * axes out of menu-footstrap-common.js and then checks head.ut (and the CSS token, and
- * fs-orphans' ignore list) against them. Add an axis and the gate tells you what you forgot.
+ * The contract is DERIVED FROM THE JS, not restated here a third time: read the axes out of
+ * menu-footstrap-common.js, then hold head.ut (plus the CSS token and fs-orphans' ignore list) to
+ * them. Add an axis and the gate tells you what you forgot.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -50,12 +44,12 @@ const keysIn = (src) => {
 	const out = new Set();
 	for (const m of src.matchAll(/(?:lsGet|lsSet|lsDel)\(\s*'(fs-[a-z-]+)'/g)) out.add(m[1]);
 	for (const m of src.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\(\s*'(fs-[a-z-]+)'/g)) out.add(m[1]);
-	/* the accordion's remembered set keeps its key in a constant */
+	/* the accordion's remembered set keeps its key in a constant, not at the call site */
 	for (const m of src.matchAll(/^const\s+\w*KEY\w*\s*=\s*'(fs-[a-z-]+)'/gm)) out.add(m[1]);
 	return out;
 };
-/* ...plus the keys that are no longer written as literals at the call site: the hue axes pass
- * theirs INTO hueAxis(key, attr, prop), so a naive lsGet('fs-…') scan misses them entirely. */
+/* ...plus the hue axes, which pass their key INTO hueAxis(key, attr, prop): an lsGet('fs-…')
+ * scan misses those entirely. */
 const hueAxes = [...COMMON.matchAll(/hueAxis\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*'([^']+)'\s*\)/g)]
 	.map(([, key, attr, prop]) => ({ key, attr, prop }));
 
@@ -64,8 +58,8 @@ const headKeys = keysIn(HEAD);
 
 if (!jsKeys.size) errors.push('found no fs-* localStorage keys in the theme JS — this tool is broken, not the theme');
 
-/* A key the TEMPLATE touches that the JS does not know is a leftover: head.ut would keep
- * pre-painting a preference nothing can ever set or clear again. */
+/* A key the TEMPLATE touches but the JS does not know is a leftover: head.ut would go on
+ * pre-painting a preference nothing can set or clear. */
 for (const k of headKeys)
 	if (!jsKeys.has(k))
 		errors.push(`head.ut reads localStorage '${k}', but no theme JS ever writes it — dead pre-paint, or a typo`);
@@ -80,9 +74,9 @@ for (const { key, attr, prop } of hueAxes) {
 	const iAttr = HEAD.indexOf(`setAttribute('${attr}'`);
 	if (iProp < 0) { errors.push(`${where}: head.ut never sets ${prop}`); continue; }
 	if (iAttr < 0) { errors.push(`${where}: head.ut never sets the ${attr} attribute`); continue; }
-	/* THE ordering rule. It is the reason this gate exists: it is a one-line fix that would be
-	 * made in the popover's applier and forgotten in the template, and the only symptom is a
-	 * single wrong frame on a reload — which nobody reports and no test catches. */
+	/* THE ordering rule, and the reason this gate exists: a one-line fix that would be made in
+	 * the popover's applier and forgotten in the template, whose only symptom is a single wrong
+	 * frame on reload — which nobody reports and no other test catches. */
 	if (iProp > iAttr)
 		errors.push(`${where}: head.ut sets the ${attr} attribute BEFORE ${prop}. The property must come `
 			+ `first, or a fresh load paints one frame with the previous hue (or hue 0).`);
@@ -107,14 +101,13 @@ else if (!(jsRadius[1] === cssRadius[1] && cssRadius[1] === headRadius[1]))
 		+ `head.ut cannot read the CSS token (it runs before the stylesheet), so this is the only thing checking it.`);
 else ok.push(`rounding default ${jsRadius[1]}px agrees in the JS, the CSS token and head.ut`);
 
-/* ---- 3b. the dark-mode attributes: the same SET, with the same values, in both places --
+/* ---- 3b. the dark-mode attributes: the same SET, same values, in both places -----------
  *
- * Dark mode is announced three times over: `data-darkmode` (what this theme's own CSS reads)
- * plus `data-theme` and `data-bs-theme` — the two dialects third-party apps sniff for. They are
- * stamped by the pre-paint script in head.ut AND by stampDark() in the live applier, and an
- * attribute added to one and forgotten in the other has a symptom nobody reports: an app's dark
- * styles are dead on a fresh load and come alive the moment you touch the Appearance popover
- * (or the other way round). Derive the set from the JS; hold the template to it. */
+ * Dark mode is announced three times: `data-darkmode` (what this theme's CSS reads) plus
+ * `data-theme` and `data-bs-theme` (the two dialects third-party apps sniff for). Both head.ut's
+ * pre-paint and stampDark() write them; one added to one copy and forgotten in the other has a
+ * symptom nobody reports — an app's dark styles are dead on a fresh load and come alive the
+ * moment you touch the Appearance popover (or vice versa). Derive the set from the JS. */
 const stampBody = (src, re) => (src.match(re) || [, null])[1];
 const attrsIn = (body) => new Map([...(body || '').matchAll(
 	/setAttribute\('([^']+)',\s*dark\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/g)].map((m) => [m[1], `${m[2]}/${m[3]}`]));
@@ -140,8 +133,8 @@ else {
 }
 
 /* The two compat names are OUTBOUND, like the --*-color-* export tier: apps read them, this
- * theme must not. A styles/ rule keyed off data-theme would be silently hijackable by any app
- * that stamps it (OpenClash writes data-darkmode on :root from its own luminance sniff). */
+ * theme must not. A styles/ rule keyed off data-theme is hijackable by any app that stamps it
+ * (OpenClash writes data-darkmode on :root from its own luminance sniff). */
 for (const attr of ['data-theme', 'data-bs-theme'])
 	if (STYLES.includes(`[${attr}`))
 		errors.push(`styles/ keys a rule off [${attr}] — that name is OUTBOUND compatibility for third-party `

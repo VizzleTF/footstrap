@@ -1,12 +1,16 @@
 {#
- The Appearance trigger (#fs-appearance). ONE form for every layout: a full-width
- row carrying icon + label. The bar (the top layout, and the sidebar collapsed to a
- phone bar) and the icon rail squash it into a 34px square button and hide the label
- in CSS — a layout is a presentation choice, so it must not fork the markup. That is
- why the old `with_label` parameter, and the separate .fs-appearance-btn element it
- emitted, are gone.
- Looks: styles/theme/20-shell.css (row, rail, phone bar) and
- styles/theme/50-toplayout.css (the desktop bar's square button).
+ The Appearance trigger (#fs-appearance). ONE markup for every layout — a layout is a
+ presentation choice and must not fork the markup: CSS renders this as a 34px square icon
+ button in the bar and the icon rail, and as a row with its label in the vertical sidebar
+ (theme/20-shell.css, theme/50-toplayout.css). Hence the old `with_label` parameter and the
+ .fs-appearance-btn element it emitted are gone.
+
+ i18n: 'Appearance' is CHROME and deliberately carries no msgctxt — inheriting luci-base's
+ translation is a feature in the ~40 languages this theme has no catalogue for. The popover's
+ OWN labels (menu-footstrap-common.js) do carry the `footstrap` context, because a msgid is a
+ GLOBAL name: load_catalog merges every *.<lang>.lmo in the directory into one catalogue and
+ readdir order decides who owns a string — the layout toggle rendered "Максимум" on a Russian
+ router, because somebody's catalogue translates the msgid `Top` as "maximum".
  Licensed to the public under the Apache License 2.0.
 -#}
 <button type="button" class="fs-themerow" id="fs-appearance" title="{{ _('Appearance') }}" aria-label="{{ _('Appearance') }}">

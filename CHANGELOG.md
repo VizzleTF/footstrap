@@ -10,6 +10,39 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Fixed
+- **About forty source comments described code that no longer exists, and some of them described the
+  opposite of what the code does.** Nothing a user can see, but a comment that lies is worse than no
+  comment: the next person trusts it. The worst of them sat on the gates themselves. `jsmin-verify`'s
+  header said "a **non-zero** exit code proves nothing" — backwards, and it negated the tool's whole
+  reason to exist: jsmin corrupts a file *silently* and exits **0**, which is precisely why the token
+  stream has to be compared. `install.sh` and `footstrap-selfupdate.sh` still explained that a release
+  carries one `luci-i18n-footstrap-<lang>` package per language — the shape that broke Update on every
+  router in the field (issue #6) and that 0.8.5 removed; `install.sh` then contradicted itself fifty
+  lines later. `menu-footstrap-common.js` asserted in one paragraph that the shell widths are
+  constants (`SIDEBAR_W = 224, RAIL_W = 68`) and in the next that they are read back from the CSS
+  tokens — the first paragraph documented deleted code — and pointed at a function, `fitOne()`, that
+  is nowhere in the tree. Thirteen more in `styles/theme/` named elements that were removed with the
+  second renderer (`.fs-appearance-btn`, `.fs-top-logout`, a `<header>` no template emits) or claimed
+  to override rules that `styles/base` has since **absorbed**; two stated the wrong specificity
+  (`(0,3,1)` where the selector is `(0,4,0)`), and the dark canvas's chroma was written `.0165` in one
+  file and `.0153` in another — converting `#1c2128` to OKLCH says `.0153`. Also fixed:
+  `dev-sync.sh` still said the catalogue compiles in `Build/Compile` (it moved to `Build/Prepare`),
+  `audit.py`'s docstring advertised a JS bracket check that was deliberately removed, and the
+  uci-defaults marker comment said "drop the marker" where the code **writes** it.
+
+### Changed
+- **Comments across the whole tree are cut to what states the problem and the reason, ~30–40% shorter.**
+  The comments do not ship — jsmin and `build-css.sh` strip them — so this buys no bytes; it buys a
+  reader who reaches the point. What went was narrative, rhetorical framing, restatement of the next
+  line, and passages that merely re-told CLAUDE.md (now one-line pointers). What stayed is every
+  defect, every measurement and every "do NOT" — those are the load-bearing half, and they set a floor
+  well above the 50–70% cut that was aimed for. Verified mechanically that only comments changed: the
+  built `cascade.css` is byte-identical (112 115 B), every JS token stream is identical under acorn,
+  the Python AST minus docstrings is identical, and `npm run check` plus `jsmin-verify` are clean.
+
 ## [0.8.5] — 2026-07-14
 
 ### Fixed

@@ -1,23 +1,17 @@
 #!/usr/bin/env node
-/* A RATCHET on the stylesheet's shape — the same idea as the font-byte budget in
- * build-css.sh: pin the numbers that only ever get worse by accident, so they cannot drift
- * up one commit at a time.
+/* A RATCHET on the stylesheet's shape — same idea as the CSS size budget in build-css.sh and the
+ * font-byte budget in CI: pin the numbers that only get worse by accident, so they cannot drift
+ * up one commit at a time. Not style opinions; each is an invariant CLAUDE.md states in prose and
+ * nothing enforced:
  *
- * These are not style opinions. Each one is an invariant CLAUDE.md already states in prose
- * and that nothing enforced:
- *
- *   IMPORTANTS — the theme documents exactly which declarations may carry `!important`
- *     (16 in theme+pages that fight an inline or unlayered declaration, 17 in base). That
- *     count is a fact about the cascade, not a preference. stylelint's
- *     `declaration-no-important` + its allowlist stops a NEW file adding one; this stops
- *     the allowlisted files quietly growing more.
- *
- *   MAX SPECIFICITY — "Do not let source order carry meaning… win on specificity instead."
- *     A rule that needs a wilder selector than anything else in the sheet is usually
- *     fighting a battle that a cascade layer should have won for it.
- *
- *   EMPTY RULES — a selector with no declarations is always a mistake, and the concatenating
- *     build cannot see one.
+ *   IMPORTANTS — which declarations may carry `!important` is documented (16 in theme+pages, each
+ *     fighting an inline or unlayered declaration; 17 in base): a fact about the cascade, not a
+ *     preference. stylelint's `declaration-no-important` + allowlist stops a NEW file adding one;
+ *     this stops the allowlisted files growing more.
+ *   MAX SPECIFICITY — "do not let source order carry meaning… win on specificity instead." A rule
+ *     needing a wilder selector than anything else is usually fighting a battle a cascade layer
+ *     should have won for it.
+ *   EMPTY RULES — always a mistake, and the concatenating build cannot see one.
  *
  * Lower a number when you make it true. Raising one is a decision, and wants a comment.
  *
@@ -37,13 +31,12 @@ const LIMITS = {
 	importants: 33,
 	/* The widest selector the theme needs; see the layer rules in CLAUDE.md.
 	 *
-	 * Raised 6 -> 7 when the vertical sidebar's guard gained `:not([data-narrow])`. That is
-	 * not selector sprawl: the sidebar gives way to the bar when the CONTENT column would be
-	 * too narrow, and that answer depends on the sidebar's own cut (224px expanded, 68px as
-	 * a rail), so it cannot be a media query and has to be an attribute. Every rule in the
-	 * vertical block and the rail block therefore carries one more attribute than before —
-	 * the deepest of them is the rail's paused poll glyph, at [1,7,0]. The ratchet did its
-	 * job: it made the increase a decision instead of a drift. */
+	 * Raised 6 -> 7 when the vertical sidebar's guard gained `:not([data-narrow])`. Not sprawl:
+	 * the sidebar gives way to the bar when the CONTENT column would be too narrow, and that
+	 * depends on the sidebar's own cut (224px expanded, 68px as a rail) — so it cannot be a
+	 * media query and has to be an attribute. Every rule in the vertical and rail blocks
+	 * therefore carries one attribute more; the deepest is the rail's paused-poll glyph at
+	 * [1,7,0]. The ratchet did its job: it made the increase a decision, not a drift. */
 	maxSpecificity: [1, 7, 0],
 	emptyRules: 0,
 };

@@ -21,11 +21,6 @@
 		padding: 10px 10px 9px;
 		line-height: 18px;
 		text-align: left;
-		/* was a SECOND `.table .td, .table .th` rule further down, carrying only this
-		 * one declaration. Same selector set, so it was pure append-instead-of-edit —
-		 * exactly what CLAUDE.md forbids. Merged: the rule between the two
-		 * (.table .tr:first-child .th) has higher specificity and wins either way, so
-		 * moving this up changes nothing. Verified with cssdiff. */
 		border-top: 1px solid var(--fs-border);
 	}
 

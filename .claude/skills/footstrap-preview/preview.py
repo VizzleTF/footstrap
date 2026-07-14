@@ -1,25 +1,20 @@
 #!/usr/bin/env python3
 """Screenshot luci-theme-footstrap pages on the live router.
 
-Flow per layout: ssh-set luci.main.mediaurlbase -> for each mode set
-localStorage fs-darkmode (client dark/light) -> login -> open page ->
-wait for client render -> full-page screenshot. Restores the original
-theme at the end no matter what.
+Activates the one theme via mediaurlbase ONCE, then per layout x mode sets the client
+prefs in localStorage (fs-layout, fs-darkmode), logs in, opens the page, waits for the
+client-side render and shoots. Restores the original theme at the end no matter what.
 
-Router HTTP host comes from `ssh -G <SSH_HOST>` hostname; password from
-env LUCI_PW (required). Run via the project preview venv:
+Router HTTP host comes from `ssh -G <SSH_HOST>`; password from env LUCI_PW (required).
+Run via the project preview venv:
   .claude/tooling/preview-venv/bin/python .claude/skills/footstrap-preview/preview.py <page> [...]
 """
 import argparse, os, subprocess, sys, time, pathlib
 
-# ONE theme, ONE media path. The layout is a CLIENT preference (localStorage 'fs-layout'),
-# not a theme entry — so it is set in the browser, not with `uci set mediaurlbase`.
-#
-# This used to be a dict mapping "footstrap-top" to /luci-static/footstrap-top, a path the
-# rest of the repo actively deletes (dev-sync.sh rm -rf's it, uci-defaults migrates away from
-# it). `preview.py --layout footstrap-top` therefore pointed the dev router's mediaurlbase at
-# a directory that does not exist — i.e. it screenshotted a broken UI, or LuCI's theme
-# fallback, and called it the top layout.
+# ONE theme, ONE media path. Layout is a CLIENT preference (localStorage 'fs-layout'), set
+# in the browser, not with `uci set mediaurlbase`. This used to map "footstrap-top" to
+# /luci-static/footstrap-top — a dir the rest of the repo deletes — so `--layout
+# footstrap-top` pointed mediaurlbase at nothing and screenshotted LuCI's theme fallback.
 MEDIA_PATH = "/luci-static/footstrap"
 LAYOUTS = ["sidebar", "top"]
 
@@ -90,8 +85,8 @@ def main():
                     _extra = "".join(
                         f"try{{localStorage.setItem('{k}','{v}')}}catch(e){{}}"
                         for k, _, v in (e.partition("=") for e in args.ls))
-                    # the layout is a client preference now — head.ut's pre-paint script reads
-                    # this key and stamps <html data-layout> before the first frame
+                    # head.ut's pre-paint script reads these keys and stamps <html> before
+                    # the first frame
                     ctx.add_init_script(
                         f"try{{localStorage.setItem('fs-layout','{layout}')}}catch(e){{}}"
                         f"try{{localStorage.setItem('fs-darkmode','{'true' if mode=='dark' else 'false'}')}}catch(e){{}}{_pal}{_extra}")

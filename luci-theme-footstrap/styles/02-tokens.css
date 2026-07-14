@@ -1,98 +1,61 @@
 @layer tokens {
-	/* Variables
-	 * --------- */
-
 	/* ============================================================
-	 * Footstrap design tokens. TWO TIERS, and the split is load-bearing:
+	 * Design tokens. TWO TIERS, and the split is load-bearing:
 	 *
-	 *   PRIVATE  --fs-*        every rule in this theme reads ONLY these.
-	 *   EXPORT   --*-color-*   the variable names LuCI themes have exposed for
-	 *                          years. Defined FROM the private tier, read by
-	 *                          NOBODY inside footstrap. They exist purely so a
-	 *                          third-party luci-app-* stylesheet keeps working
-	 *                          and keeps following the palette and dark mode.
+	 *   PRIVATE  --fs-*       every rule in this theme reads ONLY these.
+	 *   EXPORT   --*-color-*  LuCI's conventional names, defined FROM the private tier and
+	 *                         read by NOBODY here — they exist so a third-party luci-app-*
+	 *                         keeps working and keeps following the palette and dark mode.
 	 *
-	 * Why the theme's own tokens carry a prefix at all: :root is a SHARED global
-	 * scope. Every luci-app-* on the router drops its CSS into the same document,
-	 * unlayered — and an unlayered declaration outranks every cascade layer. One
-	 * app writing `:root { --accent: … }` or `--radius`, `--text`, `--border`
-	 * (ordinary names anyone would pick) used to repaint this entire theme, and
-	 * silently. Under --fs-* it cannot: we do not read those names any more.
+	 * :root is a SHARED scope and every luci-app-* drops CSS into the same document,
+	 * UNLAYERED — which outranks every cascade layer. An app declaring --accent, --radius,
+	 * --text, --border — or, likelier, the CONVENTIONAL --text-color-high, which base itself
+	 * once read 158 times — silently repainted this theme: 312 of 336 elements on
+	 * docs/gallery.html with a hostile :root, 0 after the split. The bridge is OUTWARD-only;
+	 * audit.py fails on any read of an export name inside styles/.
 	 *
-	 * And that is exactly why base must NOT read the export tier either. It used
-	 * to, 158 times — so an app declaring `--text-color-high` (a LuCI CONVENTION,
-	 * i.e. likelier than --accent, not less) repainted every base widget. Now the
-	 * bridge only points outward. An app may set any of these names it likes: it
-	 * restyles its own widgets, which is what it meant to do, and the theme's own
-	 * chrome does not move.
-	 *
-	 * The bridge is a pure alias — three --border-color-* names all meant
-	 * --fs-border — so nothing was lost by having base read the token directly;
-	 * the file even got smaller (the export names are longer). audit.py fails on
-	 * any read of an export name inside styles/, so the coupling cannot grow back.
-	 *
-	 * Design system: docs/08-design-sistema.md
-	 * Light = default (:root); dark = :root[data-darkmode="true"].
+	 * docs/08-design-sistema.md. Light = :root; dark = :root[data-darkmode="true"].
 	 * ============================================================ */
 	:root {
-		/* Palette COLOURS (--fs-bg…--fs-danger, --fs-accent-*, --fs-track) are
-		 * NOT here — they live in 03-palettes.css as swappable variant blocks, one
-		 * per colourway × light/dark, and the default (footstrap) also fills bare
-		 * :root there. Add a colourway = add a block there, nothing to touch here.
-		 * Everything in this file is palette-INDEPENDENT: shadows, radius, fonts, the
-		 * z-index scale, and the var()-based bridge (auto-follows whatever palette is
-		 * active). The component bridges this used to mention are GONE — the HSL triples
-		 * first, then the RGB ones — see the note at the bottom of the file. */
-		/* The inks that go ON the accent/good/warn/danger fills (--fs-on-accent &c.) are
-		 * NOT here either: they are palette- AND mode-dependent, so they live in the
-		 * palette blocks next to the fills they have to be legible against. A dark
-		 * palette has light fills and therefore needs a DARK ink — the single global
-		 * `--fs-on-accent: #fff` that used to sit here put white text on every fill in
-		 * every mode and failed WCAG AA on seven of the eight dark-palette fills. */
+		/* Palette COLOURS are in 03-palettes.css (one swappable block per colourway × mode);
+		 * everything here is palette-INDEPENDENT or var()-derived, so it follows the active
+		 * palette. The INKS (--fs-on-accent &c.) are in the palette blocks too, beside the
+		 * fills they must be legible against: a dark palette has LIGHT fills and needs a DARK
+		 * ink, and the single global `--fs-on-accent: #fff` that used to sit here failed WCAG
+		 * AA on seven of the eight dark-palette fills (down to 1.69:1). */
 		--fs-shadow: 0 1px 3px rgba(15,23,37,.08);
-		/* drop shadow for floating pop surfaces (menus, dropdown lists, the
-		 * appearance popover, the native select picker). One value replaces the
-		 * .28/.30/.32 literals that had drifted apart across those components. */
+		/* pop surfaces (menus, dropdown lists, Appearance popover, select picker): one value
+		 * for the .28/.30/.32 literals that had drifted apart across them. */
 		--fs-shadow-pop: 0 12px 34px rgba(0,0,0,.30);
-		/* focus ring shared by every field (input, select, cbi-dropdown, range,
-		 * dynlist add-item), and its invalid twin. The invalid one cannot simply be
-		 * --fs-danger-soft: a red ring has to read as an ALARM at a glance, so it takes
-		 * the next step up the ladder (--fs-danger-fill, 18%) rather than the quiet
-		 * hover tint (12%). Both rings are tokens so the pair sits together. */
+		/* every field's focus ring (input, select, cbi-dropdown, range, dynlist add-item) and
+		 * its invalid twin — which takes -fill (18%), not -soft (12%): a red ring must read
+		 * as an ALARM, not as a hover tint. */
 		--fs-focus-ring: 0 0 0 3px var(--fs-accent-soft);
 		--fs-focus-ring-invalid: 0 0 0 3px var(--fs-danger-fill);
 
-		/* the modal scrim. The one colour LITERAL left in the theme, and deliberately
-		 * so: it is not a tint of any palette token but plain black at .7, i.e. the
-		 * absence of light behind a dialog, and it must stay black in both modes (a
-		 * palette-tinted scrim over a dark page dims nothing). It is a token anyway so
-		 * that "the theme has no colour literals" is true of the RULES, and so a
-		 * colourway that wants a different veil has one line to change. */
+		/* the theme's ONE colour literal, deliberately: black at .7 is the absence of light
+		 * behind a dialog, not a tint of any token — a palette-tinted scrim over a dark page
+		 * dims nothing. A token so the RULES stay literal-free. */
 		--fs-scrim: rgba(0, 0, 0, .7);
 
 		/* ---- ROLE TINT LADDER (derived) ---------------------------------------
-		 * A tint OF a role colour, mixed FROM that colour — so it follows the palette
-		 * and dark mode with nothing hand-maintained. That is the rule the *-hsl and
-		 * *-rgb bridges broke; these mixes never broke it, but they had no NAMES, and
-		 * an unnamed level drifts in silence. It had: the same outline border was
-		 * written 40% in a table and 45% in the action bar, the same diff block 30%
-		 * in base and 18% in theme, the same hover fill 12% here and 18% there — four
-		 * strengths where the design has two, and nothing recorded which was meant.
-		 *
-		 * FOUR steps, and the matrix is COMPLETE on purpose — every role has every
-		 * step, whether or not something reads it today. A gap is how the drift above
-		 * started: --fs-accent-soft existed, good/warn/danger had no sibling, so every
-		 * rule that wanted one invented a percentage on the spot. A ladder is only a
-		 * ladder if the next component can take a step off it instead of inventing.
+		 * A tint OF a role, mixed FROM it, so it follows the palette with nothing
+		 * hand-maintained (the trap the *-hsl/*-rgb bridges fell into — foot of this file).
+		 * What these mixes lacked was NAMES, and an unnamed level drifts in silence: the same
+		 * outline border was 40% in a table and 45% in the action bar, the same diff block
+		 * 30% in base and 18% in theme, the same hover fill 12% here and 18% there — four
+		 * strengths where the design has two.
 		 *
 		 *   -soft     12%  a quiet FILL      — outline-button :hover
 		 *   -fill     18%  a stronger FILL   — callout/diff surface, the invalid ring
 		 *   -line     40%  a HAIRLINE        — outline-button border, diff border
 		 *   -line-hi  55%  that hairline on :hover
 		 *
-		 * --fs-accent-soft is the one member NOT here: it lives in the palette blocks,
-		 * because its strength is the only one that differs per MODE (10% light / 15%
-		 * dark; hicontrast 10/14). Everything else is mode-independent by measurement.
+		 * The role × step matrix is COMPLETE on purpose, read or not: a gap is how the drift
+		 * started (--fs-accent-soft existed, good/warn/danger had no sibling, so every rule
+		 * wanting one invented a percentage). --fs-accent-soft is the one member NOT here —
+		 * its strength is the only one that differs per MODE (10% light / 15% dark;
+		 * hicontrast 10/14), so it sits in the palette blocks.
 		 * ----------------------------------------------------------------------- */
 		--fs-good-soft: color-mix(in srgb, var(--fs-good) 12%, transparent);
 		--fs-warn-soft: color-mix(in srgb, var(--fs-warn) 12%, transparent);
@@ -113,104 +76,73 @@
 		--fs-warn-line-hi: color-mix(in srgb, var(--fs-warn) 55%, transparent);
 		--fs-danger-line-hi: color-mix(in srgb, var(--fs-danger) 55%, transparent);
 
-		/* the frosted pop surface (top-nav dropdown, sidebar rail flyout). Distinct
-		 * from --fs-bar-bg (88%) and deliberately NOT merged into it: a BAR is a thin
-		 * strip the page scrolls under, and seeing content ghost through it is the
-		 * point; a dropdown carries a whole menu and has to stay readable. */
+		/* frosted pop surface (top-nav dropdown, rail flyout). NOT merged into --fs-bar-bg
+		 * (88%): a bar is a thin strip the page scrolls under and seeing content ghost
+		 * through it is the point; a dropdown carries a whole menu and must stay readable. */
 		--fs-glass: color-mix(in srgb, var(--fs-panel) 96%, transparent);
-		/* one blur radius for every frosted surface — the bar said 10px and the pop
-		 * surfaces 12px, a difference nothing could see and nobody chose. */
+		/* one blur radius for every frosted surface — the bar said 10px and the pops 12px,
+		 * a difference nobody chose. */
 		--fs-blur: blur(12px);
 
-		/* the 1px raised edge on a plate that carries text (.ifacebox/.ifacebadge) —
-		 * the emboss is the inset shadow, --fs-text-emboss the matching text shadow.
-		 * .ifacebox used to mix --fs-dim and .ifacebadge --fs-panel for the SAME edge
-		 * at the same 5%; at that alpha neither was distinguishable from the other. */
+		/* the 1px raised edge on a plate carrying text, plus its text shadow. .ifacebox
+		 * mixed --fs-dim and .ifacebadge --fs-panel for the SAME edge at the same 5%. */
 		--fs-emboss: inset 0 1px 0 color-mix(in srgb, var(--fs-panel) 5%, transparent);
 		--fs-text-emboss: 0 1px 1px color-mix(in srgb, var(--fs-panel) 75%, transparent);
 
-		/* Hover cue for a SOLID (filled) control — the one hover cue that cannot be a colour,
-		 * since the fill it shifts is whatever the role token says. The three sites had
-		 * drifted to 1.06 / 1.08 / 1.12 before this token existed.
-		 *
-		 * IT IS PER MODE, AND THE DIRECTION FLIPS. That is not decoration, it is the only
-		 * safe way to do this with a filter, and it is measured:
-		 *
-		 * `filter` recolours the element's TEXT as well as its fill. In LIGHT mode a solid
-		 * button is a saturated fill carrying WHITE ink — and white cannot get any brighter,
-		 * so BRIGHTENING the fill only closes the gap. On --fs-accent (#0969da) the white ink
-		 * measures 5.19:1 at rest; brightness(1.08) already drops it to 4.59:1, a hair over
-		 * AA, and the brightness(1.15) that would actually be visible drops it to 4.08:1 —
-		 * a WCAG failure introduced by hovering. Verified from the rendered pixels, not
-		 * computed from the token.
-		 *
-		 * So light mode DARKENS (0.90 -> 6.16:1: a bigger cue AND better contrast), and dark
-		 * mode, where the fill is light and the ink dark, brightens (1.15 -> ~8:1, measured).
-		 * Both directions say the same thing — the button moves AWAY from the page it sits on.
-		 *
-		 * (--fs-accent-soft is the other token whose strength is per-mode; the rest are not.) */
+		/* Hover cue for a SOLID control — the one cue that cannot be a colour, since the fill
+		 * it shifts is whatever the role token says (the three sites had drifted to
+		 * 1.06/1.08/1.12). PER MODE, AND THE DIRECTION FLIPS, measured from rendered pixels:
+		 * `filter` recolours the TEXT too, and a light-mode solid button is a saturated fill
+		 * with WHITE ink, which cannot get brighter — on --fs-accent (#0969da) white is
+		 * 5.19:1 at rest, brightness(1.08) drops it to 4.59:1 and a visible 1.15 to 4.08:1,
+		 * an AA failure caused by hovering. So light DARKENS (0.90 -> 6.16:1: bigger cue AND
+		 * better contrast); dark, whose fill is light and ink dark, brightens (1.15 -> ~8:1).
+		 * Both move the button away from the page it sits on. */
 		--fs-hover-lift: brightness(0.90);
 
-		/* ---- MOTION -----------------------------------------------------------
-		 * Four durations, because the UI does four things. There used to be seven
-		 * (.12 / .125 / .15 / .2 / .22 / .25 / .4) and four easing curves (`ease`,
-		 * `ease-in`, `linear`, one cubic-bezier), none of it chosen — two rules even
-		 * declared the SAME three properties at the same duration in a different
-		 * order, so a grep could not see they were the same rule.
-		 *
-		 * There is no easing TOKEN, and that is the merge, not an omission: every
-		 * transition now leaves the timing function off and takes the CSS default
-		 * (`ease`). One curve, nothing to keep in sync, and fewer bytes than naming
-		 * it. If a future rule needs a different curve, that is a design decision and
-		 * it should have to justify itself in a comment.
-		 *
-		 * 95-a11y-media.css kills all of this under prefers-reduced-motion.
+		/* ---- MOTION — four durations, because the UI does four things. There used to be
+		 * seven (.12/.125/.15/.2/.22/.25/.4) and four curves (ease, ease-in, linear, one
+		 * cubic-bezier), none of it chosen — two rules even declared the SAME three
+		 * properties at the same duration in a different ORDER, so a grep could not see they
+		 * were the same rule. There is deliberately NO easing token: every transition omits
+		 * the timing function and takes the CSS default (ease) — one curve, nothing to keep
+		 * in sync, fewer bytes than naming it. A rule needing another curve is making a
+		 * design decision and must justify it in a comment. 95-a11y-media.css kills all of
+		 * this under prefers-reduced-motion.
 		 * ----------------------------------------------------------------------- */
 		--fs-dur: .15s;		/* a state change: colour, border, shadow, background, filter */
 		--fs-dur-move: .2s;	/* something that moves or unfolds: transform, max-height */
 		--fs-dur-fade: .25s;	/* a transient thing fading in or out: spinner, notification */
 		--fs-dur-fill: .4s;	/* a progress bar growing to its value */
 		--fs-content-max: 1280px;	/* content column cap */
-		/* content column side padding. Coupled uses: .fs-content padding, the
-		 * top-nav bar's centering calc, and the notification width calc — one
-		 * token so they can't drift apart. */
+		/* content column side padding — read by .fs-content, the top bar's centering calc
+		 * and the notification width calc, so they cannot drift apart. */
 		--fs-content-pad: 28px;
 		/* ------------------------------------------------------------------------
-		 * THE SHELL'S GEOMETRY — and the reason it is a token and not a literal.
-		 *
-		 * These three numbers are read by BOTH the stylesheet and menu-footstrap-common.js:
-		 * the CSS lays the sidebar out, and the JS subtracts its cut from the viewport to
-		 * decide whether what is LEFT for the content is still readable (fitShell()). The JS
-		 * kept its own copies — `SIDEBAR_W = 224, RAIL_W = 68, CONTENT_MIN = 500` — while the
-		 * CSS wrote 224px and 68px as bare literals, so the coupling was invisible from both
-		 * sides: change the rail's width in the stylesheet and the measurement silently keeps
-		 * subtracting the old one, and nothing in the build says a word. 20-shell.css even
-		 * cites "--fs-content-min" in a comment, a token that did not exist.
-		 *
-		 * A duplicated number with no name is exactly the drift this project names tokens to
-		 * stop. There is now one definition; the JS reads it back with getPropertyValue().
+		 * THE SHELL'S GEOMETRY — tokens, not literals, because the JS reads them back with
+		 * getPropertyValue(): the CSS lays the sidebar out, and menu-footstrap-common.js
+		 * (fitShell()) subtracts that cut from the viewport to decide whether what is LEFT
+		 * is still readable. The JS used to keep its own copies (SIDEBAR_W = 224, RAIL_W =
+		 * 68, CONTENT_MIN = 500) against bare literals in the CSS: narrow the rail here and
+		 * the measurement silently went on subtracting the old width.
 		 * ---------------------------------------------------------------------- */
 		--fs-sidebar-w: 224px;		/* the expanded vertical sidebar's column */
 		--fs-rail-w: 68px;		/* ...and the same sidebar collapsed to its icon rail */
 		--fs-content-min: 500px;	/* below this a content column stops being readable */
-		/* translucent blurred bar surface — the top-nav bar and the sidebar's
-		 * phone bar are the same component in two markups; one token keeps their
-		 * glass tint identical. */
+		/* translucent blurred bar surface — the top-nav bar and the sidebar's phone bar are
+		 * one component in two markups; one token keeps their glass tint identical. */
 		--fs-bar-bg: color-mix(in srgb, var(--fs-panel) 88%, transparent);
-		/* height of that bar. Also the scroll-margin every anchor target needs in order
-		 * to clear it (base/10-reset.css) — the two must not drift, or an in-page jump
-		 * lands under the sticky bar. */
+		/* height of that bar, and the scroll-margin every anchor target needs to clear it
+		 * (base/10-reset.css) — if the two drift, an in-page jump lands under the bar. */
 		--fs-bar-h: 46px;
 
-		/* Corner-radius scale. One user-tunable base — Appearance → Rounding slider,
-		 * 0–20px, persisted as localStorage `fs-radius` and pre-painted as an inline
-		 * --fs-radius-base on :root (partials/head.ut) before first paint. The three
-		 * semantic radii scale from it proportionally so every surface rounds in step;
-		 * pills/toggles stay fully round. Defaults at base 12: card 12, control 10,
-		 * chip 8. Every border-radius in theme/pages references one of these — grep
-		 * shows almost no bare px radius left: 0 / 50% / hairline insets, plus two that are NOT
-		 * corner radii of a card (theme/60-inputs.css 8px = half the 16px scrollbar; theme/70-modal.css
-		 * 4px). */
+		/* Corner-radius scale. One user-tunable base (Appearance → Rounding, 0–20px,
+		 * localStorage `fs-radius`, pre-painted inline on :root by partials/head.ut before
+		 * first paint); the three semantic radii scale from it proportionally so every
+		 * surface rounds in step, and pills stay fully round. At base 12: card 12, control
+		 * 10, chip 8. Every border-radius in theme/pages reads one of these — the only bare
+		 * px left are 0 / 50% / hairline insets and two that are not a card's corner
+		 * (theme/60-inputs.css 8px = half the 16px scrollbar; theme/70-modal.css 4px). */
 		--fs-radius-base: 12px;
 		--fs-radius-lg: var(--fs-radius-base);				/* cards, panels, modals, table frame, popovers */
 		--fs-radius: calc(var(--fs-radius-base) * 5 / 6);	/* controls: inputs, buttons, dropdowns, tabs (10 @12) */
@@ -221,13 +153,12 @@
 		--fs-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
 		/* ---- Stacking scale ----------------------------------------------------
-		 * Every z-index in the theme comes from here. There used to be nine bare
-		 * numbers (2, 40, 50, 60, 70, 800, 900, 1000, 1100) spread across seven
-		 * files, and nothing recorded what was supposed to sit above what — so the
-		 * Appearance popover (1000) painted OVER an open modal (#modal_overlay, 900),
-		 * which no one intended. Written as an ordered list, that bug is obvious.
+		 * Every z-index in the theme comes from here. There used to be nine bare numbers
+		 * (2, 40, 50, 60, 70, 800, 900, 1000, 1100) across seven files, with nothing
+		 * recording what should sit above what — so the Appearance popover (1000) painted
+		 * OVER an open modal (#modal_overlay, 900). As an ordered list, that bug is obvious.
 		 *
-		 * Ordering, bottom to top:
+		 * Bottom to top:
 		 *   raise     in-flow child that must clear its siblings (zonebadge tooltip)
 		 *   sticky    the sticky bars: top-nav, sidebar phone bar
 		 *   flyout    nav panels: rail flyouts, top-nav dropdowns, rail tooltips
@@ -246,45 +177,36 @@
 		--fs-z-tooltip: 1000;
 		--fs-z-dropdown: 1100;
 
-		/* ---- EXPORT TIER ------------------------------------------------------
-		 * The conventional LuCI theme variable names, defined from the private
-		 * tokens above. OUTBOUND ONLY: nothing in styles/ may read these, and
-		 * audit.py fails the build if something starts to. They are here so a
-		 * third-party luci-app-* stylesheet that addresses them (the convention
-		 * every LuCI theme has exposed for years) still gets our palette and
-		 * follows dark mode — and so that an app overwriting one restyles its own
-		 * widgets without touching this theme's chrome.
+		/* ---- EXPORT TIER — OUTBOUND ONLY ---------------------------------------
+		 * Nothing in styles/ may read these (audit.py fails the build if it starts to). They
+		 * exist so a third-party luci-app-* addressing them still gets our palette and dark
+		 * mode, and so an app overwriting one restyles only its own widgets.
+		 *
+		 * high/medium/low is a PROMINENCE scale, not decoration. It was once three aliases of
+		 * ONE token — a flat colour where the consumer asked for a gradation — and apps DO
+		 * ask: luci-app-podkop paints its "no data" latency with --primary-color-low and got
+		 * the same vivid accent as a live value; luci-app-justclash reads eleven of these
+		 * names; stock firewall.js and status/cpu.js read them too.
+		 *
+		 * Direction is bootstrap's, which every app was calibrated against: `high` = the most
+		 * pronounced value of the role (--text-color-high the readable text, -low the faint
+		 * one; --border-color-high the visible rule, -low the hairline) — except
+		 * --background-color-*, which is an ELEVATION axis (high = raised, low = recessed).
+		 * The MECHANISM differs per family, by measurement — see each block.
+		 *
+		 * Binding constraint: apps read a level as `color:` about as often as they read it as
+		 * `background:` (counted across bootstrap's cascade, firewall.js, cpu.js), so EVERY
+		 * level must clear WCAG AA as text on --fs-bg/--fs-panel/--fs-panel2 AND carry a
+		 * legible --on-*-color as a fill.
 		 * ---------------------------------------------------------------------- */
-		/* high / medium / low is a PROMINENCE scale, not decoration: `high` is the
-		 * role at full strength, `low` is it muted, `medium` sits between. It used
-		 * to be three aliases of one token — a flat colour where the consumer asked
-		 * for a gradation — and third-party apps DO ask: luci-app-podkop paints its
-		 * "no data" latency with --primary-color-low and got the same vivid accent
-		 * as a live one; luci-app-justclash reads eleven of these names. Stock
-		 * firewall.js and status/cpu.js read them too.
-		 *
-		 * Direction is taken from luci-theme-bootstrap, which is what every app was
-		 * calibrated against: `high` is the most pronounced value of the role
-		 * (--text-color-high is the readable text, -low the faint one;
-		 * --border-color-high the visible rule, -low the hairline), while
-		 * --background-color-* is an elevation axis instead — high = the raised
-		 * surface, low = the recessed one. What differs per family is the MECHANISM,
-		 * and it is chosen by measurement, not taste; see each block below.
-		 *
-		 * The binding constraint throughout: an app reads a level as `color:` about as
-		 * often as it reads it as `background:` (counted across bootstrap's own
-		 * cascade, firewall.js and status/cpu.js), so EVERY level must clear WCAG AA
-		 * as text on --fs-bg/--fs-panel/--fs-panel2 and still carry a legible
-		 * --on-*-color when used as a fill. */
 		--background-color-high: var(--fs-panel);
 		--background-color-medium: color-mix(in srgb, var(--fs-panel) 55%, var(--fs-panel2));
 		--background-color-low: var(--fs-panel2);
 
-		/* --text-color-low cannot move: --fs-dim IS the muted text colour and it
-		 * already sits ON the AA floor (4.56:1 on --fs-panel2 in dark), so a fainter
-		 * step would have to be an illegible grey. It stays equal to -medium — the
-		 * ramp is still wide, because -high is --fs-text — and a duplicate beats a
-		 * value nobody can read. */
+		/* --text-color-low cannot move: --fs-dim IS the muted text colour and already
+		 * sits ON the AA floor (4.56:1 on --fs-panel2 in dark), so a fainter step would
+		 * be an illegible grey. It stays equal to -medium — the ramp is still wide, -high
+		 * being --fs-text — and a duplicate beats a value nobody can read. */
 		--text-color-highest: var(--fs-text);
 		--text-color-high: var(--fs-text);
 		--text-color-medium: var(--fs-dim);
@@ -296,34 +218,26 @@
 		--border-color-medium: var(--fs-border);
 		--border-color-low: color-mix(in srgb, var(--fs-border) 55%, var(--fs-panel));
 
-		/* ACCENT RAMPS: the axis is CHROMA at constant lightness — `high` is the pure
-		 * palette colour, and each step down mixes it toward --fs-dim in oklch, which
-		 * interpolates lightness linearly and so drains saturation while leaving
-		 * luminance where it was. Contrast therefore barely moves across the ramp, and
-		 * every level stays printable as text. That is the whole reason for this shape,
-		 * and both of the obvious alternatives were measured and rejected:
+		/* ACCENT RAMPS: the axis is CHROMA at constant lightness — `high` is the pure palette
+		 * colour and each step mixes it toward --fs-dim in oklch, which interpolates lightness
+		 * linearly and so drains saturation while leaving luminance put. Contrast barely moves
+		 * across the ramp, so every level stays printable as TEXT. Both alternatives were
+		 * measured and rejected:
 		 *
-		 *   fade `low` toward the surface — the intuitive "muted" — spends contrast we
-		 *   do not have. On --fs-panel2 in dark every accent already sits at 4.56–4.59:1,
-		 *   i.e. +0.06 over AA; an 8% fade dropped --warn-color-low to 4.18:1 and its own
-		 *   ink to 4.45:1 ON it. A muted step nobody can print text in is the bug being
-		 *   fixed, not one to trade for.
+		 *   fade `low` toward the surface (the intuitive "muted") spends contrast we do not
+		 *   have: on --fs-panel2 in dark every accent already sits at 4.56–4.59:1, +0.06 over
+		 *   AA, and an 8% fade took --warn-color-low to 4.18:1 and its ink ON it to 4.45:1.
 		 *
-		 *   push `high` toward --fs-text — free in contrast terms — collapses the ramp in
-		 *   DARK mode, because there --fs-text is near-white: the "strong" end comes back
-		 *   washed out and lands on top of the desaturated "weak" end (measured 0.055
-		 *   apart, i.e. flat). Lightness is not available as an axis in both modes at once.
-		 *   Chroma is.
+		 *   push `high` toward --fs-text (free in contrast terms) collapses the ramp in DARK
+		 *   mode, where --fs-text is near-white: the strong end comes back washed out, 0.055
+		 *   from the weak end, i.e. flat. Lightness is not an axis in both modes at once.
 		 *
-		 * Bootstrap's own accent ramp walks lightness instead (--primary-color-low is its
-		 * DARKEST blue), which is why that ramp reads inverted in dark mode and lands at
-		 * 3.6:1 there — below AA. We keep the direction (`high` = most pronounced) and drop
-		 * the mechanism. Every step is mixed FROM the token it grades: no second, hand-kept
-		 * copy of a colour (see the note at the foot of this file).
-		 *
-		 * tools/export-tier.mjs proves all of it — AA as text on all three surfaces, a
-		 * legible --on-*-color as a fill, and that the ramp is not secretly flat — across
-		 * {footstrap,hicontrast} × {light,dark}. */
+		 * Bootstrap's own ramp walks lightness (its --primary-color-low is its DARKEST blue),
+		 * which is why it reads inverted in dark mode and lands at 3.6:1 — below AA. Keep its
+		 * direction, drop its mechanism. Every step is mixed FROM the token it grades: no
+		 * second, hand-kept copy of a colour (foot of this file). tools/export-tier.mjs proves
+		 * all of it across {footstrap,hicontrast} × {light,dark} — AA as text on all three
+		 * surfaces, a legible --on-*-color as a fill, and that the ramp is not secretly flat. */
 		--primary-color-high: var(--fs-accent);
 		--primary-color-medium: color-mix(in oklch, var(--fs-accent) 78%, var(--fs-dim));
 		--primary-color-low: color-mix(in oklch, var(--fs-accent) 45%, var(--fs-dim));
@@ -353,31 +267,24 @@
 		 * tokens live here */
 		--fs-shadow: 0 1px 2px rgba(0,0,0,.4);
 		--fs-disabled-opacity: .45;
-		/* the hover cue flips direction here — see the long note at --fs-hover-lift above.
-		 * A dark-mode solid button is a LIGHT fill with DARK ink, so brightening moves it away
-		 * from the page and away from its own ink; in light mode the same move would erase the
-		 * contrast of its white ink. */
+		/* the hover cue flips direction here — see --fs-hover-lift above. A dark-mode solid
+		 * button is a LIGHT fill with DARK ink, so brightening moves it away from the page
+		 * and away from its own ink; in light mode that same move erases its white ink's
+		 * contrast. */
 		--fs-hover-lift: brightness(1.15);
 		color-scheme: dark;
 	}
 
-	/* BOTH component bridges that used to sit here are GONE, and for one reason.
-	 *
-	 * First the HSL one (--*-hsl triples, --*-h/s/l parts, delta signs). Then the RGB
-	 * one that outlived it — --accent-rgb, --error-color-high-rgb,
-	 * --success-color-high-rgb, read as `rgba(var(--x), .3)` — which was the same
-	 * mistake wearing a different notation: a second, hand-maintained copy of a colour
-	 * that already exists as a token. It goes stale when the palette is recoloured and
-	 * says nothing, and if the triple ever goes missing the declaration is invalid at
-	 * computed-value time, so the tint just disappears with no error anywhere (audit.py
-	 * cannot catch that either — the var IS defined, only elsewhere).
-	 *
-	 * Every rule that read them now takes color-mix() over the palette token itself:
-	 *   rgba(var(--error-color-high-rgb), .3)
-	 *   -> color-mix(in srgb, var(--fs-danger) 30%, transparent)   [identical output]
-	 * so a tint of X is derived FROM X and a palette is the single source of truth.
-	 * Do not reintroduce a component copy of a colour in any notation.
-	 *
-	 * The one surviving --*-rgb is --zone-color-rgb, and it is not ours: luci-mod-network
-	 * writes it inline on a zone badge (see base/95-luci.css). */
+	/* BOTH component bridges are GONE: the HSL one (--*-hsl triples, --*-h/s/l parts) and the
+	 * RGB one that outlived it (--accent-rgb, --error-color-high-rgb, --success-color-high-rgb,
+	 * read as `rgba(var(--x), .3)`). Same mistake in two notations — a hand-kept second copy of
+	 * a colour that already exists as a token: it goes stale in silence when a palette is
+	 * recoloured, and if the triple goes missing the declaration is invalid at computed-value
+	 * time, so the tint vanishes with NO error (audit.py cannot catch that — the var IS defined,
+	 * only elsewhere). Every rule that read them takes color-mix() over the palette token now,
+	 * for identical output:
+	 *   rgba(var(--error-color-high-rgb), .3) -> color-mix(in srgb, var(--fs-danger) 30%, transparent)
+	 * A tint of X is mixed FROM X. Do not reintroduce a component copy of a colour in any
+	 * notation. The one surviving --*-rgb is --zone-color-rgb, and it is not ours:
+	 * luci-mod-network writes it inline on a zone badge (base/95-luci.css). */
 }

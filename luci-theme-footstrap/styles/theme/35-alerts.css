@@ -1,14 +1,8 @@
 @layer theme {
-	/* ==================================================================
-	 * Alert panel. A left accent stripe on a panel card; the type variants
-	 * recolour the frame.
-	 *
-	 * The `background: var(--fs-panel)` used to be repeated for each variant
-	 * (`.alert-message.warning`, `.alert-message.error`, …) to out-specify the
-	 * gradients in styles/base. That is what cascade layers are for — a normal
-	 * declaration in `theme` beats one in `base` whatever the specificity — so
-	 * one rule now does it.
-	 * ================================================================== */
+	/* Alert panel: a left accent stripe on a panel card; the type variants recolour the frame.
+	 * `background: var(--fs-panel)` used to be repeated per variant to out-specify base's
+	 * gradients — a layer does that for free (theme beats base whatever the specificity), so
+	 * one rule does it. */
 	.alert-message {
 		padding: 14px 16px;
 		border-radius: var(--fs-radius-lg);
@@ -24,27 +18,21 @@
 	.alert-message.error, .alert-message.danger { border-color: var(--fs-danger); }
 	.alert-message.success, .alert-message.notice { border-left-color: var(--fs-good); }
 
-	/* h2 is what the theme's own notices now emit (the document had no heading above
-	 * h4 at all). h4 stays in the list — a third-party luci-app-* alert is free to use
-	 * it, and coverage only ever grows. */
+	/* h2 is what the theme's own notices emit (the document had no heading above h4 at all).
+	 * h4 stays in the list: a third-party alert may use it, and coverage only grows. */
 	.alert-message :is(h2, h3, h4) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--fs-text); }
 	.alert-message p { margin: 4px 0; color: var(--fs-dim); font-size: 13px; }
-	/* inner table (e.g. firmware Current/Available) — flatten so it doesn't read as
-	 * a nested card on the alert panel; subtle row dividers only */
+	/* inner table (firmware Current/Available) — flatten so it does not read as a nested card
+	 * on the alert panel; subtle row dividers only */
 	.alert-message .table { margin: 10px 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
 	.alert-message .table .th { color: var(--fs-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 	.alert-message .table .th, .alert-message .table .td { padding: 7px 14px 7px 0; background: transparent; border-color: color-mix(in srgb, var(--fs-border) 60%, transparent); }
 	.alert-message .table .td { color: var(--fs-text); }
 
-	/* ==================================================================
-	 * The `.label` pill.
-	 *
-	 * LuCI core barely uses it, but it is part of the class vocabulary any
-	 * luci-app-* may reach for, so the theme owns it in tokens rather than
-	 * leaving it to the gradient in styles/base. `.important` is the conventional
-	 * name for what we call accent; `.danger` has no counterpart there and is
-	 * added because packages use it. See docs/gallery.html.
-	 * ================================================================== */
+	/* The `.label` pill. LuCI core barely uses it, but any luci-app-* may reach for it, so the
+	 * theme owns it in tokens (base's copy is absorbed). `.important` is the conventional name
+	 * for what we call accent; `.danger` has no counterpart there and is added because
+	 * packages use it. See docs/gallery.html. */
 	.label {
 		display: inline-block; padding: 3px 9px; border-radius: var(--fs-radius-pill);
 		font-size: 11px; font-weight: 600; line-height: 1.4;
@@ -53,17 +41,13 @@
 		/* carried over from the absorbed styles/base .label rule */
 		white-space: nowrap; margin: .125em 0 .125em .4em;
 	}
-	/* THE VARIANTS DO NOT SET A BACKGROUND, and that is deliberate — they inherit the
-	 * opaque --fs-panel2 from `.label` above.
-	 *
-	 * They used to paint a TRANSLUCENT tint of their own colour on top of it, i.e. text
-	 * of colour C on a tint of C. Two things went wrong. The tint always drags the
-	 * background toward the text colour, eating the contrast the text needs; and being
-	 * translucent, what it actually renders as depends on the surface underneath, so no
-	 * single percentage is safe everywhere. Measured across the palette x mode matrix
-	 * (axe-core), every variant landed at 3.4-4.4:1. Dropping the fill puts the text on
-	 * --fs-panel2, where the palette guarantees >=4.5 by construction, and the coloured
-	 * border still carries the status just as loudly. */
+	/* THE VARIANTS SET NO BACKGROUND, deliberately — they inherit the opaque --fs-panel2 from
+	 * `.label` above. They used to paint a TRANSLUCENT tint of their own colour on it: text of
+	 * colour C on a tint of C. The tint drags the background toward the text and eats the
+	 * contrast the text needs, and being translucent it renders differently on every surface,
+	 * so no single percentage is safe. Measured across palette x mode (axe-core): every variant
+	 * landed at 3.4-4.4:1. On --fs-panel2 the palette guarantees >=4.5 by construction, and the
+	 * coloured border carries the status just as loudly. */
 	.label.important, .label.notice { border-color: var(--fs-accent); color: var(--fs-accent); }
 	.label.warning { border-color: var(--fs-warn); color: var(--fs-warn); }
 	.label.success { border-color: var(--fs-good); color: var(--fs-good); }
@@ -71,13 +55,11 @@
 	a.label:link, a.label:visited { color: var(--fs-dim); }
 	a.label:hover { text-decoration: none; color: var(--fs-text); }
 
-	/* The show/hide toggles in a section title are .label pills too, but clickable.
-	 * SINGLE owner of the pill look: pages/20-overview.css used to restate it (in
-	 * the page layer, unscoped — so it silently won everywhere) with values that
-	 * had drifted from this block. The merged values below are the ones that were
-	 * actually rendering. The overrides at the end (text-transform … box-shadow)
-	 * neutralise the overview-scoped decorations styles/base/95-luci.css puts on
-	 * these pills (uppercase, margins, min-width, badge look). */
+	/* The show/hide toggles in a section title are .label pills too, but clickable. SINGLE
+	 * owner of the pill look: pages/20-overview.css used to restate it (page layer, unscoped —
+	 * so it silently won everywhere) with drifted values; these are the ones that were actually
+	 * rendering. The trailing overrides (text-transform … box-shadow) kill the uppercase /
+	 * margin / min-width / badge decorations base used to put on these pills. */
 	.cbi-title .label {
 		font-size: 11px; font-weight: 600;
 		padding: 4px 12px; border-radius: var(--fs-radius-pill);

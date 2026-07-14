@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build luci-theme-footstrap as an OpenWrt .apk via the SDK.
-# The theme is noarch (CSS/JS/templates/fonts only) → the resulting package
-# installs on ANY OpenWrt 25.12 router regardless of CPU architecture.
+# The theme is noarch (CSS/JS/templates/fonts only), so the package installs on any
+# router of that release whatever its CPU architecture.
 #
 #   ./build-apk.sh            # download SDK if needed, then build
 #   BUILD_DIR=~/x ./build-apk.sh
@@ -11,7 +11,7 @@ REL="${OPENWRT_RELEASE:-25.12.2}"
 SDK_URL="https://downloads.openwrt.org/releases/${REL}/targets/mediatek/filogic/openwrt-sdk-${REL}-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
 # MUST be a case-sensitive fs (ext4/…), NOT an NTFS/9p Windows mount.
 BUILD_DIR="${BUILD_DIR:-/tmp/ow-footstrap-build}"
-# ncurses is only needed for interactive menuconfig; defconfig uses `conf`.
+# FORCE=1 overrides buildroot's host-prereq bail-outs (see step 4).
 export FORCE=1
 THEME_DIR="$(cd "$(dirname "$0")" && pwd)"          # this package
 SDK_DIR="$BUILD_DIR/sdk"
@@ -45,8 +45,8 @@ rm -rf "$DEST/build-apk.sh" "$DEST/dev-sync.sh" "$DEST/.git" 2>/dev/null || true
 ./scripts/feeds update -i luci
 ./scripts/feeds install luci-theme-footstrap
 
-# 4. build. ncurses is only needed for interactive menuconfig (not for a
-# noarch theme), so satisfy the host prereq stamp to skip that check.
+# 4. build. ncurses is only needed for interactive menuconfig, not for a noarch
+# theme, so satisfy the host prereq stamp to skip that check.
 mkdir -p staging_dir/host
 touch staging_dir/host/.prereq-build
 make defconfig FORCE=1

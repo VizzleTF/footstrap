@@ -1,36 +1,27 @@
 #!/usr/bin/env node
-/* @mirror — enforce that duplication you cannot delete is duplication that cannot ROT.
+/* @mirror — turn duplication you cannot delete into duplication that cannot ROT.
  *
- * WHY THIS EXISTS
- * ---------------
- * Some duplication in this project is forced by the language, not chosen:
+ * Some duplication is forced, not chosen: CSS cannot share a declaration block across two
+ * mutually-exclusive guards (the stacked table's card layout is needed under a CLASS —
+ * .fs-stacked, the measured data table — AND under a CONTAINER QUERY: the config table, which
+ * cannot be measured, see fs-select.js); and `install.sh` is fetched with `curl | sh` and runs
+ * BEFORE the package exists, so it cannot source a library shipping inside the package — yet it
+ * must do exactly what `footstrap-selfupdate.sh` does (fetch over a verified channel, pin the
+ * asset host, check the sha256).
  *
- *   - CSS cannot share a declaration block across two mutually-exclusive guards. The card
- *     layout for a stacked table is needed under a CLASS (.fs-stacked, the measured data
- *     table) and under a CONTAINER QUERY (the config table, which cannot be measured — see
- *     fs-select.js). No selector ORs those, so the block is written twice.
- *   - `install.sh` is fetched with `curl | sh` and runs BEFORE the package exists, so it
- *     cannot `source` a library that ships inside the package. Yet it must do exactly what
- *     `footstrap-selfupdate.sh` does: fetch over a verified channel, pin the asset host,
- *     check the sha256. So those blocks are written twice too.
- *
- * The trap — and the whole reason for this tool — is that a STRUCTURAL duplicate detector
- * (tools/css-dup.mjs) finds bodies that are IDENTICAL. The moment two copies diverge they
- * stop being a "duplicate" and the detector goes QUIET — exactly when you need it to shout.
- * That is not hypothetical: `fetch()` in install.sh and footstrap-selfupdate.sh had already
- * drifted three ways (different backend order, one with no timeout on its first-choice tool,
- * one missing the https redirect pin) and nothing said a word.
- *
- * So: tag every copy, and this asserts they stay byte-identical.
+ * THE TRAP, and the reason for this tool: a structural duplicate detector (tools/css-dup.mjs)
+ * matches bodies that are IDENTICAL, so the moment two copies diverge it goes QUIET — exactly
+ * when it should shout. Not hypothetical: `fetch()` in install.sh and footstrap-selfupdate.sh
+ * had ALREADY drifted three ways (different backend order, one with no timeout on its
+ * first-choice tool, one missing the https redirect pin) and nothing said a word. So: tag every
+ * copy, assert they stay byte-identical.
  *
  *   shell / JS:   # @mirror <group>/<role>      …lines…      # @endmirror
  *   CSS:          /* @mirror <group>/<role> *\/  …rule…      /* @endmirror *\/
  *
- * Comparison ignores the common leading indentation and trailing whitespace, so the same
- * block may sit at a different nesting depth in each file. EVERYTHING else must match.
- *
- * A group/role with only ONE copy is an error too: a mirror of one is a tag someone forgot to
- * delete when the other copy died, and it would silently accept any future edit.
+ * Comparison ignores common leading indent and trailing whitespace (a copy may nest deeper);
+ * everything else must match. A group with only ONE copy is an error too: a mirror of one is a
+ * tag someone forgot to delete when the other copy died, and it enforces nothing.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
@@ -38,24 +29,20 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/* Whole FILES that must stay byte-identical. Same argument as an @mirror block, one level up:
- * duplication a tool forces on you, made un-rottable.
- *
- * The Apache-2.0 text has to exist twice and neither copy can go:
- *   LICENSE                        — the repo root, which is the only place GitHub looks
- *   luci-theme-footstrap/LICENSE   — the PACKAGE, because PKG_LICENSE_FILES resolves against
- *                                    $(PKG_BUILD_DIR) and luci.mk copies only
- *                                    src/ luasrc/ htdocs/ root/ ucode/ po/ into it; CI rsyncs
- *                                    only the package dir into the SDK, so the root file is not
- *                                    reachable from $(CURDIR) either.
- * A licence text cannot carry an @mirror comment without ceasing to be the licence text, so it
- * is pinned as a whole file instead. */
+/* Whole FILES pinned byte-identical — the same argument one level up: duplication a tool forces
+ * on you, made un-rottable. The Apache-2.0 text must exist twice and neither copy can go:
+ *   LICENSE                        — the repo root, the only place GitHub looks
+ *   luci-theme-footstrap/LICENSE   — the PACKAGE: PKG_LICENSE_FILES resolves against
+ *                                    $(PKG_BUILD_DIR), into which luci.mk copies only the
+ *                                    package source dirs; CI rsyncs only the package dir into
+ *                                    the SDK, so the root file is unreachable from $(CURDIR).
+ * A licence text cannot carry an @mirror comment without ceasing to be the licence text. */
 const SAME_FILE = [
 	['LICENSE', 'luci-theme-footstrap/LICENSE'],
 ];
 
-/* Where a mirror may live. Deliberately explicit: a mirror is a decision, and a glob that
- * silently picks up a new tree would let one appear without anybody choosing it. */
+/* Where a mirror may live. Explicit on purpose: a mirror is a decision, and a glob picking up a
+ * new tree would let one appear without anybody choosing it. */
 const SEARCH = [
 	'luci-theme-footstrap/styles',
 	'luci-theme-footstrap/root',
@@ -75,8 +62,8 @@ for (const s of SEARCH) {
 	})(p);
 }
 
-/* `@mirror name` opens, `@endmirror` closes. The tag may sit inside any comment syntax —
- * we only look for the token, and the closing line is not part of the body. */
+/* `@mirror name` opens, `@endmirror` closes. The tag may sit inside any comment syntax — we
+ * match the token only, and the closing line is not part of the body. */
 const OPEN = /@mirror\s+([A-Za-z0-9_-]+\/[A-Za-z0-9_-]+)/;
 const CLOSE = /@endmirror/;
 
@@ -107,8 +94,8 @@ for (const f of files) {
 
 function rel(f) { return relative(ROOT, f); }
 
-/* Strip the common leading indentation and any trailing whitespace: the same block may be
- * nested one level deeper in one file than in the other, and that is not a divergence. */
+/* Strip common leading indent and trailing whitespace: a block nested one level deeper in one
+ * file is not a divergence. */
 function normalise(body) {
 	const kept = body.filter(l => l.trim() !== '');
 	if (!kept.length) return '';

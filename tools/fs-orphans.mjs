@@ -1,28 +1,20 @@
 #!/usr/bin/env node
-/* Dead-selector check, scoped to the theme's OWN namespace — and the scoping is the whole
- * point.
+/* Dead-selector check, scoped to the theme's OWN namespace — the scoping is the whole point.
  *
- * WHY PurgeCSS/uncss/coverage-pruning ARE WRONG HERE
- * --------------------------------------------------
- * CLAUDE.md: "Coverage is a contract — never drop the styling of a selector because no
- * shipped LuCI page uses it." LuCI's content is rendered by third-party luci-app-* JS, so a
- * `.cbi-*` selector with no example on this router is still styled for the package that
- * emits it on someone else's. Any tool that prunes what it did not SEE rendered will
- * happily un-theme other people's apps. So we never ask "was this rule exercised".
+ * PurgeCSS/uncss/coverage-pruning are ACTIVELY DANGEROUS here. CLAUDE.md: "never drop the styling
+ * of a selector because no shipped LuCI page uses it." Content is rendered by third-party
+ * luci-app-* JS, so a `.cbi-*` selector with no example on this router is still styled for the
+ * package that emits it on someone else's — anything pruning what it did not SEE rendered
+ * un-themes other people's apps. We never ask "was this rule exercised".
  *
- * WHAT MAKES THIS ONE SAFE
- * ------------------------
- * `.fs-*` is OURS. No third-party app can emit an `fs-` class — only this theme's templates
- * and its own JS do. So within that namespace, and ONLY within it, "nothing we ship emits
- * this class" really does mean dead, with zero risk to the contract. Every LuCI/cbi class is
- * ignored on purpose: that is exactly the set the contract protects.
+ * `.fs-*` is OURS: only this theme's templates and JS can emit one. So inside that namespace, and
+ * only there, "nothing we ship emits this class" really does mean dead. Every LuCI/cbi class is
+ * ignored on purpose — that is the set the contract protects.
  *
- * Two directions, and both matter:
- *   FORWARD  — styled but never emitted. Left behind when markup is deleted (this is what
- *              would have caught .fs-topnav/.fs-mainmenu after the top-nav template went).
- *   REVERSE  — emitted but never styled. A class the markup carries and no rule matches:
- *              either dead markup, or a typo, or a thing rendering on inherited base styles
- *              by accident.
+ *   FORWARD  — styled but never emitted: left behind when markup is deleted (would have caught
+ *              .fs-topnav/.fs-mainmenu when the top-nav template went).
+ *   REVERSE  — emitted but never styled: dead markup, a typo, or something riding on inherited
+ *              base styles by accident.
  *
  * Usage: node tools/fs-orphans.mjs
  */
@@ -34,18 +26,18 @@ import * as csstree from 'css-tree';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PKG = join(ROOT, 'luci-theme-footstrap');
 
-/* Names that look like fs-* classes to a regex but are not classes at all. Without this the
- * reverse check drowns in custom-property names and localStorage keys. */
+/* Names that look like fs-* classes to a regex but are not. Without this the reverse check
+ * drowns in custom properties and localStorage keys. */
 const IGNORE_EXACT = new Set([
 	/* localStorage keys */
 	'fs-darkmode', 'fs-palette', 'fs-wallpaper', 'fs-radius', 'fs-tint', 'fs-accent',
 	'fs-rail', 'fs-layout', 'fs-menu-open', 'fs-menu-autocollapse', 'fs-update-check',
 	/* custom events / id prefixes */
 	'fs-autocollapse', 'fs-sub-', 'fs-topsub-',
-	/* MODULE NAMES, not classes — they appear as `require fs-x as y` and in prose. Every
-	 * resource module the theme adds has to land here, and fs-fit did not: it sat in the
-	 * report as a permanent "NEW: style it, delete it, or justify it" line, which is how a
-	 * report teaches you to stop reading it. */
+	/* MODULE NAMES, not classes — they appear as `require fs-x as y`. Every resource module the
+	 * theme adds must land here; fs-fit did not, and sat in the report as a permanent "NEW:
+	 * style it, delete it, or justify it" line — which is how a report teaches you to stop
+	 * reading it. */
 	'fs-select', 'fs-fit',
 ]);
 const IGNORE_PREFIX = ['--fs-'];		/* custom properties */
@@ -61,8 +53,8 @@ function walk(dir, out = []) {
 
 /* ---- what the CSS styles ------------------------------------------------- */
 /* Ids as well as classes: the theme mounts #fs-appearance and #fs-rail-toggle by id, and a
- * class-only sweep reports them as "emitted but never styled" — a false alarm that teaches
- * you to ignore the tool. */
+ * class-only sweep would report them as "emitted but never styled" — a false alarm teaches you
+ * to ignore the tool. */
 const styled = new Map();
 for (const f of walk(join(PKG, 'styles')).filter(p => p.endsWith('.css'))) {
 	const ast = csstree.parse(readFileSync(f, 'utf8'), { positions: true });
@@ -75,10 +67,9 @@ for (const f of walk(join(PKG, 'styles')).filter(p => p.endsWith('.css'))) {
 }
 
 /* ---- what the markup + JS actually emit ---------------------------------- */
-/* COMMENTS ARE STRIPPED FIRST, and this is load-bearing: half of this theme's source is
- * prose explaining WHY a rule exists, and those explanations name the very classes that were
- * deleted (".fs-topnav is gone because…"). A sweep that reads comments reports every one of
- * them as live markup — which is precisely backwards. */
+/* COMMENTS ARE STRIPPED FIRST, and that is load-bearing: half of this source is prose
+ * explaining why a rule exists, and it names the very classes that were deleted (".fs-topnav is
+ * gone because…"). A sweep that reads comments reports those as live markup — backwards. */
 function stripComments(text, file) {
 	if (file.endsWith('.ut'))
 		return text.replace(/\{#[\s\S]*?#\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
@@ -105,8 +96,8 @@ for (const f of SRC) {
 }
 
 /* ---- report -------------------------------------------------------------- */
-/* Emitted-but-unstyled names that are NOT a styling bug, with the reason. A name that is not
- * here is new and wants a look. */
+/* Emitted-but-unstyled names that are NOT a styling bug, with the reason. Anything not here is
+ * new and wants a look. */
 const JUSTIFIED_UNSTYLED = {
 	'fs-rail-toggle': 'a JS hook (getElementById); the button is styled by its .fs-railtoggle class',
 	'fs-title': 'the document <h1> wrapper; hidden by the .fs-sr clip utility beside it, so it stays in the a11y tree',
@@ -128,10 +119,9 @@ console.log(`\n== EMITTED BUT NEVER STYLED ==`);
 if (!unexpected.length) console.log(`  none unexpected (${unstyled.length} known, see JUSTIFIED_UNSTYLED)`);
 for (const c of unexpected) console.log(`  .${c.padEnd(24)} ${emitted.get(c)}   <-- NEW: style it, delete it, or justify it`);
 
-/* Only the FORWARD direction is a hard failure: dead CSS in our own namespace is simply
- * bytes we ship for nothing, and there is no coverage contract to protect it. The reverse
- * direction is a report — an unstyled class can be legitimate (a JS hook, a hidden element
- * riding on inherited styles). */
+/* Only FORWARD gates: dead CSS in our own namespace is bytes shipped for nothing, with no
+ * coverage contract to protect it. REVERSE is a report — an unstyled class can be legitimate (a
+ * JS hook, a hidden element riding on inherited styles). */
 if (orphanCss.length) {
 	console.error(`\nFAIL: ${orphanCss.length} fs-* selector(s) styled but emitted by nothing.`);
 	process.exit(1);

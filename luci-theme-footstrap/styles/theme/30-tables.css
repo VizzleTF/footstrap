@@ -10,10 +10,8 @@
 	/* a bare <legend>; the ones inside a .cbi-section are covered below */
 	legend { font-size: 14px; font-weight: 700; }
 
-	/* ==================================================================
-	 * FOOTSTRAP OVERVIEW POLISH — real DOM from luci-mod-status
-	 * Section = .cbi-section > .cbi-title>h3 + div > table.table (.tr/.td)
-	 * ================================================================== */
+	/* overview (luci-mod-status) DOM:
+	 * .cbi-section > .cbi-title>h3 + div > table.table (.tr/.td) */
 
 	/* section title + collapse control */
 	.cbi-section > .cbi-title { margin-bottom: 12px; }
@@ -25,32 +23,22 @@
 	}
 
 	/* ---- tables in cards ----
-	 * Discriminator: key/value includes (system, memory) render <table class="table">
-	 * WITHOUT an id; data tables (DHCP leases, wifi) render WITH an id
-	 * (e.g. id="status_leases"). Style each kind on its own. */
-
-	/* A KEY/VALUE table inside a card is not itself a card: no frame, no clip. But a
-	 * DATA table (has an id, or the JS-tagged .fs-dt: leases, processes, routes,
-	 * assoclist, …) keeps the `.table` frame below so it reads as its own rounded box
-	 * inside the section. `.table .table` and `.cbi-value .table` are the nested
-	 * cases; `.cbi-modal .table` is the config-diff dialog. */
+	 * Discriminator: a key/value include (System, Memory) has NO id; a data table has one
+	 * (status_leases) or the JS tag .fs-dt. Key/value is not itself a card — no frame, no clip;
+	 * a data table keeps the `.table` frame below. Nested (`.table .table`, `.cbi-value .table`)
+	 * and the config-diff dialog (`.cbi-modal .table`) go with key/value. */
 	.cbi-section .table:not([id]):not(.fs-dt),
 	.cbi-section-node .table:not([id]):not(.fs-dt),
 	.cbi-modal .table, .table .table, .cbi-value .table {
 		border: 0; border-radius: 0; overflow: visible; background: none;
 	}
 	.cbi-section .table { margin: 0; width: 100%; }
-	/* Data tables rendered straight in #view (no .cbi-section — package-manager,
-	 * Startup) miss the width:100% above, so they sized to preferred width and
-	 * overflowed the content column. Pin them to the container so a wrappable column
-	 * (package-manager's Description) reflows to fit instead of forcing a scroll. */
+	/* A data table straight in #view (no section: package-manager, Startup) misses the width
+	 * above, so it sized to preferred width and overflowed the content column. */
 	#view .table[id], table.fs-dt { width: 100%; }
-	/* width:100% alone can't shrink a table below its min-content — a column with a
-	 * long unbreakable value holds the floor. Let long words/values break so the
-	 * table reflows to fit the ~984px column instead of scrolling (package-manager's
-	 * prose Description, a long command path in Processes, …). The DHCP leases need
-	 * finer control — only their DUID/IPv6 columns may break, not IPv4/MAC — so that
-	 * lives in its own page costyl (styles/pages/50-leases.css), which overrides. */
+	/* width:100% cannot shrink a table below min-content — one long unbreakable value holds the
+	 * floor. Breaking values reflows it into the ~984px column instead of scrolling. DHCP leases
+	 * need finer control (only DUID/IPv6 may break, not IPv4/MAC): pages/50-leases.css. */
 	#view .table[id] .td, table.fs-dt .td { overflow-wrap: anywhere; }
 	.cbi-section .table .td,
 	.cbi-section .table .th {
@@ -59,12 +47,10 @@
 		line-height: 1.45; vertical-align: middle;
 		text-align: left;
 	}
-	/* The row-actions column (Edit/Delete) of a CBI section table hugs the right
-	 * edge. The base says so too, but the base now sits in its own layer and loses
-	 * to the generic `text-align: left` above, so state it here. `.cbi-section-table-cell`
-	 * is the discriminator: an action cell rendered by form.TableSection carries it
-	 * (firewall zones, port forwards) and is right-aligned, while the hand-built
-	 * action cells of Wireless (`.td.middle`) and the DHCP leases table are not. */
+	/* Row actions hug the right. Base says so too but loses to the `text-align: left` above (an
+	 * earlier layer), so restate it. `.cbi-section-table-cell` is the discriminator:
+	 * form.TableSection's action cells carry it (firewall zones, port forwards); the hand-built
+	 * ones of Wireless (`.td.middle`) and DHCP leases do not, and stay left. */
 	.cbi-section .table .td.cbi-section-table-cell.cbi-section-actions { text-align: right; }
 	.cbi-section .table .tr:last-child .td { border-bottom: 0; }
 	.cbi-section .table .th {
@@ -72,61 +58,38 @@
 		text-transform: uppercase; letter-spacing: .04em;
 	}
 
-	/* --- DATA tables (with id or JS-tagged .fs-dt): leases, wifi, processes, routes, … ---
-	 * Symmetric horizontal padding so cells clear the table's own contour (below).
+	/* --- DATA tables ([id] or JS-tagged .fs-dt): leases, wifi, processes, routes … ---
+	 * Symmetric padding so cells clear the table's own contour (below).
 	 *
-	 * `:is([id], .fs-dt)` — ONE discriminator, at ONE specificity, and that is the fix.
-	 * `[id]` and `.fs-dt` are two names for the same thing ("this is a data table, not a
-	 * key/value include"), and they used to be written as two selector lists with DIFFERENT
-	 * weights:
-	 *     .cbi-section .table[id] .td   (0,4,0)
-	 *     table.fs-dt .td               (0,2,1)   <- loses to the key/value rule below
-	 * while the key/value default `.cbi-section .table .td` is (0,3,0). So a data table that
-	 * had an id was fine, and one identified ONLY by the JS tag lost: it kept the key/value
-	 * padding (`10px 16px 10px 0` — flush left, which is right for a label column and wrong
-	 * for a data cell) and never got the mono face, the row hover or the header rule either.
-	 * Live on the router: Status → Routing (view/status/routesj.js) emits `<table class="table">`
-	 * with NO id, so every one of its cells sat hard against the table's left edge.
-	 * Both names now resolve to the same (0,4,0) and cannot drift apart again. */
+	 * `:is([id], .fs-dt)` = ONE discriminator at ONE specificity. The two names for "data table" were
+	 * two selector lists at DIFFERENT weights — `.cbi-section .table[id] .td` (0,4,0) vs
+	 * `table.fs-dt .td` (0,2,1), the latter losing to the key/value default (0,3,0) — so a table
+	 * known only by the JS tag kept the key/value padding (flush left) and got no mono face, no row
+	 * hover, no header rule. Live: Status → Routing emits <table class="table"> with no id. */
 	.cbi-section .table:is([id], .fs-dt) .td,
 	.cbi-section .table:is([id], .fs-dt) .th,
 	table.fs-dt .td, table.fs-dt .th { padding: 10px 11px; }
 	.cbi-section .table:is([id], .fs-dt) .td { font-family: var(--fs-font-mono); font-size: 12px; color: var(--fs-text); }
-	/* No horizontal-scroll wrapper: a data table reflows to fit the content column
-	 * via the overflow-wrap rule above (long opaque values break), so it never needs
-	 * to scroll or be forced into cards on desktop. Card-stacking stays for phones
-	 * only — it is MEASURED (.fs-stacked, fs-select.js) and fires at any width. */
+	/* No horizontal-scroll wrapper: long values break (overflow-wrap above), so the table reflows
+	 * into the column. Whether it cards instead is MEASURED (.fs-stacked, fs-select.js), any width. */
 	.cbi-section .table:is([id], .fs-dt) .tr:not(.table-titles):hover .td { background: var(--fs-panel2); }
 	.cbi-section .table:is([id], .fs-dt) .tr.table-titles .th { border-bottom-color: var(--fs-border); }
-	/* Contour around the whole data table (leases, wifi, processes, …). A real
-	 * <table> needs border-collapse:separate for the radius to take (collapse
-	 * silently drops border-radius); harmless on the div-based tables. Scoped to
-	 * #view too, not just .cbi-section: Startup (system/startup) renders a
-	 * .table.fs-dt straight in a bare #view wrapper with no section, so the
-	 * section-scoped selector missed it and it drew frameless. */
+	/* Contour around the whole data table. A real <table> needs border-collapse:separate or the
+	 * radius is silently dropped. Scoped to #view too: Startup renders a .table.fs-dt in a bare
+	 * #view wrapper with no section, and drew frameless under a section-scoped selector. */
 	.cbi-section .table[id], #view .table[id],
 	.cbi-section .table.fs-dt, .cbi-section table.fs-dt, table.fs-dt {
 		border-collapse: separate; border-spacing: 0;
 		border: 1px solid var(--fs-border); border-radius: var(--fs-radius-lg);
-		/* overflow:visible, EXPLICITLY. It clipped the last column when a wide table
-		 * (many columns) was a touch too wide for its section. The four corner cells
-		 * (below) round the frame instead, and long values wrap (further below) so
-		 * the table shrinks to fit rather than overflow.
-		 *
-		 * This has to be a real declaration, not an omission: the generic `.table`
-		 * rule further down this file still says `overflow: hidden`, and simply not
-		 * repeating it here does not stop it from applying. Leaving it out is what
-		 * kept the clipping bug alive after the comment said it was gone. */
+		/* EXPLICIT, not an omission: the generic `.table` rule below still says `overflow: hidden`
+		 * — which clipped the last column of a wide table — and not repeating it here does not
+		 * stop it applying, which is what kept the bug alive. The corner cells (below) round the
+		 * frame instead, and long values wrap so the table shrinks to fit. */
 		overflow: visible;
 	}
-	/* A real <table>'s overflow:hidden does NOT clip its cell backgrounds to the
-	 * border-radius, so the square corner cells poked past the rounded frame. Round
-	 * only the four OUTER corner cells to match — the header row's end cells (top)
-	 * and the last row's end cells (bottom). This is the frame's corners, not a
-	 * per-row pill. */
-	/* `#view .table[id]` is listed too: the frame rule above draws the rounded
-	 * border for an id-table sitting straight in #view (no section), so its
-	 * corner cells must round with it — without it they poked past the frame. */
+	/* The frame is overflow:visible, so nothing clips the square corner cells to its radius and
+	 * they poked past it. Round the four OUTER cells — the frame's corners, not a per-row pill.
+	 * `#view .table[id]` is listed because the frame rule draws the border there too. */
 	.cbi-section .table[id] .tr.table-titles .th:first-child,
 	#view .table[id] .tr.table-titles .th:first-child,
 	table.fs-dt .tr.table-titles .th:first-child { border-top-left-radius: var(--fs-radius-lg); }
@@ -139,11 +102,9 @@
 	.cbi-section .table[id] .tr:last-child .td:last-child,
 	#view .table[id] .tr:last-child .td:last-child,
 	table.fs-dt .tr:last-child .td:last-child { border-bottom-right-radius: var(--fs-radius-lg); }
-	/* Empty data table: L.ui.Table adds a single-cell .tr.placeholder ("There are no
-	 * active leases"). In a display:table table that lone cell spans only the first
-	 * column, and the bottom-corner rounding then draws a tiny rounded box on the
-	 * left. Make the placeholder row + cell block the full table width, left-aligned,
-	 * carrying the frame's bottom corners so the note fills the table cleanly. */
+	/* Empty table: L.ui.Table adds a single-cell .tr.placeholder ("There are no active leases").
+	 * In a display:table it spans only the first column, so the bottom-corner rounding drew a tiny
+	 * rounded box on the left. Block it to full width, carrying the frame's bottom corners. */
 	.cbi-section .table[id] .tr.placeholder,
 	#view .table[id] .tr.placeholder,
 	table.fs-dt .tr.placeholder { display: block; }
@@ -155,12 +116,10 @@
 		border-radius: 0 0 var(--fs-radius-lg) var(--fs-radius-lg);
 	}
 
-	/* --- KEY/VALUE tables: system, memory ---
-	 * "no id" alone is NOT enough: form.TableSection/GridSection also render
-	 * <table class="table cbi-section-table"> without an id (ddns services,
-	 * firewall zones, port forwards …). Forcing width:40%/nowrap on their first
-	 * column starved the remaining data columns (dates broke mid-token). Exclude
-	 * CBI section tables and the JS-tagged data tables (.fs-dt) explicitly. */
+	/* --- KEY/VALUE tables: System, Memory ---
+	 * "no id" is NOT enough: form.TableSection/GridSection also render `.table.cbi-section-table`
+	 * with no id (ddns, firewall zones, port forwards), and width:40%/nowrap on their first column
+	 * starved the data columns (dates broke mid-token). So exclude it and .fs-dt explicitly. */
 	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)) .td:first-child {
 		color: var(--fs-dim); font-weight: 600; width: 40%; white-space: nowrap;
 	}
@@ -174,35 +133,23 @@
 	/* generic links/labels inside cards */
 	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: var(--fs-radius); }
 
-	/* Inactive tab panes: the base [data-tab-title] rule sets height:0/overflow:hidden,
-	 * but that only collapses the content box — padding/border/margin still render as
-	 * empty bars. Apps that put data-tab-active straight on .cbi-section (e.g. podkop,
-	 * Network → Interfaces) keep the section's 18px/22px padding + 16px margin,
-	 * showing phantom strips. Collapse the whole box for any pane that is not the
-	 * active one — :not([data-tab-active="true"]) also covers the first-render state
-	 * where LuCI has set active="true" on the shown tab but left the others with no
-	 * data-tab-active attribute yet (huge gaps until you switch tabs).
-	 *
-	 * display:none, not just height:0 — a height:0/overflow:hidden pane STILL inflates
-	 * documentElement.scrollHeight by its (clipped) content, so multi-tab pages like
-	 * Network → Interfaces scrolled ~585px past the footer into blank space. Taking
-	 * the pane out of flow entirely is the only thing that removes that phantom
-	 * scroll. The active pane keeps its own [data-tab-active="true"] rules.
-	 *
-	 * Match ANY [data-tab-title] pane, not just .cbi-section ones: Network → DNS
-	 * (dnsmasq) renders each tab as a plain <div data-tab-title> with no .cbi-section
-	 * class, so the narrower rule missed it and its inactive panes (the Host-records
-	 * table etc.) inflated the page ~750px past the footer. Tab-menu <li>s carry
-	 * data-tab but never data-tab-title, so the bar itself is untouched. */
+	/* Inactive tab panes. Base's [data-tab-title] rule sets height:0/overflow:hidden, collapsing only
+	 * the CONTENT box — padding/border/margin still draw empty bars (podkop and Network → Interfaces
+	 * put data-tab-active on a .cbi-section: 18px/22px padding + 16px margin of phantom strip). And
+	 * display:none, not height:0: a clipped pane STILL inflates scrollHeight — Interfaces scrolled
+	 * ~585px past the footer, Network → DNS another ~750px. Hence ANY [data-tab-title], not just
+	 * .cbi-section ones (DNS renders each tab as a bare <div>). Tab-menu <li>s carry data-tab but
+	 * never data-tab-title, so the bar is untouched; the :not() also covers first render, where LuCI
+	 * has set active="true" on the shown tab only. */
 	[data-tab-title]:not([data-tab-active="true"]) {
 		display: none;
 		padding: 0;
 		margin: 0;
 		border: 0;
 	}
-	/* 6%, not 12%. The list inside is bold --fs-danger text (next rule) on this tint OF
-	 * --fs-danger, so the tint eats its own contrast: 12% measured 4.4:1 (axe-core). At 6%
-	 * every palette clears 4.5 (4.87 / 4.95 / 5.28 / 6.09) and the box still reads red. */
+	/* 6%, not 12%. The list inside is bold --fs-danger on a tint OF --fs-danger, so the tint
+	 * eats its own contrast: 12% measured 4.4:1 (axe-core). At 6% every palette clears 4.5
+	 * (4.87 / 4.95 / 5.28 / 6.09) and the box still reads red. */
 	.cbi-section-error { border-color: var(--fs-danger); background: color-mix(in srgb, var(--fs-danger) 6%, var(--fs-panel)); color: var(--fs-text); }
 	.cbi-section-error ul li { color: var(--fs-danger); }
 
@@ -212,19 +159,16 @@
 	.cbi-section-table .tr.cbi-section-table-titles .th,
 	.cbi-section-table .tr.table-titles .th { font-size: 10px; letter-spacing: .05em; line-height: 1.25; }
 
-	/* ==================================================================
-	 * FOOTSTRAP: standalone data tables -> rounded card (Startup,
-	 * Processes, Routes, etc.). Tables inside a CBI section already sit in
-	 * the section card, so strip the frame there to avoid double borders.
-	 * ================================================================== */
+	/* Standalone data tables (Startup, Processes, Routes) -> rounded card. Inside a CBI section
+	 * the section already IS the card, so the frame is stripped there (above): no double border. */
 	.table {
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius-lg);
 		overflow: hidden;
 		background: var(--fs-panel);
 	}
-	/* descendant combinator (not >) so real <table> (browser-inserted <tbody>)
-	 * is covered too — one rule themes every data table, div- or table-based. */
+	/* descendant combinator (not >) so a real <table>'s browser-inserted <tbody> is covered
+	 * too — one rule themes every data table, div- or table-based. */
 	.table .tr.table-titles, .table .tr.cbi-section-table-titles {
 		border-bottom: 1px solid var(--fs-border);
 		background: transparent;	/* drop the base panel2 header bar — match the dashboard's faint-label + underline look */
@@ -237,14 +181,10 @@
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles) {
 		transition: background var(--fs-dur);
 	}
-	/* The row separator on every body row BUT the last. A trailing border-bottom on the
-	 * last row draws a straight 1px line across the full width, which pokes past the
-	 * frame's rounded bottom corners on a data table (those are overflow:visible) — the
-	 * separator "sticking out of the section". `:not(:last-child)` lives IN this rule so
-	 * the last row simply never gets the border: a separate `.tr:last-child` override
-	 * (0,3,0) lost on specificity to this selector's two :not()s (0,4,0) and left the
-	 * border on. On an overflow:hidden .table the line was merely clipped, so it went
-	 * unseen there — but it was always drawn. */
+	/* Separator on every body row BUT the last: a trailing border-bottom draws a straight line the
+	 * full width and pokes past the frame's rounded bottom corners (overflow:visible).
+	 * `:not(:last-child)` lives IN this rule — a separate `.tr:last-child` override (0,3,0) lost to
+	 * this selector's two :not()s (0,4,0). On an overflow:hidden .table it was merely clipped. */
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles):not(:last-child) {
 		border-bottom: 1px solid var(--fs-border);
 	}
@@ -252,61 +192,42 @@
 	/* keep section/modal tables flush (no forced hover-card look) */
 	.cbi-section .table > .tr, .cbi-modal .table > .tr { border-radius: 0; }
 
-	/* .fs-dt is set by fs-select.js on <table class="table"> that has a
-	 * .tr.table-titles header and is NOT .cbi-section-table — replacing a live
-	 * `:has(.tr.table-titles):not(.cbi-section-table)` that the style engine had to
-	 * re-evaluate on every mutation of these polled tables (Processes/routes/leases). */
-	/* ==================================================================
-	 * THE CARD STACK — one copy, for every DATA table, with no @container threshold.
+	/* .fs-dt is set by fs-select.js on a #view .table that has a header row and is NOT a
+	 * .cbi-section-table — replacing a live `:has(.tr.table-titles):not(.cbi-section-table)`
+	 * the style engine re-evaluated on every mutation of these polled tables (processes,
+	 * routes, leases). */
+
+	/* ---- THE CARD STACK: one copy, every DATA table, no @container threshold ----
 	 *
-	 * A data table used to be carded by a container query, and there were THREE different
-	 * thresholds for it: 568 here, 780 for the DHCP leases (8 nowrap mono columns hold a
-	 * ~736px floor, so they must card earlier) and 800 for the apk package list. The last
-	 * two each carried their own COPY of the declarations below, because CSS cannot share a
-	 * declaration block across two @container thresholds — 55 duplicated declarations, free
-	 * to drift apart in silence.
+	 * Was three thresholds (568 here, 780 DHCP leases, 800 apk list); the last two each carried
+	 * their own COPY of these declarations, because CSS cannot share a block across two @container
+	 * thresholds — 55 duplicated declarations, free to drift. All three really asked "does it
+	 * OVERFLOW?", which the browser can compute: fs-select.js measures it and sets .fs-stacked, so
+	 * every table (a third-party luci-app-*'s included, whose column count we cannot know) finds
+	 * its own width. Only the judgement a measurement cannot make survives, in fs-select.js:
+	 * 568 = "too cramped to be a table at all".
 	 *
-	 * Both of those were really asking "does it OVERFLOW?", and overflow is a FACT the
-	 * browser computes rather than a number to guess. fs-select.js measures it and sets
-	 * .fs-stacked, so the two thresholds are gone and each table now discovers its own —
-	 * including one from a third-party luci-app-* whose column count we could never know.
-	 * What survives is the one judgement a measurement cannot make: 568, "too cramped to be
-	 * a table at all", which lives in fs-select.js beside the measurement.
+	 * A CONFIG table (.cbi-section-table) is deliberately NOT here and keeps its @container (960,
+	 * theme/65-dropdown.css). Its rows hold widgets that bake in a width from the layout they were
+	 * rendered in, so un-collapsing one to read it CHANGES what is read: on the router the firewall
+	 * zone table then claimed it needed 1747px where it really needs 1190px, and overflowed its
+	 * section by 557px. Do NOT "finish the job" by measuring it.
 	 *
-	 * A CONFIG table (.cbi-section-table) is deliberately NOT here — see theme/65-dropdown.css.
-	 * Its rows hold widgets that bake in a width from the layout they were rendered in, so
-	 * un-collapsing it to measure it changes the thing being measured.
+	 * Shape = stock LuCI's phone layout: label ABOVE its value, cell = half the row. Label:value on
+	 * ONE line with the value right-flushed cost a leases row 7 full-width lines and gave the value
+	 * ~40% of the width (a badge/SVG/DUID then wrapped under its own label anyway); half-width pairs
+	 * fold it into 4. Values stay LEFT-aligned: MAC/DUID/rates are opaque strings.
 	 *
-	 * The card shape is stock LuCI's phone layout (bootstrap's mobile.css): the label sits
-	 * ABOVE its value and each cell takes half the row. The earlier shape put label and value
-	 * on ONE line with the value flushed right, which cost a leases row 7 full-width lines and
-	 * gave the value ~40% of the width — an .ifacebadge, a signal SVG or a DUID then wrapped
-	 * under its own label anyway. Half-width pairs fold the same row into 4 lines and give the
-	 * value the whole half-column. Values stay LEFT-aligned: they are opaque strings (MAC,
-	 * DUID, rates), and a ragged right edge reads worse than a ragged left one.
-	 * ================================================================== */
-	/* THE CARD CONTRACT IS ONE CONTRACT, AND IT WAS SPLIT IN HALF.
-	 *
-	 * The stack is MEASURED (fs-select.js: room < CRAMPED, or the table overflows), so it
-	 * fires at ANY viewport width. But three pieces of the same contract used to live only
-	 * inside `@media (max-width: 767px)` in theme/90-responsive.css — the table's own
-	 * `display: block`, the `.hide-xs`/`.hide-sm` columns stock LuCI drops on a phone, and
-	 * the `.col-N` weights that stop every cell taking a flat 50%. A table stacked ABOVE the
-	 * phone tier therefore got the card layout with none of them.
-	 *
-	 * That window is real, not theoretical: in the sidebar layout the content column is
-	 * (viewport - 224 - 56), so between about 768 and 860px it is already below CRAMPED while
-	 * the media query has switched off. Measured on the live router at 790/820/850px:
-	 * status_leases stacked with `display: table` still in force (so it kept an intrinsic
-	 * min-width — the exact overflow `display: block` exists to prevent, papered over by the
-	 * `overflow: hidden` below), and wifi_assoclist_table rendered ALL FIVE of its .hide-xs
-	 * cells. At 760px, one pixel into the media query, both behaved correctly.
-	 *
-	 * So key them off the CLASS, where the stack itself is decided. The media query keeps TWO
-	 * of the three (display:block and .hide-xs/.hide-sm — the .col-N weights turned out to need
-	 * no guard at all, see below): they still serve the tables that do NOT stack on a phone,
-	 * and the config tables (.cbi-section-table), which card via @container and never carry
-	 * .fs-stacked. */
+	 * ONE CONTRACT — do not split it again. The stack is MEASURED, so it fires at ANY width, but
+	 * `display: block` and the `.hide-xs`/`.hide-sm` drops used to live only inside
+	 * `@media (max-width: 767px)` (theme/90-responsive.css), so a table stacked above the phone tier
+	 * got the card with neither. The window is real: the sidebar layout's content column is
+	 * (viewport - 224 - 56), so between ~768 and 860px it is already below CRAMPED while that query
+	 * is off. Measured at 790/820/850px — status_leases stacked with `display: table` still in force
+	 * (keeping the intrinsic min-width `display: block` exists to prevent) and wifi_assoclist_table
+	 * rendered ALL FIVE of its .hide-xs cells; at 760px both were correct. So they key off the CLASS.
+	 * The media query keeps its own copies, for the tables that do NOT stack on a phone and for the
+	 * config tables (@container, never .fs-stacked). The `.col-N` weights need no guard — see below. */
 	.table.fs-stacked { display: block; width: 100%; }
 	.table.fs-stacked .td.hide-sm, .table.fs-stacked .th.hide-sm,
 	.table.fs-stacked .td.hide-xs, .table.fs-stacked .th.hide-xs { display: none; }
@@ -321,12 +242,13 @@
 		padding: 6px 10px 6px 0; border: 0; text-align: left;
 		overflow-wrap: anywhere; white-space: normal;
 	}
-	/* the column label, lifted above its value (LuCI writes it per cell as data-title).
+	/* The column label, lifted above its value (LuCI writes it per cell as data-title).
 	 *
-	 * PINNED: the config table (theme/65-dropdown.css) needs the identical declarations under
-	 * its @container guard, and CSS cannot share a block between a CLASS and a CONTAINER QUERY
-	 * — the two guards do not OR. tools/mirror.mjs holds the two copies byte-identical; edit
-	 * one and the build fails until you edit the other. */
+	 * PINNED: the config table (theme/65-dropdown.css) needs these exact declarations under its
+	 * @container guard, and CSS cannot share a block between a CLASS and a CONTAINER QUERY — the two
+	 * guards do not OR. tools/mirror.mjs keeps the copies byte-identical; edit one and the build
+	 * fails until you edit the other. (A duplicate detector goes QUIET once two copies differ —
+	 * exactly when it should shout.) */
 	.table.fs-stacked .td[data-title]::before {
 		/* @mirror table-card/label */
 		content: attr(data-title); display: block; margin-bottom: 3px;
@@ -337,55 +259,44 @@
 	.table.fs-stacked .td.cbi-section-actions::before,
 	.table.fs-stacked .td:not([data-title])::before,
 	.table.fs-stacked .td[data-title=""]::before { content: none; }
-	/* the row's buttons are not a label/value pair — full width below the pairs.
-	 * PINNED with the config table's copy — see the note above. */
+	/* The row's buttons are not a label/value pair — full width below the pairs.
+	 * PINNED with the config table's copy — see above. */
 	.table.fs-stacked .td.cbi-section-actions {
 		/* @mirror table-card/actions */
 		display: flex; flex: 1 1 100%; justify-content: flex-start;
 		flex-wrap: wrap; gap: 8px; padding-top: 8px;
 		/* @endmirror */
 	}
-	/* nothing inside a half-width cell may force the row wider than the viewport: .fs-main
-	 * is overflow-x:clip, so an over-wide child is CUT, not scrolled to. */
+	/* Nothing in a half-width cell may force the row wider than the viewport: .fs-main is
+	 * overflow-x:clip, so an over-wide child is CUT, not scrolled to. */
 	.table.fs-stacked .td > *,
 	.table.fs-stacked .td .ifacebadge { min-width: 0; max-width: 100%; }
 
 	/* --- the DATA table's flavour (L.ui.Table, tagged .fs-dt) ---
-	 * Clip rows to the frame's rounded corners: zebra paints its background on the .tr and
-	 * the frame is overflow:visible, so a striped row's SQUARE background poked past the
-	 * 12px corners. Stacked rows are flex-wrap and fit the width, so there is no horizontal
-	 * column to clip (the only thing overflow:visible protected). `#view .table.fs-dt`
-	 * (1,2,0) outranks the frame's `#view .table[id]` (1,1,1) on specificity, not order. */
+	 * Clip rows to the frame's corners: zebra paints its background on the .tr and the frame is
+	 * overflow:visible, so a striped row's SQUARE background poked past the 12px corners. Safe once
+	 * stacked: a flex-wrap row fits the width, so there is no horizontal column left to clip — the
+	 * only thing overflow:visible protected. `#view .table.fs-dt.fs-stacked` (1,3,0) outranks the
+	 * frame's `#view .table[id]` (1,2,0) on specificity, not order. */
 	#view .table.fs-dt.fs-stacked { overflow: hidden; }
 	.table.fs-dt.fs-stacked .tr { padding: 10px 16px 12px; }
-	/* `.fs-stacked .td`, not `.table.fs-dt.fs-stacked .td`: the same elements (the class is
-	 * only ever written onto a .table.fs-dt), but at (0,2,0) instead of (0,3,1) — low enough
-	 * that the unguarded `.table .td.col-N` below, at (0,2,1), beats it on SPECIFICITY rather
-	 * than on source order. */
+	/* `.fs-stacked .td`, not `.table.fs-dt.fs-stacked .td` — the same elements (the class is only
+	 * ever written onto a .table.fs-dt), but at (0,2,0) instead of (0,4,0): low enough that the
+	 * unguarded `.table .td.col-N` below, at (0,3,0), beats it on SPECIFICITY, not source order. */
 	.fs-stacked .td { flex: 1 1 50%; }
 
-	/* ---- COLUMN WEIGHTS: ONE unguarded block, and it is unguarded on purpose ----------
+	/* ---- COLUMN WEIGHTS: ONE unguarded block, unguarded ON PURPOSE ----
+	 * A weight (1-10) is a share of a CARDED row — the JS says which cell is a narrow badge and which
+	 * the wide status text (wireless.js col-2/3/4, connections.js col-7); without it every cell falls
+	 * back to the flat 50% above and the badge gets as much room as the text.
 	 *
-	 * A column weight, 1-10, is a share of a CARDED row: the JS says "this cell is a narrow
-	 * badge, that one is the wide status text" (wireless.js col-2/3/4, connections.js col-7).
-	 * Without it every cell falls back to the flat 50% above and the badge gets as much room
-	 * as the text.
-	 *
-	 * These used to live inside `@media (max-width: 767px)` — one of the three halves of the
-	 * card contract that the MEASURED stack (fs-select.js, any width) left behind. The obvious
-	 * repair was to copy them under the stack's class, which is what a first pass did: twenty
-	 * rules, two guards, free to drift.
-	 *
-	 * They need NO guard at all. `flex` applies only to a FLEX ITEM, and a `.td` is only a flex
-	 * item once its `.tr` has become a flex container — which happens exactly when the table is
-	 * carded, by EITHER mechanism (the data table's `.fs-stacked`, or the config table's
-	 * `@container fs-content (max-width: 960px)`), at ANY viewport. On an ordinary
-	 * `display: table-cell` these declarations are inert. So one copy serves every case, the
-	 * media-query copies are gone, and the config table — which cards at a 960px CONTAINER and
-	 * so could card on a 1200px desktop, well outside the phone tier — gets its weights for the
-	 * first time. Verified with cssdiff: nothing else moved.
-	 *
-	 * Basis is N*30px, as in stock, so the weights compose the same way. */
+	 * Do NOT copy them under a guard (a first pass did: twenty rules, two guards, free to drift).
+	 * `flex` applies only to a FLEX ITEM, and a `.td` becomes one exactly when its `.tr` turns into a
+	 * flex container — i.e. when the table cards, by EITHER mechanism (`.fs-stacked`, measured at any
+	 * width; or the config table's `@container fs-content (max-width: 960px)`, which can card on a
+	 * 1200px desktop). Anywhere else they are inert. So one copy serves the phone tier, the measured
+	 * stack and the config table — which got its weights for the first time (cssdiff: nothing else
+	 * moved). Basis N*30px, as in stock, so the weights compose the same way. */
 	.table .td.col-1,  .table .th.col-1  { flex: 1 1 30px; }
 	.table .td.col-2,  .table .th.col-2  { flex: 2 2 60px; }
 	.table .td.col-3,  .table .th.col-3  { flex: 3 3 90px; }

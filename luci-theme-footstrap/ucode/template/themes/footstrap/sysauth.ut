@@ -5,31 +5,20 @@
  Copyright 2008-2012 Jo-Philipp Wich <jow@openwrt.org>
  Licensed to the public under the Apache License 2.0.
 
- WHY THIS FILE EXISTS AT ALL
- ---------------------------
- The dispatcher renders `themes/<theme>/sysauth` when the theme ships one and falls back to
- the generic `sysauth` otherwise (dispatcher.uc). We shipped none, so the login page came from
- the generic template — and that one does `include('header')` with NO blank_page, so the whole
- chrome rendered around the login form: the sidebar, the menu, the footer. On a page where the
- only thing you can do is log in, every one of those is a dead control. luci-theme-bootstrap
- does not do that, and neither should we.
+ It exists to pass `blank_page: true`, the only thing it changes about the generic template:
+ without a theme-local sysauth the dispatcher falls back to that one, which includes the header
+ WITHOUT blank_page — so the whole chrome (sidebar, menu, footer) rendered around the login
+ form, every control on it dead.
 
- WHAT THIS IS *NOT*, AND THAT IS THE POINT
- -----------------------------------------
- It is NOT a copy of bootstrap's sysauth.ut. That one puts the form in a `<section hidden>`
- and relies on a view module (`ui.instantiateView('bootstrap.sysauth')`) to reveal it inside a
- modal. This theme tried exactly that once, and it produced a BLANK PAGE WITH NO WAY TO LOG IN
- — the view's own bootstrap runs before a session exists, the RPCs it makes answer "Access
- denied", the promise rejects and render() never runs. The comment in styles/pages/10-login.css
- records that failure; do not re-introduce it.
+ It is NOT a copy of bootstrap's sysauth.ut, which hides the form in a `<section hidden>` and
+ needs a view module to reveal it: tried here once and it gave a BLANK PAGE WITH NO WAY TO LOG
+ IN — the view bootstraps before a session exists, its RPCs answer "Access denied", the promise
+ rejects and render() never runs. Do not re-introduce it. The SERVER renders the form: works
+ with JS off, cannot be broken by a rejected promise, needs no luci-theme-bootstrap installed.
 
- So the form is rendered by the SERVER, exactly as the generic template does. It works with JS
- disabled, it cannot be broken by a rejected promise, and it does not depend on
- luci-theme-bootstrap being installed (the theme depends on luci-base and nothing else).
- The only thing this template changes about the generic one is `blank_page: true`.
-
- styles/pages/10-login.css turns the resulting form into the centred card, keyed off the
- username field, so nothing else on the site is affected.
+ styles/pages/10-login.css makes it the centred card, keyed off the username field. The strings
+ carry no msgctxt on purpose — luci-base translates them in the ~40 languages this theme has no
+ catalogue for.
 -#}
 
 {% include('header', { blank_page: true }) %}
@@ -85,9 +74,9 @@
 	if (input)
 		input.focus();
 
-	/* If the router also serves HTTPS, hop over to it — the password is about to go over
-	 * this connection. Probing with an <img> is upstream's trick: it tells us the TLS port
-	 * actually answers before we send the user there. */
+	/* If the router also serves HTTPS, hop over to it — the password is about to go over this
+	 * connection. The <img> probe is upstream's trick: it proves the TLS port actually answers
+	 * before we send the user there. */
 	if (document.location.protocol != 'https:') {
 		{{ https_ports }}.forEach(function(port) {
 			var url = 'https://' + window.location.hostname + ':' + port + window.location.pathname;

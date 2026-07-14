@@ -1,17 +1,12 @@
 @layer page {
-	/* System → Administration → SSH-Keys (admin/system/admin/sshkeys) renders its
-	 * whole view — heading, description, key list and the add-key row — as a single
-	 * bare <div> straight in #view, with no .cbi-section wrapper. So on the cats
-	 * wallpaper the text sat frameless, unlike every other page whose .cbi-section
-	 * paints an opaque --fs-panel. There is no section markup to hook, so costyl the
-	 * page by id: give that lone wrapper the same panel card a .cbi-section gets
-	 * (mirrors theme/30-tables.css `.cbi-section` — --fs-panel, 1px border, r12,
-	 * --fs-shadow, 16px padding). SPA re-stamps body[data-page] on tab nav,
-	 * so the id resolves when you land on the SSH-Keys tab.
+	/* SSH-Keys renders its whole view as a single bare <div> in #view with no .cbi-section
+	 * wrapper, so its text sat frameless over the wallpaper while every other page gets an
+	 * opaque --fs-panel card. No section markup to hook, so give that lone wrapper the same
+	 * card (mirrors theme/30-tables.css `.cbi-section`).
 	 *
-	 * Scoped to this page on purpose: a general "card any bare #view > div" rule was
-	 * tried and reverted — it wrapped whole tabbed views (e.g. Startup) in a card,
-	 * which was not wanted. Bare-view pages that need framing get their own id here. */
+	 * Scoped to this page on purpose: a general "card any bare #view > div" was tried and
+	 * reverted — it also wrapped whole tabbed views (Startup). Other bare-view pages get
+	 * their own entry here. */
 	body[data-page="admin-system-admin-sshkeys"] #view > div {
 		background: var(--fs-panel);
 		border: 1px solid var(--fs-border);
@@ -20,10 +15,9 @@
 		padding: 16px;
 	}
 
-	/* An authorized_keys entry is a ~400-char base64 blob, so this is the one dynlist
-	 * that must not take theme/60-inputs.css's 440px cap. The rule used to sit in
-	 * `base` and was dead there — a layer beats specificity, so the theme's plain
-	 * `.cbi-dynlist` capped this page too. `page` is the layer that actually wins. */
+	/* An authorized_keys entry is a ~400-char base64 blob: the one dynlist that must not
+	 * take theme/60-inputs.css's 440px cap. Must live in `page` — in `base` it was dead,
+	 * since a layer beats specificity and theme's plain `.cbi-dynlist` capped it anyway. */
 	body[data-page="admin-system-admin-sshkeys"] .cbi-dynlist {
 		max-width: none;
 	}

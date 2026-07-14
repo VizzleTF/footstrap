@@ -1,24 +1,16 @@
 @layer theme {
-	/* Buttons placed straight in a field (not wrapped in .control-group), e.g.
-	 * app action rows Enable/Disable, Start/Restart/Stop. Inline-block buttons only
-	 * get whitespace spacing horizontally; on wrap (mobile) the rows collapse
-	 * together. Lay the field out as a wrapping flex with a real gap. */
+	/* Buttons placed straight in a field, not in a .control-group (app action rows
+	 * Enable/Disable, Start/Restart/Stop): inline-block buttons only get whitespace spacing
+	 * horizontally, so on wrap the rows collapsed together. Wrapping flex with a real gap. */
 	.cbi-value-field:has(> .cbi-button) {
 		display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end;
 	}
 
-	/* ==================================================================
-	 * The button.
-	 *
-	 * The native `input` types are in the selector list on purpose: LuCI's own
-	 * views always use <button class="cbi-button">, but a third-party luci-app-*
-	 * is free to emit a bare <input type="submit">, and styles/base only ever
-	 * gives those `width/height: auto`. Everything the theme paints, it paints
-	 * for them too. See docs/gallery.html.
-	 *
-	 * `.btn` and `.cbi-button` are interchangeable in LuCI markup — a row-action
-	 * button usually carries both — so every rule here names both.
-	 * ================================================================== */
+	/* The button. The native `input` types are in the selector list on purpose: LuCI's own views
+	 * always use <button class="cbi-button">, but a third-party luci-app-* may emit a bare
+	 * <input type="submit">, and base only gives those width/height: auto — coverage is a
+	 * contract (docs/gallery.html). `.btn` and `.cbi-button` are interchangeable in LuCI markup
+	 * (a row-action button usually carries both), so every rule here names both. */
 	.cbi-button, .btn,
 	input[type="button"], input[type="submit"], input[type="reset"] {
 		display: inline-flex; align-items: center; justify-content: center;
@@ -34,21 +26,18 @@
 	.cbi-button:hover, .btn:hover,
 	input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover { border-color: var(--fs-dim); }
 
-	/* Keyboard focus. This rule is not optional decoration — without it a button
-	 * shows NOTHING on focus. base/30-forms.css lists `button:hover` (not :focus)
-	 * in its focus block, so a <button> never had a ring there to begin with; and
-	 * for the native input types, whose :focus IS matched there, the `box-shadow:
-	 * none` above wins anyway — theme beats base regardless of specificity — while
-	 * base's `outline: 0` has already removed the UA ring. Save, Save & Apply,
-	 * Reset, every row action and the login submit were all untabbable-looking.
-	 * Same ring as every field (--fs-focus-ring), so focus looks like one thing. */
+	/* Keyboard focus — not decoration: without this a button shows NOTHING on focus. The
+	 * `box-shadow: none` above kills base/30-forms.css's focus ring (theme beats base
+	 * regardless of specificity) and base's `outline: 0` has already removed the UA one, so
+	 * Save, Save & Apply, Reset, every row action and the login submit all looked untabbable.
+	 * Same --fs-focus-ring as every field, so focus looks like one thing. */
 	.cbi-button:focus-visible, .btn:focus-visible,
 	input[type="button"]:focus-visible, input[type="submit"]:focus-visible, input[type="reset"]:focus-visible {
 		outline: none;
 		border-color: var(--fs-accent);
 		box-shadow: var(--fs-focus-ring);
 	}
-	/* Solid variants sit ON --fs-accent/--fs-good/--fs-danger, so an --accent-tinted ring is
+	/* Solid variants sit ON --fs-accent/--fs-good/--fs-danger, so an accent-tinted ring is
 	 * invisible against them: ring in the surface colour with an accent halo. */
 	.cbi-button-positive:focus-visible, .cbi-button-action:focus-visible,
 	.cbi-button-negative:focus-visible, .cbi-button-remove:focus-visible,
@@ -60,25 +49,21 @@
 		box-shadow: 0 0 0 2px var(--fs-panel), 0 0 0 5px var(--fs-accent-soft);
 	}
 
-	/* Pressed state. base/90-widgets.css gives `.btn.active, .btn:active` an inset
-	 * shadow, which the `box-shadow: none` above erases — reclaim it here so a
-	 * press still reads. */
+	/* Pressed state. The `box-shadow: none` above would erase any press cue, so the inset shadow
+	 * is declared here — the sole copy (base's identical one was absorbed). */
 	.cbi-button:active, .btn:active, .btn.active,
 	input[type="button"]:active, input[type="submit"]:active, input[type="reset"]:active {
 		box-shadow: inset 0 2px 4px color-mix(in srgb, var(--fs-border) 40%, transparent);
 	}
 
-	/* Solid variants — THREE fills, not six.
-	 *
-	 * `.cbi-button-*` is what LuCI's own views emit; `.btn.<colour-word>` is what a
-	 * third-party luci-app-* tends to emit, and base/60-modal.css paints those words
-	 * with gradients over the old bridge vars. Those gradients are dead: the plain
-	 * `.btn` rule above sets background/border/color in a LATER layer, which wins
-	 * regardless of specificity — so an unclaimed `.btn.danger` renders as a neutral
-	 * grey button with no colour cue. Coverage is a contract, so the theme claims
-	 * them; and it claims them in the SAME rule as their .cbi-button-* twin, because
-	 * written apart (which they were, twenty lines from each other with a byte-
-	 * identical body) a recolour lands on one half and not the other. */
+	/* Solid variants — THREE fills, not six. `.cbi-button-*` is what LuCI's own views emit;
+	 * `.btn.<colour-word>` is what a third-party luci-app-* tends to emit, and base/60-modal.css
+	 * paints those words with gradients that are DEAD — the plain `.btn` rule above sets
+	 * background/border/color in a LATER layer, which wins regardless of specificity, so an
+	 * unclaimed `.btn.danger` would render as a neutral grey button with no colour cue.
+	 * Coverage is a contract, so the theme claims them — in the SAME rule as their
+	 * .cbi-button-* twin, because written apart (which they were, twenty lines away with a
+	 * byte-identical body) a recolour lands on one half and not the other. */
 	.cbi-button-positive, .btn.success {
 		background: var(--fs-good); border-color: transparent; color: var(--fs-on-good);
 	}
@@ -89,10 +74,10 @@
 	.btn.danger, .btn.error {
 		background: var(--fs-danger); border-color: transparent; color: var(--fs-on-danger);
 	}
-	/* This hover must stay ahead of the page-action Save rule below: at equal
-	 * specificity its `border-color: transparent` would otherwise erase Save's
-	 * outline on hover. (.cbi-button-remove is deliberately NOT here — it never
-	 * had the lift, and the row-action rules colour it their own way.) */
+	/* This hover must stay AHEAD of the page-action Save rule below: at equal specificity its
+	 * `border-color: transparent` would erase Save's outline on hover. (.cbi-button-remove is
+	 * deliberately absent — it never had the lift, and the row-action rules colour it their
+	 * own way.) */
 	.cbi-button-positive:hover, .cbi-button-action:hover, .cbi-button-apply:hover,
 	.cbi-button-save:hover, .cbi-button-negative:hover,
 	.btn.success:hover, .btn.info:hover, .btn.danger:hover, .btn.error:hover {
@@ -100,11 +85,10 @@
 	}
 	.cbi-button-reset, .cbi-button-link { background: transparent; border-color: var(--fs-border); color: var(--fs-dim); }
 
-	/* Size words. base/90-widgets.css gives .btn.large/.btn.small a font-size AND a
-	 * padding/border-radius, but the `.btn` rule above re-sets padding and radius
-	 * from the token scale in a later layer — so only the font-size survived and a
-	 * .btn.large came out with small-button padding. Re-state the geometry here, on
-	 * the radius scale rather than base's hardcoded 6px. */
+	/* Size words. The `.btn` rule above re-sets padding and radius from the token scale in a
+	 * later layer, so a size word that carried only a font-size (as base's absorbed copy did)
+	 * came out with default-button padding. Theme owns .btn.large/.small in full now, geometry
+	 * on the radius scale rather than base's hardcoded 6px. */
 	.btn.large { font-size: 15px; min-height: 42px; padding: 9px 16px; border-radius: var(--fs-radius); }
 	.btn.small { font-size: 11px; min-height: 28px; padding: 5px 10px; border-radius: var(--fs-radius-sm); }
 
@@ -116,11 +100,8 @@
 	}
 	.alert-message .btn:hover { border-color: var(--fs-accent); color: var(--fs-accent); }
 
-	/* ==================================================================
-	 * FOOTSTRAP page action bar (.cbi-page-actions) — Save/Apply footer.
-	 * styles/base renders a tall half-empty plate with bottom-only radius;
-	 * make it a compact rounded action bar.
-	 * ================================================================== */
+	/* Page action bar (.cbi-page-actions) — the Save/Apply footer. base renders a tall
+	 * half-empty plate with bottom-only radius; make it a compact rounded action bar. */
 	.cbi-page-actions {
 		background: transparent;
 		border: 0;
@@ -143,13 +124,11 @@
 		display: inline-flex; align-items: center; justify-content: center;
 		vertical-align: middle;
 	}
-	/* Reset takes the SAME STEP of the ladder as Save — -soft at rest, -fill on hover — so the
-	 * two read as equally weighted secondary actions beside the solid Save & Apply. It takes it
-	 * off the DANGER role rather than the accent one: Reset discards your unsaved changes, which
-	 * the button already declared on hover. (An opaque --fs-panel2 was the first attempt and it
-	 * weighed more than Save's translucent 10-15% tint — a solid surface and a tint do not read
-	 * as the same fill, whatever their lightness.)
-	 *
+	/* Reset takes the SAME STEP of the ladder as Save (-soft at rest, -fill on hover), so the two
+	 * read as equally weighted secondary actions beside the solid Save & Apply — but off the
+	 * DANGER role, not the accent one: Reset discards your unsaved changes. (An opaque
+	 * --fs-panel2 was the first attempt and weighed MORE than Save's translucent 10-15% tint: a
+	 * solid surface and a tint do not read as the same fill, whatever their lightness.)
 	 * Label is --fs-text for the same reason as Save's: --fs-dim on --fs-danger-soft measured
 	 * 4.06:1 and failed AA. The role lives in the fill and the border. */
 	.cbi-page-actions .cbi-button-reset {
@@ -171,20 +150,17 @@
 	input[type="file"]::file-selector-button:hover { border-color: var(--fs-accent); color: var(--fs-accent); }
 
 	/* ==================================================================
-	 * Row-action buttons (Edit / Delete / Start-Stop) inside a table or a bare
-	 * .cbi-section-actions container. Compact (28px) so tables stay dense;
-	 * full-size buttons live in action bars.
+	 * Row-action buttons (Edit / Delete / Start-Stop) in a table or a .cbi-section-actions
+	 * container. Compact so tables stay dense. Neutral outline by default; the variants colour
+	 * the ones that carry meaning (Edit = accent, Delete = danger). The neutral :hover comes
+	 * FIRST on purpose — it used to sit last and greyed the coloured variants back out on hover,
+	 * which only an !important on their colours hid. Equal specificity, so a variant hover must
+	 * be written after it.
 	 *
-	 * Neutral outline is the default; the variant rules colour the ones that
-	 * carry meaning (Edit = accent, Delete = danger). The neutral :hover comes
-	 * first on purpose — it used to sit last and grey the coloured variants back
-	 * out on hover, and only an !important on their colours hid that. Same
-	 * specificity, so a variant hover has to be written after it.
+	 * WCAG 2.2 SC 2.5.8 (Target Size, AA): a pointer target must be >= 24x24 px, or spaced so
+	 * 24px circles centred on adjacent targets do not overlap. At 28px tall with a 1px margin
+	 * either side the circles DID overlap, so the exemption did not apply. 32px clears it.
 	 * ================================================================== */
-	/* WCAG 2.2 SC 2.5.8 (Target Size, Minimum, AA): a pointer target must be at least
-	 * 24x24 CSS px, or spaced so that 24px circles centred on adjacent targets do not
-	 * overlap. These row actions were 28px tall with a 1px margin either side, so the
-	 * circles DID overlap and the exemption did not apply. 32px clears it outright. */
 	.td .cbi-button, .td .btn, .cbi-section-actions .cbi-button, .cbi-section-actions .btn,
 	.cbi-section-table .cbi-button {
 		min-height: 32px; padding: 0 12px; font-size: 12px;
@@ -204,9 +180,8 @@
 		background: var(--fs-accent-soft); color: var(--fs-accent);
 		border-color: var(--fs-accent-line-hi);
 	}
-	/* Enabled/positive toggle in a table cell (e.g. System -> Startup) rendered as
-	 * blue text on a green fill = unreadable. Green outline instead, matching the
-	 * red-outline negative button. */
+	/* An enabled/positive toggle in a table cell (System -> Startup) rendered as blue text on a
+	 * green fill = unreadable. Green outline instead, matching the red-outline negative button. */
 	.td .cbi-button-positive, .cbi-section-actions .cbi-button-positive {
 		color: var(--fs-good); border-color: var(--fs-good-line); background: transparent;
 	}
@@ -223,11 +198,8 @@
 		border-color: var(--fs-danger-line-hi);
 	}
 
-	/* ==================================================================
-	 * Page actions: Save & Apply is the primary action, Save is demoted to a
-	 * flat outline so only one button reads as primary. `--on-color` drives the
-	 * spinner mask in styles/base.
-	 * ================================================================== */
+	/* Page actions: Save & Apply is THE primary action, Save is demoted so only one button reads
+	 * as primary. `--on-color` drives the spinner mask in styles/base. */
 	.cbi-page-actions .cbi-button-apply,
 	.cbi-page-actions .cbi-dropdown .cbi-button-apply {
 		background: var(--fs-accent);
@@ -238,19 +210,17 @@
 		text-shadow: none;
 	}
 	/* Save carries a TINT at rest, not a bare outline: beside the solid Save & Apply a fully
-	 * transparent button reads as disabled rather than as secondary. The steps come off the role
-	 * ladder (02-tokens.css) instead of being invented — -soft (12%) is the quiet fill, -fill
-	 * (18%) the stronger one, so hover is one step UP the same ladder.
+	 * transparent button reads as disabled rather than secondary. The steps come off the role
+	 * ladder (02-tokens.css) instead of being invented — -soft (12%) at rest, -fill (18%) on
+	 * hover: one step UP the same ladder.
 	 *
-	 * THE LABEL IS --fs-text, NOT --fs-accent, and that is the rule this theme learned the hard
-	 * way (CLAUDE.md): never put text of colour C on a translucent tint of C. The tint drags the
-	 * surface toward the text and eats its own contrast — accent-on-accent-soft measured 4.25:1,
-	 * a WCAG AA failure that axe caught the moment the tint went in. The ROLE is carried by the
-	 * fill and the border, which is exactly what they are for; the label only has to be legible.
+	 * THE LABEL IS --fs-text, NOT --fs-accent: never put text of colour C on a translucent tint
+	 * of C (CLAUDE.md). The tint drags the surface toward the text and eats its own contrast —
+	 * accent-on-accent-soft measured 4.25:1, an AA failure axe caught the moment the tint went
+	 * in. The role is carried by the fill and the border; the label only has to be legible.
 	 *
-	 * `filter: none` cancels the --fs-hover-lift the shared hover rule applies: on a translucent
-	 * tint a brightness shift washes the fill out instead of deepening it, and the ladder step
-	 * is the better cue anyway. */
+	 * `filter: none` cancels the shared hover's --fs-hover-lift: on a translucent tint a
+	 * brightness shift washes the fill out instead of deepening it. */
 	.cbi-page-actions .cbi-button-save,
 	.cbi-page-actions .cbi-button-apply + .cbi-button-save,
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
@@ -267,9 +237,7 @@
 		filter: none;
 	}
 
-	/* ==================================================================
-	 * Buttons that are part of a compound field widget.
-	 * ================================================================== */
+	/* Buttons that are part of a compound field widget. */
 	.cbi-dynlist > .add-item > button,
 	.cbi-dynlist > .add-item > .cbi-button-add {
 		flex: 0 0 auto; width: auto; min-width: 38px;

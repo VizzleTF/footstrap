@@ -1,16 +1,14 @@
 {#
- Shared brand block (logo + hostname wordmark) for both layouts. Included as
- include('themes/footstrap/partials/brand', { boardinfo }). The two copies in
- the headers were byte-identical — one source now; the look lives in
+ Shared brand block (logo + hostname wordmark). Included as
+ include('themes/footstrap/partials/brand', { boardinfo }); the look lives in
  styles/theme/10-chrome.css.
  Licensed to the public under the Apache License 2.0.
 -#}
 <a class="fs-brand" href="{{ dispatcher.build_url() }}">
 	<span class="fs-logo">
 		{# currentColor, not a baked #fff: .fs-logo sets `color: var(--fs-on-accent)`, so the
-		   glyph is the same ink every other thing sitting on an accent fill uses, and it
-		   follows the palette and the light/dark mode like everything else. This was the
-		   only icon in the theme that could not. #}
+		   glyph is the same ink as everything else on an accent fill and follows the palette
+		   and dark mode. It was the one icon in the theme that could not. #}
 		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a12 12 0 0 1 16 0"/><path d="M7.5 13a7 7 0 0 1 9 0"/><circle cx="12" cy="17" r="1.4" fill="currentColor" stroke="none"/></svg>
 	</span>
 	<span class="fs-wordmark">{{ entityencode(striptags(boardinfo.hostname ?? 'OpenWrt'), true) }}</span>

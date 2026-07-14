@@ -1,28 +1,20 @@
 @layer page {
-	/* Why this file still carries !important, when the rest of the theme dropped it:
-	 * these declarations do not fight another stylesheet — they fight inline
-	 * `style=` attributes written by luci-mod-status. 29_ports.js builds the grid,
-	 * each Port tile and the tiles' inner rows as
+	/* EVERY !important HERE FIGHTS AN INLINE `style=` — nothing else can, an inline
+	 * declaration outranks every author rule in every layer. luci-mod-status's 29_ports.js
+	 * writes the ports grid, its tiles and their inner rows as:
 	 *     E('div', {style: 'display:grid;grid-template-columns:repeat(auto-fit, minmax(70px, 1fr));margin-bottom:1em'})
 	 *     E('div', {class: 'ifacebox', style: 'margin:.25em;min-width:70px;max-width:100px'})
 	 *     E('div', {class: 'ifacebox-head cbi-tooltip-container', style: 'display:flex'})   <- the zone bar we hide
 	 *     E('div', {class: 'cbi-tooltip-container', style: 'text-align:left;font-size:80%'}) <- the traffic figures
-	 * and an inline declaration outranks every author rule in every layer. Only an
-	 * author !important beats it. Every flag below is checked against the property
-	 * the inline style actually sets — a flag that fights only another footstrap
-	 * rule is redundant (this layer is `page`, the last one) and was removed.
-	 * A cascade layer cannot replace the flags that remain; do not remove them.
-	 * ================================================================== */
+	 * Each flag is matched against the property that inline style really sets; one fighting
+	 * only another footstrap rule would be redundant (`page` is the last layer). No cascade
+	 * layer can replace those that remain — keep them. */
 
-	/* The generic `.cbi-title .label` pill look lives in theme/35-alerts.css (one
-	 * owner — a second copy here had drifted). This file keeps only the chevron
-	 * toggle below, which is overview-specific markup. */
-
-	/* Section Hide/Show toggles -> compact chevron icon buttons. The label is a
-	 * span with a raw "Hide"/"Show" text node (index.js) + data-style: expanded =
-	 * inactive, collapsed = active. Hide the text (font-size:0) and draw a chevron
-	 * with ::after borders: up = "will collapse" (expanded), down = "will expand"
-	 * (collapsed). data-indicator='poll-status' is unique to these toggles. */
+	/* The `.cbi-title .label` pill: theme/35-alerts.css (one owner — a copy here had
+	 * drifted). Only the overview-specific chevron toggle stays.
+	 * index.js emits a span with a raw "Hide"/"Show" text node + data-style (expanded =
+	 * inactive, collapsed = active); data-indicator='poll-status' is unique to these
+	 * toggles. font-size:0 hides the word, ::after borders draw the chevron. */
 	.cbi-title .label[data-indicator='poll-status'] {
 		font-size: 0;
 		width: 26px;
@@ -49,37 +41,30 @@
 		margin-top: 2px;
 	}
 
-	/* ---------------------------------------------------------------------------
-	 * Stock overview layout: 05_footstrap_overview_layout.js wraps the stock
-	 * System / Memory / Storage sections in .fs-ovl. Grid: System fills the left
-	 * column across both rows, Memory (top) + Storage (bottom) stack in the right
-	 * column. Only layout — the stock section styling/data is untouched. The rest
-	 * of the overview (Network, DHCP, Wireless …) stays full-width below.
-	 * --------------------------------------------------------------------------- */
-	/* hide the stock <h2>Status</h2> page heading — the chrome already shows the
-	 * page title (sidebar topbar / top-nav location), so it's a redundant duplicate. */
+	/* Stock overview layout: 05_footstrap_overview_layout.js wraps the stock System / Memory
+	 * / Storage sections in .fs-ovl; this is the grid only — System left across both rows,
+	 * Memory + Storage right. Stock styling and data untouched. */
+	/* the chrome already shows the page title, so the stock <h2> is a duplicate */
 	body[data-page='admin-status-overview'] #view > h2[name='content'],
 	body[data-page='admin-status-overview'] #maincontent h2[name='content'] { display: none; }
 	.fs-ovl {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 16px;
-		/* stretch (default) so the System column and the Memory+Storage column end
-		 * at the same bottom edge — equal height regardless of which has more rows */
+		/* no align-items: the default stretch is what levels the two columns' bottom edges */
 		margin-bottom: 16px;			/* match stock .cbi-section spacing below the grid */
 	}
-	/* min-width:0 so a grid item shrinks to its track instead of to its content's
-	 * min-width (default auto) — otherwise a long System value (model/firmware
-	 * string) blew the single-column track past a ~344px phone and clipped. */
+	/* min-width:0 so a grid item shrinks to its TRACK, not to its content's min-width
+	 * (auto): a long System value (model/firmware) blew the single-column track past a
+	 * ~344px phone and clipped. */
 	.fs-ovl > .fs-ovl-sys,
 	.fs-ovl > .fs-ovl-mem,
 	.fs-ovl > .fs-ovl-sto { margin: 0; min-width: 0; }
 	.fs-ovl > .fs-ovl-sys { grid-column: 1; grid-row: 1 / 3; }
 	.fs-ovl > .fs-ovl-mem { grid-column: 2; grid-row: 1; }
 	.fs-ovl > .fs-ovl-sto { grid-column: 2; grid-row: 2; }
-	/* hide our own empty stock wrapper — the include renders only .fs-ovl-marker,
-	 * which index.js nests inside the section's inner container (not a direct
-	 * child), so match it anywhere in the descendants, not with `>`. */
+	/* hide our own empty stock wrapper. Descendant, not `>`: index.js nests the include's
+	 * .fs-ovl-marker inside the section's inner container. */
 	#view > .cbi-section:has(.fs-ovl-marker) { display: none; }
 
 	@container fs-view (max-width: 800px) {
@@ -89,30 +74,24 @@
 		.fs-ovl > .fs-ovl-sto { grid-column: 1; grid-row: auto; }
 	}
 
-	/* ---------------------------------------------------------------------------
-	 * Stock Port status (29_ports.js) reskin — pure CSS over the stock .ifacebox
-	 * markup. Turn the icon-in-a-box tiles into left-aligned cards with a link
-	 * dot: name + status dot (top row), speed, then TX/RX on one line.
+	/* Stock Port status (29_ports.js) reskin — pure CSS over the stock .ifacebox markup:
+	 * icon-in-a-box tiles become left-aligned cards (name + link dot, speed, TX/RX).
 	 *
-	 * IMPORTANT: Network (30_network.js) and Wireless (60_wifi.js) reuse the SAME
-	 * .ifacebox / .ifacebox-head / .ifacebox-body classes, so every rule is scoped
-	 * to `.ifacebox:has(img[src*="/port_"])` — only Port status tiles carry a
-	 * `icons/port_*.svg` icon. This keeps the reskin off Network/Wireless.
-	 * Link state = the icon src (port_up/pse_up = link, *_down = no link). Child
-	 * order: 1 name-head, 2 body(icon+speed), 3 zone-bar head, 4 body(traffic).
-	 * --------------------------------------------------------------------------- */
-	/* grid wrapper — only the ports grid (its tiles carry port_* icons). auto-fit +
-	 * minmax(126, 200) is count-agnostic: many ports shrink toward 126 and wrap to
-	 * more rows; few ports cap at 200 instead of one stretching across the whole
-	 * width. Works for a 2-port device or a 24-port switch alike. */
+	 * EVERY rule is scoped to `.ifacebox:has(img[src*="/port_"])` because Network
+	 * (30_network.js) and Wireless (60_wifi.js) reuse the SAME .ifacebox/-head/-body
+	 * classes — only Port tiles carry an icons/port_*.svg icon. Do not unscope.
+	 * Link state = the icon src (*_up = link, *_down = none). Child order: 1 name-head,
+	 * 2 body(icon+speed), 3 zone-bar head, 4 body(traffic). */
+	/* grid wrapper. auto-fit + minmax(126, 200) is count-agnostic: many ports shrink
+	 * toward 126 and wrap; few ports cap at 200 instead of one stretching the full width.
+	 * 2-port device or 24-port switch alike. */
 	body[data-page='admin-status-overview'] div:has(> .ifacebox img[src*="/port_"]) {
 		gap: 10px;								/* no inline gap — no flag needed */
 		grid-template-columns: repeat(auto-fit, minmax(126px, 200px)) !important;
 		margin-bottom: 0 !important;
 	}
-	/* the card: a compact grid — name across the top, then the speed on the left with
-	 * the ▲TX/▼RX traffic on the right (baseline-aligned with the speed). Below a
-	 * narrow card width the two stack full-width (container query further down). */
+	/* the card: name across the top, speed left / traffic right (it stacks below 158 — see
+	 * the container query at the end) */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) {
 		margin: 0 !important;
 		min-width: 0 !important;
@@ -128,10 +107,10 @@
 		column-gap: 8px; row-gap: 3px;
 		align-items: baseline;
 	}
-	/* drop the stock icon and the zone-colour bar row */
+	/* drop the stock icon, and the zone-colour bar (child 3, inline display:flex) */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) img { display: none; }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > :nth-child(3) { display: none !important; }
-	/* name row (top, spans both columns): name left, status dot right */
+	/* name row + its ::after status dot */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-head:first-child {
 		grid-column: 1 / -1;
 		display: flex; align-items: center; justify-content: space-between; gap: 6px;
@@ -144,21 +123,20 @@
 		background: var(--fs-good);				/* linked (default) */
 		flex: 0 0 auto;
 	}
-	/* no-link (icon *_down.svg): hollow ring + dim name */
+	/* no link (*_down.svg): hollow ring, dim name */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-head:first-child { color: var(--fs-dim); }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-head:first-child::after {
 		background: transparent;
 		border: 1.5px solid var(--fs-dim);
 	}
-	/* speed (2nd child) → left column, green when linked, dim when not; hide its <br> */
+	/* speed: green when linked, dim when not */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2) {
 		font-size: 13px; font-weight: 600; color: var(--fs-good); text-align: left;
 	}
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2) br { display: none; }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]):has(img[src*="_down.svg"]) > .ifacebox-body:nth-child(2) { color: var(--fs-dim); }
-	/* traffic (4th child) → right column: ▲ transmitted over ▼ received (stock keeps
-	 * them on two lines via a <br> — CSS can't reorder br-separated text runs). Mono,
-	 * dim, right-aligned so the numbers line up on the card's right edge. */
+	/* traffic: tx over rx, as stock's <br> leaves them — CSS cannot reorder br-separated
+	 * text runs. The 11px flag fights the inline `font-size:80%`. */
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { text-align: right; }
 	body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container {
 		font-family: var(--fs-font-mono);
@@ -167,32 +145,25 @@
 		line-height: 1.5;
 		white-space: nowrap;
 	}
-	/* The right-align is the ONE declaration on this element that has to fight the
-	 * container's own inline `text-align:left` (29_ports.js), so it needs the flag —
-	 * and it is scoped to the wide card, because on the narrow one we WANT the inline
-	 * left and an unscoped flag would have overridden it (that is why this sits in its
-	 * own query rather than in the rule above: the @container block below is a plain
-	 * declaration and could never win back against an important one). */
+	/* This flag fights the element's own inline `text-align:left` (29_ports.js), and it is
+	 * scoped to the WIDE card on purpose: the narrow card WANTS that inline left, and an
+	 * unscoped flag would have overridden it — the plain declaration in the @container
+	 * below could never win back against an important one. */
 	@container fs-port not (max-width: 158px) {
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) > .cbi-tooltip-container { text-align: right !important; }
 	}
-	/* Too narrow for speed + traffic side by side (card ≤158): stack them full-width
-	 * so the nowrap traffic figures never spill past the card edge. Container query
-	 * on the card itself (container-type above) — keys off the CARD width, so it
-	 * follows the auto-fit shrink, not the viewport. The .cbi-tooltip-container needs
-	 * no rule here: its inline text-align is already left. */
+	/* Card ≤158: too narrow for speed + traffic side by side — stack them, or the nowrap
+	 * figures spill past the edge. Keyed off the CARD, not the viewport, so it follows the
+	 * auto-fit shrink. (.cbi-tooltip-container needs no rule: its inline align is left.) */
 	@container fs-port (max-width: 158px) {
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(2),
 		body[data-page='admin-status-overview'] .ifacebox:has(img[src*="/port_"]) > .ifacebox-body:nth-child(4) { grid-column: 1 / -1; text-align: left; }
 	}
 
-	/* ---------------------------------------------------------------------------
-	 * Overview meter rows — any stock <table>.table row that carries a
-	 * .cbi-progressbar (Memory, Storage, CPU load, Network active connections, …)
-	 * becomes the meter look: label + value on one line, thin bar below. Keyed off
-	 * the progressbar itself (:has), so it covers every such row uniformly instead
-	 * of per-section. The bar + value styling is the general .cbi-progressbar rule.
-	 * --------------------------------------------------------------------------- */
+	/* Meter rows — any stock .table row carrying a .cbi-progressbar (Memory, Storage, CPU
+	 * load, Network connections, …): label + value on one line, bar below. Keyed off the
+	 * progressbar (:has), not per-section, so it covers every such row — including a
+	 * third-party one. The bar itself is theme/25-progressbar.css. */
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)):has(.cbi-progressbar) { display: block; }
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar) {
 		display: grid;
@@ -205,19 +176,17 @@
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar):last-child { padding-bottom: 2px; }
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar) .td {
 		display: block;
-		/* `width: auto` overrides base's `.td[width="33%"]` (the includes set a
-		 * width ATTRIBUTE, not an inline style) — a later layer beats it, no flag. */
+		/* beats base's `.td[width="33%"]` with no flag: the includes set a width
+		 * ATTRIBUTE, not an inline style, so a later layer wins. */
 		width: auto;
 		padding: 0;
 		border: 0;
 	}
-	/* label — row 1, left.
-	 * The key/value rule above puts `white-space: nowrap` on a first column; a
-	 * mount point ("192.168.3.26:/volume1/… (/mnt/hdd_isync)") is one unbreakable
-	 * line, so the row's min-content width blew past the card and Memory/Storage
-	 * stopped shrinking on a phone. Let it wrap anywhere, and keep a gutter on the
-	 * right for the value, which is pinned above the bar's right edge (::after on
-	 * .cbi-progressbar — out of flow, so nothing else reserves space for it). */
+	/* label. Undoes the key/value `white-space: nowrap` on a first column: a mount point
+	 * ("192.168.3.26:/volume1/… (/mnt/hdd_isync)") is one unbreakable line, so the row's
+	 * min-content width blew past the card and Memory/Storage stopped shrinking on a phone.
+	 * padding-right = the gutter for the value, which is pinned over the bar's right edge
+	 * (::after, out of flow — nothing else reserves space for it). */
 	body[data-page='admin-status-overview'] .cbi-section .table:not(:has(.tr.table-titles)) .tr:has(.cbi-progressbar) .td:first-child {
 		grid-column: 1; grid-row: 1;
 		align-self: center;
@@ -232,10 +201,9 @@
 		grid-column: 1 / -1; grid-row: 2;
 	}
 
-	/* System / Memory / Storage cards: drop the per-row border-bottom dividers
-	 * (the generic .cbi-section .table .td rule in theme/30-tables.css adds them) —
-	 * cleaner card look. That rule is in `theme`, this file is `page`, so the later
-	 * layer wins on its own; these carried an !important that fought nothing. */
+	/* Drop the per-row dividers theme/30-tables.css adds (.cbi-section .table .td) —
+	 * cleaner card. No !important: that rule is `theme`, this file is `page`, so the later
+	 * layer already wins. */
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .td,
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .table .th,
 	body[data-page='admin-status-overview'] :is(.fs-ovl-mem, .fs-ovl-sto) .cbi-value { border-bottom: 0; }

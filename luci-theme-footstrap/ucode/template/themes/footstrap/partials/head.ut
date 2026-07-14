@@ -1,45 +1,38 @@
 {#
- The <head> for the ONE template (the layout is a client preference the pre-paint
- script below applies). Included as
-   include('themes/footstrap/partials/head', { boardinfo, fs_layout })
- Env vars (media, resource, dispatcher, dispatched, node, css, pkgs_update_time) come
- from the render scope; boardinfo and fs_layout are passed in explicitly — fs_layout is
- the ROUTER's default layout (luci.main.footstrap_layout) and is what the <html
- data-layout> stamp below reads.
+ <head> for the ONE template. include(…, { boardinfo, fs_layout }); everything else comes from
+ the render scope. fs_layout = the ROUTER's default layout (luci.main.footstrap_layout).
  Licensed to the public under the Apache License 2.0.
 -#}
 <!DOCTYPE html>
-{# data-layout is stamped by the SERVER, always, with an explicit value — never
-   left absent to mean "sidebar". Two reasons:
-   1. Every layout rule can then be a POSITIVE match (:root[data-layout="sidebar"],
-      :root[data-layout="top"]). A negative guard (:not([data-layout="top"])) would
-      silently hand the sidebar's rules to any FUTURE layout merely because it is
-      not "top" — a third layout has to opt in, not opt out.
-   2. The attribute exists before a single byte of JS runs, so the chrome is correct
-      with JS disabled too; the inline script below only OVERRIDES it from the
-      client's saved preference.
-   fs_layout is the router's default (luci.main.footstrap_layout, set by uci-defaults
-   when migrating an old top-nav install); absent = sidebar. #}
+{# The SERVER always stamps data-layout with an EXPLICIT value (sidebar|top): every layout rule
+   then matches POSITIVELY, so a future third layout must opt in rather than inherit the
+   sidebar's rules by not being "top" — never write a :not([data-layout=…]) guard. And the
+   chrome is right with JS off; the script below only overrides it.
+   fs_layout: uci-defaults sets `top` when migrating an old top-nav install (a shell script
+   cannot write localStorage), so that router keeps its bar. Absent = sidebar. #}
 <html lang="{{ dispatcher.lang }}" data-layout="{{ fs_layout == 'top' ? 'top' : 'sidebar' }}">
 	<head>
 		<meta charset="utf-8">
-		{# entityencode AROUND striptags. striptags removes tags but does NOT escape `&`
-		   or quotes (checked against the ucode html module on the router), so a hostname
-		   containing `&` produced broken entity parsing here. No XSS either way — the
-		   context is text and the tags are gone — but the markup has to be well-formed. #}
+		{# entityencode AROUND striptags: striptags drops tags but escapes neither `&` nor quotes,
+		   so a hostname with `&` broke entity parsing. No XSS (the tags are gone), but the markup
+		   must be well-formed. #}
 		<title>{{ entityencode(striptags(`${boardinfo.hostname ?? 'OpenWrt'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`), true) }}</title>
 		<script>
-			/* footstrap: saved client preference wins, else follow OS. */
+			/* Each block below pre-paints one Appearance axis before the first frame, duplicating
+			   a live applier in menu-footstrap-common.js. They cannot share code — this runs
+			   before the module loader exists — so tools/axes.mjs derives the contract (keys,
+			   attrs, properties, ranges, default, ORDER) from the JS and holds this template to
+			   it.
+			   Dark mode: a saved preference wins, else the OS. */
 			(function() {
 				var root = document.querySelector(':root'),
 				    saved = null;
 				try { saved = localStorage.getItem('fs-darkmode'); } catch (e) {}
 				var mq = window.matchMedia('(prefers-color-scheme: dark)');
-				/* data-darkmode is what the THEME's CSS keys off. data-theme and data-bs-theme
-				   are the two dialects third-party apps sniff for (luci-app-justclash keys 21
-				   rules off data-theme; luci-app-ssclash reads data-bs-theme first) — outbound
-				   compatibility only, never read from styles/. Must stay identical to
-				   stampDark() in menu-footstrap-common.js; tools/axes.mjs proves it. */
+				/* data-darkmode is what THIS theme's CSS reads. data-theme / data-bs-theme are
+				   outbound compat for apps that sniff them (justclash keys 21 rules off
+				   data-theme, ssclash reads data-bs-theme first); never read from styles/. Must
+				   stay identical to stampDark() — axes.mjs proves it. */
 				function set(dark) {
 					root.setAttribute('data-darkmode', dark ? 'true' : 'false');
 					root.setAttribute('data-theme', dark ? 'dark' : 'light');
@@ -49,9 +42,8 @@
 					set(saved === 'true');
 				else
 					set(mq.matches);
-				/* ALWAYS registered (the handler re-checks storage): the user can
-				   switch to Auto in the Appearance popover after loading with a
-				   saved value, and OS theme flips must still track live then. */
+				/* ALWAYS registered (it re-checks storage): the user can switch to Auto after
+				   loading with a saved value, and OS flips must track live from then on. */
 				mq.addEventListener('change', function(m) {
 					try { if (localStorage.getItem('fs-darkmode')) return; } catch (e) {}
 					set(m.matches);
@@ -59,44 +51,41 @@
 			})();
 		</script>
 		<script>
-			/* footstrap: apply saved color palette before paint (no flash).
-			   empty/absent = footstrap default; 'hicontrast' is the opt-in variant. */
+			/* palette, wallpaper, rounding, tint, accent. */
 			(function() {
 				try {
 					var root = document.querySelector(':root'),
 					    p = localStorage.getItem('fs-palette');
-					/* legacy 'rvht'/'roman' = default colours + cats wallpaper -> migrate
-					   to the default palette + the separate wallpaper axis. */
+					/* legacy 'rvht'/'roman' = default colours + cats wallpaper -> split onto both
+					   axes. */
 					if (p === 'rvht' || p === 'roman') {
 						localStorage.setItem('fs-wallpaper', 'cats');
 						localStorage.removeItem('fs-palette'); p = null;
 					}
-					/* footstrap (GitHub colours) is the default = bare :root, no attr.
-					   Legacy 'github'/'footstrap' map to it. Only hicontrast is opt-in. */
+					/* the default palette is a bare :root; the legacy names map onto it, and only
+					   hicontrast is opt-in. */
 					if (p === 'github' || p === 'footstrap') { localStorage.removeItem('fs-palette'); p = null; }
 					if (p === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
 					else root.removeAttribute('data-palette');
 					if (localStorage.getItem('fs-wallpaper') === 'cats')
 						root.setAttribute('data-wallpaper', 'cats');
-					/* Rounding: base corner radius (0-20px). 12 = default, no override.
-					   styles/02-tokens derives control/chip radii from --fs-radius-base. */
+					/* Rounding 0-20px (02-tokens derives the control/chip radii from it). The
+					   default is a LITERAL: this runs before the stylesheet and cannot read the
+					   CSS token, so axes.mjs is the only thing checking the two agree. */
 					var r = parseInt(localStorage.getItem('fs-radius'), 10);
 					if (r >= 0 && r <= 20 && r !== 12)
 						root.style.setProperty('--fs-radius-base', r + 'px');
-					/* Tint: one hue (1-360) washed into the page CANVAS so this router is
-					   recognisable at a glance. Absent/0 = off. localStorage is per ORIGIN,
-					   so the hue is already per router. styles/03-palettes derives --fs-bg
-					   from it; setting the hue BEFORE the attribute avoids a frame painted
-					   with hue 0. */
+					/* Tint: a hue (1-360) washed into the page CANVAS so this router is
+					   recognisable at a glance (localStorage is per ORIGIN = already per router).
+					   Absent/0 = off. Set the PROPERTY BEFORE THE ATTRIBUTE that switches the
+					   mixes on, or a reload paints one frame with the previous hue. */
 					var t = parseInt(localStorage.getItem('fs-tint'), 10);
 					if (t >= 1 && t <= 360) {
 						root.style.setProperty('--fs-tint-h', String(t));
 						root.setAttribute('data-tint', '');
 					}
-					/* Accent: one hue (1-360) that rotates the UI accent colour (buttons,
-					   toggles, sliders, focus rings). Absent/0 = the palette's own accent.
-					   styles/03-palettes derives --fs-accent from it; hue before attribute,
-					   as the tint, so no frame paints with the previous hue. */
+					/* Accent: a hue (1-360) rotating the UI accent. Absent/0 = the palette's own.
+					   Property before attribute, as above. */
 					var a = parseInt(localStorage.getItem('fs-accent'), 10);
 					if (a >= 1 && a <= 360) {
 						root.style.setProperty('--fs-accent-h', String(a));
@@ -106,8 +95,7 @@
 			})();
 		</script>
 		<script>
-			/* footstrap: apply the collapsed-sidebar (icon rail) preference before
-			   paint, so a reload doesn't flash the full-width sidebar first. */
+			/* the icon-rail preference, so a reload doesn't flash the full sidebar first. */
 			(function() {
 				try {
 					if (localStorage.getItem('fs-rail') === 'true')
@@ -116,11 +104,9 @@
 			})();
 		</script>
 		<script>
-			/* footstrap: the CLIENT's saved layout overrides the server's stamp on
-			   <html data-layout> above, before paint, so a reload never flashes the
-			   other layout. Only a KNOWN value is honoured — an unknown/corrupt one
-			   leaves the server's stamp standing rather than blanking the attribute,
-			   which every layout rule now matches on positively. */
+			/* the CLIENT's saved layout overrides the server's stamp above, before paint. Only a
+			   KNOWN value is honoured — a corrupt one leaves the stamp standing rather than
+			   blanking the attribute every layout rule matches on. */
 			(function() {
 				try {
 					var saved = localStorage.getItem('fs-layout');
@@ -131,49 +117,33 @@
 		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="darkreader-lock">
-		{# Preload the two faces that paint the chrome itself (menu, headings, brand)
-		   so they don't wait for cascade.css to download and parse. crossorigin is
-		   required even same-origin, or the preload is discarded and the font is
-		   fetched twice.
-
-		   The LATIN subsets specifically (styles/01-fonts.css splits every face by
-		   unicode-range): they are the ones every UI needs, whatever its language,
-		   because digits and ASCII appear on every page.
-
-		   JetBrains Mono is deliberately NOT preloaded. It only renders inside table
-		   cells and values, which the client-side view paints well after first paint,
-		   so preloading 19 KB of it just competed with the CSS for bandwidth — and
-		   Chrome duly warned that the preload went unused. #}
+		{# The two chrome faces, so they don't wait for cascade.css. crossorigin is required even
+		   same-origin, or the preload is discarded and the font fetched twice. LATIN subsets only
+		   (01-fonts.css splits by unicode-range) — every UI needs ASCII and digits. JetBrains
+		   Mono is NOT preloaded: it paints in table cells the view renders long after first
+		   paint, so its 19 KB only competed with the CSS (Chrome warned the preload went
+		   unused). #}
 		<link rel="preload" href="{{ media }}/fonts/manrope-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 		<link rel="preload" href="{{ media }}/fonts/manrope-700-latin.woff2" as="font" type="font/woff2" crossorigin>
-		{# `data-fs-shell` marks the SHELL's own CSS — the stylesheet the server emitted, which
-		   belongs to the document and not to any view. The SPA router asks "did a VIEW put CSS
-		   in this document?" on every navigation, and this attribute is how it tells its own
-		   sheet apart from an app's without guessing. See menu-footstrap-common.js. #}
+		{# `data-fs-shell` marks the SHELL's own CSS: on every nav the SPA router asks whether a
+		   VIEW put CSS in the document, and this is how it tells its own sheet from an app's. #}
 		<link rel="stylesheet" data-fs-shell href="{{ media }}/cascade.css?v={{ pkgs_update_time }}">
 		<link rel="icon" href="{{ media }}/logo_48.png" sizes="48x48">
 		<link rel="icon" href="{{ media }}/logo.svg" sizes="any">
 		{% if (node?.css): %}
-		{# uhttpd sends no Cache-Control at all, so without a version key the browser
-		   applies HEURISTIC freshness and can serve a stale app stylesheet for days
-		   after an upgrade. Same key as cascade.css. #}
+		{# uhttpd sends no Cache-Control, so without a version key the browser applies HEURISTIC
+		   freshness and can serve a stale app stylesheet for days after an upgrade. #}
 		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}?v={{ pkgs_update_time }}">
 		{% endif %}
 		{% if (css): %}
-		{# no `title` attribute: on a <style> that is not the MIME type, it names a
-		   STYLE SHEET SET, which turns this into a "preferred" alternate sheet the
-		   user can switch off in Firefox's View -> Page Style.
-
-		   `data-fs-shell`: the same mark as on the cascade.css <link> above — this <style> is
-		   the shell's, not a view's. Every OTHER stylesheet in <head> came from an app, and the
-		   SPA router treats an invasive one as a document it must not hand to the next page
-		   (luci-app-filemanager, luci-app-banip and luci-app-adblock all inject one). See
-		   menu-footstrap-common.js. #}
+		{# no `title` attribute: on a <style> it names a STYLE SHEET SET, making this a "preferred"
+		   alternate sheet the user can switch off in Firefox's Page Style menu. `data-fs-shell`
+		   as above — every OTHER sheet in <head> came from an app, and the SPA router treats an
+		   invasive one as a page it must not hand on (filemanager, banip, adblock inject one). #}
 		<style data-fs-shell>{{ css }}</style>
 		{% endif %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
-		{# cbi.js was the one asset with no cache key — stock LuCI busts it. It must
-		   stay SYNCHRONOUS and un-deferred: luci.js captures `window.cbi_init` in its
-		   constructor, so cbi.js has to have run by then. #}
+		{# the one asset stock LuCI leaves without a cache key. Must stay SYNCHRONOUS and
+		   un-deferred: luci.js captures `window.cbi_init` in its constructor. #}
 		<script src="{{ resource }}/cbi.js?v={{ pkgs_update_time }}"></script>
 	</head>

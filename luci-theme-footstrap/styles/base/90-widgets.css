@@ -1,9 +1,8 @@
 @layer base {
 	/* Small widgets a view or a third-party luci-app-* can drop anywhere: tooltip,
-	 * progress bar, firewall zone badge, button states, close cross, alert box and
-	 * the .label pill. */
-	/* .cbi-title-ref's colour is theme/45-misc.css's — absorbed. The arrow stays: it
-	 * is content, not paint, and nothing in theme emits it. */
+	 * progress bar, zone badge, button states, close cross, alert box, .label pill. */
+	/* .cbi-title-ref colour: theme/45-misc.css — absorbed. The arrow stays: content,
+	 * not paint. */
 	.cbi-title-ref::after {
 		content: "➙";
 	}
@@ -31,9 +30,8 @@
 		transition: opacity var(--fs-dur-fade);
 	}
 
-	/* .cbi-progressbar paint (track, fill, the title readout) is owned by
-	 * theme/25-progressbar.css — absorbed. Only the fill's starting width stays:
-	 * the poll JS animates the inline width from it. */
+	/* .cbi-progressbar paint: theme/25-progressbar.css — absorbed. The fill's starting
+	 * width stays: the poll JS animates the inline width up from it. */
 	.cbi-progressbar > div {
 		width: 0%;
 	}
@@ -44,7 +42,7 @@
 		margin: -1.6em 0 0 -5px;
 		border-radius: 3px;
 		pointer-events: none;
-		/* box-shadow is theme/30-tables.css's — absorbed */
+		/* box-shadow: theme/30-tables.css — absorbed */
 	}
 
 	.zonebadge .cbi-tooltip > * {
@@ -75,21 +73,17 @@
 		flex-direction: column;
 	}
 
-	/* The pressed-state shadow (.btn.active/.btn:active) is theme/55-buttons.css's —
-	 * absorbed, and it was a byte-for-byte copy of what theme already declared. */
+	/* pressed-state shadow (.btn.active/:active): theme/55-buttons.css — absorbed */
 	.btn.disabled,
 	.btn[disabled] {
 		cursor: default;
 		opacity: var(--fs-disabled-opacity);
 	}
 
-	/* `.btn.large` and `.btn.small` are theme/55-buttons.css's, in full — absorbed.
-	 * The `line-height: normal` that used to stay here was dead: theme's plain `.btn`
-	 * sets `line-height: 1.1`, and a later layer wins whatever the specificity. Same
-	 * for the `box-shadow: none` on .disabled above — theme's `.btn` already says it. */
+	/* `.btn.large` / `.btn.small`: theme/55-buttons.css, in full — absorbed. */
 
-	/* The cross's colour, shadow and both opacities are theme/70-modal.css's —
-	 * absorbed. What is left is geometry, which theme does not touch. */
+	/* close cross — colour, shadow, opacities: theme/70-modal.css — absorbed. Left:
+	 * geometry. */
 	.close {
 		float: right;
 		font-size: 20px;
@@ -101,10 +95,8 @@
 		text-decoration: none;
 	}
 
-	/* The alert's whole paint — surface, ink, border, radius, shadow, padding — is
-	 * theme/35-alerts.css's; it was still described here as a warm gradient over the
-	 * legacy bridge, which has not been what an alert looks like for a long time.
-	 * Absorbed. Geometry and the white-space reset stay: theme sets neither. */
+	/* alert paint (surface, ink, border, radius, shadow, padding): theme/35-alerts.css —
+	 * absorbed. Left: geometry + the white-space reset, which theme does not set. */
 	.alert-message {
 		position: relative;
 		margin-bottom: .5em;
@@ -133,15 +125,10 @@
 		margin: .25em 0;
 	}
 
-	/* The `.label` pill (and its .important/.warning/… variants and a.label link
-	 * states) is owned by theme/35-alerts.css — absorbed.
-	 *
-	 * So is the indicator PILL: theme/20-shell.css paints `#indicators
-	 * [data-indicator]`, and ui.js's showIndicator() is the only thing that emits one,
-	 * always into #indicators — so every `header [data-indicator]` is one of those, and
-	 * the later layer repainted padding/font/colour/background/radius here to nothing.
-	 * The whole `[data-style="active"]` rule went the same way. What survives is the
-	 * three properties theme does not touch. */
+	/* `.label` pill + variants: theme/35-alerts.css — absorbed. So is the indicator pill:
+	 * ui.js's showIndicator() only ever emits into #indicators, which theme/20-shell.css
+	 * paints, so every `header [data-indicator]` is one of those. Left: the three
+	 * properties theme does not touch. */
 	header [data-indicator] {
 		white-space: nowrap;
 		text-shadow: none;

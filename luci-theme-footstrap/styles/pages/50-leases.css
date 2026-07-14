@@ -1,30 +1,20 @@
 @layer page {
-	/* DHCP leases (Status → Overview + Network → DHCP).
+	/* DHCP leases. The .leases/.leases6 tables (JS-tagged .fs-dt) carry 7–8 mono columns,
+	 * and the theme's general rule lets any data cell break to fit — which splits an IPv4 or
+	 * a MAC over two lines. So: every cell on ONE line, and only the long opaque columns
+	 * (DUID, the IPv6 list, the hostname) may wrap. That is enough to reflow the table while
+	 * IPv4/MAC/IAID stay intact.
 	 *
-	 * The leases tables (.leases / .leases6, JS-tagged .fs-dt) carry 7–8 mono columns —
-	 * Hostname, IPv4, MAC, DUID, IAID, Remaining, Static Lease (+ Interface / IPv6 on v6).
-	 *
-	 * The theme's general rule lets every data-table cell break to fit — but for these mono
-	 * values that splits an IPv4 or a MAC across two lines, which looks broken. So: keep
-	 * every cell on ONE line, and allow ONLY the long opaque columns — DUID, the IPv6
-	 * address list, and the hostname — to wrap. Breaking just those is enough to reflow the
-	 * whole table within the column while IPv4/MAC/IAID stay intact.
-	 *
-	 * THIS FILE USED TO CARRY A SECOND COPY OF THE WHOLE CARD STACK, at its own container
-	 * threshold (780 rather than the general 568), because the nowrap below gives this table
-	 * a ~736px floor that no other data table has, so it must card earlier.
-	 *
-	 * That copy is gone, and so is the threshold. The nowrap IS the floor, and a floor is
-	 * exactly what makes a table OVERFLOW once the room runs out — which fs-select.js
-	 * measures, setting .fs-stacked. The width at which the leases card is still ~780, but
-	 * it is now DISCOVERED from these columns instead of written down beside them, and the
-	 * card itself is the one in theme/30-tables.css. `:not(.fs-stacked)` is the whole guard:
-	 * once carded, the cells must wrap again. */
+	 * Do NOT re-add a card-stack copy here (this file held one, at its own 780px container
+	 * threshold, because the nowrap gives this table a ~736px floor no other data table
+	 * has). The nowrap IS that floor, and a floor is what makes a table OVERFLOW when the
+	 * room runs out — fs-select.js measures the overflow and sets .fs-stacked, so the ~780
+	 * is DISCOVERED and the card lives once, in theme/30-tables.css. `:not(.fs-stacked)` is
+	 * the whole guard: once carded, the cells must wrap again. */
 	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td { white-space: nowrap; }
-	/* The three columns allowed to wrap. Hostname is here for the same reason as DUID:
-	 * overflow-wrap:anywhere takes the natural breaks first (the hyphens in
-	 * "Yandex-Station-Midi-61QK") and, when a token still won't fit, splits it mid-word
-	 * rather than overflowing. Short names stay on one line. */
+	/* The three that may wrap. overflow-wrap:anywhere (not word-break) takes the natural
+	 * breaks first — the hyphens in "Yandex-Station-Midi-61QK" — and only splits mid-token
+	 * when nothing else fits; short names stay on one line. */
 	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td[data-title="DUID"],
 	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td[data-title="IPv6 addresses"],
 	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td[data-title="Hostname"] {

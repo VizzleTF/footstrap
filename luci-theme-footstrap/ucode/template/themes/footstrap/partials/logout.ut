@@ -1,12 +1,9 @@
 {#
- The logout control (guarded on the node being dispatchable). ONE form for every
- layout: a row carrying icon + label, which the bar and the icon rail squash into a
- square icon button in CSS — same reasoning as partials/appearance.ut, so the old
- `with_label` parameter and the separate .fs-top-logout element are gone.
-
- This is also the ONLY logout the theme renders: the menu renderer drops the tree's
- own admin/logout node (menu-footstrap.js), so the top layout no longer carries a
- duplicate "Log out" item in the bar alongside this one.
+ The logout control (guarded on the node being dispatchable). ONE markup for every layout,
+ which CSS renders as a square icon button in the bar and the rail — same reasoning as
+ partials/appearance.ut, so the old `with_label` parameter and .fs-top-logout are gone.
+ It is also the ONLY logout the theme renders: menu-footstrap.js drops the menu tree's own
+ admin/logout node, so the bar carries no duplicate "Log out" item beside this one.
  Licensed to the public under the Apache License 2.0.
 -#}
 {% if (dispatcher.lookup("admin/logout")): %}

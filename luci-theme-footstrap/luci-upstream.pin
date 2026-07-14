@@ -1,32 +1,29 @@
-# The openwrt/luci commit this project takes its two BORROWED BUILD TOOLS from, and their
-# checksums. Sourced as shell (`. luci-upstream.pin`) by update-po.sh and by the CI workflow.
+# THE SINGLE SOURCE of the openwrt/luci commit this project borrows two BUILD TOOLS from, and
+# of their checksums. Sourced as shell (`. luci-upstream.pin`) by update-po.sh and by CI.
 #
-# Both tools are downloaded over the network and then EXECUTED as gates:
-#   - jsmin.c        is compiled and decides whether our shipped JavaScript is safe
-#                    (jsmin's regex-vs-division lookback can silently eat a file — see CLAUDE.md)
-#   - i18n-scan.pl   is run by perl and decides whether the translation catalogue is complete
-# Fetching either from a moving `master` would mean the gate is whatever upstream pushed last.
+# Both are downloaded over the network and then EXECUTED as gates:
+#   - jsmin.c       compiled; decides whether our shipped JS is safe (its regex-vs-division
+#                   lookback can silently eat a file — see CLAUDE.md)
+#   - i18n-scan.pl  run by perl; decides whether the translation catalogue is complete
+# Off a moving `master`, the gate would be whatever upstream pushed last.
 #
-# THIS FILE IS THE SINGLE SOURCE OF THE COMMIT. It used to be written out twice — once in
-# .github/workflows/build.yml and once in update-po.sh — each with a comment saying "bump them
-# together, deliberately", and nothing whatsoever holding them together. Bumping one and
-# forgetting the other left half the toolchain on an older tree, silently.
+# The commit used to be written out twice — in .github/workflows/build.yml and in update-po.sh
+# — each with a comment saying "bump them together" and nothing enforcing it, so bumping one
+# left half the toolchain on an older tree, silently.
 #
-# To bump: change LUCI_PIN, re-fetch both files at the new commit, and update their sha256s.
+# To bump: change LUCI_PIN, re-fetch both files at the new commit, update their sha256s.
 LUCI_PIN=5cf20c5741dc34eea0faaf7324ef3751b05fa1f3
 JSMIN_SHA256=0568b14873f27f339cf66a9c43603d0bc8ca501ff62522ea924c6e8daf1be215
 I18N_SCAN_SHA256=a1823d1fdd942f31a105e1e53b401e146bc10527f231e016930b1a5123ef21d3
 
-# The ucode interpreter, built in CI to COMPILE-CHECK the theme's .ut templates. It is the
-# same class of borrowed, executed tool as the two above, so it is pinned in the same place.
+# The ucode interpreter, built in CI to COMPILE-CHECK the theme's .ut templates — the same
+# class of borrowed, executed tool, so it is pinned in the same place.
 #
-# Why it has to exist: a LuCI theme's templates are copied to the router verbatim and are
-# never parsed at build time — so a stray brace in header.ut builds green, releases, and then
-# every user's LuCI silently falls back to another theme (docs/01). Nothing else in this repo
-# can catch that: sh -n covers the shell, eslint the JS, stylelint the CSS, and the .ut files
-# had no parser at all.
+# Why it exists: templates are copied to the router verbatim and never parsed at build time,
+# so a stray brace in header.ut builds green, releases, and then every user's LuCI silently
+# falls back to another theme (docs/01). Nothing else here catches that — sh -n covers the
+# shell, eslint the JS, stylelint the CSS, and the .ut files had no parser at all.
 #
-# Pinned by COMMIT rather than by a tarball sha256 on purpose: a git object name IS the
-# checksum of its content, and GitHub's generated archives are not guaranteed byte-stable.
-# v0.0.20250529 (a release tag, not master).
+# Pinned by COMMIT, not by a tarball sha256: a git object name IS the checksum of its content,
+# and GitHub's generated archives are not guaranteed byte-stable. (= tag v0.0.20250529.)
 UCODE_PIN=be92ebd706339fd4a848b88ee516b1ac4eb62ef8

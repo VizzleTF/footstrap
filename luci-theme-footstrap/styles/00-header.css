@@ -10,18 +10,17 @@
  *   Copyright 2011 Twitter, Inc
  */
 
-/* Layer order — declared here and nowhere else. A later layer beats an earlier
- * one regardless of selector specificity; unlayered rules beat every layer and
- * that slot is deliberately empty, it is the escape hatch.
+/* Layer order — declared here and nowhere else. A later layer beats an earlier one
+ * regardless of specificity, so a theme rule never needs !important to outrank base;
+ * one that needs it to beat another footstrap rule belongs in a later layer instead.
+ * Unlayered rules beat every layer — that slot is deliberately empty, it is the
+ * escape hatch.
  *
- *   tokens  design tokens, and the bridge onto the variable names LuCI views
- *           and third-party luci-app-* stylesheets expect            styles/0*
- *   base    widget defaults every LuCI view assumes exist        styles/base/*
- *   theme   footstrap components and the two layouts            styles/theme/*
- *   page    per-page corrections                                styles/pages/*
+ *   tokens  design tokens + the outbound bridge to LuCI's --*-color-* names  styles/0*
+ *   base    widget defaults every LuCI view assumes exist               styles/base/*
+ *   theme   footstrap components and layouts                           styles/theme/*
+ *   page    per-page corrections                                       styles/pages/*
  *
- * build-css.sh concatenates those four directories into cascade.css — never
- * edit htdocs/luci-static/footstrap/cascade.css, it is generated and gitignored.
- * A rule that needs !important to beat another footstrap rule is a sign it
- * belongs in a later layer, not that it needs the flag. */
+ * build-css.sh concatenates those four dirs into cascade.css — generated and
+ * gitignored, never edit it. */
 @layer tokens, base, theme, page;

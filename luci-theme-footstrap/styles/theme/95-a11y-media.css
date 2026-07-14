@@ -1,27 +1,19 @@
 @layer theme {
 	/* ==================================================================
-	 * prefers-reduced-motion
+	 * prefers-reduced-motion — a medical accommodation: vestibular disorders make sliding,
+	 * fading and spinning UI genuinely nauseating. Honoured globally rather than per-component;
+	 * every transition and keyframe in this theme is decoration, none carries information.
 	 *
-	 * The OS-level "reduce motion" setting is a medical accommodation: vestibular
-	 * disorders make sliding, fading and spinning UI genuinely nauseating. Honour
-	 * it globally rather than per-component — every transition and keyframe in the
-	 * theme is decoration, none of them carries information the user would lose.
+	 * WHY !important HERE — the documented exception, and NOT the same kind as the 12 in theme/
+	 * and pages/ that fight an inline `style=` or an unlayered <style>. A cascade layer cannot
+	 * help: styles/base sets transitions and animations too, and !important INVERTS the layer
+	 * order (an important declaration in base would beat a normal one here). Only an important
+	 * declaration reaches all of them at once. This is the canonical form of the rule as
+	 * published by the WCAG working group. DO NOT COPY THE FLAG OUT OF THIS BLOCK.
 	 *
-	 * WHY !important HERE. This one is the documented exception, and it is not the
-	 * same kind as the ~20 in theme/ and pages/ that fight an inline `style=`
-	 * attribute. A cascade layer cannot help: `styles/base` sets transitions and
-	 * animations too, and `!important` INVERTS the layer order (an important
-	 * declaration in base would beat a normal one here). Only an important
-	 * declaration reaches all of them at once. This is the canonical form of the
-	 * rule as published by the WCAG working group and shipped by every design
-	 * system that implements it. Do not copy the flag out of this block.
-	 *
-	 * .01ms rather than 0s: a zero duration means the `transitionend` /
-	 * `animationend` events never fire at all, and JS that waits for one (LuCI's
-	 * modal teardown does) would hang. An imperceptible duration still fires them.
-	 *
-	 * scroll-behavior: smooth scrolling is motion too — a jump is what this user
-	 * asked for.
+	 * .01ms rather than 0s: a zero duration means `transitionend`/`animationend` never fire at
+	 * all, and JS that waits for one (LuCI's modal teardown does) would hang.
+	 * scroll-behavior: smooth scrolling is motion too — a jump is what this user asked for.
 	 * ================================================================== */
 	@media (prefers-reduced-motion: reduce) {
 		*, *::before, *::after {
@@ -33,15 +25,12 @@
 	}
 
 	/* ==================================================================
-	 * forced-colors (Windows High Contrast)
-	 *
-	 * In forced-colors mode the OS replaces every colour the theme picked with its
-	 * own palette, and — crucially — background-color on most elements is forced to
-	 * the system canvas. Any state carried by BACKGROUND ALONE therefore vanishes:
-	 * the active tab pill, the checked toggle and the selected dropdown row all
-	 * looked exactly like their inactive siblings, which is a correctness bug, not a
-	 * cosmetic one. Re-state those states with a BORDER/OUTLINE, which forced-colors
-	 * keeps, and use the system colour keywords so they follow the user's scheme.
+	 * forced-colors (Windows High Contrast) — the OS replaces every colour the theme picked, and
+	 * background-color on most elements is forced to the system canvas. Any state carried by
+	 * BACKGROUND ALONE therefore vanishes: the active tab pill, the checked toggle and the
+	 * selected dropdown row all looked exactly like their inactive siblings — a correctness bug,
+	 * not a cosmetic one. Re-state those states with a BORDER/OUTLINE, which forced-colors keeps,
+	 * in system colour keywords so they follow the user's scheme.
 	 * ================================================================== */
 	@media (forced-colors: active) {
 		/* active tab / selected dropdown row / checked toggle: outline the state */

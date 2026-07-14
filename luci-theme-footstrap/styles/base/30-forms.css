@@ -6,8 +6,7 @@
 		padding-top: 9px;
 	}
 
-	/* the size is theme/30-tables.css's (`legend`) — absorbed; it was dead here, a later
-	 * layer beating this higher-specificity selector. */
+	/* size: theme/30-tables.css (`legend`) — absorbed */
 	fieldset legend {
 		display: block;
 		line-height: 1;
@@ -35,14 +34,13 @@
 	.cbi-value-field {
 		margin-left: 20px;
 		flex: 1;
-		/* a flex item defaults to min-width:auto, i.e. it refuses to shrink below its
-		 * content's min-content width — a wide nested table or one long unbreakable
-		 * value then pushed the whole row out of the card. */
+		/* a flex item won't shrink below min-content by default, so a nested table or one
+		 * long unbreakable value pushed the whole row out of the card */
 		min-width: 0;
 	}
 
-	/* size and ink are theme/60-inputs.css's (`.cbi-value-title`) — absorbed. What is
-	 * left is the geometry of the label column, which theme does not touch. */
+	/* size + ink: theme/60-inputs.css (`.cbi-value-title`) — absorbed. Left: the label
+	 * column's geometry, which theme does not touch. */
 	.cbi-value label.cbi-value-title {
 		padding-top: 6px;
 		line-height: 18px;
@@ -103,13 +101,13 @@
 
 	.cbi-dynlist {
 		height: auto;
-		/* min-height is theme/60-inputs.css's — absorbed */
+		/* min-height: theme/60-inputs.css — absorbed */
 		display: inline-flex;
 		flex-direction: column;
 	}
 
-	/* The item's paint (surface, ink, border, radius, shadow) is theme/60-inputs.css's —
-	 * absorbed. Everything left here is the drag-and-drop machinery UIDynamicList needs. */
+	/* item paint: theme/60-inputs.css — absorbed. Left: the drag-and-drop machinery
+	 * UIDynamicList needs. */
 	.cbi-dynlist > .item {
 		margin-bottom: 4px;
 		padding: 6px 2em 6px 4px;
@@ -131,7 +129,7 @@
 		bottom: -1px;
 		padding: 0 6px;
 		border: 1px solid var(--fs-border);
-		/* radius + the × ink are theme/60-inputs.css's — absorbed */
+		/* radius + × ink: theme/60-inputs.css — absorbed */
 		font-weight: bold;
 		pointer-events: auto;
 	}
@@ -167,7 +165,7 @@
 
 	.cbi-dynlist > .add-item > input,
 	.cbi-dynlist > .add-item > button {
-		/* flex is theme/60-inputs.css's — absorbed */
+		/* flex: theme/60-inputs.css — absorbed */
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -219,19 +217,16 @@
 		justify-content: center;
 	}
 
-	/* The option list is theme/60-inputs.css's (`select option`, plus the themed
-	 * ::picker under @supports) — absorbed. All three rules here were dead: layer order
-	 * is compared BEFORE specificity, so theme's bare `select option` beat even
-	 * `.cbi-select select option:checked`, and the accent hover/checked fills never
-	 * rendered. */
+	/* The option list is theme/60-inputs.css's (`select option` + the ::picker under
+	 * @supports) — absorbed. Do not re-add an option rule here: layer beats specificity,
+	 * so theme's bare `select option` outranks even `.cbi-select select option:checked`. */
 
 	input[type=file] {
 		padding: initial;
 		border: initial;
 		line-height: initial;
 		box-shadow: none;
-		/* out-specifies the base `input { width: 210px }` on its own — the
-		 * !important it used to carry fought nothing */
+		/* no !important: this out-specifies base's `input { width: 210px }` on its own */
 		width: auto;
 	}
 
@@ -242,8 +237,8 @@
 
 	select[multiple] {
 		height: inherit;
-		/* the surface is theme/60-inputs.css's — absorbed (and the reason it must be a
-		 * SURFACE token, not an ink one, is recorded there) */
+		/* surface: theme/60-inputs.css — absorbed (why it must be a SURFACE token and not
+		 * an ink one is recorded there) */
 	}
 
 	input[type="checkbox"],
@@ -332,8 +327,8 @@
 	input[type="checkbox"]::before,
 	input[type="radio"]::before,
 	input, button, textarea, select {
-		/* border-COLOR, not `border`: the shorthand also animates border-width, so every
-		 * hover on any input or button ran a layout animation instead of a paint one. */
+		/* border-COLOR, not `border`: the shorthand animates border-width too, i.e. every
+		 * hover on any input or button ran a LAYOUT animation instead of a paint one. */
 		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
 
@@ -344,33 +339,21 @@
 	.cbi-dropdown:focus, .cbi-dropdown[open],
 	.cbi-dynlist > .item:focus,
 	input[type="checkbox"]:focus::before,
-	/* The `border-color` below used to carry !important. An important declaration
-	 * in an earlier layer outranks one in a later layer, so it painted this blue
-	 * ring over the theme's own focus/hover colours on every button and input.
-	 * Nothing depends on the flag — base already loses to `theme` for normal
-	 * declarations. See docs/17. */
+	/* NEVER flag the border-color below !important: important inverts the layer order, so
+	 * a flagged base declaration paints this ring over theme's own focus/hover colours on
+	 * every button and input. Unflagged, it already loses to theme — which is the point. */
 	input[type="radio"]:focus::before,
 	input:focus, button:hover, textarea:focus, select:focus {
-		/* used to be the hardcoded bootstrap blue `82, 168, 236` — a literal that
-		 * ignored palette and dark mode wherever the theme layer doesn't override
-		 * the focus look (.cbi-select.focus, raw checkbox/radio ::before,
-		 * button:focus). Follows --fs-accent now; the invalid state below swaps the
-		 * whole colour out by re-declaring this one custom property.
-		 *
-		 * A COLOUR, not an `r, g, b` triple. The triple was the last survivor of the
-		 * component bridge the HSL one was torn out for, and it fails the same way:
-		 * `rgba(var(--x), .6)` with --x missing is invalid at computed-value time, so
-		 * the glow vanishes silently and audit.py cannot see it (the var IS defined —
-		 * just somewhere else). color-mix() takes the palette token directly, so the
-		 * palette is the single source of truth and there is nothing to keep in sync.
-		 * color-mix(in srgb, C p%, transparent) === rgba(C, p/100): the mix is
-		 * premultiplied, so the RGB does not move, only the alpha. */
+		/* One custom property, so the invalid state below swaps the whole ring by
+		 * redeclaring it — and a palette TOKEN, never a literal: the old hardcoded blue
+		 * ignored palette and dark mode wherever theme does not repaint focus
+		 * (.cbi-select.focus, raw checkbox/radio ::before, button:focus). No `r, g, b`
+		 * triple either — see the component-bridge rule in CLAUDE.md. */
 		--focus-color: var(--fs-accent);
 
 		outline: 0;
 		border-color: color-mix(in srgb, var(--focus-color) 80%, transparent);
-		/* the inset half used to be color-mix(--fs-border 1%), i.e. alpha 0.01 — it drew
-		 * literally nothing and was transitioned on every widget. Just the focus glow. */
+		/* one shadow: the inset half was alpha .01 — it drew nothing, on every widget */
 		box-shadow: 0 0 8px color-mix(in srgb, var(--focus-color) 60%, transparent);
 		text-decoration: none;
 	}
@@ -425,8 +408,8 @@
 		width: 100%;
 	}
 
-	/* .cbi-page-actions paint is owned by theme/55-buttons.css — absorbed.
-	 * The legacy `.actions` plate has no theme override, so it stays. */
+	/* .cbi-page-actions paint: theme/55-buttons.css — absorbed. The legacy `.actions`
+	 * plate has no theme override, so it stays (coverage: some luci-app-* still emits it). */
 	.actions {
 		background: var(--fs-panel2);
 		margin-bottom: 18px;

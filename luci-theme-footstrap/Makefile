@@ -7,13 +7,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-footstrap
-# luci.mk defaults LUCI_NAME to the checkout's directory name and keys the
-# Build/Prepare hook name on it — a differently-named checkout symlinked into
-# the feed would silently skip the CSS build. Pin it.
+# luci.mk keys the Build/Prepare hook name on LUCI_NAME, which defaults to the checkout's
+# directory name — a differently-named checkout symlinked into the feed would silently skip
+# the CSS build. Pin it.
 LUCI_NAME:=luci-theme-footstrap
 
-# Version is git-derived locally; CI injects FOOTSTRAP_VERSION from the tag
-# (the SDK build has no .git so it can't derive one).
+# Version is git-derived; never hardcode PKG_VERSION. CI injects FOOTSTRAP_VERSION from the
+# tag (an SDK build has no .git, so it cannot derive one).
 FOOTSTRAP_VERSION?=
 ifneq ($(FOOTSTRAP_VERSION),)
 PKG_VERSION:=$(FOOTSTRAP_VERSION)
@@ -21,80 +21,57 @@ PKG_RELEASE:=1
 endif
 
 LUCI_TITLE:=Footstrap Theme
-# +luci-base only, deliberately: the self-updater used to hard-require `curl`,
-# which is NOT in OpenWrt's default package set (the base image ships
-# uclient-fetch; on the dev router /usr/bin/curl is owned by an explicitly
-# installed curl package). Rather than pull curl and its deps onto an 8 MB device
-# for one API call, footstrap-selfupdate.sh now falls back to uclient-fetch —
-# so the theme still depends on nothing but luci-base. jsonfilter and sha256sum,
-# which it also uses, ARE in the base image.
+# +luci-base is the WHOLE list. The self-updater used to hard-require `curl`, which is NOT in
+# OpenWrt's default package set (the base image ships uclient-fetch), so the update button
+# failed on a stock router; it falls back to uclient-fetch rather than pull curl onto an 8 MB
+# device for one API call. jsonfilter and sha256sum ARE in the base image. Do not add a
+# runtime dep for a convenience tool — fall back instead.
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
-# Without these, luci.mk defaults them to the LuCI project's own values and the
-# built package claims MAINTAINER "OpenWrt LuCI community" / URL openwrt/luci.
+# Else luci.mk defaults these to LuCI's own, and the package claims MAINTAINER "OpenWrt LuCI
+# community" / URL openwrt/luci.
 LUCI_MAINTAINER:=VizzleTF <vizzletf47@gmail.com>
 LUCI_URL:=https://github.com/VizzleTF/luci-theme-footstrap
 
-# CSS: ship verbatim. luci.mk would run it through csstidy, which is old enough to
-# mangle modern CSS (:has(), color-mix(), nested calc()) and break the layout. The
-# stylesheet is minified by build-css.sh instead, which only drops comments and
-# indentation and understands strings.
+# CSS: ship verbatim. luci.mk would run csstidy over it, which is old enough to mangle
+# :has()/color-mix()/nested calc() and break the layout. build-css.sh minifies instead.
 LUCI_MINIFY_CSS:=0
 #
-# JS: DO let luci.mk minify it (LUCI_MINIFY_JS defaults to 1, so this is the absence
-# of an opt-out, not an opt-in). That is jsmin, built from luci-base/src/jsmin.c —
-# already on the buildbot, since luci-base/host is a build dependency — and it is what
-# every other LuCI package uses. Most of this theme's JS is comments (~78 KB of 126 KB),
-# and uhttpd serves /www with NO compression, so those are wire bytes AND flash bytes.
-# jsmin takes the shipped JS from 126 KB to 40 KB, comments stay in git.
+# JS: DO let luci.mk minify it — LUCI_MINIFY_JS defaults to 1, so this is the absence of an
+# opt-out. That is jsmin (luci-base/src/jsmin.c, on the buildbot already since luci-base/host is
+# a build dep). ~78 KB of this theme's 126 KB of JS is comments, and uhttpd serves /www with NO
+# compression, so those are wire AND flash bytes: jsmin ships 40 KB, git keeps every word.
 #
-# The catch, and why the gates exist: jsmin decides `/` = regex-or-division from a
-# ONE-character lookback, and `n` (from `return`) and `>` (from `=>`) are not on its
-# allow-list — so `return /re/` can make it eat the rest of the file AND EXIT 0
-# (openwrt/luci#8299). Two things stop that reaching a release:
-#   - eslint `wrap-regex` forbids writing the hazardous shape at all;
-#   - tools/jsmin-verify.mjs proves jsmin's output is TOKEN-IDENTICAL to the source.
-# Both run in CI. See CLAUDE.md.
+# The catch, and why the gates exist: jsmin decides `/` = regex-or-division from a ONE-character
+# lookback, and `n` (of `return`) and `>` (of `=>`) are not on its allow-list — so `return /re/`
+# makes it eat the rest of the file AND EXIT 0 (openwrt/luci#8299). eslint's `wrap-regex` bans
+# the shape; tools/jsmin-verify.mjs proves jsmin's output is TOKEN-IDENTICAL to the source.
 
-# TWO licences, because the package really does carry two bodies of work.
+# TWO licences, for two bodies of work.
 #
-# Apache-2.0 is the theme itself — and it is not a free choice: styles/base began as a fork of
+# Apache-2.0 — the theme, and not a free choice: styles/base began as a fork of
 # luci-theme-bootstrap's cascade.css, the ucode templates derive from LuCI's own, and a few JS
-# helpers are copied from LuCI verbatim. All of that is Apache-2.0 and its notices travel with
-# it (styles/00-header.css, the template headers).
+# helpers are verbatim copies. The notices travel with it.
 #
-# OFL-1.1 is the webfonts. Manrope and JetBrains Mono are SIL Open Font License 1.1, and OFL §2
-# requires every copy of the Font Software to carry the copyright notice AND the licence. The
-# .woff2 files here are unicode-range SUBSETS, and the subsetter strips the licence out of the
-# font's own metadata — so the text has to travel beside them, which is what
-# htdocs/luci-static/footstrap/fonts/OFL.txt is. It ships to the router with the fonts.
+# OFL-1.1 — the webfonts. OFL §2 requires every copy of the Font Software to carry the
+# copyright notice AND the licence, and these .woff2 are unicode-range SUBSETS whose subsetter
+# strips the licence out of the font's own metadata — so the text ships beside them.
 PKG_LICENSE:=Apache-2.0 OFL-1.1
 PKG_LICENSE_FILES:=LICENSE htdocs/luci-static/footstrap/fonts/OFL.txt
 
-# RELOAD, NOT RESTART — this is the difference between "the theme updated" and
-# "everyone using LuCI was logged out".
-#
-# rpcd keeps its sessions in memory, so `restart` destroys every one of them: the
-# admin who clicked Update, and anyone else logged in at the time. `reload` sends
-# SIGHUP, which re-reads /usr/share/rpcd/acl.d/* — and that ACL refresh is the
-# ONLY thing this package needs from rpcd.
-#
-# Verified on a live router, not assumed: a session created before `reload`
-# survives it and dies across `restart`; and removing our acl.d file + `reload`
-# flips `session access` for the self-update script from true to false, so SIGHUP
-# demonstrably re-reads the ACL directory.
+# RELOAD, NOT RESTART: rpcd holds sessions in memory, so `restart` logs out every LuCI user —
+# including the admin who just clicked Update. `reload` sends SIGHUP, which re-reads
+# /usr/share/rpcd/acl.d/*, and that ACL refresh is the only thing this package needs from rpcd.
+# Verified on a live router: a session survives `reload` and dies across `restart`; deleting our
+# acl.d file + `reload` flips `session access` for the self-update script from true to false.
 define Package/luci-theme-footstrap/postinst
 #!/bin/sh
 [ -n "$${IPKG_INSTROOT}" ] || {
-	# uci-defaults registers the theme entries; refresh rpcd + clear caches so
-	# LuCI picks them up without a reboot.
-	#
-	# The explicit call is deliberate belt-and-braces: OpenWrt's own
-	# default_postinst ALSO runs (and then deletes) every /etc/uci-defaults/* the
-	# package ships, so on a normal install the script runs twice. It is idempotent,
-	# and the fresh-vs-upgrade marker is written at the end of the first run, so the
-	# first pass still sees a fresh install. Keeping our own call means registration
-	# does not depend on that host behaviour staying the way it is.
+	# uci-defaults registers the theme; refresh rpcd + drop caches so LuCI sees it without a
+	# reboot. Calling it ourselves is belt-and-braces: OpenWrt's default_postinst also runs
+	# (then deletes) every /etc/uci-defaults/* we ship, so it executes twice per install. It is
+	# idempotent, and its fresh-vs-upgrade marker is written at the end of the first pass, so
+	# that pass still sees a fresh install.
 	[ -f /etc/uci-defaults/30_luci-theme-footstrap ] && \
 		sh /etc/uci-defaults/30_luci-theme-footstrap >/dev/null 2>&1 || true
 	rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/* >/dev/null 2>&1 || true
@@ -106,25 +83,24 @@ endef
 define Package/luci-theme-footstrap/postrm
 #!/bin/sh
 [ -n "$${IPKG_INSTROOT}" ] || {
-	# The same set uci-defaults registers/deletes. postrm runs when that file is already gone,
-	# so it cannot source it — the list is duplicated by necessity and PINNED, so it cannot
-	# drift. Only the assignment is byte-identical; the `$$` below is make's escaping.
+	# Every theme name this package has ever registered. postrm runs when uci-defaults is
+	# already deleted, so it cannot source the list: it is duplicated by necessity and
+	# mirror-pinned so it cannot drift. Only the assignment is byte-identical — the `$$` is
+	# make's escaping.
 # @mirror theme/legacy-names
 LEGACY_THEMES="Footstrap FootstrapDark FootstrapLight FootstrapTop FootstrapTopDark FootstrapTopLight FootstrapSidebar FootstrapOnTop"
 # @endmirror
 	for t in $$LEGACY_THEMES; do
 		uci -q delete "luci.themes.$$t"
 	done
-	# the theme's own server-side setting: the router's DEFAULT layout, which
-	# uci-defaults sets when migrating an old top-nav install. It means nothing to any
-	# other theme, and leaving it behind would silently re-apply the top bar if this
-	# package were reinstalled later.
+	# The router's DEFAULT layout, set by uci-defaults when migrating an old top-nav install.
+	# It means nothing to any other theme, and left behind it would silently re-apply the top
+	# bar on a later reinstall.
 	uci -q delete luci.main.footstrap_layout
-	# don't leave the active theme pointing at the media dir we just removed —
-	# fall back to bootstrap instead of relying on LuCI's runtime fallback.
-	# The same TWO-part check uci-defaults uses: a theme needs its media dir AND its
-	# ucode template to render. Testing only for cascade.css would hand the UI to a
-	# half-removed bootstrap and produce the blank page this branch exists to avoid.
+	# Don't leave the active theme pointing at the media dir we just removed. The same TWO-part
+	# check uci-defaults uses: a theme needs its media dir AND its ucode template to render, so
+	# a one-part check could hand the UI to a half-removed bootstrap — the blank page this
+	# branch exists to avoid.
 	case "$$(uci -q get luci.main.mediaurlbase)" in
 		/luci-static/footstrap*)
 			[ -d /www/luci-static/bootstrap ] && \
@@ -132,65 +108,52 @@ LEGACY_THEMES="Footstrap FootstrapDark FootstrapLight FootstrapTop FootstrapTopD
 				uci set luci.main.mediaurlbase=/luci-static/bootstrap ;;
 	esac
 	uci commit luci
-	# The "have we been installed before" marker that uci-defaults writes (it is what
-	# tells a fresh install from an upgrade). Removing it here means an uninstall
-	# followed by a reinstall is correctly treated as fresh again.
+	# The "installed before" marker uci-defaults writes to tell fresh from upgrade. Removing it
+	# makes uninstall-then-reinstall count as fresh again.
 	rm -rf /usr/share/luci-theme-footstrap >/dev/null 2>&1 || true
 	rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/* >/dev/null 2>&1 || true
 	/etc/init.d/rpcd reload >/dev/null 2>&1 || true	# see the postinst note: reload keeps sessions
 }
 endef
 
-# luci.mk calls this hook right after copying luasrc/ucode/htdocs/root/src into
-# PKG_BUILD_DIR, so we rewrite the build copy — never the source tree.
+# Runs right after luci.mk copies luasrc/ucode/htdocs/root/src into PKG_BUILD_DIR, so it
+# rewrites the build copy, never the source tree.
 #
-# 1. cascade.css is generated, not committed: build-css.sh concatenates
-#    the four styles/ dirs (styles/, base/, theme/, pages/) and strips comments.
-#    They are not in luci.mk's copy list, so we read them from $(CURDIR) and write the result
-#    straight into the build tree. Only `cat`/`awk` are used — no host toolchain
-#    to install, which is why this works on an OpenWrt buildbot.
-# 2. Stamp the git-derived version into the theme JS so the Appearance popover
-#    can show it and run its GitHub update check. Skipped when PKG_VERSION is
-#    empty (leaves the '0.0.0-dev' literal).
-# 3. Compile the translation catalogue INTO this package (see below).
+# 1. cascade.css is generated, not committed — and styles/ is not in luci.mk's copy list, so
+#    build-css.sh reads it from $(CURDIR) and writes into the build tree. cat/awk only, no host
+#    toolchain: that is why it runs on an OpenWrt buildbot.
+# 2. Stamp the git-derived version into the theme JS (popover + update check). Skipped when
+#    PKG_VERSION is empty, leaving the '0.0.0-dev' literal.
+# 3. Compile the translation catalogue INTO this package.
 #
-# THE CATALOGUE SHIPS INSIDE THE THEME PACKAGE. That is deliberate, it is not how a luci-app
-# does it, and undoing it re-opens two bugs that were both hit in production.
+# THE CATALOGUE SHIPS INSIDE THIS PACKAGE — not how a luci-app does it. Undoing that re-opens
+# two production bugs.
 #
-# The conventional way is luci.mk's own machinery: a `po/` directory makes it emit a SEPARATE
-# `luci-i18n-footstrap-<lang>` package per language. v0.8.4 shipped exactly that — and it broke
-# the update button for every install already in the field:
+# A `po/` dir makes luci.mk emit a separate `luci-i18n-footstrap-<lang>` package per language.
+# v0.8.4 did, and it broke the update button on every router in the field (issue #6):
+#   1. The release then has several assets, and the `footstrap-selfupdate.sh` users ALREADY
+#      have picks with `grep -E '\.apk$$' | head -1`. GitHub sorts assets BY NAME and
+#      `luci-i18n-…` sorts before `luci-theme-…`, so Update installed the 6 KB catalogue
+#      instead of the theme, reported success, and re-offered the same update forever. An
+#      installed self-updater cannot be fixed remotely — only the RELEASE can, so it stays at
+#      ONE asset per format (CI asserts it).
+#   2. Two packages drift: an _() the older catalogue lacks renders in English, reporting
+#      nothing. Bundled, they cannot disagree.
+# Price: ~3.6 KB of catalogue on an English router.
 #
-#   1. A release then carries several assets, and `footstrap-selfupdate.sh` — in every version
-#      users ALREADY have — picks one with `grep -E '\.apk$$' | head -1`. The GitHub API returns
-#      the asset list sorted BY NAME, and `luci-i18n-footstrap-ru-…apk` sorts before
-#      `luci-theme-footstrap-…apk`. So clicking Update installed the 6 KB catalogue INSTEAD of
-#      the theme: the strings turned Russian, the theme stayed on its old version, and the badge
-#      kept offering the same update — forever, because the script that picks the wrong asset is
-#      exactly the one that never gets replaced (issue #6). A router's installed self-updater
-#      cannot be fixed remotely: whatever we publish, it runs the picker it already has. The
-#      RELEASE is the only thing we control, so it stays at ONE asset per format (CI asserts it).
-#   2. Two packages can drift: theme new, catalogue old. An _() whose msgid the catalogue does
-#      not carry renders in English and reports nothing — the exact failure mode the i18n gate
-#      exists to prevent. Bundled, they cannot disagree.
+# Hence `po/` -> `i18n/`: LUCI_LANGUAGES is `$(wildcard po/*)`, so the rename is what stops the
+# language packages. po2lmo (luci-base/host, already a build dep) lands in hostpkg/bin BEFORE
+# this hook — hence here, not Build/Compile, which a post-include `define` cannot override.
 #
-# The cost is ~3.6 KB of catalogue on a router whose LuCI is English. That is the whole price.
-#
-# `po/` is therefore renamed to `i18n/`: LUCI_LANGUAGES is `$(wildcard po/*)`, so the rename is
-# what stops luci.mk generating the language packages at all. po2lmo is the same host tool it
-# would have used — luci-base/host is already a build dependency, so it is on the buildbot, and
-# it is installed into hostpkg/bin BEFORE this hook runs (verified in the CI log; this is why
-# the call lives here and not in Build/Compile, which a post-include `define` cannot override).
-#
-# The basename is `footstrap-theme.<lang>.lmo`, NOT `footstrap.<lang>.lmo`: lmo_load_catalog
-# globs `*.<lang>.lmo`, so any basename is loaded — and a router that installed v0.8.4 still
-# OWNS `footstrap.ru.lmo` through the old luci-i18n-footstrap-ru package. Writing that same path
-# would be a file conflict, and apk would refuse the very upgrade this change exists to deliver.
+# Basename `footstrap-theme.<lang>.lmo`, NOT `footstrap.<lang>.lmo`: lmo_load_catalog globs
+# `*.<lang>.lmo` so any basename loads, and a v0.8.4 router still OWNS `footstrap.ru.lmo` via
+# the old luci-i18n package — same path = file conflict = apk refuses the very upgrade that
+# fixes it.
 define Build/Prepare/luci-theme-footstrap
 	# luci.mk's Build/Prepare copies only src/ luasrc/ htdocs/ root/ ucode/ po/ into
 	# $(PKG_BUILD_DIR), and PKG_LICENSE_FILES resolves against THAT — so the Apache text has to
-	# be put there by hand or the declaration points at nothing. (The fonts' OFL.txt needs no
-	# help: it lives under htdocs/, which luci.mk already copies.)
+	# be put there by hand or the declaration points at nothing. (The fonts' OFL.txt lives under
+	# htdocs/, which luci.mk already copies.)
 	$(CP) $(CURDIR)/LICENSE $(PKG_BUILD_DIR)/
 	$(SHELL) $(CURDIR)/build-css.sh $(PKG_BUILD_DIR)/htdocs/luci-static/footstrap/cascade.css
 	$(if $(PKG_VERSION),$(SED) "s#const FS_VERSION = '[^']*'#const FS_VERSION = '$(PKG_VERSION)'#" \
@@ -201,6 +164,6 @@ define Build/Prepare/luci-theme-footstrap
 			$(PKG_BUILD_DIR)/root/usr/lib/lua/luci/i18n/footstrap-theme.$(notdir $(patsubst %/,%,$(dir $(po)))).lmo;)
 endef
 
+# Absolute, not a relative path: CI rsyncs this package into package/, not into the feed.
 include $(TOPDIR)/feeds/luci/luci.mk
 
-# call BuildPackage - OpenWrt buildroot signature

@@ -1,9 +1,8 @@
 @layer base {
-	/* The .cbi-dropdown widget. ui.js drives it purely through attributes —
-	 * [open], [multiple], [empty], [more], [display], [selected] — and the rules
-	 * below are what turn those attributes into a working combobox. The eight
-	 * !important flags here are load-bearing: they carry the widget's internal
-	 * display/padding, and dropping them collapses the popup. See docs/17. */
+	/* The .cbi-dropdown widget. ui.js drives it purely through attributes — [open],
+	 * [multiple], [empty], [more], [display], [selected] — and these rules turn those
+	 * into a working combobox. The eight !important flags below are the widget's own
+	 * display/padding machinery: drop one and the popup collapses. See docs/17. */
 	.cbi-dropdown {
 		display: inline-flex !important;
 		cursor: pointer;
@@ -12,13 +11,12 @@
 		padding: 0 !important;
 	}
 
-	/* the closed control's paint (surface, border, radius, colour) is owned by
-	 * theme/65-dropdown.css — absorbed */
+	/* closed-control paint: theme/65-dropdown.css — absorbed */
 
 	.cbi-dropdown img {
-		/* the following are necessary to constrain (vector) images of any size */
-		max-height: 1.6em;  /* Adjusts image height to fit slightly larger than text line height */
-		width: auto;  /* Preserves aspect ratio */
+		/* constrain a vector icon of any intrinsic size to the text line */
+		max-height: 1.6em;
+		width: auto;
 	}
 
 	.cbi-dropdown > ul {
@@ -120,10 +118,8 @@
 		height: 20px;
 	}
 
-	/* The open list's paint AND its sizing (surface, border, shadow, the min/max/width
-	 * that let it grow past the closed control) are theme/65-dropdown.css's — absorbed.
-	 * What stays is what makes it a popup at all: it is taken out of flow here, and the
-	 * stacking order comes from the --z-* scale, which theme never restates. */
+	/* Open-list paint and sizing: theme/65-dropdown.css — absorbed. Left: what makes it a
+	 * popup at all — out of flow, stacked from the --fs-z-* scale (theme never restates it). */
 	.cbi-dropdown[open] > ul.dropdown {
 		display: block;
 		position: absolute;
@@ -155,8 +151,7 @@
 	.cbi-dropdown[open] > ul.dropdown > li .hide-open { display: none; }
 	.cbi-dropdown[open] > ul.dropdown > li .hide-close { display: initial; }
 
-	/* open-list row paint (dividers, selected/focus/hover states) is owned by
-	 * theme/65-dropdown.css — absorbed */
+	/* open-list row paint (dividers, selected/focus/hover): theme/65-dropdown.css — absorbed */
 	.cbi-dropdown[open] > ul.dropdown > li:last-child {
 		margin-bottom: 0;
 	}

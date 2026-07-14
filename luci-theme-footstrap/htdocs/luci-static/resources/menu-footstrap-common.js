@@ -3,29 +3,17 @@
 'require ui';
 'require fs-fit as fit';
 
-/* Shared chrome logic: mode menu, section tabs, the SPA router and the Appearance
- * popover. menu-footstrap.js is the one renderer that composes with it
- * (common.init(renderMainMenu)).
- *
- * There used to be TWO renderers here — a vertical one and a horizontal one — and
- * this file existed to share what they had in common. They are one now: the layout
- * is a client preference (:root[data-layout]) that CSS morphs, so the same markup
- * serves the sidebar, the top bar, the collapsed rail and the phone bar. The
- * composition seam is kept anyway, because LuCI instantiates every required
- * baseclass module into a singleton — a base class cannot be `extend`-ed across
- * modules, so injecting renderMainMenu as a callback is still how the two files
- * talk. */
+/* Shared chrome: mode menu, section tabs, the SPA router and the Appearance popover.
+ * menu-footstrap.js is the one renderer and composes with it (common.init(renderMainMenu)); that
+ * callback seam stays because LuCI instantiates every required baseclass module into a singleton,
+ * so a base class cannot be `extend`-ed across modules. */
 
-/* --- stray-interval teardown for SPA nav ---------------------------------
- * A full page load kills every window.setInterval the outgoing page set. Our
- * SPA nav never reloads, so a view's own setInterval poller keeps firing
- * against a page that's gone — e.g. luci-app-podkop's log tailer
- * (view/podkop/main.js: `this.timer = setInterval(() => this.checkOnce(), …)`)
- * logs `[SHELL] [/usr/bin/podkop check_logs]` forever after you navigate away.
- * L.Poll pollers are handled separately (queue flush in navigate); this covers
- * the plain setInterval ones. Track view-set interval ids and clear them on nav
- * teardown, but preserve L.Poll's own 1s tick (it is a window.setInterval too).
- * Hook at module eval — the earliest point, before any view render sets a timer. */
+/* --- stray-interval teardown for SPA nav ---
+ * A full load kills every window.setInterval the outgoing page set; SPA nav does not, so a view's
+ * poller keeps firing against a page that is gone (luci-app-podkop's log tailer runs
+ * `podkop check_logs` forever after you navigate away). Track view-set ids and clear them on nav,
+ * keeping L.Poll's own 1s tick (also a setInterval); L.Poll's queue is flushed in navigate().
+ * Hooked at module eval — before any view render can set a timer. */
 const _viewIntervals = (window.__fsViewIntervals || (window.__fsViewIntervals = new Set()));
 (function hookIntervals() {
 	if (window.__fsIntervalsHooked) return;
@@ -49,8 +37,8 @@ function clearViewIntervals() {
 /* section tabs -> #tabmenu (horizontal) */
 function renderTabMenu(tree, url, level) {
 	const container = document.querySelector('#tabmenu');
-	/* a template variant without the container must not blow up the whole
-	 * ui.menu.load() chain (an unhandled rejection here kills every menu) */
+	/* a template without the container must not reject: an unhandled rejection here kills the
+	 * whole ui.menu.load() chain, i.e. every menu */
 	if (!container)
 		return E([]);
 	const ul = E('ul', { 'class': 'tabs' });
@@ -59,10 +47,8 @@ function renderTabMenu(tree, url, level) {
 
 	children.forEach(child => {
 		const isActive = (L.env.dispatchpath[3 + (level || 0)] === child.name);
-		/* aria-current="page", not just the `active` class: the class is paint, and paint is
-		 * the one thing a screen reader cannot see. Same rule as the main menu's leaves.
-		 * E() drops an attribute whose value is null (luci.js: `attr[key] == null` → skip),
-		 * so the inactive tabs carry nothing. */
+		/* aria-current="page", not just the `active` class: the class is paint, which a screen
+		 * reader cannot see. E() drops a null attribute value, so inactive tabs carry nothing. */
 		ul.appendChild(E('li', { 'class': 'tabmenu-item-%s %s'.format(child.name, isActive ? 'active' : '') }, [
 			E('a', { 'href': L.url(url, child.name), 'aria-current': isActive ? 'page' : null }, [ _(child.title) ])
 		]));
@@ -82,45 +68,33 @@ function renderTabMenu(tree, url, level) {
 	return ul;
 }
 
-/* ---- tab-strip auto-fit -------------------------------------------------
- * A tab strip (section tabs in #tabmenu, or a view's own .cbi-tabmenu) can carry
- * ~11 pills (e.g. luci-app-justclash) that overflow one row on a normal screen.
- * Rather than wrap to a second line, shrink the pills to fit: step through two
- * density classes (styles/theme/40-tabs.css) that trim padding, then gap+font,
- * until the strip fits one row — floored so a pill never gets tighter than its
- * label or loses its gap; past the floor the strip is allowed to wrap. Runs on
- * render, on resize, and when a view renders its own tabs (works in both layouts
- * and as the page narrows). */
+/* ---- tab-strip auto-fit ----
+ * A tab strip (#tabmenu, or a view's own .cbi-tabmenu) can carry ~11 pills (luci-app-justclash)
+ * that overflow one row. Rather than wrap, shrink: two density classes (styles/theme/40-tabs.css)
+ * trim padding, then gap+font. Floored so a pill never gets tighter than its label — past the
+ * floor the strip is allowed to wrap. */
 function stripFitsOneRow(ul) {
-	/* Only laid-out children count. The top-nav hides its "Log out" <li> below 768px
-	 * (a top-bar icon button takes over); a display:none child has offsetTop 0, so
-	 * using it as `last` made this read "one row" even while VPN had wrapped — and
-	 * the density fit never kicked in. Filter to items that actually render. */
+	/* Only laid-out children count: a display:none child has offsetTop 0, so taking it as `last`
+	 * read as "one row" while the strip had in fact wrapped, and the density fit never fired. */
 	const items = [...ul.children].filter((el) => el.getClientRects().length > 0);
 	const first = items[0], last = items[items.length - 1];
 	/* one row iff first and last item share a top edge */
 	return !first || !last || first.offsetTop === last.offsetTop;
 }
 function fitTabStrips() {
-	/* .fs-sidebar ul.nav is only a horizontal strip on the phone bar (≤767px);
-	 * on the desktop it is a vertical list where the one-row measure is
-	 * meaningless — fitOne() skips it there. */
-	/* `.fs-sidebar > ul.nav` covers the main menu in EVERY layout now — it is the same
-	 * list, and the flexDirection check below is what tells a bar (row) from a vertical
-	 * sidebar (column). The old `.fs-topnav .fs-mainmenu` selector went with the second
-	 * template. */
+	/* `.fs-sidebar > ul.nav` is the main menu in EVERY layout — the same list — so the
+	 * flexDirection check below is what tells a bar (row) from a vertical sidebar (column),
+	 * where a one-row measure is meaningless. */
 	document.querySelectorAll('.tabs, .cbi-tabmenu, .fs-sidebar > ul.nav').forEach((ul) => {
 		if (ul.children.length < 2) return;
 		if (ul.matches('.fs-sidebar > ul.nav') && getComputedStyle(ul).flexDirection !== 'row') {
-			/* desktop sidebar: a vertical list — the one-row measure is meaningless
-			 * and would floor it at fs-dense2 forever. Clear and skip. */
+			/* vertical list: the measure would floor it at fs-dense2 forever. Clear and skip. */
 			if (ul.classList.contains('fs-dense1') || ul.classList.contains('fs-dense2'))
 				ul.classList.remove('fs-dense1', 'fs-dense2');
 			return;
 		}
-		/* steady state (poll tick on an already-fitting strip): one measure, zero
-		 * class writes — the write-measure-write dance below forces a reflow per
-		 * strip, which is wasted on pages polled every second. */
+		/* steady state (poll tick on an already-fitting strip): one measure, no class writes —
+		 * the write-measure-write dance below forces a reflow per strip, every second. */
 		if (!ul.classList.contains('fs-dense1') && !ul.classList.contains('fs-dense2') && stripFitsOneRow(ul))
 			return;
 		ul.classList.remove('fs-dense1', 'fs-dense2');
@@ -131,54 +105,21 @@ function fitTabStrips() {
 		ul.classList.add('fs-dense2');	/* floor: leave wrapped if it still overflows */
 	});
 }
-/* ---- does the main menu fit on the brand's row? ---------------------------
- * The desktop bar stacks its menu onto a second row only when the menu does NOT fit
- * beside the brand — and whether it fits depends on how many sections THIS ROUTER has,
- * not on how wide the screen is. A stock install renders 5 sections; a box with a few
- * luci-app-* packages renders eleven. So this is measured, not keyed off a breakpoint.
+/* ---- does the CONTENT column still have room, once the sidebar has taken its cut? ----
  *
- * It used to be `@media (max-width: 1199px)`. Measured on a stock router the bar's
- * contents come to ~683px (brand 109 + menu 371 + right cluster 155 + gaps), i.e. one
- * row fits down to ~723px — so that breakpoint was stacking the menu on every laptop
- * and throwing away a row of vertical space for nothing.
+ * The sidebar gives way to the bar when what is LEFT for the content would be too narrow to read.
+ * A viewport breakpoint (`@media (max-width: 767px)`) cannot say that: the cut is not a constant —
+ * 224px expanded, 68px collapsed to the rail — so one breakpoint gave both states the same answer,
+ * and the rail folded away at the same width as the full sidebar, the ~156px it had just freed
+ * buying the user nothing. Do NOT measure the RENDERED sidebar either: the answer would depend on
+ * the state it is deciding (once it is a bar there is no cut, so the content "fits", so it
+ * un-narrows, so it cuts again) — oscillation.
  *
- * Always measured in the UNSTACKED state: a stacked menu has the whole bar to itself and
- * would of course "fit", which would flip it straight back — the classic layout
- * oscillation. So: unstack → let the density steps try to squeeze it → stack only if even
- * the tightest step still wraps → then let the density relax, now that it owns a row. */
-/* ---- does the CONTENT column still have room, once the sidebar has taken its cut? -------
- *
- * The vertical sidebar gives way to the bar when what is LEFT for the content would be too
- * narrow to read. That used to be `@media (max-width: 767px)`, which said nothing about the
- * thing that actually matters — and could not, because the sidebar's cut is not a constant:
- * it is 224px expanded and 68px collapsed to the rail. One viewport breakpoint therefore
- * gave the two states the same answer, when the whole point of collapsing the sidebar is to
- * hand ~156px BACK to the content. So the rail folded away at the same width as the
- * expanded sidebar, and the room it had just freed bought the user nothing.
- *
- * Measured instead: the sidebar's real cut, subtracted from the real viewport. The rail now
- * keeps its column ~156px further down than the expanded sidebar does.
- *
- * The widths are CONSTANTS, not read from the rendered sidebar — deliberately. Reading the
- * live width would make the answer depend on the state it is deciding (once the sidebar is
- * a bar it has no cut at all, so the content "fits", so it un-narrows, so it cuts again):
- * an oscillation. A constant makes the decision a pure function of the viewport. */
-/* The numbers come from the STYLESHEET, which is the thing that actually lays the sidebar
- * out — they are not restated here.
- *
- * They used to be: `CONTENT_MIN = 500, SIDEBAR_W = 224, RAIL_W = 68, CONTENT_PAD = 56`,
- * against bare `224px` / `68px` literals in theme/20-shell.css and a `--fs-content-pad`
- * token this file doubled by hand. Two copies of one number, in two languages, with nothing
- * to hold them together: narrow the rail in the CSS and this measurement goes on subtracting
- * the old width, silently deciding the content still fits when it does not — and no gate in
- * the build can see it. (20-shell.css even referred to a "--fs-content-min" token, which did
- * not exist; the value lived only here.) They are tokens now, in 02-tokens.css, and this
- * reads them back.
- *
- * Read once and memoised: fitShell runs on every resize and every content mutation, and
- * getComputedStyle forces a style recalc. The fallbacks are the historical values — a
- * browser that somehow hands us an empty custom property must not turn the whole shell
- * measurement into NaN (`NaN < NaN` is false, so the sidebar would simply never yield). */
+ * The widths come from the STYLESHEET (02-tokens.css), which is what lays the sidebar out; never
+ * restate them here, or narrowing the rail in CSS leaves this subtracting the old width with no gate
+ * able to see it. Memoised because fitShell runs on every resize and mutation and getComputedStyle
+ * forces a style recalc; the fallbacks stop an empty custom property making the measurement NaN
+ * (`NaN < NaN` is false, so the sidebar would simply never yield). */
 let _geom = null;
 function shellGeometry() {
 	if (_geom) return _geom;
@@ -221,37 +162,36 @@ function fitChrome() {
 
 	if (bar) bar.classList.remove('fs-bar-stack');
 	fitTabStrips();
-	/* The menu's own pills wrapping IS the "it does not fit" signal — but only because the
-	 * unstacked desktop bar is flex-wrap: nowrap (50-toplayout.css). Without that the bar
-	 * would wrap itself and hand the menu a whole row, in which the menu of course "fits",
-	 * and this would never fire. Do NOT measure the bar's children by offsetTop instead:
-	 * the bar is align-items:center with children of different heights, so their offsetTop
-	 * differs even on one row (that read as "wrapped" for a 5-section menu). */
+	/* ---- does the main menu fit on the brand's row? ----
+	 * Whether it fits depends on how many sections THIS router has (stock 5, a loaded box 11), not
+	 * on the viewport — so it is measured, not a breakpoint. `@media (max-width: 1199px)` stacked
+	 * it on every laptop: a stock bar's contents come to ~683px, i.e. one row fits down to ~723px.
+	 * Measured UNSTACKED (the remove above): a stacked menu owns a whole row and would "fit",
+	 * flipping straight back — oscillation.
+	 *
+	 * The menu's own pills wrapping IS the "does not fit" signal, but only because the unstacked
+	 * desktop bar is flex-wrap: nowrap (50-toplayout.css); otherwise the BAR wraps, hands the menu
+	 * a whole row, and it always "fits". Do NOT measure the bar's children by offsetTop instead:
+	 * the bar is align-items:center with children of differing heights, so their offsetTop differs
+	 * even on one row (that read as "wrapped" for a 5-section menu). */
 	if (desktopBar && !stripFitsOneRow(menu)) {
 		bar.classList.add('fs-bar-stack');
 		fitTabStrips();
 	}
 }
-/* The measuring, the frame-coalescing and the ResizeObserver are NOT here: they are the
- * shared engine in fs-fit.js, which the data tables use too (the two decisions are the same
- * shape — measure UNCOLLAPSED, then toggle a class). fitChrome is registered with it in
- * init(); this is just the "do it soon" entry point the chrome's own callers use. */
+/* The measuring, frame-coalescing and ResizeObserver live in fs-fit.js, shared with the data
+ * tables (same shape: measure UNCOLLAPSED, then toggle a class). fitChrome is registered there in
+ * init(); this is the "do it soon" entry point the chrome's own callers use. */
 function scheduleTabFit() {
 	fit.schedule();
 }
-/* Did this batch of mutations actually add or remove a tab strip?
+/* Did this batch of mutations add or remove a tab strip? The observer below exists only to catch a
+ * view rendering its own .cbi-tabmenu after nav; firing on ANY mutation re-measured every strip on
+ * the page once a second on a polled page — getClientRects()/offsetTop are layout reads, i.e. a
+ * forced synchronous reflow per strip per tick, to learn the tabs had not moved.
  *
- * The observer below exists for exactly one reason — to catch a view that renders
- * its own .cbi-tabmenu after navigation. But it used to fire fitTabStrips() on
- * ANY mutation, and LuCI's poll rewrites page content once a second, so on a
- * polled page (Overview, Processes) we measured every strip on the page every
- * second: getClientRects() and offsetTop are layout reads, i.e. a forced synchronous
- * reflow per strip per tick, to discover the tabs had not moved. Nothing here
- * depends on content, only on strips appearing; width changes are covered by the
- * resize listener above. */
-/* `removed: true` — a strip DISAPPEARING matters here too (the density classes were sized for
- * a menu that is no longer on the page), which is the one way this differs from fs-select's
- * use of the same helper. */
+ * `removed: true` — a strip DISAPPEARING matters too (the density classes were sized for a menu no
+ * longer on the page); that is the one way this differs from fs-select's use of the helper. */
 function tabStripTouched(mutations) {
 	return fit.touches(mutations, '.tabs, .cbi-tabmenu', { removed: true });
 }
@@ -276,8 +216,8 @@ function renderModeMenu(tree, renderMainMenu) {
 			? child.name === L.env.requestpath[0]
 			: index === 0;
 
-		/* the main menu must render even if a template variant has no #modemenu —
-		 * only the mode list itself is skippable chrome */
+		/* the main menu must render even if a template has no #modemenu — only the mode
+		 * list itself is skippable chrome */
 		if (ul)
 			ul.appendChild(E('li', { 'class': isActive ? 'active' : '' }, [
 				E('a', { 'href': L.url(child.name) }, [ _(child.title) ])
@@ -295,18 +235,11 @@ function renderModeMenu(tree, renderMainMenu) {
 		ul.style.display = '';
 }
 
-/* The Appearance popover's axes. ALL of them are client-side, instant and persisted in
- * localStorage — no server, no reload — and head.ut's inline script re-applies them before
- * paint, so a reload never flashes the wrong one (tools/axes.mjs holds the two copies to the
- * same contract):
- *
- *   Layout (sidebar|top) · Theme (auto|light|dark) · Palette (footstrap|hicontrast) ·
- *   Wallpaper (off|cats) · Tint (hue) · Accent (hue) · Rounding (0-20px) ·
- *   Submenus (keep-open|auto-collapse) · Updates (check|off)
- *
- * Layout is NOT a server choice and is NOT in the stock "Design" dropdown — there is one
- * theme entry. The only server involvement is a DEFAULT for a router migrated from the old
- * top-nav theme (luci.main.footstrap_layout), which the user's own choice then overrides. */
+/* The nine Appearance axes (listed in wireAppearance below). All client-side, instant, persisted in
+ * localStorage — no server, no reload — and head.ut's inline script re-applies them before paint,
+ * so a reload never flashes the wrong one; tools/axes.mjs holds those two copies to one contract.
+ * The only server involvement is a DEFAULT layout for a router migrated from the old top-nav theme
+ * (luci.main.footstrap_layout), which the user's own choice then overrides. */
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
@@ -317,9 +250,8 @@ function currentMode() {
 }
 function currentPalette() {
 	const s = lsGet('fs-palette');
-	/* legacy 'rvht'/'roman' were the default colours + the cats wallpaper — head.ut
-	 * migrates them to fs-wallpaper=cats + the default palette before paint, so here
-	 * they read as the default. */
+	/* legacy 'rvht'/'roman' were the default colours + the cats wallpaper; head.ut migrates
+	 * them to fs-wallpaper=cats + the default palette before paint, so they read as default. */
 	if (s === 'hicontrast') return 'hicontrast';
 	return 'footstrap';	/* default = GitHub colors; legacy 'github'/'rvht'/null map here */
 }
@@ -331,23 +263,17 @@ function applyWallpaper(val) {
 	if (val === 'cats') { lsSet('fs-wallpaper', 'cats'); root.setAttribute('data-wallpaper', 'cats'); }
 	else { lsDel('fs-wallpaper'); root.removeAttribute('data-wallpaper'); }
 }
-/* ---- dark mode is announced in three dialects, because apps SNIFF for it ---------------
+/* ---- dark mode is announced in three dialects, because apps SNIFF for it ----
  *
- * A third-party app ships its own dark styles and has to guess whether the page is dark. There
- * is no standard for that, and a survey of what LuCI apps actually do turned up exactly three
- * dialects: an attribute on :root (`data-theme="dark"` — `luci-app-justclash` keys 21 rules off
- * it), Bootstrap's `data-bs-theme` (`luci-app-ssclash` reads it first), and, when neither is
- * present, the LUMINANCE of the body background (ssclash's fallback — the only one that needs no
- * cooperation from the theme, and the reason its editor chrome is right today).
+ * An app with its own dark styles has to guess whether the page is dark, and there is no standard:
+ * apps read `data-theme="dark"` on :root (luci-app-justclash keys 21 rules off it), Bootstrap's
+ * `data-bs-theme` (luci-app-ssclash), or, failing both, the LUMINANCE of the body background
+ * (ssclash's fallback). Stamp all three for the same fact: before this, every one of justclash's
+ * [data-theme="dark"] rules was dead, so a dark page rendered its LIGHT fills.
  *
- * We stamp all three names for the same fact. Measured on the router before this: every one of
- * justclash's `[data-theme="dark"]` rules was dead, so its LIGHT fills were what a dark page
- * rendered. The cost is two attributes; the alternative is every app that supports dark mode
- * looking broken under this theme and correct under the theme it was written against.
- *
- * `data-darkmode` remains the name the theme's OWN CSS keys off. The other two are OUTBOUND
- * compatibility — exactly like the `--*-color-*` export tier — and nothing inside `styles/` may
- * read them; `tools/axes.mjs` fails the build if it does. */
+ * `data-darkmode` is the name the theme's OWN CSS keys off. The other two are OUTBOUND
+ * compatibility, like the `--*-color-*` export tier: nothing in `styles/` may read them, and
+ * tools/axes.mjs fails the build if it does. */
 function stampDark(root, dark) {
 	root.setAttribute('data-darkmode', dark ? 'true' : 'false');
 	root.setAttribute('data-theme', dark ? 'dark' : 'light');
@@ -362,23 +288,22 @@ function applyMode(val) {
 	const dark = (val === 'dark') || (val === 'auto' && _mqDark.matches);
 	stampDark(root, dark);
 }
-/* "Auto" means "follow the OS" — but it only did so at page load, so an OS that
- * flips to dark on its own schedule left the open page in light until a reload. */
+/* "Auto" means follow the OS — it only did so at page load, so an OS flipping to dark on its
+ * own schedule left the open page in light until a reload. */
 _mqDark.addEventListener('change', () => {
 	if (currentMode() === 'auto') applyMode('auto');
 });
 function applyPalette(val) {
 	const root = document.documentElement;
-	/* footstrap (GitHub colours) is the default = bare :root, no attr; hicontrast is
-	 * the opt-in variant. Colourway blocks live in styles/03-palettes.css. */
+	/* footstrap (GitHub colours) is the default = bare :root, no attr; hicontrast is the
+	 * opt-in variant. Colourway blocks live in styles/03-palettes.css. */
 	if (val === 'hicontrast') { lsSet('fs-palette', 'hicontrast'); root.setAttribute('data-palette', 'hicontrast'); }
 	else { lsDel('fs-palette'); root.removeAttribute('data-palette'); }
 }
 
-/* Corner-radius axis: one base value (the card radius, 0–20px) set as an inline
- * --fs-radius-base on :root; styles/02-tokens derives the control/chip radii from
- * it so every surface rounds in step. Default 12 clears the override entirely.
- * head.ut pre-paints it before first paint (no reflow on load). */
+/* Corner-radius axis: one base value (the card radius, 0–20px) as an inline --fs-radius-base on
+ * :root; 02-tokens derives the control/chip radii from it so every surface rounds in step. The
+ * default (12) clears the override entirely. head.ut pre-paints it. */
 const FS_RADIUS_DEFAULT = 12;
 function currentRadius() {
 	const s = parseInt(lsGet('fs-radius'), 10);
@@ -391,39 +316,25 @@ function applyRadius(px) {
 	else { lsSet('fs-radius', String(v)); root.style.setProperty('--fs-radius-base', v + 'px'); }
 }
 
-/* Background-tint axis: ONE hue (0–360°) washed into the CANVAS the cards float on
- * (--fs-bg — the same surface the cats wallpaper tiles over), so a whole install
- * reads as green / violet / amber at a glance and you can tell which router the tab
- * (or the screenshot in a ticket) belongs to. Cards, chrome and the status colours
- * keep the palette's values — the cue colours the paper, not the UI. The tint itself
- * is done in CSS — :root[data-tint] + an inline --fs-tint-h; see the TINT block in
- * 03-palettes.css for why the mix is contrast-safe on every hue.
+/* Background-tint axis: ONE hue (0–360°) washed into the CANVAS the cards float on (--fs-bg), so a
+ * whole install reads as green/violet/amber and you can tell which router a tab — or a screenshot
+ * in a ticket — belongs to. Cards, chrome and the status colours keep the palette's values: the cue
+ * colours the paper, not the UI. Mixed in CSS (:root[data-tint] + an inline --fs-tint-h; the TINT
+ * block in 03-palettes.css explains why it stays contrast-safe on every hue). 0 IS "OFF", not
+ * "red": a hue wheel wraps, so one end of the slider is free for the off state a hue axis otherwise
+ * has no room for. head.ut pre-paints it.
  *
- * 0 IS "OFF", not "red": a hue wheel wraps, so 360 is the same red and nothing is
- * lost by spending one end of the slider on the off state — which a hue axis
- * otherwise has no room for (there is no "no colour" hue). Off clears the attribute
- * entirely, so an untinted router costs exactly the CSS the palette already had.
- * head.ut pre-paints it before first paint, so a reload doesn't flash the neutral
- * palette first. */
-/* ---- the HUE axis, written once --------------------------------------------------
+ * ---- the HUE axis, written once ----
+ * Tint and Accent are one axis pointed at two things: same 1–360 validation, same "0 is off", same
+ * off path, same load-bearing ORDERING rule — set the custom property BEFORE the attribute, or a
+ * fresh load paints one frame with the previous hue. That rule is exactly what gets fixed in one
+ * copy and not the other, so it lives here once.
  *
- * Tint and Accent are the same axis pointed at two different things, and they were written
- * out twice: same 1-360 validation, same "0 is off", same clamp, same removeAttribute +
- * removeProperty on the off path, and the same load-bearing ORDERING rule (set the custom
- * property BEFORE the attribute, or a fresh load paints one frame with the previous hue).
- * Three names differed; forty lines did not.
- *
- * That ordering rule is exactly the kind of thing that gets fixed in one copy and not the
- * other — so it now exists once. A third hue axis is three arguments away.
- *
- * The other seven Appearance axes are NOT folded in with them, and that is deliberate: each
- * has a real quirk that a table would have to grow an option for. `mode` stores a value that
- * is not the value it applies (tri-state → matchMedia) and owns an MQL listener; `radius`
- * sets an inline custom property with no attribute, and its default sits in the MIDDLE of the
- * range, so "clear the key" is not an end of the slider; `layout` reads the ATTRIBUTE rather
- * than localStorage (the server-migrated default) and writes its default explicitly; and
- * `autoCollapse`/`updateCheck` have no `:root` attribute at all and dispatch events instead.
- * Five short functions beat one table with five optional hooks. */
+ * The other seven axes stay separate; each has a quirk a shared table would need an option for.
+ * `mode` stores a value it does not apply (tri-state → matchMedia) and owns an MQL listener;
+ * `radius` sets an inline property with no attribute and its default sits MID-range, so "clear the
+ * key" is not an end of the slider; `layout` reads the ATTRIBUTE (the server-migrated default) and
+ * writes its default explicitly; `autoCollapse`/`updateCheck` have no :root attribute at all. */
 function hueAxis(key, attr, prop) {
 	return {
 		current() {
@@ -440,7 +351,7 @@ function hueAxis(key, attr, prop) {
 			} else {
 				lsSet(key, String(v));
 				/* the hue FIRST, then the attribute that switches the mixes on — the other
-				 * order paints one frame with the previous hue (or hue 0) on a fresh load. */
+				 * order paints one frame with the previous hue on a fresh load. */
 				root.style.setProperty(prop, String(v));
 				root.setAttribute(attr, '');
 			}
@@ -451,40 +362,24 @@ function hueAxis(key, attr, prop) {
 const TINT = hueAxis('fs-tint', 'data-tint', '--fs-tint-h');
 const currentTint = TINT.current, applyTint = TINT.apply;
 
-/* Accent-hue axis: ONE hue (0–360°) that recolours the UI accent — the solid buttons,
- * the toggle knobs, the range sliders, the focus rings, the accented links — while the
- * canvas, cards and status colours (good/warn/danger) stay put. Unlike the tint (which
- * hues the paper), this hues the CHROME. Done in CSS: :root[data-accent] rotates the
- * hue of --fs-accent/--fs-accent-lt via oklch(from … l c H), keeping the palette's
- * lightness and chroma so --fs-on-accent stays legible on every hue (03-palettes.css).
- *
- * 0 IS "OFF" (the palette's designed accent), same rationale as the tint: a hue wheel
- * wraps, so spending one end on the off state loses nothing, and off clears the
- * attribute so an un-recoloured router costs exactly the palette it already had.
- * head.ut pre-paints it, so a reload doesn't flash the default accent first. */
+/* Accent-hue axis: ONE hue that recolours the UI accent (solid buttons, toggle knobs, range
+ * sliders, focus rings, accented links) while canvas, cards and good/warn/danger stay put — the
+ * tint hues the paper, this hues the CHROME. CSS rotates --fs-accent/--fs-accent-lt via
+ * oklch(from … l c H), keeping the palette's lightness and chroma so --fs-on-accent stays legible
+ * on every hue (03-palettes.css). 0 = off (the palette's designed accent), same rationale as the
+ * tint. head.ut pre-paints it. */
 const ACCENT = hueAxis('fs-accent', 'data-accent', '--fs-accent-h');
 const currentAccent = ACCENT.current, applyAccent = ACCENT.apply;
 
-/* Layout axis: the vertical sidebar (default) vs the horizontal top bar. Both are
- * ONE template and ONE menu renderer now — the layout is a client class, morphed by
- * CSS keyed off :root[data-layout='top'] (head.ut pre-paints it, so no flash), the
- * same way dark-mode is. Toggling needs NO menu re-render: the DOM already serves
- * both, and the sidebar menu's MutationObserver on data-layout folds/restores the
- * accordion (menu-footstrap.js).
+/* Layout axis: vertical sidebar (default) vs horizontal top bar. ONE template, ONE renderer — CSS
+ * morphs the chrome off :root[data-layout] (head.ut pre-paints it), and toggling re-renders
+ * NOTHING: the DOM serves both, and menu-footstrap.js's MutationObserver on data-layout folds the
+ * accordion into dropdowns / restores it.
  *
- * currentLayout() reads the ATTRIBUTE, not localStorage, so the control reflects
- * what is actually painted — which for a router migrated from the old top-nav theme
- * is the SERVER default (luci.main.footstrap_layout=top, applied in head.ut) even
- * with no localStorage yet.
- *
- * applyLayout() is the one axis that writes its DEFAULT value EXPLICITLY instead of
- * clearing the key: a migrated router carries that server default, and lsDel would
- * let it re-assert 'top' on the next load. localStorage always wins over the server
- * default, so it must record the deliberate choice, not its absence. */
-/* head.ut stamps :root[data-layout] server-side and the pre-paint script overrides it
- * from localStorage, so the attribute always carries an explicit value. Read it — do
- * NOT read localStorage here, or a router whose default is 'top' (migrated from the
- * old top-nav theme) would report 'sidebar' until the user first touched the toggle. */
+ * Read the ATTRIBUTE, not localStorage: head.ut stamps it server-side and the pre-paint script
+ * overrides it from localStorage, so it always carries an explicit value. localStorage would report
+ * 'sidebar' on a router whose default is 'top' (migrated from the old top-nav theme) until the user
+ * first touched the toggle. */
 function currentLayout() {
 	return document.documentElement.getAttribute('data-layout') === 'top' ? 'top' : 'sidebar';
 }
@@ -493,21 +388,21 @@ function isTopLayout() {
 }
 function applyLayout(val) {
 	const layout = (val === 'top') ? 'top' : 'sidebar';
-	/* ALWAYS an explicit value, never a removed attribute: every layout rule matches
-	 * data-layout POSITIVELY (:root[data-layout='sidebar'] / ='top'), so that a future
-	 * third layout has to opt in to a rule rather than inherit it by not being 'top'.
-	 * head.ut stamps the same attribute server-side, so it is never absent. */
+	/* ALWAYS an explicit value, never a removed attribute: every layout rule matches data-layout
+	 * POSITIVELY (='sidebar' / ='top'), so a future third layout must opt in to a rule rather than
+	 * inherit it by not being 'top'. And this is the one axis that writes its DEFAULT explicitly
+	 * rather than clearing the key: a migrated router carries a server default that lsDel would let
+	 * re-assert 'top' on the next load, so localStorage must record the choice, not its absence. */
 	lsSet('fs-layout', layout);
 	document.documentElement.setAttribute('data-layout', layout);
-	/* the bar and the column have completely different room for the menu, so the
-	 * fits-on-one-row measurement has to be re-taken. Nothing else re-renders. */
+	/* the bar and the column have different room for the menu: re-take the fits-on-one-row
+	 * measurement. Nothing else re-renders. */
 	scheduleTabFit();
 }
 
-/* Sidebar accordion behaviour: with auto-collapse on, opening a section folds
- * every other one back (one open at a time); off (default, and the historical
- * behaviour) they stack. Only meaningful for the expanded sidebar — the rail
- * flyouts and the mobile bar are always exclusive. Read by menu-footstrap.js. */
+/* Sidebar accordion: auto-collapse on = one section open at a time; off (default) they stack.
+ * Only meaningful for the expanded sidebar — rail flyouts and the mobile bar are always
+ * exclusive. Read by menu-footstrap.js. */
 function currentAutoCollapse() {
 	return lsGet('fs-menu-autocollapse') === 'true';
 }
@@ -516,37 +411,28 @@ function applyAutoCollapse(val) {
 	if (on) lsSet('fs-menu-autocollapse', 'true');
 	else lsDel('fs-menu-autocollapse');
 
-	/* switching it on with several sections already unfolded would leave the
-	 * menu in a state the setting says is impossible — fold all but the active */
+	/* switching it on with several sections unfolded would leave the menu in a state the
+	 * setting says is impossible — fold all but the active */
 	if (on) {
 		document.querySelectorAll('#topmenu > li.open:not(.active)')
 			.forEach(li => li.classList.remove('open'));
 	}
 
-	/* This file can only reach the DOM. The sidebar layout owns two other pieces of
-	 * the same state — the remembered "Keep open" set (localStorage) and the
-	 * aria-expanded flag on each trigger — and neither is visible from here, so
-	 * folding the sections above left them behind: the next navigation re-rendered
-	 * the menu from the stale remembered set and unfolded everything again. Tell the
-	 * layout instead of reaching across into it. */
+	/* The menu owns two other pieces of this state — the remembered "keep open" set and each
+	 * trigger's aria-expanded — and neither is reachable from here, so folding the sections above
+	 * left them behind: the next navigation re-rendered from the stale set and unfolded everything
+	 * again. Tell the layout instead of reaching across into it. */
 	document.dispatchEvent(new CustomEvent('fs-autocollapse', { detail: { on } }));
 }
 
-/* ---------------------------------------------------------------------------
- * Disclosure primitives, shared by both layouts' menus.
- *
- * The sidebar and the top-nav render different markup, but a section header is
- * the SAME W3C-APG disclosure control in both: an <a role="button"> that owns a
- * panel it can show and hide. These three helpers used to be written out once per
- * menu file — and the copies had already drifted apart (only the sidebar's Escape
- * handler learnt to check flyout mode), which is the whole argument for hoisting
- * them here. What stays layout-specific is the SELECTOR, so each is a parameter.
- * ------------------------------------------------------------------------- */
+/* ---- disclosure primitives, shared by the menu ----
+ * A section header is a W3C-APG disclosure control: an <a role="button"> owning a panel it shows and
+ * hides. These lived once per menu file back when there were two, and the copies had already drifted
+ * (only one Escape handler learnt to check flyout mode). The trigger SELECTOR stays a parameter. */
 
-/* The `.open` class and aria-expanded must never disagree — `.open` alone told a
- * sighted user everything and a screen-reader user nothing — so every open and
- * close in both layouts goes through this one function. `linkSel` is the layout's
- * trigger: the sidebar's bare `:scope > a`, the top-nav's `:scope > a.menu`. */
+/* `.open` and aria-expanded must never disagree — `.open` alone told a sighted user everything and
+ * a screen-reader user nothing — so every open and close goes through this one function.
+ * `linkSel` is the layout's trigger (the menu's `:scope > a`). */
 function setOpen(li, on, linkSel) {
 	li.classList.toggle('open', on);
 	li.querySelector(linkSel)?.setAttribute('aria-expanded', on ? 'true' : 'false');
@@ -562,14 +448,10 @@ function wireSpaceKey(link) {
 	});
 }
 
-/* Dismissal, both ways round:
- *  - click outside the menu closes it;
- *  - WCAG 2.2 SC 1.4.13 (Content on Hover or Focus) — a panel revealed by hover or
- *    focus must be dismissible from the KEYBOARD, and the disclosure pattern wants
- *    focus handed back to the trigger that opened it.
- * `when` is what lets the sidebar restrict both to flyout mode, where its `.open`
- * means "popup panel" rather than "unfolded accordion" — closing an accordion
- * because the user clicked elsewhere on the page would be wrong. */
+/* Dismissal both ways: a click outside closes; and WCAG 2.2 SC 1.4.13 (Content on Hover or Focus)
+ * requires a hover/focus panel to be dismissible from the KEYBOARD, with focus handed back to the
+ * trigger. `when` restricts both to flyout mode, where `.open` means "popup panel" — closing an
+ * unfolded ACCORDION because the user clicked elsewhere on the page would be wrong. */
 function wireDismiss(opts) {
 	const active = () => (opts.when ? opts.when() : true);
 
@@ -589,11 +471,9 @@ function wireDismiss(opts) {
 }
 
 /* One segmented control; highlights the active option, calls onPick on change.
- *
- * `label` is not decoration: the visible caption is a sibling <div class="fs-ap-label">
- * that nothing associated with the control, and the selected option was carried by
- * a CSS class alone. A screen reader got an unnamed group of unrelated buttons with
- * no indication of which one was in effect. This is a radio group — say so. */
+ * `label` is not decoration: the visible caption is a sibling <div> nothing associated with the
+ * control, and the selection was carried by a CSS class alone — a screen reader got an unnamed
+ * group of unrelated buttons with no indication of which was in effect. It is a radio group. */
 function segControl(current, opts, onPick, label) {
 	const wrap = E('div', { 'class': 'fs-seg', 'role': 'radiogroup', 'aria-label': label || '' });
 	opts.forEach(o => {
@@ -618,13 +498,10 @@ function segControl(current, opts, onPick, label) {
 	return wrap;
 }
 
-/* A range slider with a live readout; onInput fires continuously as it drags.
- * Without the label and valuetext a screen reader announced a bare "slider, 12" —
- * no idea what it adjusts, and no unit.
- *
- * `opts.fmt` renders the value: it is what the READOUT says and what the screen
- * reader is told, so it is not cosmetic — the tint slider's `0` means "off", and a
- * reader announcing "0 degrees" would be announcing a hue that is not applied. */
+/* A range slider with a live readout; onInput fires continuously as it drags. Without the label
+ * and valuetext a screen reader announced a bare "slider, 12" — no unit, no idea what it adjusts.
+ * `opts.fmt` is what the READOUT says AND what the reader is told, so it is not cosmetic: the tint
+ * slider's 0 means "off", and announcing "0 degrees" would announce a hue that is not applied. */
 function sliderControl(current, min, max, onInput, label, opts) {
 	const o = opts || {};
 	const fmt = o.fmt || (v => v + 'px');
@@ -644,54 +521,41 @@ function sliderControl(current, min, max, onInput, label, opts) {
 	return E('div', { 'class': 'fs-rangewrap' }, [ input, out ]);
 }
 
-/* ---- SPA client router (variant C) ---------------------------------------
+/* ---- SPA client router ----
  *
- * Kills the full page reload for `view`-type menu nodes — measured on the dev router,
- * 54 of 74 menu leaves (~73%); the rest are `call`/`function`/`template`. LuCI
- * already renders every page client-side into #view (LuCI.view.__init__ →
- * load()→render()); only *navigation* is server-dispatched. So we intercept
- * link clicks, and instead of a full GET we re-instantiate the target view in
- * place — the exact thing the stock dispatcher's view.ut does via
- * ui.instantiateView(), minus the page reload.
+ * Kills the full page reload for `view`-type menu nodes — 54 of 74 menu leaves (~73%) on the dev
+ * router; the rest are call/function/template. LuCI already renders every page client-side into
+ * #view; only NAVIGATION is server-dispatched. So intercept link clicks and re-instantiate the
+ * target view in place — what the dispatcher's view.ut does via ui.instantiateView(), minus the
+ * reload. Purely additive: anything that is not a satisfied `view` node (call/function/template/
+ * alias/firstchild, external, download, cross-origin, modified click) or any error falls through to
+ * a normal navigation, and deep links / F5 keep working because we pushState the real URL.
  *
- * Safety: this is purely additive theme JS. Anything that is NOT a satisfied
- * `view` node (call/function/template/alias/firstchild, external links,
- * downloads, cross-origin, modified clicks) or any error falls through to a
- * normal browser navigation. Deep links / F5 keep working because we pushState
- * the real dispatcher URL. Other themes are unaffected.
- *
- * Re-instantiation detail: L.require('view.x') returns a cached *singleton*
- * whose __init__ (the render) already ran once, so calling it again won't
- * repaint. We instead grab the class off the instance (Class sets
- * prototype.constructor = the constructor) and `new v.constructor()` to run a
- * fresh __init__ → fresh load()+render() into #view — identical to a full load,
- * which always starts from a fresh instance anyway. See docs/14. */
+ * Re-instantiation: L.require('view.x') returns a cached SINGLETON whose __init__ (the render)
+ * already ran, so calling it again repaints nothing. Take the class off the instance
+ * (prototype.constructor) and `new v.constructor()` for a fresh __init__ → load()+render(), which is
+ * what a full load does anyway. docs/14. */
 
 let _tree = null, _renderMain = null, _wired = false;
-/* The pathname whose view is CURRENTLY rendered. The popstate handler compares against it to
- * tell a real navigation from a mere fragment change (an `<a href="#">` inside a view, which
- * Chrome delivers here as a popstate — see the note there). Seeded from the page we were
- * served, then kept in step by navigate(). */
+/* The pathname whose view is CURRENTLY rendered — popstate compares against it to tell a real
+ * navigation from a mere fragment change (see there). Seeded from the served page. */
 let _curPath = window.location.pathname;
-/* navigation generation token: two quick clicks race their async require()s, and
- * without this the FIRST view could render into #view after the second, leaving
- * stale content under the newer URL/title/chrome. Each committed navigation bumps
- * the generation; a resolved require whose generation is stale renders nothing. */
+/* nav generation token: two quick clicks race their async require()s, and without it the FIRST
+ * view could render into #view after the second, leaving stale content under the newer
+ * URL/title/chrome. A resolved require whose generation is stale renders nothing. */
 let _navGen = 0;
-/* the self-update poll chain reschedules itself with a raw setTimeout (only
- * setInterval is hooked above), so navigate() must be able to cancel it — or it
- * keeps firing fs.exec RPCs and can pop its modal onto an unrelated page. */
+/* the self-update poll chain reschedules with a raw setTimeout (only setInterval is hooked above),
+ * so navigate() must be able to cancel it — or it keeps firing fs.exec RPCs and can pop its modal
+ * onto an unrelated page. */
 let _updTimer = null;
-/* ...but clearing the timer is not enough on its own. If the user navigates while
- * an fs.exec('status') is ALREADY in flight (rpctimeout is 20 s, so that window is
- * wide), there is no timer to clear — and when the RPC resolves it schedules the
- * next tick and can throw its modal over whatever page the user is now looking at.
- * A generation token kills the chain at the point where it would resurrect itself. */
+/* ...and clearing the timer is not enough: if an fs.exec('status') is ALREADY in flight when the
+ * user navigates (rpctimeout is 20 s, so the window is wide) there is no timer to clear, and on
+ * resolve it reschedules the chain and throws its modal over the new page. The generation token
+ * kills the chain at the point where it would resurrect itself. */
 let _updGen = 0;
 
-/* rebuild mode menu + main menu + section tabs from the current L.env; called
- * on first load and after every SPA navigation. Clears the containers first so
- * a re-render doesn't stack duplicates. */
+/* rebuild mode menu + main menu + section tabs from the current L.env; on first load and after
+ * every SPA nav. Containers are cleared first so a re-render does not stack duplicates. */
 function renderChrome() {
 	const modemenu = document.querySelector('#modemenu');
 	const topmenu  = document.querySelector('#topmenu');
@@ -717,13 +581,10 @@ function renderChrome() {
 }
 
 /* /cgi-bin/luci/admin/status/overview -> ['admin','status','overview'].
- * The bare base (/cgi-bin/luci/, what dispatcher.build_url() emits for the brand
- * wordmark link) yields an EMPTY seg list, NOT null: it is a valid LuCI path — the
- * dispatcher's root node is itself a `firstchild`, so resolveSegs([]) walks
- * root -> admin -> status -> overview exactly as the server does on a full GET of
- * the base. Returning null here made navigate() treat the wordmark as un-routable
- * and fall back to a full page reload. null stays reserved for a path that is not
- * under LuCI's scriptname at all. */
+ * The bare base (what build_url() emits for the brand wordmark) yields an EMPTY seg list, NOT null:
+ * the dispatcher's root node is itself a `firstchild`, so resolveSegs([]) walks to the overview
+ * exactly as the server does — returning null made the wordmark un-routable and full-reload. null
+ * stays reserved for a path outside LuCI's scriptname. */
 function segsFromPath(pathname) {
 	const base = L.env.scriptname || '';
 	if (base && pathname.indexOf(base) !== 0)
@@ -742,37 +603,29 @@ function nodeForSegs(segs) {
 	return node;
 }
 
-/* ---- alias / firstchild resolution ---------------------------------------
+/* ---- alias / firstchild resolution ----
  *
- * 7 of the 27 links the menu renders are not pages but redirects: 4 `alias`
- * (Firewall, System Log, Realtime Graphs, and any app that groups its tabs that
- * way) and 3 `firstchild` (Administration, Terminal, Attended Sysupgrade). They
- * used to be the router's blind spot — viewClassFor() saw a non-`view` action and
- * fell through to a full page load, so the most-clicked entries in the whole menu
- * were the ones that still reloaded.
+ * 7 of the 27 menu links are redirects, not pages: 4 `alias` (Firewall, System Log, Realtime
+ * Graphs) and 3 `firstchild` (Administration, Terminal, Attended Sysupgrade) — i.e. the
+ * most-clicked entries were the ones still doing a full load.
  *
- * The server does not redirect them: a full GET of /admin/status/logs answers 200
- * at that URL and stamps the *resolved* leaf into requestpath/dispatchpath/nodespec
- * (verified against the live router), keeping `pathinfo` as the requested path. So
- * the client can do the same resolution — and must do it EXACTLY the way
- * dispatcher.uc does, or a click and an F5 on the same URL would open different
- * pages. Hence node_weight() and the firstchild rules below are ports, not
- * approximations. The one thing skipped is the ACL check: the menu tree the client
- * is handed by /admin/menu is already ACL-filtered for this session.
+ * The server does not redirect them: a full GET of /admin/status/logs answers 200 at that URL and
+ * stamps the RESOLVED leaf into requestpath/dispatchpath/nodespec, keeping `pathinfo` as requested.
+ * The client must resolve EXACTLY as dispatcher.uc does, or a click and an F5 on the same URL would
+ * open different pages — nodeWeight() and firstChildOf() are ports, not approximations. Only the
+ * ACL check is skipped: the tree from /admin/menu is already ACL-filtered for this session.
  *
- * `rewrite` is deliberately NOT followed. The tree has none, and a wrong guess at
- * its splice semantics would silently open the WRONG page — strictly worse than
- * the full load it would fall back to. */
+ * `rewrite` is deliberately NOT followed: the tree has none, and a wrong guess at its splice
+ * semantics would silently open the WRONG page — worse than the full load it falls back to. */
 
 /* node_weight() from dispatcher.uc: lower wins; a login node sorts last. */
 function nodeWeight(node) {
 	return Math.min(node.order ?? 9999, 9999) + (node.auth && node.auth.login ? 10000 : 0);
 }
 
-/* resolve_firstchild() from dispatcher.uc: the eligible child of lowest weight.
- * Ties go to the first in tree order (the comparison is strict, as upstream's is,
- * and JSON.parse preserves key order). A `firstchild` child is only eligible if it
- * resolves to something itself — recursively. */
+/* resolve_firstchild() from dispatcher.uc: the eligible child of lowest weight. Ties go to tree
+ * order (the comparison is strict, as upstream's is, and JSON.parse preserves key order). A
+ * `firstchild` child is eligible only if it resolves to something itself — recursively. */
 function firstChildOf(node) {
 	let bestName = null, best = null;
 	const kids = node.children || {};
@@ -793,10 +646,9 @@ function firstChildOf(node) {
 	return best ? { name: bestName, node: best } : null;
 }
 
-/* Follow alias/firstchild to the real page. Returns {segs, node} of the leaf the
- * dispatcher would have rendered, or null when nothing resolves (the server would
- * 404 — let it). The hop cap is a cycle guard: an alias loop in some app's menu.d
- * must not hang the UI. */
+/* Follow alias/firstchild to the real page: {segs, node} of the leaf the dispatcher would have
+ * rendered, or null when nothing resolves (the server would 404 — let it). The hop cap is a cycle
+ * guard: an alias loop in some app's menu.d must not hang the UI. */
 function resolveSegs(segs) {
 	let node = nodeForSegs(segs);
 	for (let hops = 0; node && node.action && hops < 8; hops++) {
@@ -816,10 +668,9 @@ function resolveSegs(segs) {
 	return null;
 }
 
-/* The view class a menu node instantiates, or null if the node isn't SPA-able.
- * Normal `view` nodes derive it from action.path; the Status→Overview `template`
- * node maps to view.status.index (its server template just instantiates that —
- * see ensureOverviewHelpers). Shared by navigate() and the hover prefetch. */
+/* The view class a menu node instantiates, or null if the node isn't SPA-able. The Status→Overview
+ * `template` node maps to view.status.index (its server template just instantiates that — see
+ * ensureOverviewHelpers). Shared by navigate() and the hover prefetch. */
 function viewClassFor(node) {
 	if (!node || !node.action || node.satisfied === false)
 		return null;
@@ -830,42 +681,34 @@ function viewClassFor(node) {
 	return null;
 }
 
-/* The view class the page CURRENTLY on screen wants — i.e. what _curPath resolves to.
- * Read by the stale-render repair below to tell "the superseded render happened to paint
- * the right view anyway" from "it painted the wrong one". */
+/* The view class the page CURRENTLY on screen wants (what _curPath resolves to). Read by the
+ * stale-render repair below to tell "the superseded render happened to paint the right view
+ * anyway" from "it painted the wrong one". */
 function currentViewClass() {
 	const segs = segsFromPath(_curPath);
 	const res = segs && resolveSegs(segs);
 	return viewClassFor(res && res.node);
 }
 
-/* ---- a superseded FIRST render cannot be cancelled, so undo it -----------------------
+/* ---- a superseded FIRST render cannot be cancelled, so undo it ----
  *
- * _navGen stops a stale require() from calling `new view.constructor()` — but that only
- * covers the CACHED path. On a FIRST visit the require() *is* the render (see the long note
- * in navigate()): LuCI's require constructs the view, and a view's __init__ runs
- * load() → render() → dom.content(#view) and registers its pollers. That construction is
- * already under way inside a promise we do not own; there is nothing to cancel.
+ * _navGen stops a stale require() from calling `new view.constructor()` — but only on the CACHED
+ * path. On a FIRST visit the require() IS the render (see navigate()): it constructs the view, whose
+ * __init__ runs load() → render() → dom.content(#view) and registers its pollers, inside a promise
+ * we do not own. Nothing to cancel.
  *
- * So the fast double-click is a real bug, not a theoretical one: click Firewall (uncached —
- * module fetch plus its load() RPCs, seconds on a slow router), then click Wireless 100 ms
- * later. navigate(Wireless) flushes L.Poll's queue BEFORE Firewall's poller is ever added.
- * Firewall's load() then resolves, paints into the #view that now belongs to Wireless, and
- * registers its poller — which the flush can no longer catch. The user is left with Wireless
- * in the URL, the title, the menu and body[data-page], Firewall's content on screen, and
- * Firewall's poller running on every page they visit afterwards. Returning quietly on a
- * stale generation left all of that standing.
+ * So the fast double-click is a real bug: click Firewall (uncached), click Wireless 100 ms later.
+ * navigate(Wireless) flushes L.Poll's queue BEFORE Firewall's poller is added; Firewall then paints
+ * into the #view that now belongs to Wireless and registers a poller the flush can no longer catch —
+ * leaving Wireless's URL/title/menu/data-page, Firewall's content, and Firewall's poller running on
+ * every page afterwards.
  *
- * Repair by re-running the navigation that is actually current: navigate() is exactly the
- * "put the document back the way a fresh load leaves it" routine — it flushes the poll
- * queue, kills stray intervals, hides stray modals and re-instantiates the view. push is
- * false: the URL never moved, only the DOM under it did. If it declines (the superseded view
- * injected CSS into <head>), the reload does the same job the hard way.
- *
- * The className check is what terminates this. If the superseded render painted the class the
- * current path wants anyway (click A → B → A while A was still loading), the DOM is correct
- * and its poller is the one this page needs — repairing would re-render for nothing, and with
- * two uncached views racing it is also what would let a repair trigger a repair. */
+ * Repair by re-running the current navigation: navigate() is exactly the "put the document back the
+ * way a fresh load leaves it" routine. push=false — the URL never moved, only the DOM under it; if
+ * it declines (the superseded view injected CSS), the reload does it the hard way. The className
+ * check terminates this: if the superseded render painted the class the current path wants anyway
+ * (A → B → A while A was still loading), the DOM and its poller are correct — and with two uncached
+ * views racing it is also what stops a repair triggering a repair. */
 function repairStaleRender(className) {
 	if (className === currentViewClass())
 		return;
@@ -874,22 +717,19 @@ function repairStaleRender(className) {
 		window.location.reload();
 }
 
-/* Build the exact URL LuCI.require() will fetch for a class name, cache-bust and
- * all (base_url/<dotted→slashed>.js?v=resource_version). Matching it byte-for-byte
- * is what makes a hover prefetch a warm cache hit for the subsequent require(). */
+/* The exact URL LuCI.require() will fetch for a class name, cache-bust and all. Matching it
+ * byte-for-byte is what makes a hover prefetch a warm cache hit for the later require(). */
 function moduleUrl(className) {
 	const v = L.env.resource_version ? ('?v=' + L.env.resource_version) : '';
 	return (L.env.base_url || '') + '/' + className.replace(/\./g, '/') + '.js' + v;
 }
 
-/* Hover prefetch: on pointerenter of a link to an SPA-able view, warm the browser
- * HTTP cache for its module JS with a plain fetch() — NOT require(): require would
- * run the class __init__ and render another page's view into #view. The later
- * click's require() then hits cache instead of the network (−10–40 ms LAN on the
- * first visit to a page, more on WAN/VPN). Deduped per class; failures are silent
- * (it's a pure optimisation). Static resource, so same-origin credentials are moot. */
-/* view classes this router has already required — i.e. the ones LuCI has an instance
- * cached for. A class NOT in here is rendered by the require() itself (see navigate). */
+/* Hover prefetch: warm the browser HTTP cache for a view's module JS with a plain fetch() — NOT
+ * require(), which would run the class __init__ and render another page's view into #view. The
+ * later click's require() then hits cache instead of the network (−10–40 ms LAN on a first visit,
+ * more over WAN/VPN). Deduped per class; failures are silent (it is a pure optimisation). */
+/* view classes already required, i.e. the ones LuCI has an instance cached for. A class NOT in
+ * here is rendered by the require() itself (see navigate). */
 const _seen = new Set();
 const _prefetched = new Set();
 function prefetchView(pathname) {
@@ -902,15 +742,11 @@ function prefetchView(pathname) {
 	try { fetch(moduleUrl(className), { credentials: 'same-origin' }).catch(() => {}); } catch (e) {}
 }
 
-/* Status→Overview is a `template` node whose server template (admin_status/index.ut)
- * defines 3 global helpers used by the stock status includes
- * (18_cpu/20_memory/25_storage/30_network …) and then instantiates
- * view.status.index. Reaching overview via SPA never runs that inline <script>,
- * so define the helpers here — idempotent, guarded so a prior full load's copies
- * are not clobbered. Bodies are verbatim from admin_status/index.ut, except
- * L.itemlist -> window.L.itemlist: itemlist lives on the augmented runtime
- * singleton, not the bare module-`L` this factory receives (the two-L trap,
- * docs/14). `E`/`String`/`.format` are true globals so they need no change. */
+/* Status→Overview is a `template` node whose server template (admin_status/index.ut) defines 3
+ * globals the stock status includes use (18_cpu/20_memory/25_storage/…) and then instantiates
+ * view.status.index. Arriving by SPA never runs that inline <script>, so define them here — guarded,
+ * so a prior full load's copies are not clobbered. Bodies are verbatim from upstream except
+ * L.itemlist → window.L.itemlist (the two-L trap, docs/14). */
 function ensureOverviewHelpers() {
 	/* eslint-disable no-var -- these three bodies are copied VERBATIM from LuCI's
 	   admin_status/index.ut so they can be diffed against upstream when it changes.
@@ -949,67 +785,31 @@ function ensureOverviewHelpers() {
 	/* eslint-enable no-var */
 }
 
-/* ---- a view's injected CSS: never DELETE it, and leave a poisoned document by a real load ----
+/* ---- a view's injected CSS: never DELETE it; leave a poisoned document by a real load ----
  *
- * A view may inject a <style> into <head> at render time. On a full page load that stylesheet is
- * discarded with the document, so it only ever affects the page that asked for it. Our SPA nav
- * never reloads, so it stays in <head> and goes on restyling every page visited afterwards.
+ * A view's <style> dies with the document on a full load; SPA nav never reloads, so it restyles
+ * every page after. `luci-app-filemanager` injects `.cbi-button-apply, .cbi-button-reset,
+ * .cbi-button-save:not(.custom-save-button) { display: none !important }` — unlayered + important,
+ * outranking every cascade layer: one visit and Save/Reset are gone from every config page.
  *
- * That is not cosmetic. `luci-app-filemanager` injects
- *     .cbi-button-apply, .cbi-button-reset, .cbi-button-save:not(.custom-save-button)
- *         { display: none !important }
- * (it hides the stock buttons because it has its own), and being UNLAYERED with !important it
- * outranks every cascade layer. Measured on the router: open the file manager once, then go to
- * System → Save and Reset are GONE, and stay gone until a full reload. Any config page touched
- * after visiting that app is unsavable.
+ * But DELETING them on nav broke SSClash. A poller can be re-registered by re-rendering the view;
+ * a stylesheet only returns if its injector runs AGAIN, and a library importing CSS at MODULE EVAL
+ * never will (module cached for the life of the document). ACE's ace_editor.css (14 KB of
+ * absolutely-positioned layers, gutter, line boxes) is imported once — after the sweep, navigating
+ * back to its editor gave a black rectangle 2 007 346 px tall. Deletion was silently one-way.
  *
- * The router used to answer that by DELETING every injected <style> on nav, alongside the
- * outgoing view's pollers, its stray setIntervals and its open modals. **Deleting CSS does not
- * belong in that family**, and the difference is what broke SSClash. A poller can always be
- * re-registered by re-rendering the view; a stylesheet only comes back if whoever injected it
- * injects it AGAIN — and a library that imports its CSS at MODULE EVAL never will, because its
- * module is cached for the life of the document. ACE is exactly that: `ace_editor.css` (14 KB —
- * the absolutely-positioned layers, the gutter, the line boxes) is imported once per document,
- * while its THEME and MODE sheets ride along with the per-editor lazy-loaded files and do come
- * back. Measured: open SSClash → Configuration, SPA-nav to Log and back, and the editor is a
- * black rectangle with no text — the theme repainted it, the structure never returned — and the
- * unpositioned layers blow the page out to 2 007 346 px tall. Deletion was silently one-way.
+ * So: a sheet matching only its OWN app's widgets (`.ace_*`, `.cpu-status-view-mode-entry`) is
+ * inert elsewhere — LEAVE it. One reaching into the widget universe the THEME styles
+ * (`.cbi-button-save`, `pre`, `:root`) can repaint any page: that document is spent, so refuse to
+ * hand it to another view and fall back to a REAL page load — speed traded, never correctness, and
+ * the fresh document carries no view CSS, so SPA nav resumes right after.
  *
- * So the sweep is gone. Two facts decide what replaces it:
- *
- *  1. A sheet that can only match its OWN app's widgets is inert everywhere else. Ace's four
- *     sheets name nothing but `.ace_*` (and `[ace_nocontext]`); the stock overview's CPU include
- *     names `.cpu-status-view-mode-entry`. Left in <head> they restyle exactly nothing on the
- *     next page — so leave them, and ace keeps working across SPA navs.
- *  2. A sheet that reaches into the widget universe the THEME itself styles (`.cbi-button-save`,
- *     `pre`, `:root`, …) can repaint any page — and, being unlayered, outranks every layer. That
- *     document is spent. We cannot delete our way out of it (fact 1's libraries would die), so we
- *     leave it standing and refuse to hand it to another view: the nav falls back to a REAL page
- *     load. The outgoing app keeps the CSS it is still using, the incoming page starts from a
- *     clean document, and the cost is one ordinary navigation — exactly what stock LuCI does on
- *     every link, on every theme. Speed is traded, never correctness, and only on pages that
- *     inject invasively.
- *
- * `invasiveSheet()` is that test, and its universe is not a hand-written list of names: it is
- * read back from cascade.css itself (same-origin, so `cssRules` is readable), so it tracks the
- * theme instead of drifting from it. Two shapes count as invasive — a selector naming a class or
- * id the theme styles, and a selector with no class/id/attribute at all (`pre`, `*`, `:root`),
- * which matches stock markup by construction. Everything else is namespaced to its author.
- * Measured on the router: 0.3 ms per nav, and it correctly splits ace + the CPU include (kept)
- * from the file manager's blob (real load).
- *
- * WHAT IS EXEMPT, and why:
- *  - `[data-fs-shell]` — the ONE <style> the server emits (partials/head.ut). It belongs to the
- *    document, not to a view. Marked server-side rather than guessed at.
- *  - anything inside `#view` — dies with the content swap on its own; it can never outlive the
- *    view, so it can never poison another page.
- *  - LuCI core injects no <style> at runtime at all (checked: luci.js, ui.js, cbi.js), so every
- *    other one in the document came from a view.
- * Self-healing: the full load produces a document with no view CSS in it, so SPA nav resumes
- * immediately after. One slow navigation per poisoned page, not a mode the session gets stuck in.
- *
- * If cascade.css cannot be read at all (no universe), every view sheet counts as invasive — the
- * conservative answer is the slow one, never the broken one. */
+ * `invasiveSheet()` is that test; its universe is read back from cascade.css itself (same-origin,
+ * so `cssRules` is readable) rather than a hand-written list, so it tracks the theme. 0.3 ms per
+ * nav. Exempt: `[data-fs-shell]` (the one <style> the server emits — marked, not guessed at) and
+ * anything inside `#view` (dies with the content swap); LuCI core injects no <style> at runtime at
+ * all (checked: luci.js, ui.js, cbi.js). If cascade.css cannot be read, EVERY view sheet counts as
+ * invasive: fail to the slow path, never the broken one. */
 let _themeNames = null;
 
 function themeNames() {
@@ -1033,23 +833,16 @@ function themeNames() {
 	return _themeNames;
 }
 
-/* A rule whose SELECTOR is bare (`:root`, `pre`, `*`) still cannot touch us if none of its
- * DECLARATIONS can: a custom property this theme never reads is inert — it sits in the cascade
- * doing nothing but waiting for the app's own CSS to `var()` it.
+/* A rule with a bare SELECTOR (`:root`, `pre`, `*`) still cannot touch us if none of its
+ * DECLARATIONS can: a custom property this theme never reads is inert. That is the difference
+ * between an app costing a full page load and not — `luci-app-temp-status` opens with
+ * `:root { --app-temp-status-temp: #147aff; … }`, and both it and the file manager's hex editor
+ * would otherwise read as "document spent" on the strength of the selector alone.
  *
- * This is not a nicety, it is the difference between an app costing a full page load and not.
- * `luci-app-temp-status` (top-30 by stars) opens with `:root { --app-temp-status-temp: #147aff; … }`,
- * and `luci-app-filemanager`'s hex editor with `:root { --clr-background: … }` — namespaced, inert,
- * and both would otherwise have been read as "this document is spent" on the strength of the
- * selector alone.
- *
- * What still counts as invasive here, and why each is right:
- *  - any STANDARD property on a bare selector — `:root { color-scheme: light dark }` is exactly what
- *    the stock file manager writes, and it re-points every UA widget in the document at the OS
- *    preference instead of the theme's mode;
- *  - a custom property the THEME reads — the whole point of the private `--fs-*` tier is that an app
- *    writing `--accent` or `--radius` on `:root` cannot repaint us, and the check has to keep it
- *    that way for the names we DO read. */
+ * Still invasive: any STANDARD property on a bare selector (the stock file manager writes
+ * `:root { color-scheme: light dark }`, re-pointing every UA widget at the OS preference), and any
+ * custom property the THEME reads — the point of the private `--fs-*` tier is that an app writing
+ * `--accent`/`--radius` on `:root` cannot repaint us, and this must keep it so for names we read. */
 function inertDeclarations(rule, props) {
 	const st = rule.style;
 	if (!st || !st.length) return false;	/* no declarations to judge -> judge by selector */
@@ -1061,10 +854,8 @@ function inertDeclarations(rule, props) {
 	return true;
 }
 
-/* true when this sheet can repaint a page that is not its own.
- *
- * A <link> whose sheet is not readable — still loading, 404, cross-origin — is invasive by
- * default: unknown CSS is treated as the dangerous kind, so the fallback is the slow path and
+/* true when this sheet can repaint a page that is not its own. A sheet that is not readable —
+ * still loading, 404, cross-origin — is invasive by default: unknown CSS takes the slow path,
  * never the broken one. */
 function invasiveSheet(el, universe) {
 	let sheet;
@@ -1088,17 +879,15 @@ function invasiveSheet(el, universe) {
 						invasive = true;
 						return;
 					}
-					/* A rule may name a stock widget and still be harmless, if it can only ever
+					/* A rule may name a stock widget and still be harmless if it can only ever
 					 * MATCH inside the app's own markup: `#cbi-podkop-section > .cbi-section-remove`
-					 * needs podkop's section to exist, and `.bandix-table th.sortable.active` needs
-					 * bandix's table. What decides it is whether the selector carries any name the
-					 * theme does NOT know — that name is the app's, and it is what pins the rule to
-					 * the app's subtree. A selector made ENTIRELY of stock names has nothing pinning
-					 * it, and matches the same widgets on every other page.
+					 * needs podkop's section to exist. What pins it there is a name the theme does
+					 * NOT know — the app's own. A selector made ENTIRELY of stock names has nothing
+					 * pinning it, and matches the same widgets on every other page.
 					 *
 					 * Functional pseudo-class arguments are stripped before looking for that pin,
 					 * and that is the whole difference between podkop and the file manager:
-					 * `.cbi-button-save:not(.custom-save-button)` mentions an app class too, but
+					 * `.cbi-button-save:not(.custom-save-button)` names an app class too, but
 					 * inside a NEGATION — it does not require the app's markup, it excludes it. */
 					const themeHit = (p.match(/[.#][A-Za-z_][\w-]*/g) || []).some((n) => names.has(n));
 					if (!themeHit) continue;
@@ -1114,11 +903,10 @@ function invasiveSheet(el, universe) {
 	return invasive;
 }
 
-/* Both element kinds count, and the <link> half is not hypothetical: `luci-app-banip` and
+/* Both element kinds count; the <link> half is not hypothetical: `luci-app-banip` and
  * `luci-app-adblock` append `<link rel=stylesheet href=…/custom.css>` to <head> at MODULE EVAL,
- * and that file styles `.cbi-input-text` / `.cbi-input-select` — stock widgets, on every page,
- * unlayered. A <link> INSIDE the view tree is a different thing and needs no handling
- * (`luci-app-nlbwmon` does that): it dies with the content swap like any other node. */
+ * and it styles `.cbi-input-text`/`.cbi-input-select` — stock widgets, every page, unlayered. A
+ * <link> INSIDE the view tree (`luci-app-nlbwmon`) needs no handling: it dies with the swap. */
 const VIEW_SHEETS = 'style:not([data-fs-shell]), link[rel~="stylesheet"]:not([data-fs-shell])';
 
 function documentPoisoned() {
@@ -1128,20 +916,15 @@ function documentPoisoned() {
 		(el) => !el.closest('#view') && (!names || invasiveSheet(el, names)));
 }
 
-/* ---- the one thing that IS safe to remove: a byte-identical second copy ----------------
+/* ---- the one thing that IS safe to remove: a byte-identical second copy ----
  *
- * Not deleting view CSS has a cost, and an app that injects on EVERY render is where it shows:
- * `luci-app-podkop` calls injectGlobalStyles() from its render() (a 4 KB blob appended to <head>
- * with no guard), and `luci-app-mosdns` re-appends three CodeMirror <link>s the same way. Each
- * SPA re-visit adds another copy, and the copies never stop being parsed.
- *
- * Dropping an EXACT duplicate is the one deletion that cannot break anyone, and for the reason
- * the sweep failed: the rules do not go away. The surviving copy is byte-identical, so the
- * cascade is unchanged (two identical sheets resolve to the same computed value as one), and a
- * library's "have I already imported this?" check — the thing ACE's structural CSS died on —
- * still finds its sheet in the document.
- *
- * Keep the FIRST copy, not the last: it is the one already matched by any handle the app kept. */
+ * Not deleting view CSS costs where an app injects on EVERY render: `luci-app-podkop` calls
+ * injectGlobalStyles() from render() (4 KB, no guard) and `luci-app-mosdns` re-appends three
+ * CodeMirror <link>s, so every SPA re-visit adds a copy that never stops being parsed. Dropping an
+ * EXACT duplicate cannot break anyone, for the reason the sweep failed: the rules do not go away —
+ * the surviving copy is byte-identical, and a library's "have I already imported this?" check (what
+ * ACE died on) still finds its sheet. Keep the FIRST copy: it is what any handle the app kept
+ * points at. */
 function dedupeViewSheets() {
 	const seen = new Set();
 	document.querySelectorAll(VIEW_SHEETS).forEach((el) => {
@@ -1152,13 +935,11 @@ function dedupeViewSheets() {
 	});
 }
 
-/* Watch <head> rather than deduping on navigation, because the copy arrives too late to catch
- * otherwise: podkop injects from its render(), which resolves AFTER the router's require() callback
- * (measured — a nav-time sweep left the document permanently carrying one stale duplicate, bounded
- * but never zero). The observer collapses the copy in the same microtask it appears in.
- *
- * It cannot loop: removing a node produces a mutation with no ADDED nodes, and the handler bails
- * unless a stylesheet was added. */
+/* Watch <head> rather than deduping on navigation: the copy arrives too late otherwise — podkop
+ * injects from its render(), which resolves AFTER the router's require() callback, so a nav-time
+ * sweep left the document permanently carrying one stale duplicate (bounded, never zero). The
+ * observer collapses the copy in the microtask it appears in. It cannot loop: a removal produces a
+ * mutation with no ADDED nodes, and the handler bails unless a stylesheet was added. */
 function watchViewSheets() {
 	new MutationObserver((muts) => {
 		for (const m of muts)
@@ -1181,11 +962,10 @@ function navigate(pathname, push) {
 	 * the only exit that leaves BOTH pages correct is a real navigation. See invasiveSheet(). */
 	if (documentPoisoned()) return false;
 
-	/* `segs` is what the user clicked, `rsegs` the leaf it resolves to — the two
-	 * differ for an alias/firstchild link, and a full load keeps BOTH: the URL and
-	 * pathinfo stay as requested while requestpath/dispatchpath/nodespec/title carry
-	 * the resolved leaf. Mirror that split exactly; collapsing it either way would
-	 * make an F5 land somewhere the click did not. */
+	/* `segs` is what the user clicked, `rsegs` the leaf it resolves to; they differ for an
+	 * alias/firstchild link, and a full load keeps BOTH — URL and pathinfo as requested,
+	 * requestpath/dispatchpath/nodespec/title resolved. Mirror that split exactly, or an F5
+	 * lands somewhere the click did not. */
 	const res = resolveSegs(segs);
 	const node = res && res.node;
 	const className = viewClassFor(node);
@@ -1197,20 +977,12 @@ function navigate(pathname, push) {
 	const gen = ++_navGen;
 	_curPath = pathname;	/* what is on screen from now on — read by the popstate handler */
 
-	/* Ensure a #view container, and clear whatever the OUTGOING page left as a
-	 * SIBLING of #view inside .fs-content.
-	 *
-	 * LuCI.view repaints #view via dom.content(), which only replaces #view's OWN
-	 * children — anything a page emitted next to #view rides along untouched. The
-	 * Status→Overview `template` node emits <h2 name="content">Status</h2> right
-	 * there in .fs-content (footstrap hides it on the overview via a
-	 * body[data-page='admin-status-overview'] rule, since the chrome already shows
-	 * the title). SPA-navigating away changes data-page, so that rule stops matching
-	 * and the orphaned heading became visible on EVERY page until a full reload — the
-	 * "Status on all pages" bug. Sweep those strays on every nav, keeping only the
-	 * chrome that legitimately outlives a page: the section tabs, server notices and
-	 * <noscript>. This also serves the original purpose — a `cbi`/other template page
-	 * that emits no #view of its own gets a fresh one injected into the cleared host. */
+	/* Ensure a #view, and clear what the OUTGOING page left as a SIBLING of #view inside .fs-content:
+	 * dom.content() replaces only #view's OWN children, so anything a page emitted next to it rides
+	 * along — the Status→Overview template emits <h2 name="content">Status</h2> there, hidden only
+	 * by a body[data-page='admin-status-overview'] rule, so after an SPA nav the orphan showed on
+	 * EVERY page until a full reload. Keep only the chrome that legitimately outlives a page (tabs,
+	 * server notices, <noscript>); this also gives a template page that emits no #view a fresh one. */
 	const contentHost = document.querySelector('.fs-content');
 	if (!contentHost) return false;
 	Array.from(contentHost.children).forEach(c => {
@@ -1224,73 +996,55 @@ function navigate(pathname, push) {
 		contentHost.appendChild(v);
 	}
 
-	/* teardown: drop the outgoing view's pollers so they stop hitting detached DOM /
-	 * wasting RPCs, then put the poll loop back into the state a FRESH PAGE LOAD leaves
-	 * it in. The only non-view poller LuCI adds is the transient apply/reboot
+	/* teardown: drop the outgoing view's pollers, then put the poll loop back into the state a FRESH
+	 * LOAD leaves it in. The only non-view poller LuCI adds is the transient apply/reboot
 	 * reachability check, so flushing the queue is safe.
 	 *
-	 * Why the re-arm matters: LuCI runs one 1 s tick and `step()` fires a queue entry
-	 * only when `tick % interval == 0`. Simply leaving the OUTGOING page's tick running
-	 * (what this router used to do) makes the incoming view's poller wait for the next
-	 * multiple of its interval — up to `pollinterval`, 5 s. Wireless draws its station
-	 * list from the first poll, so it sat spinning for 4950 ms against ~360 ms on a full
-	 * load; every poll-fed section lagged the same way.
+	 * The re-arm matters: LuCI runs one 1 s tick and fires a queue entry only when
+	 * `tick % interval == 0`, so leaving the OUTGOING page's tick running makes the incoming poller
+	 * wait for the next multiple of its interval — up to `pollinterval`, 5 s. Wireless draws its
+	 * station list from the first poll and sat spinning for 4950 ms against ~360 ms on a full load.
 	 *
-	 * stop() alone is NOT the fix: it deletes `tick`, and Poll.add() only auto-starts
-	 * when `tick != null`, so the incoming pollers would never start at all. stop() then
-	 * start() on an EMPTY queue leaves exactly what a fresh document has when its view is
-	 * about to render — `tick = 0`, no timer armed. The view's first poll.add() then sees
-	 * `tick != null && !active()`, calls start() itself, and start() steps immediately.
-	 * That is not a shortcut around upstream: it is upstream. On a full load initDOM()
-	 * runs Poll.start() on an empty queue before the view renders, and the view's own
-	 * poll.add() is what arms the timer and takes the first step. */
+	 * stop() alone is NOT the fix: it deletes `tick`, and Poll.add() only auto-starts when
+	 * `tick != null`, so the incoming pollers would never start at all. stop()+start() on an EMPTY
+	 * queue leaves what a fresh document has (`tick = 0`, no timer armed); the view's first
+	 * poll.add() then starts it and steps immediately — upstream's own sequence, since on a full
+	 * load initDOM() runs Poll.start() on an empty queue before the view renders. */
 	if (L.Poll && L.Poll.queue) {
 		L.Poll.queue.length = 0;
 		L.Poll.stop();
 		L.Poll.start();
 	}
-	/* also kill the outgoing view's plain setInterval pollers (e.g. podkop's log
-	 * tailer) — a full load would have; the SPA must do it explicitly. Keeps
-	 * L.Poll's own tick alive. */
+	/* kill the outgoing view's plain setInterval pollers too (podkop's log tailer) — a full load
+	 * would have. L.Poll's own tick survives. */
 	clearViewIntervals();
 	if (_updTimer) { window.clearTimeout(_updTimer); _updTimer = null; }
 	_updGen++;	/* and disown any fs.exec already in flight (see _updGen) */
 	try { if (typeof ui.hideModal == 'function') ui.hideModal(); } catch (e) {}
 
-	/* point the runtime env at the new node so views, tabs and highlighting read
-	 * the right path. For a fully-matched leaf, request == dispatch path. */
+	/* point the runtime env at the new node so views, tabs and highlighting read the right
+	 * path. For a fully-matched leaf, request == dispatch path. */
 	L.env.requestpath  = rsegs.slice();
 	L.env.dispatchpath = rsegs.slice();
 	L.env.pathinfo     = '/' + segs.join('/');
 	/* `readonly` is not decoration: luci.js implements hasViewPermission() as
-	 * `!env.nodespec.readonly`, and the dispatcher stamps it on every node an ACL
-	 * grants read-but-not-write. Views (network/interfaces, wireless, the package
-	 * manager) and luci.js's own Save/Apply footer key their disabled state off it.
-	 * Dropping it here handed a read-only user LIVE Save/Apply buttons the moment
-	 * they arrived by SPA nav, where a full page load had correctly disabled them. */
+	 * `!env.nodespec.readonly`, and views (network/interfaces, wireless, the package manager)
+	 * plus luci.js's Save/Apply footer key their disabled state off it. Dropping it handed a
+	 * read-only user LIVE Save/Apply buttons on an SPA nav, where a full load disabled them. */
 	L.env.nodespec     = { satisfied: true, action: node.action, title: node.title,
 	                       depends: node.depends, readonly: node.readonly };
 
-	/* Keep <body data-page> in sync with the route. The server template stamps the
-	 * dispatch path (`ctx.path`) on every full load, and LuCI's
-	 * page-scoped CSS (and any per-page hook) keys off it. `rsegs` is the resolved
-	 * leaf path, so the two agree — which is the point: a firstchild URL
-	 * like /admin/status must produce the same "admin-status-overview" whether it
-	 * arrives as a full load or as a client-side nav. A SPA nav swaps the
-	 * view without reloading, so — like requestpath/dispatchpath/title above —
-	 * the router must re-stamp it, or the incoming page keeps the previous page's
-	 * data-page and its scoped styles silently don't apply. This is route-state
-	 * sync the router already owns, not a per-page patch: it fixes every
-	 * body[data-page=…] rule at once. */
+	/* Keep <body data-page> in sync with the route: the server stamps the dispatch path
+	 * (`ctx.path`) on every full load, and page-scoped CSS keys off it. `rsegs` is the RESOLVED
+	 * leaf, so a firstchild URL like /admin/status yields the same "admin-status-overview" whether
+	 * it arrives as a full load or a client nav. Without the re-stamp the incoming page keeps the
+	 * previous page's data-page and its scoped styles silently do not apply. */
 	document.body.setAttribute('data-page', rsegs.join('-'));
 
-	/* A re-navigation to the page already on screen must REPLACE its history entry, not
-	 * push a second one. Clicking the active menu item (or the brand, from the overview)
-	 * is a perfectly ordinary thing to do, and pushing a duplicate entry makes the Back
-	 * button do nothing: popstate fires, `location.pathname === _curPath`, and the
-	 * fragment-change guard below correctly returns without navigating — so the user is
-	 * left pressing Back once per stray click before anything moves. A full page load has
-	 * no such trap: re-visiting the same URL is one entry, not two. */
+	/* Re-navigating to the page already on screen must REPLACE its history entry, not push a
+	 * second one. Clicking the active menu item is ordinary, and a duplicate entry makes Back do
+	 * nothing: popstate fires, `location.pathname === _curPath`, and the fragment guard below
+	 * correctly returns — one dead Back press per stray click. A full load has no such trap. */
 	if (push)
 		history[pathname === window.location.pathname ? 'replaceState' : 'pushState']({ fsnav: true }, '', pathname);
 
@@ -1303,59 +1057,37 @@ function navigate(pathname, push) {
 
 	renderChrome();
 
-	/* a full load starts at the top; the in-place swap must too — without this,
-	 * navigating away from a long page opens the next one mid-scroll. popstate
-	 * replays (push=false) keep the browser's own scroll handling. */
+	/* a full load starts at the top; the in-place swap must too, or navigating away from a long
+	 * page opens the next one mid-scroll. popstate replays keep the browser's scroll handling. */
 	if (push)
 		window.scrollTo(0, 0);
 
-	/* ---- what a full page load does for a keyboard/screen-reader user, and the SPA did not
-	 *
-	 * A real navigation resets focus to the top of the new document and the browser announces
-	 * it. Neither happens here, and it is worse than merely missing: renderChrome() above has
-	 * just done `#topmenu.innerHTML = ''`, so the very <a> the user activated with Enter no
-	 * longer exists. Focus falls back to <body>, the next Tab restarts at the skip link, and
-	 * nothing anywhere says the page changed — the URL, the title and #view all moved in
-	 * silence. A sighted mouse user never notices; for everyone else the page simply stops
-	 * being navigable.
-	 *
-	 * So do what the browser would: put focus on the <main> (it already carries tabindex="-1"
-	 * for the skip link, and #maincontent:focus is already outline-less, so this is visible to
-	 * nobody who was not already keyboarding), and speak the new title through the polite live
-	 * region in header.ut. preventScroll because the scroll position is decided just above —
-	 * focus() would otherwise drag a popstate replay back to the top and undo the browser's
-	 * own restoration. */
+	/* ---- what a full load does for a keyboard/screen-reader user, and the SPA did not ----
+	 * renderChrome() has just done `#topmenu.innerHTML = ''`, so the very <a> the user activated with
+	 * Enter no longer exists: focus falls back to <body>, the next Tab restarts at the skip link, and
+	 * nothing says the page changed — URL, title and #view all moved in silence. So do what a real
+	 * navigation would: focus <main> (already tabindex="-1" for the skip link, and outline-less on
+	 * :focus) and speak the new title through header.ut's polite live region. preventScroll because
+	 * the scroll position is decided just above — focus() would otherwise drag a popstate replay back
+	 * to the top and undo the browser's own restoration. */
 	const main = document.getElementById('maincontent');
 	if (main) main.focus({ preventScroll: true });
 	const live = document.getElementById('fs-nav-status');
 	if (live) live.textContent = node.title ? _(node.title) : '';
 
-	/* Require + instantiate through the runtime singleton `window.L`, NOT the
-	 * bare `L` a LuCI module factory is handed. They are different objects: the
-	 * dispatcher builds `window.L = new LuCI()` and the `ui` module augments *that*
-	 * instance with helper methods (itemlist/showModal/…), whereas a module's `L`
-	 * param is the un-augmented base. A required module captures whichever `L` did
-	 * the require(), so a view required via the bare `L` throws "L.itemlist is not
-	 * a function" mid-render. `env`/`Poll` are shared (prototype/singleton) so the
-	 * mutations above are fine on either; only the require target must be window.L.
-	 * See docs/14.
+	/* Require through the runtime singleton `window.L`, NOT the bare `L` a module factory is handed:
+	 * the dispatcher builds `window.L = new LuCI()` and `ui` augments THAT instance with
+	 * itemlist/showModal/…, so a view required via the bare `L` throws "L.itemlist is not a
+	 * function" mid-render (the two-L trap, docs/14). require/instanceof errors fall back to a real
+	 * navigation; render-time errors are handled inside LuCI.view, as on a full load.
 	 *
-	 * require/instanceof errors fall back to a real navigation; render-time errors are
-	 * handled inside LuCI.view (shows the stock error), same as a full load.
-	 *
-	 * WHEN to re-instantiate is the subtle part, and getting it wrong cost this router
-	 * a duplicate render on every first visit to a page. LuCI's require() does not hand
-	 * back a class — it caches an INSTANCE, so `require('view.x')` on a class not seen
-	 * before CONSTRUCTS it, and a view's __init__ *is* its render. (That is the whole of
-	 * ui.instantiateView(): require the view and you have rendered it.) So on a first
-	 * visit the require already painted the page, and the `new view.constructor()` that
-	 * followed painted it a SECOND time — two renders, and two pollers registered for the
-	 * same page, doubling its RPCs for as long as the user stayed. Only on a REVISIT does
-	 * require() return the cached singleton whose __init__ already ran, and only then does
-	 * a fresh instance have to be built to re-run it.
-	 *
-	 * `_seen` is that distinction, and it must be read BEFORE the require resolves, since
-	 * the require is what fills LuCI's cache. */
+	 * WHEN to re-instantiate is the subtle part. require() does not hand back a class — it caches an
+	 * INSTANCE, so requiring a class not seen before CONSTRUCTS it, and a view's __init__ IS its
+	 * render. On a first visit the require has therefore already painted the page, and a
+	 * `new view.constructor()` after it painted a SECOND time — two renders, two pollers, double
+	 * RPCs for as long as the user stayed. Only on a REVISIT does require() return the cached
+	 * singleton whose __init__ already ran. `_seen` is that distinction, and it must be read BEFORE
+	 * the require resolves, since the require is what fills LuCI's cache. */
 	if (className === 'view.status.index')
 		ensureOverviewHelpers();
 
@@ -1366,11 +1098,10 @@ function navigate(pathname, push) {
 		if (!(view instanceof RT.view))
 			throw new TypeError('Loaded class ' + className + ' is not a view');
 		if (gen !== _navGen) {
-			/* A newer navigation superseded this one. On the CACHED path nothing has
-			 * happened yet — skipping the constructor below is the whole cancellation.
-			 * On the FIRST-visit path the require() we are being called back from has
-			 * ALREADY rendered into the live page and registered its pollers, and there
-			 * was never anything to cancel: undo it. See repairStaleRender(). */
+			/* A newer navigation superseded this one. On the CACHED path nothing has happened
+			 * yet — skipping the constructor below is the whole cancellation. On the FIRST-visit
+			 * path the require() has ALREADY rendered into the live page and registered its
+			 * pollers, with nothing to cancel: undo it. See repairStaleRender(). */
 			if (!cached)
 				repairStaleRender(className);
 			return;
@@ -1378,9 +1109,8 @@ function navigate(pathname, push) {
 		if (cached)
 			new view.constructor();	/* singleton: its __init__ already ran, re-run it */
 	}).catch((e) => {
-		/* The full-page reload is a correct fallback, but swallowing the reason made
-		 * every SPA-router regression look like "the page is just slow to load"
-		 * instead of an error. Log, then fall back. */
+		/* the full reload is a correct fallback, but swallowing the reason made every SPA-router
+		 * regression look like "the page is just slow to load". Log, then fall back. */
 		console.error('footstrap: SPA nav to ' + className + ' failed, falling back to a full load', e);
 		if (gen === _navGen) window.location = pathname;
 	});
@@ -1388,10 +1118,9 @@ function navigate(pathname, push) {
 	return true;
 }
 
-/* The same-origin nav URL an event's link points at, or null when the link is
- * not ours to handle (new-tab target, download, bare #hash, cross-origin,
- * unparsable). Shared by the click router and the hover prefetch — the two
- * used to carry drifting copies of this filter. */
+/* The same-origin nav URL an event's link points at, or null when the link is not ours to handle
+ * (new-tab target, download, bare #hash, cross-origin, unparsable). Shared by the click router and
+ * the hover prefetch, which used to carry drifting copies of this filter. */
 function linkUrlFrom(ev) {
 	const a = ev.target.closest && ev.target.closest('a[href]');
 	if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download'))
@@ -1415,23 +1144,19 @@ function wireRouter() {
 		const url = linkUrlFrom(ev);
 		if (!url) return;
 
-		/* navigate() carries only the pathname: pushState-ing a bare path for a
-		 * link that promised ?query= / #hash would strip both from the URL (and
-		 * from the view, which reads location.search). Let those links full-load. */
+		/* navigate() carries only the pathname: pushState-ing a bare path for a link that
+		 * promised ?query= / #hash would strip both from the URL and from the view, which
+		 * reads location.search. Let those links full-load. */
 		if (url.search || url.hash) return;
 
 		if (navigate(url.pathname, true))
 			ev.preventDefault();
 	}, false);
 
-	/* Warm the view module cache when the pointer enters a nav link.
-	 *
-	 * `pointerover` bubbles from EVERY element the pointer crosses — dragging the
-	 * mouse across the process table fires it hundreds of times — and each one used
-	 * to run closest(), build a URL and walk the menu tree before prefetchView()
-	 * finally deduplicated it. Bail on the element first: the same <a> re-fires this
-	 * for every child span it contains, and a non-link target is the overwhelmingly
-	 * common case. */
+	/* Warm the view module cache when the pointer enters a nav link. `pointerover` bubbles from
+	 * EVERY element the pointer crosses — dragging across the process table fires it hundreds of
+	 * times — so bail on the element first: the same <a> re-fires this for every child span it
+	 * contains, and a non-link target is the overwhelmingly common case. */
 	let lastHovered = null;
 	document.addEventListener('pointerover', (ev) => {
 		const a = ev.target.closest?.('a[href]');
@@ -1443,32 +1168,20 @@ function wireRouter() {
 	}, { passive: true });
 
 	window.addEventListener('popstate', () => {
-		/* an entry carrying a query belongs to a full load (we only ever push bare
-		 * paths) — replaying it as a bare-path SPA nav would drop the query the
-		 * view expects, so reload instead */
+		/* an entry carrying a query belongs to a full load (we only ever push bare paths):
+		 * replaying it as a bare-path SPA nav would drop the query the view expects */
 		if (window.location.search) {
 			window.location.reload();
 			return;
 		}
 
-		/* A FRAGMENT CHANGE IS NOT A NAVIGATION, and treating it as one broke every view
-		 * that uses `href="#"` for its own in-page controls — which is a very common idiom.
-		 *
-		 * Chrome fires `popstate` for a same-document fragment navigation, so clicking an
-		 * `<a href="#">` inside a view arrived here as if the user had pressed Back. We then
-		 * re-ran navigate() for the very path already on screen, which RE-INSTANTIATES the
-		 * view — wiping whatever state the click had just set.
-		 *
-		 * Reported as "luci-app-filemanager does not work" (issue #3), and it really did not:
-		 * its tab strip is four `<a href="#">` links whose handler does not preventDefault, so
-		 * every click switched the tab and was instantly undone by the re-render one turn of
-		 * the event loop later. Traced on the live router — `popstate` → `#view` gets a fresh
-		 * container. The double "Failed to display the file list" in that report is the same
-		 * bug seen from the other side: each surprise re-render restarts the app's own
-		 * render(), and its file list races the DOM insertion.
-		 *
-		 * The view has not changed unless the PATH changed. If only the fragment moved, the
-		 * page owns it — say nothing and let the app keep the state it just set. */
+		/* A FRAGMENT CHANGE IS NOT A NAVIGATION. Chrome fires `popstate` for a same-document
+		 * fragment nav, so clicking an `<a href="#">` inside a view — a very common idiom for
+		 * in-page controls — arrived here as if the user had pressed Back, and we re-ran navigate()
+		 * for the path already on screen, RE-INSTANTIATING the view and wiping the state the click
+		 * had just set (issue #3, "luci-app-filemanager does not work": its tab strip is four
+		 * `<a href="#">` links whose handler does not preventDefault). The view changed only if the
+		 * PATH changed; if just the fragment moved, the page owns it. */
 		if (window.location.pathname === _curPath)
 			return;
 
@@ -1477,47 +1190,33 @@ function wireRouter() {
 	});
 }
 
-/* ---- the poll indicator must not outlive the poll ------------------------
+/* ---- the poll indicator must not outlive the poll ----
  *
- * LuCI shows the "Refreshing" pill on a `poll-start` event and flips it to "Paused" on
- * `poll-stop`, and it NEVER hides it again — `ui.hideIndicator()` exists, but core only ever
- * calls it for `uci-changes`.
- *
- * On a full page load that omission is invisible, because `Poll.start()` dispatches
- * `poll-start` ONLY when the queue is non-empty (luci.js) — so a page with nothing to poll
- * (Software, Backup, …) simply never grows an indicator. But this theme's SPA router flushes
- * the queue and calls `stop()` on every navigation, and `stop()` DOES dispatch `poll-stop`.
- * So walking from a polled page to an unpolled one left a "Paused" pill sitting there,
- * reporting on a poll that does not exist on that page.
- *
- * The rule the pill should obey is just: it exists if and only if there is something to poll.
- * "Paused" is meaningful when the user has paused a page that HAS pollers; with an empty
- * queue it is a ghost. Hooking `poll-stop` also cures the same ghost in stock LuCI, where
- * removing the last poller stops the loop and leaves the pill behind.
- *
- * Registered at module eval, i.e. AFTER luci.js has registered its own listener — so ours
- * runs second and can take back what that one just painted. */
+ * LuCI shows the "Refreshing" pill on `poll-start`, flips it to "Paused" on `poll-stop`, and never
+ * hides it again (core calls ui.hideIndicator() only for `uci-changes`). Invisible on a full load,
+ * because Poll.start() dispatches `poll-start` only when the queue is non-empty — an unpolled page
+ * never grows a pill. But our router flushes the queue and calls stop() on every nav, and stop()
+ * DOES dispatch `poll-stop`, so walking from a polled page to an unpolled one left a "Paused" pill
+ * reporting on a poll that does not exist there. Rule: the pill exists iff there is something to
+ * poll. Registered at module eval, i.e. AFTER luci.js's own listener, so ours runs second and can
+ * take back what that one just painted. */
 document.addEventListener('poll-stop', () => {
 	if (L.Poll && L.Poll.queue && L.Poll.queue.length === 0) {
 		try { ui.hideIndicator('poll-status'); } catch (e) {}
 	}
 });
 
-/* Pause LuCI's 1s poll loop while the tab is hidden and resume when it shows
- * again. LuCI has no visibilitychange handler, so a status/overview page left
- * open in a background tab hammers ubus 24/7 (esp. the pricey iwinfo getAssocList)
- * on a low-power router. Poll.stop() just clearInterval()s (the queue is
- * preserved); Poll.start() re-arms the interval and runs one immediate step() so
- * data is fresh the moment the tab is refocused. A poller added while hidden
- * won't auto-start (stop() deletes the tick) — start() picks it up on show, so
- * nothing is lost, only deferred. See docs/14 for the stop()/tick caveat. */
+/* Pause LuCI's 1s poll loop while the tab is hidden: LuCI has no visibilitychange handler, so an
+ * overview left open in a background tab hammers ubus 24/7 (notably the pricey iwinfo getAssocList)
+ * on a low-power router. stop() only clearInterval()s (the queue survives); start() re-arms and runs
+ * one immediate step(), so data is fresh on refocus. A poller added while hidden will not auto-start
+ * (stop() deletes the tick) — start() picks it up on show: deferred, not lost. docs/14. */
 let _visWired = false;
 function wireVisibility() {
 	if (_visWired) return;
 	_visWired = true;
-	/* respect a manual pause: the user can stop polling via the "Refreshing"
-	 * indicator, and an unconditional start() on tab-show would silently undo
-	 * that. Only resume what the tab-hide actually paused. */
+	/* respect a manual pause: the user can stop polling from the "Refreshing" indicator, and an
+	 * unconditional start() on tab-show would silently undo it. Resume only what we paused. */
 	let wasActive = true;
 	document.addEventListener('visibilitychange', () => {
 		if (!L.Poll) return;
@@ -1533,17 +1232,16 @@ function wireVisibility() {
 	});
 }
 
-/* How close a popup may come to the edge of the viewport before it is nudged back in.
- * Read by BOTH popups the theme places by hand — the Appearance popover below and the menu's
- * dropdown edge-clamp (menu-footstrap.js) — which had each written their own `8`. */
+/* How close a popup may come to the viewport edge before it is nudged back in. Read by BOTH popups
+ * the theme places by hand — the Appearance popover below and the menu's dropdown edge-clamp
+ * (menu-footstrap.js) — which had each written their own `8`. */
 const EDGE_GAP = 8;
 
-/* Place the popover next to its trigger and keep it inside the viewport.
- * It is position:fixed and lives on <body> — the sidebar is `overflow-y: auto`
- * (which computes overflow-x to `auto` too), so an absolutely-positioned popover
- * parented to the Appearance row was clipped/scrolled off the sidebar edge.
- * Top-nav opens downward from the right edge of the button; the sidebar opens
- * sideways out of the rail. Both are then clamped to the viewport. */
+/* Place the popover next to its trigger and keep it inside the viewport. It is position:fixed on
+ * <body> because the sidebar is `overflow-y: auto` (which computes overflow-x to `auto` too), so
+ * an absolutely-positioned popover parented to the Appearance row was clipped off the sidebar
+ * edge. The top bar opens downward from the button's right edge, the sidebar sideways out of the
+ * rail; both are then clamped. */
 function placePopover(btn, pop) {
 	const gap = EDGE_GAP, r = btn.getBoundingClientRect();
 	const w = pop.offsetWidth, h = pop.offsetHeight;
@@ -1564,19 +1262,13 @@ function placePopover(btn, pop) {
 	pop.style.top  = Math.max(gap, Math.min(top,  vh - h - gap)) + 'px';
 }
 
-/* ---- theme version + update check --------------------------------------
- * FS_VERSION is stamped at build/deploy: the package Makefile (Build/Prepare)
- * and dev-sync.sh rewrite the '0.0.0-dev' literal below to the git-derived
- * version. On release builds it is the real version; a plain source checkout
- * (never stamped) stays 'dev' and skips the update check.
- *
- * The ROUTER asks GitHub, not the browser (`footstrap-selfupdate.sh check`, the
- * same ACL-gated script the Update button runs). A LAN client frequently has no
- * route to the internet while the router does, and this keeps the check off the
- * user's own IP rate limit. The script caches the answer for an hour, and the
- * result is memoised here in _fsUpdatePromise for the page load, so re-opening
- * the popover (or a second layout) costs nothing. Fails silent: no reachable
- * API -> no badge, the version still shows. */
+/* ---- theme version + update check ----
+ * FS_VERSION is stamped at build/deploy: the package Makefile (Build/Prepare) and dev-sync.sh
+ * rewrite the '0.0.0-dev' literal below. An unstamped source checkout stays 'dev' and skips the
+ * check. The ROUTER asks GitHub, not the browser (`footstrap-selfupdate.sh check`, the ACL-gated
+ * script the Update button runs): a LAN client often has no route to the internet while the router
+ * does, and it keeps the check off the user's own IP rate limit. Cached an hour by the script,
+ * memoised here per page load. Fails silent: no reachable API → no badge, the version still shows. */
 const FS_VERSION = '0.0.0-dev';
 const FS_REPO = 'VizzleTF/luci-theme-footstrap';
 const FS_UPDATE_SCRIPT = '/usr/libexec/footstrap-selfupdate.sh';
@@ -1594,13 +1286,11 @@ function applyUpdateCheck(val) {
 	if (typeof window.__fsUpdateApply == 'function') window.__fsUpdateApply();
 }
 
-/* The parentheses around the regex are load-bearing — do not "tidy" them away.
- * luci.mk minifies this file with jsmin, whose regex-vs-division test is a ONE
- * character lookback against a fixed allow-list. `n` (the last letter of `return`)
- * is not on it, so `return /re/` makes jsmin read the regex as a division and, if
- * the regex body contains `//` or `/*`, silently swallow the rest of the file —
- * exiting 0 while doing it (openwrt/luci#8299). `(` IS on the allow-list.
- * tools/jsmin-verify.mjs is the gate that catches this; this is the fix. */
+/* The parentheses around the regex are load-bearing — do not "tidy" them away. luci.mk minifies
+ * this file with jsmin, whose regex-vs-division test is a ONE-character lookback against a fixed
+ * allow-list. `n` (the last letter of `return`) is not on it, so `return /re/` is read as a
+ * division and the regex's `//` swallows the rest of the file — exiting 0 (openwrt/luci#8299).
+ * `(` IS on the allow-list. tools/jsmin-verify.mjs is the gate; this is the fix. */
 function fsVersionReal() { return ((/^\d+\.\d+/).test(FS_VERSION)) && FS_VERSION !== '0.0.0-dev'; }
 function fsParseVer(s) { return String(s).replace(/^v/, '').split(/[.\-+]/).map(n => parseInt(n, 10) || 0); }
 function fsVerCmp(a, b) {
@@ -1618,9 +1308,8 @@ function checkFootstrapUpdate() {
 	_fsUpdatePromise = window.L.require('fs')	/* window.L, not the module L — see the two-L note above */
 		.then(fs => fs.exec(FS_UPDATE_SCRIPT, [ 'check' ]))
 		.then(res => {
-			/* "v1.2.3" on success, "ERR: …" when the router could not reach the
-			 * API — and "ERR: unknown argument" from a pre-check script, i.e. the
-			 * installed backend is older than this JS. All three mean: no badge. */
+			/* "v1.2.3" on success; "ERR: …" when the router could not reach the API, or
+			 * "ERR: unknown argument" from a backend older than this JS. All three: no badge. */
 			const out = String((res && res.stdout) || '').trim();
 			const latest = (/^v?\d/).test(out) ? out : null;
 			return { current: FS_VERSION, latest, hasUpdate: !!(latest && fsVerCmp(latest, FS_VERSION) > 0) };
@@ -1633,29 +1322,19 @@ function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
 
-	/* Popover axes, in order: Layout, Theme, Palette, Wallpaper, Tint, Accent, Rounding,
-	 * plus Submenus (sidebar only) and Updates. Palette dropped its third "Rvht" option — it set no colours, only
-	 * the cats wallpaper, which is now its own Wallpaper axis (composes with either
-	 * palette). Tint sits next to Palette because it composes with it too: it hues the
-	 * surfaces of whichever palette is on, and its job is identifying the ROUTER, not
-	 * choosing a look.
+	/* Axes in order: Layout, Theme, Palette, Wallpaper, Tint, Accent, Rounding, Submenus (sidebar
+	 * only), Updates.
 	 *
-	 * EVERY LABEL IN HERE CARRIES THE 'footstrap' CONTEXT — `_(str, ctx)`, whose key is
-	 * `ctx\1str`. That is not decoration: LuCI serves ONE MERGED catalogue to the client
-	 * (`load_catalog()` loads every *.<lang>.lmo in /usr/lib/lua/luci/i18n, and a lookup
-	 * returns the first archive that has the hash), so a msgid is a GLOBAL name shared with
-	 * every luci-app on the router, and the winner is decided by readdir order. Our layout
-	 * toggle rendered "Максимум" on a user's Russian router (issue #6) — somebody else's
-	 * catalogue translates the msgid "Top" as "maximum", which is perfectly correct in a
-	 * bandwidth dialog and nonsense on a layout switch. Contexting cannot be selective by
-	 * string either: whatever we leave bare is a name anyone may take.
-	 *
-	 * The chrome (Menu, Logout, Skip to content) and the login/notice sentences are
-	 * deliberately NOT contexted — they are standard LuCI phrasings, and inheriting a
-	 * translation from luci-base is a feature in the ~40 languages this theme has no
-	 * catalogue of its own for. The three overview section titles (System/Memory/Storage in
-	 * 05_footstrap_overview_layout.js) must not be contexted either — that include MATCHES
-	 * the stock section headings, so it needs exactly the translation luci-mod-status uses. */
+	 * EVERY LABEL IN HERE CARRIES THE 'footstrap' CONTEXT (`_(str, ctx)`, key `ctx\1str`). LuCI
+	 * serves ONE MERGED catalogue — load_catalog() loads every *.<lang>.lmo in
+	 * /usr/lib/lua/luci/i18n and a lookup returns the first archive holding the hash — so a msgid is
+	 * a GLOBAL name shared with every luci-app, and readdir order picks the winner: the layout
+	 * toggle rendered "Максимум" on a Russian router (issue #6), because another catalogue
+	 * translates the msgid "Top" as "maximum". Contexting cannot be selective — whatever we leave
+	 * bare is a name anyone may take. The chrome and the login/notice sentences are deliberately
+	 * bare (inheriting luci-base's translation is a feature in the ~40 languages we have no
+	 * catalogue for), as are System/Memory/Storage in 05_footstrap_overview_layout.js, which MATCH
+	 * the stock headings. */
 	const groups = [
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Layout', 'footstrap') ]),
@@ -1687,9 +1366,8 @@ function wireAppearance() {
 			], applyWallpaper, _('Wallpaper', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
-			/* the caption says what the axis is FOR, not what it does — "Tint" alone
-			 * reads as decoration and nobody would look for the router-identity cue
-			 * under it */
+			/* the caption says what the axis is FOR: "Tint" alone reads as decoration and
+			 * nobody would look for the router-identity cue under it */
 			E('div', { 'class': 'fs-ap-label' }, [ _('Tint (router identification)', 'footstrap') ]),
 			/* step 5 = 72 hues, which is finer than anyone can name and coarse enough
 			 * that the same router lands on the same colour when it is set again. */
@@ -1715,21 +1393,12 @@ function wireAppearance() {
 		])
 	];
 
-	/* The top layout has no accordion — its sections are hover dropdowns, already exclusive —
-	 * so this switch is meaningless there and must not be offered.
-	 *
-	 * ALWAYS BUILT, HIDDEN BY CSS (:root[data-layout="top"] .fs-ap-submenus, theme/20-shell.css).
-	 * It used to be an `if (currentLayout() !== 'top')` around the push, and that was simply
-	 * wrong: this popover is built ONCE, in init(), so the branch froze the control to the
-	 * layout the PAGE LOADED in. Switch to the top bar and the Submenus control stayed on
-	 * screen; load in the top bar, switch to the sidebar, and it never appeared. The comment
-	 * here used to call that "acceptable — a no-op in top mode anyway", which was true of the
-	 * control's effect and not of what the user saw.
-	 *
-	 * Doing it in CSS is not a workaround, it is the theme's rule: "toggling the layout
-	 * re-renders nothing; CSS morphs the chrome" (CLAUDE.md). This control is chrome. Keying it
-	 * off the same :root[data-layout] every other layout rule reads makes it correct on load,
-	 * correct on toggle, and correct with no JS state at all. */
+	/* The top layout has no accordion (its sections are hover dropdowns, already exclusive), so this
+	 * switch is meaningless there. ALWAYS BUILT, HIDDEN BY CSS (:root[data-layout="top"]
+	 * .fs-ap-submenus, theme/20-shell.css). Do NOT put an `if (currentLayout() !== 'top')` around the
+	 * push: the popover is built ONCE, in init(), so the branch froze the control to the layout the
+	 * PAGE LOADED in — it stayed on screen after a switch to the bar, and never appeared after a
+	 * switch away from it. Toggling the layout re-renders nothing; CSS morphs the chrome. */
 	groups.push(E('div', { 'class': 'fs-ap-group fs-ap-submenus' }, [
 		E('div', { 'class': 'fs-ap-label' }, [ _('Submenus', 'footstrap') ]),
 		segControl(currentAutoCollapse() ? 'on' : 'off', [
@@ -1772,9 +1441,8 @@ function wireAppearance() {
 	const pop = E('div', { 'class': 'fs-appearance-pop', 'role': 'dialog', 'aria-label': _('Appearance'), 'hidden': '' }, groups);
 	document.body.appendChild(pop);
 
-	/* reveal the badge + Update button and mark the trigger (green dot) when a
-	 * newer release exists. Runs once per page load and again when the Updates
-	 * toggle flips (via window.__fsUpdateApply, which applyUpdateCheck calls). */
+	/* reveal the badge + Update button and mark the trigger (green dot) when a newer release
+	 * exists. Runs once per page load, and again when the Updates toggle flips. */
 	function applyUpdateUI() {
 		if (!currentUpdateCheck()) {
 			btn.classList.remove('fs-has-update');
@@ -1791,33 +1459,29 @@ function wireAppearance() {
 	window.__fsUpdateApply = applyUpdateUI;
 	applyUpdateUI();
 
-	/* one-click self-update: confirm, then run the ACL-gated backend script via
-	 * file.exec (fs.exec). It downloads the latest release .apk/.ipk and installs
-	 * it with apk (25.12) or opkg (24.10); on success the page reloads onto the
-	 * new theme. No user input reaches the script — the ACL grants exec of that
-	 * fixed path only, and the two arguments below are literals.
+	/* one-click self-update: confirm, then run the ACL-gated backend via fs.exec, which installs the
+	 * latest release with apk (25.12) or opkg (24.10) and reloads the page. No user input reaches the
+	 * script — the ACL grants exec of that fixed path only and the arguments below are literals.
 	 *
-	 * The install outlives the RPC path: rpc.js aborts the XHR after
-	 * `L.env.rpctimeout` (20 s) and rpcd kills the exec'd process after its own
-	 * `timeout` (30 s). So the script only spawns a detached worker and returns
-	 * STARTED; we poll `status` until it flips to OK or ERR. */
+	 * The install outlives the RPC path: rpc.js aborts the XHR after `L.env.rpctimeout` (20 s) and
+	 * rpcd kills the exec'd process after its own `timeout` (30 s). So the script spawns a detached
+	 * worker and returns STARTED; we poll `status` until it flips to OK or ERR. */
 	const FS_UPDATE_POLL_MS = 2000;
 	const FS_UPDATE_LIMIT_MS = 300000;
 
 	function runSelfUpdate() {
 		close(false);	/* the modal takes focus from here */
-		/* Everything below belongs to THIS run. navigate() bumps _updGen, so a
-		 * resolved RPC from a run the user has navigated away from does nothing
-		 * instead of rescheduling itself and popping a modal over the new page. */
+		/* Everything below belongs to THIS run. navigate() bumps _updGen, so a resolved RPC from
+		 * a run the user has navigated away from does nothing instead of rescheduling itself and
+		 * popping a modal over the new page. */
 		const gen = ++_updGen;
 		const stale = () => gen !== _updGen;
 		const modal = (body) => { if (!stale()) ui.showModal(_('Update Footstrap'), body); };
-		/* The message is an ARRAY child, and that is not a style choice: luci.js's dom.append()
-		 * assigns a BARE STRING child via `node.innerHTML`, and only an array is turned into a
-		 * text node. What lands here is raw installer output — footstrap-selfupdate.sh reports
-		 * `ERR: install failed: <apk/opkg stderr>` — plus RPC exception text, i.e. the one
-		 * string in this theme that neither the theme nor LuCI composed. Markup in it would be
-		 * parsed. Every other E() here already passes an array; these did not. */
+		/* The message is an ARRAY child, and that is not a style choice: dom.append() assigns a
+		 * BARE STRING child via `node.innerHTML`, and only an array becomes a text node. What
+		 * lands here is raw installer output (`ERR: install failed: <apk/opkg stderr>`) plus RPC
+		 * exception text — the one string in this theme neither the theme nor LuCI composed.
+		 * Markup in it would be parsed. */
 		const fail = (msg) => modal([
 			E('p', {}, [ _('Update failed') + ': ' + String(msg || _('unknown error')).replace(/^ERR:\s*/, '').trim() ]),
 			E('div', { 'class': 'right' }, E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Close')))
@@ -1830,22 +1494,12 @@ function wireAppearance() {
 			])
 		]);
 
-		/* The update no longer logs you out — but keep this branch anyway.
-		 *
-		 * postinst used to `rpcd restart`, which destroys every in-memory session, so a
-		 * successful update ended with this browser logged out and every further RPC
-		 * answering "Login session is expired" / "Access denied". The whole branch existed
-		 * to explain a self-inflicted logout as success. postinst now does `rpcd reload`
-		 * (SIGHUP), which re-reads the ACL directory — verified on a live router to be all
-		 * this package needs — and leaves sessions alone, so the normal path is now simply
-		 * "Updated. Reloading…".
-		 *
-		 * It stays because the CLAIM it makes is still true: an expired session arriving
-		 * after the installer has run means the package installed (postinst is the last
-		 * thing to run), and telling the user to sign in again is the right answer whatever
-		 * killed the session — a hand-rolled rpcd restart, an upgrade of luci-base
-		 * alongside, a router that rebooted. A full reload also re-fetches the new CSS/JS,
-		 * whose cache-buster changed with the install. */
+		/* The update no longer logs you out — postinst does `rpcd reload` (SIGHUP; re-reads the ACL
+		 * dir, all this package needs) instead of `rpcd restart`, which destroys every in-memory
+		 * session. Keep the branch anyway: an expired session arriving after the installer ran means
+		 * the package DID install (postinst is the last thing to run), and "sign in again" is the
+		 * right answer whatever killed it — a hand-rolled rpcd restart, a luci-base upgrade
+		 * alongside, a reboot. The reload also re-fetches the cache-busted CSS/JS. */
 		const sessionGone = (m) =>
 			(/session is expired|Access denied|-32002|\b403\b/i).test(String(m));
 		const relogin = () => modal([
@@ -1872,8 +1526,8 @@ function wireAppearance() {
 				}
 				if ((/^ERR:/).test(out))
 					return fail(out);
-				/* RUNNING, or IDLE if the worker has not written the file yet.
-				 * Tracked in _updTimer so navigate() can cancel the chain. */
+				/* RUNNING, or IDLE if the worker has not written the file yet. Tracked in
+				 * _updTimer so navigate() can cancel the chain. */
 				_updTimer = window.setTimeout(() => poll(fs, deadline), FS_UPDATE_POLL_MS);
 			}).catch(e => {
 				if (stale()) return;
@@ -1896,15 +1550,14 @@ function wireAppearance() {
 	}
 	updateBtn.addEventListener('click', runSelfUpdate);
 
-	/* Clicking outside means the user is going somewhere else — closing must not
-	 * yank their focus back to the trigger. Escape and the trigger itself do. */
+	/* Clicking outside means the user is going elsewhere — closing must not yank their focus back
+	 * to the trigger. Escape and the trigger itself do. */
 	function outside(e) { if (!pop.contains(e.target) && !btn.contains(e.target) && e.target !== btn) close(false); }
 	function reposition() { placePopover(btn, pop); }
 
-	/* role="dialog" is a promise about keyboard behaviour, and the popover was not
-	 * keeping it: focus stayed on the page behind, Tab walked straight out of the
-	 * open dialog into the view underneath, and a click-outside close dropped focus
-	 * on the floor instead of handing it back to the trigger. */
+	/* role="dialog" is a promise about keyboard behaviour the popover was not keeping: focus
+	 * stayed on the page behind, Tab walked straight out of the open dialog into the view
+	 * underneath, and a click-outside close dropped focus on the floor. */
 	const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 	function keydown(e) {
 		if (e.key === 'Escape') { close(); return; }
@@ -1939,18 +1592,16 @@ function wireAppearance() {
 	btn.setAttribute('aria-haspopup', 'dialog');
 	btn.setAttribute('aria-expanded', 'false');
 	btn.setAttribute('aria-controls', pop.id);
-	/* NO stopPropagation here. It was not needed — outside() is registered in the
-	 * CAPTURE phase and already excludes clicks on btn — and it actively broke the
-	 * sidebar: menu-footstrap.js closes an open flyout from a bubble-phase click
-	 * listener on document, which never saw this event, so opening Appearance from
-	 * a collapsed rail left the flyout panel hanging open underneath it. */
+	/* NO stopPropagation here: it is not needed (outside() is registered in the CAPTURE phase and
+	 * already excludes clicks on btn) and it broke the sidebar — menu-footstrap.js closes an open
+	 * flyout from a BUBBLE-phase click listener on document, which never saw the event, so opening
+	 * Appearance from a collapsed rail left the flyout hanging open underneath. */
 	btn.addEventListener('click', () => { pop.hidden ? open() : close(); });
 }
 
-/* Sidebar rail toggle: collapse the sidebar to an icon-only strip. The state
- * lives on <html data-rail> (head.ut re-applies it before paint on a full load)
- * and in localStorage. Everything else — flyout submenus, hidden labels — is CSS
- * keyed off that attribute. */
+/* Sidebar rail toggle: collapse the sidebar to an icon-only strip. The state lives on
+ * <html data-rail> (head.ut re-applies it before paint) and in localStorage; everything else —
+ * flyout submenus, hidden labels — is CSS keyed off that attribute. */
 function wireRail() {
 	const btn = document.getElementById('fs-rail-toggle');
 	if (!btn) return;
@@ -1970,9 +1621,8 @@ function wireRail() {
 		if (on) { root.setAttribute('data-rail', 'true'); lsSet('fs-rail', 'true'); }
 		else { root.removeAttribute('data-rail'); lsDel('fs-rail'); }
 		sync();
-		/* the sidebar's cut just changed by ~156px, so the content column may now clear (or
-		 * fall below) --fs-content-min: re-take the measurement rather than wait for a
-		 * resize that is not coming */
+		/* the sidebar's cut just changed by ~156px, so the content column may now clear (or fall
+		 * below) --fs-content-min: re-measure rather than wait for a resize that is not coming */
 		scheduleTabFit();
 	});
 
@@ -1991,24 +1641,24 @@ return baseclass.extend({
 	wireSpaceKey,
 	wireDismiss,
 
-	/* entry point: load the menu tree, render mode menu (which drives the
-	 * injected renderMainMenu), the section tabs, and wire the theme toggle. */
+	/* entry point: load the menu tree, render the mode menu (which drives the injected
+	 * renderMainMenu) and the section tabs, and wire the chrome. */
 	init(renderMainMenu) {
 		ui.menu.load().then((tree) => {
 			_tree = tree;
 			_renderMain = renderMainMenu;
 
-			/* The page we are standing on arrived as a full load, which means LuCI has
-			 * ALREADY required — and therefore instantiated and rendered — its view. Seed
-			 * `_seen` with it, or the first SPA nav BACK to this page would take require()'s
-			 * cached instance, skip the re-instantiation, and render nothing at all. */
+			/* The page we are standing on arrived as a full load, so LuCI has ALREADY required —
+			 * hence instantiated and rendered — its view. Seed `_seen`, or the first SPA nav BACK
+			 * to this page would take require()'s cached instance, skip the re-instantiation and
+			 * render nothing at all. */
 			const here = viewClassFor(nodeForSegs(L.env.dispatchpath || []));
 			if (here)
 				_seen.add(here);
 
-			/* the bar's "does the menu fit beside the brand" measurement joins the same
-			 * engine the tables use — it re-runs on every #view resize (which is also what
-			 * a rail collapse and a layout toggle produce) and on content mutations */
+			/* the bar's "does the menu fit beside the brand" measurement joins the engine the
+			 * tables use: it re-runs on every #view resize (a rail collapse and a layout toggle
+			 * produce one) and on content mutations */
 			fit.add(fitChrome);
 
 			renderChrome();
@@ -2018,11 +1668,9 @@ return baseclass.extend({
 			wireVisibility();
 			wireTabFit();
 			watchViewSheets();
-		/* This file warns about exactly this in renderTabMenu ("an unhandled
-		 * rejection here kills every menu") and then left the root chain bare: a
-		 * throw anywhere in the six calls above took out the menu, the router and
-		 * the Appearance popover together, silently. It still fails — there is no
-		 * sane partial recovery — but it fails loudly. */
+		/* renderTabMenu warns about exactly this, and the root chain was left bare: a throw
+		 * anywhere in the calls above took out the menu, the router and the Appearance popover
+		 * together, silently. It still fails — there is no sane partial recovery — but loudly. */
 		}).catch((e) => console.error('footstrap: chrome init failed', e));
 	}
 });

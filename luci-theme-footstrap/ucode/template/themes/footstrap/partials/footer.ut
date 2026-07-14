@@ -1,25 +1,19 @@
 {#
- Footer body. There is ONE layout template and ONE client menu renderer now —
- sidebar and top bar are the same markup, morphed by :root[data-layout] — so the
- `menu_module` parameter that used to pick between 'menu-footstrap' and
- 'menu-footstrap-top' is gone with the second renderer.
+ Footer body. ONE layout template and ONE client menu renderer — sidebar and top bar are
+ the same markup, morphed by :root[data-layout] — so the old `menu_module` parameter that
+ picked between two renderers is gone with the second one.
  Licensed to the public under the Apache License 2.0.
 -#}
 		{% if (!blank_page): %}
 				</div>{# /.fs-content #}
 
 				{#
-					role="contentinfo" is explicit on purpose. A <footer> only gets that role
-					IMPLICITLY when its nearest ancestor is <body>, and this one lives inside
-					<main> — where it has to stay, because both layouts lay .fs-main out as a
-					flex column and order the footer within it. The explicit role is not
-					subject to that scoping rule, so the landmark exists without touching the
-					layout.
-
-					The version strings are entityencode()d: they come from
-					/etc/openwrt_release, and while that is root-owned, an unescaped `&` in a
-					distname would still break the markup. The neighbouring disturl was
-					already encoded; these two were the only raw interpolations left.
+					role="contentinfo" is explicit because a <footer> only gets it IMPLICITLY
+					when its nearest ancestor is <body>, and this one lives inside <main> —
+					where it must stay: both layouts lay .fs-main out as a flex column and order
+					the footer within it. The explicit role escapes that scoping rule.
+					The version strings are entityencode()d: /etc/openwrt_release is root-owned,
+					but an unescaped `&` in a distname would still break the markup.
 				#}
 				<footer class="fs-footer" role="contentinfo">
 					<span>

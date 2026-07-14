@@ -1,24 +1,19 @@
 @layer theme {
-	/* Generic .dropdown-menu popup — reaches the split "Save & Apply" menu ui.js
-	 * renders in the action bar (and any third-party use). Hover text is ACCENT on
-	 * purpose, matching the open cbi-dropdown list: this is a form control's menu.
-	 * `.dropdown-menu` is NOT the theme's nav menu (10-chrome.css says so in as many
-	 * words): a nav submenu is a plain nested <ul>. This class now only reaches ui.js's
-	 * split Save & Apply menu and whatever a third-party luci-app-* emits. */
+	/* Generic .dropdown-menu popup — ui.js's split "Save & Apply" menu, plus whatever a third-party
+	 * luci-app-* emits. NOT the theme's nav menu (that is a plain nested <ul>; see 10-chrome.css).
+	 * Hover text is ACCENT to match the open cbi-dropdown list: this is a form control's menu. */
 	.dropdown-menu { background-color: var(--fs-panel); border-color: var(--fs-border); }
 	.dropdown-menu a { color: var(--fs-text); text-shadow: none; }
 	.dropdown-menu a:hover { background: var(--fs-panel2); background-image: none; color: var(--fs-accent); }
 
-	/* Split "Save & Apply" dropdown: a plain dropdown in the action bar carries no
-	 * frame of its own. */
+	/* Split "Save & Apply": a plain dropdown in the action bar carries no frame of its own. */
 	.cbi-page-actions .cbi-dropdown {
 		border: 0; border-radius: var(--fs-radius); background: transparent;
 	}
-	/* …except that the split control's outer div IS the apply button — ui.js emits
-	 * `.cbi-dropdown.btn.cbi-button.cbi-button-apply` — so the rule above would
-	 * paint the button transparent. It used to be repainted by a `.cbi-button-apply`
-	 * rule written afterwards, which made the fix depend on source order. Win on
-	 * specificity instead. */
+	/* …except the split control's outer div IS the apply button (ui.js emits
+	 * `.cbi-dropdown.btn.cbi-button.cbi-button-apply`), which the rule above would paint transparent.
+	 * Repainted by SPECIFICITY — it used to be a `.cbi-button-apply` rule written afterwards, i.e. a
+	 * fix that depended on source order. */
 	.cbi-page-actions .cbi-dropdown.cbi-button-apply,
 	.cbi-page-actions .cbi-dropdown > .cbi-button {
 		background: var(--fs-accent);
@@ -29,11 +24,9 @@
 	.cbi-page-actions .cbi-dropdown.cbi-button-apply:hover,
 	.cbi-page-actions .cbi-dropdown > .cbi-button:hover { filter: var(--fs-hover-lift); }
 
-	/* ==================================================================
-	 * FOOTSTRAP cbi-dropdown widget — the JS select used across all forms.
-	 * Restyle to match the design dropdown (panel2, rounded, chevron,
-	 * focus ring) + themed open list. Native <select> is styled separately.
-	 * ================================================================== */
+	/* ---- cbi-dropdown widget: the JS select used across all forms ----
+	 * Restyled to the design dropdown (panel2, rounded, chevron, focus ring) + themed open list.
+	 * A native <select> is styled separately. */
 	.cbi-dropdown:not(.btn):not(.cbi-button) {
 		background: var(--fs-panel2);
 		border: 1px solid var(--fs-border);
@@ -55,14 +48,11 @@
 	.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li[display]:not([display="0"]) { border-left: 0; }
 	.cbi-dropdown > ul > li[placeholder] { color: var(--fs-faint); }
 
-	/* Custom chevron in the toggle (hide the stock text/svg arrow).
-	 *
-	 * `.open` is the only hit target that opens the list — on a button dropdown
-	 * (.cbi-dropdown.btn, e.g. Diagnostics) a click anywhere else RUNS the button.
-	 * `font-size: 0` collapsed the stock `line-height: 2em` to zero, so the span
-	 * measured 28x0 and the chevron, drawn by an absolutely positioned ::after, sat
-	 * outside its own box: aiming at it hit the button instead. Give it a real box —
-	 * full widget height, comfortable width — and centre the chevron inside it. */
+	/* Custom chevron in the toggle (stock text/svg arrow hidden). `.open` is the only hit target that
+	 * opens the list — on a button dropdown (.cbi-dropdown.btn, e.g. Diagnostics) a click anywhere
+	 * else RUNS the button. `font-size: 0` collapsed the stock `line-height: 2em`, so the span
+	 * measured 28x0 and the chevron (an absolute ::after) sat outside its own box: aiming at it hit
+	 * the button. Hence a real box, chevron centred in it. */
 	.cbi-dropdown > .open {
 		font-size: 0; line-height: 0; border: 0;
 		position: relative; padding: 0;
@@ -78,20 +68,17 @@
 		border-right: 2px solid var(--fs-dim); border-bottom: 2px solid var(--fs-dim);
 		transform: translateY(-2px) rotate(45deg);	/* optical centre of a "v" */
 	}
-	/* A BUTTON dropdown (Save & Apply, Diagnostics) draws that chevron on the
-	 * button's own FILL, where --fs-dim is a grey nobody measured against it — on
-	 * the accent-filled Save & Apply it read as a smudge rather than an arrow.
-	 * currentColor takes whatever ink the variant already set (--fs-on-accent on
-	 * apply, --fs-text on a neutral one), so there is no second list of variants
-	 * to keep in sync — the same reason base draws this widget's divider
-	 * (`border-left: 1px solid`, no colour) that way. The form-control dropdown
-	 * keeps the muted chevron on purpose: there the arrow is an affordance next
-	 * to the value, not the content. */
+	/* A BUTTON dropdown (Save & Apply, Diagnostics) draws that chevron on the button's own FILL, where
+	 * --fs-dim is a grey nobody measured against it — on the accent-filled Save & Apply it read as a
+	 * smudge, not an arrow. currentColor takes whatever ink the variant already set, so there is no
+	 * second list of variants to keep in sync (the same reason base draws this widget's divider with
+	 * a colourless `border-left`). The form-control dropdown keeps the muted chevron on purpose:
+	 * there the arrow is an affordance beside the value, not the content. */
 	.cbi-dropdown.btn > .open::after,
 	.cbi-dropdown.cbi-button > .open::after { border-color: currentColor; }
 
-	/* open list -> design popover. This used to be stated four times over; the
-	 * values below are the ones that were winning. */
+	/* open list -> design popover (this was once stated four times over; these are the values
+	 * that were winning). */
 	.cbi-dropdown[open] { z-index: var(--fs-z-dropdown); }
 	.cbi-dropdown[open] > ul.dropdown {
 		background: var(--fs-panel);
@@ -105,9 +92,8 @@
 		border-radius: var(--fs-radius-sm); padding: 9px 11px;
 		border-left: 0; color: var(--fs-text);
 		position: relative;
-		/* no border-bottom divider: on a rounded box it curls up at the corners.
-		 * The straight inset strip below (::after) is the divider instead, so the
-		 * hover pill stays rounded. */
+		/* no border-bottom divider: on a rounded box it curls up at the corners. The straight
+		 * inset strip below (::after) is the divider, so the hover pill stays rounded. */
 		border-bottom: 0;
 	}
 	.cbi-dropdown[open] > ul.dropdown > li:not(:last-child)::after {
@@ -116,16 +102,15 @@
 	}
 	.cbi-dropdown[open] > ul.dropdown > li:hover,
 	.cbi-dropdown[open] > ul.dropdown > li.focus { background: var(--fs-panel2); color: var(--fs-accent); }
-	/* selected is written after hover on purpose: hovering the selected row must
-	 * keep the accent tint rather than fall back to the neutral hover pill */
+	/* after hover on purpose: hovering the selected row must keep the accent tint, not fall
+	 * back to the neutral hover pill */
 	.cbi-dropdown[open] > ul.dropdown > li[selected] { background: var(--fs-accent-soft); color: var(--fs-accent); }
 	.cbi-dropdown[open] > ul.dropdown > li.create-item { border-top: 1px solid var(--fs-border); margin-top: 4px; }
-	/* The "add item" field of a dropdown is a text input and gets the same 10px
-	 * radius as every other one (theme/60-inputs.css). It used to say 8px here and
-	 * win or lose depending on which block was written last. */
+	/* The dropdown's "add item" field is a text input and takes the same radius as every other
+	 * one (theme/60-inputs.css). It said 8px here, and won or lost on source order. */
 	.cbi-dropdown .create-item-input { background: var(--fs-panel2); border: 1px solid var(--fs-border); border-radius: var(--fs-radius); color: var(--fs-text); }
-	/* dropdown add-item (e.g. Community Lists) — the .cbi-dropdown styles itself,
-	 * so the wrapper is transparent, no double frame. */
+	/* dropdown add-item (e.g. Community Lists) — the .cbi-dropdown styles itself, so the
+	 * wrapper stays transparent: no double frame. */
 	.cbi-dynlist > .add-item:has(> .cbi-dropdown) {
 		background: none; border: 0; overflow: visible; box-shadow: none;
 	}
@@ -139,26 +124,27 @@
 		width: 100%;
 	}
 
-	/* Below ~960px of available width the multi-dropdown row no longer fits — stack each
-	 * config row into a card. The card's shape is stock LuCI's phone layout (bootstrap's
-	 * mobile.css): the column label sits ABOVE its cell, a read-only cell takes half the
-	 * row and a cell holding an input/select/dropdown takes the whole width — so an
-	 * OpenVPN instance (6 columns) folds into 3 short lines instead of 6 label:value
-	 * lines with the value flushed right. Same shape as the fs-dt data-table stack. */
+	/* Below ~960px of available width a multi-dropdown row no longer fits — card each config row.
+	 * Same shape as the fs-dt stack (theme/30-tables.css): label ABOVE its cell, a read-only cell
+	 * half the row, a widget cell the whole width — so an OpenVPN instance (6 columns) folds into
+	 * 3 short lines instead of 6 right-flushed label:value ones.
+	 *
+	 * A @container, NOT the measurement the data tables use, and it must stay one: these rows are
+	 * full of widgets that bake in a width from the layout they were rendered in, so un-collapsing
+	 * one to take a reading CHANGES what is read — on the router the firewall zone table then
+	 * claimed 1747px where it really needs 1190px, and overflowed its section by 557px. Do NOT
+	 * "finish the job" by measuring it. */
 	@container fs-content (max-width: 960px) {
 		.table.cbi-section-table,
 		.table.cbi-section-table .tbody,
 		.table.cbi-section-table .td { display: block; width: auto; }
-		/* Hide the header row in BOTH markups — a stacked card repeats every one of its
-		 * labels, so the header is a duplicate that only ran off the right edge.
-		 * form.js wraps titles+descr in a `.thead`; the Lua CBI that half the
-		 * third-party apps still render through (luci-app-openvpn: "Lua compatibility
-		 * mode") emits a bare `tr.cbi-section-table-titles` inside the browser-inserted
-		 * <tbody>, with no .thead to match — which is why hiding only `.thead` left the
-		 * OpenVPN header on screen. `.tr.table-titles` is deliberately NOT listed: that
-		 * class comes from L.ui.Table, which renders plain data tables (.table, tagged
-		 * .fs-dt) and never a .cbi-section-table — their header is hidden by the fs-dt
-		 * stack in theme/30-tables.css instead. */
+		/* Hide the header in BOTH markups — a card repeats every label, so the header is a duplicate
+		 * that only ran off the right edge. form.js wraps titles+descr in a `.thead`; the Lua CBI
+		 * half the third-party apps still render through (luci-app-openvpn) emits a bare
+		 * `tr.cbi-section-table-titles` with no .thead, which is why hiding only `.thead` left the
+		 * OpenVPN header on screen. `.tr.table-titles` is deliberately NOT listed: it comes from
+		 * L.ui.Table, which never renders a .cbi-section-table — that header is hidden by the fs-dt
+		 * stack in theme/30-tables.css. */
 		.table.cbi-section-table .thead,
 		.table.cbi-section-table .tr.cbi-section-table-titles,
 		.table.cbi-section-table .tr.cbi-section-table-descr { display: none; }
@@ -171,34 +157,32 @@
 			margin-bottom: 12px;
 		}
 		.table.cbi-section-table .tr:hover { background: var(--fs-panel2); }
-		/* `.table.cbi-section-table`, not `.cbi-section-table`: the general cell padding
-		 * for these tables is written as `.table.cbi-section-table .td` (theme/30-tables),
-		 * which outranks a one-class-lighter selector — a plainer selector here silently
-		 * kept the desktop padding.
+		/* `.table.cbi-section-table`, not `.cbi-section-table`: the desktop cell padding is written as
+		 * `.table.cbi-section-table .td` (theme/30-tables.css) and outranks a class-lighter selector,
+		 * so a plainer one here silently kept the desktop padding.
 		 *
-		 * margin: 0 is load-bearing. The Lua CBI gives a table CELL the same
-		 * `.cbi-value-field` class a FORM field carries, and base indents that class by
-		 * 20px to sit it next to its label. In a stacked row every cell then measured
-		 * 50% + 20px, two no longer fit on a line, and each pair-cell wrapped to a line
-		 * of its own — which is exactly why the OpenVPN row stayed one column deep. */
+		 * margin: 0 is load-bearing. The Lua CBI gives a table CELL the same `.cbi-value-field` class
+		 * a FORM field carries, and base indents that class by 20px. A stacked cell then measured
+		 * 50% + 20px, two no longer fit on a line, and each pair-cell wrapped to its own — which is
+		 * why the OpenVPN row stayed one column deep. */
 		.table.cbi-section-table .td {
 			flex: 1 1 100%; min-width: 0; margin: 0;
 			padding: 6px 10px 6px 0; border: 0; text-align: left;
 		}
-		/* A cell that only READS a value — dummy text, a flag, one button — is short, so
-		 * two fit on a line; anything with a real widget in it keeps the full width (the
-		 * 100% basis above), because a dropdown at half a phone's width is unusable.
-		 * Both spellings of the same widget: `CBI.DummyValue` from form.js, `dvalue`
-		 * from the Lua CBI's typename. */
+		/* A cell that only READS a value (dummy text, a flag, one button) is short, so two fit on a
+		 * line; anything with a real widget keeps the full width (the 100% basis above) — a dropdown
+		 * at half a phone's width is unusable. Both spellings of each widget: `CBI.DummyValue` from
+		 * form.js, `dvalue` from the Lua CBI's typename. */
 		.table.cbi-section-table .td[data-widget="CBI.DummyValue"],
 		.table.cbi-section-table .td[data-widget="CBI.FlagValue"],
 		.table.cbi-section-table .td[data-widget="CBI.Button"],
 		.table.cbi-section-table .td[data-widget="dvalue"],
 		.table.cbi-section-table .td[data-widget="fvalue"],
 		.table.cbi-section-table .td[data-widget="button"] { flex-basis: 50%; }
-		/* PINNED to the data table's copy in theme/30-tables.css: the same card, needed under
-		 * a CLASS there (.fs-stacked, measured) and under this @container here, and CSS will
-		 * not share a block across the two. tools/mirror.mjs holds them byte-identical. */
+		/* PINNED to the data table's copy in theme/30-tables.css: the same card, needed under a CLASS
+		 * there (.fs-stacked, measured) and under this @container here, and CSS cannot OR the two
+		 * guards. tools/mirror.mjs holds the copies byte-identical — a duplicate detector goes QUIET
+		 * once they differ, exactly when it should shout. */
 		.table.cbi-section-table .td[data-title]::before {
 			/* @mirror table-card/label */
 			content: attr(data-title); display: block; margin-bottom: 3px;
@@ -206,10 +190,9 @@
 			text-transform: uppercase; color: var(--fs-faint);
 			/* @endmirror */
 		}
-		/* the row's buttons are not a label/value pair: full width, left-aligned, and
-		 * each button stretches to share the line (Edit | Delete). PINNED — see above.
-		 * (These six declarations were the same six as the data table's, written in a
-		 * DIFFERENT ORDER, so a grep could not tell they were one rule. Normalised.) */
+		/* The row's buttons are not a label/value pair: full width, each button stretching to
+		 * share the line (Edit | Delete). PINNED — see above. (These six declarations were the
+		 * data table's six in a DIFFERENT ORDER, so a grep could not tell they were one rule.) */
 		.table.cbi-section-table .td.cbi-section-actions {
 			/* @mirror table-card/actions */
 			display: flex; flex: 1 1 100%; justify-content: flex-start;
@@ -224,25 +207,17 @@
 		.table.cbi-section-table .td .zone-forwards { width: 100%; }
 	}
 
-	/* ==================================================================
-	 * Widget popups must escape the table card
+	/* ---- widget popups must escape the table card ----
+	 * The standalone-table card (theme/30-tables.css) clips row backgrounds to its rounded corners
+	 * with `overflow: hidden`. But a form table (Diagnostics: three command widgets in one row) also
+	 * holds .cbi-dropdown widgets whose open list is absolutely positioned — the clip cropped it at
+	 * the table's edge and dragged the table's box around with it. So drop the clip where a widget
+	 * lives; the `.cbi-dropdown[open]` z-index above lifts the list over the following (unpositioned)
+	 * cards.
 	 *
-	 * The "standalone data table -> rounded card" rule sets `overflow: hidden`
-	 * on .table (to clip row backgrounds at the rounded corners). A form table
-	 * (Diagnostics: three command widgets in one row) also holds .cbi-dropdown
-	 * widgets whose open list is absolutely positioned — hidden overflow cropped
-	 * it at the table's edge, so it looked cut off and buried under the card
-	 * below, and the clipped list dragged the table's box around with it.
-	 * Drop the clip on any table that hosts a widget, and lift the open widget
-	 * over the following (unpositioned) cards.
-	 *
-	 * A real <table> inherits `border-collapse: collapse`, and a collapsed border
-	 * model ignores border-radius: the rounded corners of the card were coming from
-	 * `overflow: hidden` clipping the background, not from the border. Dropping the
-	 * clip therefore squared the frame off. Restore the separated border model —
-	 * with zero spacing it lays out identically, and the radius now applies to the
-	 * border itself.
-	 * ================================================================== */
+	 * Dropping it squares the frame off, though: a real <table> inherits `border-collapse: collapse`,
+	 * which IGNORES border-radius — the card's corners came from the clip, not the border. The
+	 * separated model restores them, and at zero spacing it lays out identically. */
 	.table:has(.cbi-dropdown),
 	.table:has(.cbi-dynlist) {
 		overflow: visible;

@@ -1,39 +1,32 @@
 @layer theme {
 	/* ==================================================================
-	 * FOOTSTRAP phone overflow safety net (≤767px = mobile tier, below the
-	 * sidebar→top-bar breakpoint). .fs-main uses overflow-x:clip, so any element wider than the
-	 * viewport is silently CUT on the right rather than scrolled to. A device sweep
-	 * (iPhone/Samsung/Pixel/iPad presets) found the offenders below; each fix lets
-	 * the offending control/table shrink or wrap so nothing is clipped. Tablets
-	 * (≥768px) were already clean and keep the roomier desktop layout.
+	 * Phone overflow safety net (<=767px). .fs-main uses overflow-x: clip, so anything wider
+	 * than the viewport is silently CUT on the right rather than scrolled to. A device sweep
+	 * (iPhone/Samsung/Pixel/iPad presets) found the offenders below; each fix lets the control
+	 * or table shrink or wrap. Tablets (>=768px) were already clean.
 	 * ================================================================== */
 	@media (max-width: 767px) {
-		/* Was written outside this @media and never took effect: the base rule
-		 * .cbi-dropdown:not(.btn):not(.cbi-button) is more specific and kept its
-		 * 400px cap. With the base in its own layer the unscoped rule would have
-		 * capped every dropdown on the desktop too — it belongs here. A dropdown must
-		 * never exceed its field, on a page or in a dialog. */
+		/* Must stay INSIDE this @media: written unscoped it never took effect (base's
+		 * .cbi-dropdown:not(.btn):not(.cbi-button) is more specific and kept its 400px cap), and
+		 * with base in its own layer it would now cap every dropdown on the desktop too. A
+		 * dropdown must never exceed its field, on a page or in a dialog. */
 		.cbi-dropdown { min-width: 0; max-width: 100%; }
 
-		/* Software page (luci-app-package-manager): stack each labeled control; base
-		 * gives its labels a min-width:250px that overflowed a ~360px screen. Label on
-		 * its own line, button/input rows wrap. Scoped by the page's data-page, NOT by
-		 * #disk-space-label: on 24.10 the "Disk space:" label ships with no id (25.12
-		 * added `id="disk-space-label"`), so a :has(#disk-space-label) scope silently
-		 * missed the whole page on 24.10 and left the value text overlapping the label.
-		 * `.controls` is a flex-ROW, so its Filter/Download/Actions columns crammed
-		 * side-by-side and overlapped — block it so the columns stack. The app injects
-		 * an UNLAYERED inline <style> (`.controls{display:flex}` + `.controls > *{…}`)
-		 * that no cascade layer can outrank, so these carry !important, exactly like
-		 * the inline-style fighters elsewhere in this file. */
+		/* Software page (luci-app-package-manager): stack each labeled control; base gives its
+		 * labels a min-width: 250px that overflowed a ~360px screen. `.controls` is a flex-ROW,
+		 * so its Filter/Download/Actions columns crammed side-by-side and overlapped.
+		 * Scoped by data-page, NOT by #disk-space-label: on 24.10 the "Disk space:" label ships
+		 * with no id (25.12 added one), so a :has(#disk-space-label) scope silently missed the
+		 * whole page there.
+		 * !important because package-manager.js injects an UNLAYERED inline <style>
+		 * (`.controls{display:flex}` + `.controls > *{…}`), and unlayered outranks every layer. */
 		body[data-page='admin-system-package-manager'] #view .controls { display: block !important; }
 		body[data-page='admin-system-package-manager'] #view .controls > div { display: block !important; min-width: 0; margin-bottom: 8px; }
-		/* the bar's value (::after "63% used (…)") normally floats over the bar, but the
-		 * "Disk space:" label already sits above it — on a phone the long value text
-		 * overlapped label + bar. Drop it BELOW the bar. The bar is a fixed 10px box so a
-		 * static ::after can't push the next control; reserve space with margin-bottom
-		 * and place the value absolutely in it (wrapping to the bar width). The disk
-		 * section is the only `label` immediately followed by a `.cbi-progressbar`. */
+		/* the bar's ::after value ("63% used …") normally floats above the bar, but the "Disk
+		 * space:" label already sits there — on a phone the long value text overlapped label +
+		 * bar. Drop it BELOW. The bar is a fixed 10px box, so a static ::after cannot push the
+		 * next control: reserve space with margin-bottom and place the value absolutely in it.
+		 * The disk section is the only `label` immediately followed by a `.cbi-progressbar`. */
 		body[data-page='admin-system-package-manager'] #view label + .cbi-progressbar {
 			width: 100%; margin-bottom: 3em;
 		}
@@ -45,29 +38,26 @@
 		body[data-page='admin-system-package-manager'] #view .controls .control-group { display: flex; flex-wrap: wrap; min-width: 0; gap: 8px; }
 		body[data-page='admin-system-package-manager'] #view .controls .control-group input { flex: 1 1 140px; min-width: 0; max-width: 100%; }
 
-		/* Diagnostics tool (input + method select + button in one <table> row) has no
-		 * id and no .cbi-section-table, so nothing stacks it — a fixed table layout
-		 * stayed ~365px wide. Break its rows/cells to blocks on a phone. */
+		/* Diagnostics tool (input + method select + button in one <table> row) has no id and no
+		 * .cbi-section-table, so nothing stacks it — a fixed table layout stayed ~365px wide. */
 		body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table),
 		body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table) .tr,
 		body[data-page='admin-network-diagnostics'] #view .table:not([id]):not(.cbi-section-table) .td { display: block; width: auto; }
 
-		/* fs-dt data tables (System→Startup init.d list, leases, processes) that do NOT
-		 * card on a phone: the row stacking is measured (.fs-stacked, fs-select.js) and
-		 * carries its own `display: block` (theme/30-tables.css), but a table that still
-		 * fits as a table keeps display:table and with it an intrinsic min-width. Block it
-		 * so its width can't exceed the column. */
+		/* fs-dt data tables (Startup init.d list, leases, processes) that do NOT card on a phone:
+		 * the row stacking is MEASURED (.fs-stacked, fs-select.js) and carries its own
+		 * `display: block` (theme/30-tables.css), but a table that still fits as a table keeps
+		 * display: table and with it an intrinsic min-width. Block it so its width cannot exceed
+		 * the column. */
 		table.fs-dt { display: block; width: 100%; }
 
-		/* generic caps: an input/select must never exceed its field, and long key/value
-		 * strings in the Overview System/Memory/Storage cards must break. */
+		/* generic caps: an input/select must never exceed its field, and long key/value strings
+		 * in the Overview cards must break. */
 		.cbi-value-field input, .cbi-value-field select, .cbi-value-field .cbi-dropdown { max-width: 100%; }
-		/* …and, once the label is on its own line, the control takes the line it was
-		 * given — a text field or a select sized to its content left half the row empty
-		 * and made the form read as a ragged column. Stock does the same on a phone.
-		 * A checkbox/radio/file input keeps its intrinsic size (a full-width checkbox is
-		 * a hit target the size of the screen), which is why they are excluded here
-		 * rather than by listing every widget that should stretch. */
+		/* …and once the label is on its own line the control takes the line it was given — a
+		 * field sized to its content left half the row empty and made the form read as a ragged
+		 * column (stock does the same on a phone). checkbox/radio/file keep their intrinsic size:
+		 * a full-width checkbox is a hit target the size of the screen. */
 		.cbi-value-field select,
 		.cbi-value-field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 		.cbi-value-field .cbi-dropdown:not(.btn):not(.cbi-button),
@@ -75,73 +65,67 @@
 		.cbi-value-field .cbi-select { width: 100%; }
 		#view .fs-ovl .table .td, #view .fs-ovl .table .th { overflow-wrap: anywhere; min-width: 0; }
 
-		/* Stack each field: label on its own line, control + description full-width
-		 * below. On the desktop the label/field sit side by side (space-between), but
-		 * on a phone that squeezes the field — and any .cbi-value-description inside it
-		 * — into a ~120px column, so one sentence of help wrapped to 8 lines. The row
-		 * already flex-wraps (base .cbi-value); the two full-width children below are
-		 * what actually stack it on a phone.
+		/* Stack each field: label on its own line, control + description full-width below. Side
+		 * by side (space-between) on the desktop squeezes the field — and any
+		 * .cbi-value-description inside it — into a ~120px column on a phone, so one sentence of
+		 * help wrapped to 8 lines. The row already flex-wraps (base .cbi-value); these two
+		 * full-width children are what actually stack it.
 		 *
-		 * NOT scoped to #view, and that is the whole point: ui.js appends a modal to
-		 * <body>, so an `#view .cbi-value` rule left every DIALOG in the desktop
-		 * side-by-side layout — on a phone the Edit-interface form then pushed its
-		 * inputs past the dialog's right edge, where they were simply cut off. A
-		 * .cbi-value only ever appears in a form, page or dialog alike. */
+		 * NOT scoped to #view, and that is the point: ui.js appends a modal to <body>, so an
+		 * `#view .cbi-value` rule left every DIALOG in the desktop side-by-side layout and on a
+		 * phone the Edit-interface form pushed its inputs past the dialog's right edge, where
+		 * they were cut off. A .cbi-value only ever appears in a form, page or dialog alike. */
 		.cbi-value > .cbi-value-title { flex: 1 1 100%; text-align: left; padding-top: 0; }
 		.cbi-value > .cbi-value-field { flex: 1 1 100%; min-width: 0; }
 
 		/* ==============================================================
-		 * The stock phone contract every luci-app-* is written against
-		 *
-		 * These classes are emitted by LuCI's own JS (wireless.js, connections.js,
-		 * package-manager.js, channel_analysis.js, ui.js) and by third-party apps that
-		 * copied them — and they are styled NOWHERE but bootstrap's mobile.css, so a
-		 * theme that ignores them silently renders a phone layout its own app JS
-		 * believes it has already handled. We were ignoring all of them.
+		 * The stock phone contract every luci-app-* is written against. These classes are emitted
+		 * by LuCI's own JS (wireless.js, connections.js, package-manager.js, channel_analysis.js,
+		 * ui.js) and by third-party apps that copied them — and they are styled NOWHERE but
+		 * bootstrap's mobile.css, so a theme that ignores them renders a phone layout its own app
+		 * JS believes it has already handled.
 		 * ============================================================== */
-		/* A column the emitting JS asks to DROP on a phone. The wireless Associated
-		 * Stations table marks its MAC column .hide-xs — stock LuCI shows Network/Host/
-		 * Signal/Rate there and no MAC; we were showing the MAC and paying a whole
-		 * half-row for it.
+		/* A column the emitting JS asks to DROP on a phone: the wireless Associated Stations table
+		 * marks its MAC column .hide-xs — stock LuCI shows Network/Host/Signal/Rate and no MAC; we
+		 * showed the MAC and paid a whole half-row for it.
 		 *
-		 * The `.table .td.hide-xs` half is not redundant: the stacking rules select the
-		 * cell as `table.fs-dt .td` / `.cbi-section-table .td` (0-2-1), which outranks a
-		 * bare `.hide-xs` (0-1-0), so the cell kept the `display: block` those rules set
-		 * and stayed visible. Stock LuCI wins this with `!important`; a class more (via
-		 * `.table`, which every one of these tables carries) wins it without one. */
+		 * The `.table .td.hide-xs` half is not redundant: the stacking rules select the cell as
+		 * `table.fs-dt .td` / `.cbi-section-table .td` (0,2,1), which outranks a bare `.hide-xs`
+		 * (0,1,0), so the cell kept their `display: block` and stayed visible. Stock LuCI wins
+		 * this with !important; one class more (`.table`, which every such table carries) wins it
+		 * without one. */
 		.hide-sm, .hide-xs,
 		.table .td.hide-sm, .table .td.hide-xs,
 		.table .th.hide-sm, .table .th.hide-xs { display: none; }
-		/* The `.col-N` weights used to live here, inside the phone tier. They are UNGUARDED
-		 * now, in theme/30-tables.css: `flex` is inert on anything that is not a flex item,
-		 * and a `.td` becomes one exactly when its table is carded — so one copy covers the
-		 * phone tier, the measured stack at any width, and the config table's @container,
-		 * with no guard and no second copy to keep in step. See the block there. */
+		/* The `.col-N` weights used to live here, inside the phone tier. They are UNGUARDED now,
+		 * in theme/30-tables.css: `flex` is inert on anything that is not a flex item, and a `.td`
+		 * becomes one exactly when its table cards — so one copy covers the phone tier, the
+		 * measured stack at any width and the config table's @container, with no second copy to
+		 * keep in step. See the block there. */
 
-		/* iOS Safari zooms the page in when a focused control's text is under 16px, and
-		 * never zooms back out — the theme's 13px inputs did exactly that on every form.
-		 * Stock LuCI carries this as `!important`; here the theme layer is enough. */
+		/* iOS Safari zooms the page in when a focused control's text is under 16px and never zooms
+		 * back out — the theme's 13px inputs did that on every form. Stock LuCI needs !important
+		 * for it; here the theme layer is enough. */
 		input, textarea, select, .cbi-dropdown > ul > li { font-size: 16px; }
 	}
 
 	/* ==================================================================
-	 * Dropdown list: anchored to its widget, never full-bleed
+	 * Dropdown list: anchored to its widget, never full-bleed.
 	 *
-	 * ui.js has a touch branch (`'ontouchstart' in window`) that stretches the open
-	 * list across the viewport with inline styles:
+	 * ui.js has a touch branch (`'ontouchstart' in window`) that stretches the open list across
+	 * the viewport with INLINE styles:
 	 *     ul.style.left  = `${-rect.left}px`
 	 *     ul.style.right = `${rect.right - vpWidth}px`
-	 * Those offsets assume the list's containing block is the viewport. It is not:
-	 * .cbi-dropdown is position:relative, so a negative `left` drags the list off to
-	 * the side and clips the labels — which is what a phone actually rendered.
-	 * An author `!important` outranks an inline declaration, so pin it back under
-	 * the widget and size it to its content. Harmless on desktop, where ui.js sets
-	 * only top/bottom/max-height and left/right were already at their initial value.
+	 * Those offsets assume the list's containing block is the viewport. It is not: .cbi-dropdown
+	 * is position: relative, so a negative `left` drags the list off to the side and clips the
+	 * labels — which is what a phone actually rendered. An author !important is the only thing
+	 * that outranks an inline declaration, so pin it back under the widget. Harmless on desktop,
+	 * where ui.js sets only top/bottom/max-height.
 	 *
-	 * Only left/right carry the flag: those are the two properties ui.js writes
-	 * inline, and an inline declaration is the one thing no layer can outrank. The
-	 * widths never appear in an inline style (ui.js only ever CLEARS `ul.style.width`
-	 * on close), so they win from this layer on their own. */
+	 * Only left/right carry the flag — those are the two properties ui.js writes inline. The
+	 * widths never appear in an inline style (ui.js only CLEARS `ul.style.width`, on close), so
+	 * they win from this layer on their own.
+	 * ================================================================== */
 	.cbi-dropdown[open] > ul.dropdown {
 		left: 0 !important;
 		right: auto !important;

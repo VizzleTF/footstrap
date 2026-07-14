@@ -1,16 +1,9 @@
 @layer theme {
-	/* ==================================================================
-	 * Shared chrome — brand, logo, wordmark, logout, indicators.
-	 *
-	 * These widgets are the same in both layouts; only where they sit differs.
-	 * They used to be described twice — unscoped in 20-shell.css and again
-	 * under `.fs-topnav` in the topnav file — and the two copies had drifted (32px vs
-	 * 30px logo, 11px vs 10px brand gap, 10px vs 8px indicator gap). The top-nav
-	 * values are the reference and live here.
-	 *
-	 * A layout file may still set *placement* on these (flex-grow, order,
-	 * justification, the icon-rail collapse) — never their look.
-	 * ================================================================== */
+	/* Shared chrome — brand, logo, wordmark, logout, indicators. Same in both layouts;
+	 * only their PLACEMENT differs. Written twice once (here and under `.fs-topnav`) and
+	 * the copies had drifted: 32 vs 30px logo, 11 vs 10px brand gap, 10 vs 8px indicator
+	 * gap. The top-bar values won. A layout file may set placement on these (flex, order,
+	 * the rail collapse) — never their look. */
 
 	.fs-brand {
 		display: flex; align-items: center; gap: 10px;
@@ -20,25 +13,22 @@
 	.fs-logo {
 		width: 30px; height: 30px; border-radius: var(--fs-radius);
 		background: linear-gradient(135deg, var(--fs-accent), var(--fs-accent-lt));
-		/* the glyph inherits this (brand.ut uses currentColor) — same ink as every other
-		 * thing drawn on an accent fill, so it follows palette and mode */
+		/* the glyph inherits this (brand.ut uses currentColor) — the same ink as anything
+		 * drawn on an accent fill, so it follows palette and mode */
 		color: var(--fs-on-accent);
 		display: flex; align-items: center; justify-content: center;
 		flex: 0 0 auto;
 	}
 	.fs-logo svg { width: 17px; height: 17px; }
 
-	/* 700, not 800: the 800 face is no longer shipped (it drew six elements for 18 KB —
-	 * styles/01-fonts.css), so 800 silently resolved to 700 anyway. Say so. */
+	/* 700, not 800: no 800 face is shipped (it drew six elements for 18 KB — 01-fonts.css),
+	 * so 800 silently resolved to 700 anyway. Say so. */
 	.fs-wordmark { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
 
-	/* ==================================================================
-	 * Skip link (both layouts). The first tab stop on the page: it lets a keyboard
-	 * or screen-reader user jump the entire menu instead of tabbing through every
-	 * section, on every single page. Off-screen until focused — never `display:none`
-	 * or `visibility:hidden`, which would take it out of the tab order and defeat
-	 * the purpose. It sits above everything, including an open popover.
-	 * ================================================================== */
+	/* Skip link — the first tab stop: a keyboard/SR user jumps the whole menu instead of
+	 * tabbing through every section on every page. Off-screen until focused, never
+	 * display:none / visibility:hidden — that removes it from the tab order, which is the
+	 * one thing it exists for. Sits above everything, incl. an open popover. */
 	.fs-skip {
 		position: fixed; top: 8px; left: 8px; z-index: var(--fs-z-dropdown);
 		padding: 10px 16px; border-radius: var(--fs-radius);
@@ -46,12 +36,10 @@
 		font-weight: 700; font-size: 13px; text-decoration: none;
 		box-shadow: var(--fs-shadow-pop);
 	}
-	/* Clipped, not merely translated off-screen. Sliding it up with a transform left
-	 * its DROP SHADOW behind: --fs-shadow-pop is offset 12px and blurred 34px, so with
-	 * the box parked at -68px the shadow still reached ~16px INTO the viewport and
-	 * smudged the top-left corner of every page. clip-path clips the shadow too.
-	 * Never display:none / visibility:hidden here — that would take the link out of the
-	 * tab order, which is the one thing it exists for. */
+	/* Clipped, not translated off-screen: --fs-shadow-pop is offset 12px / blur 34px, so a
+	 * box parked at -68px still bled ~16px of DROP SHADOW into the viewport and smudged the
+	 * top-left corner of every page. clip-path clips the shadow too. Never display:none /
+	 * visibility:hidden — see above. */
 	.fs-skip:not(:focus) {
 		clip-path: inset(50%);
 		width: 1px; height: 1px;
@@ -60,14 +48,11 @@
 	.fs-skip:focus {
 		outline: 2px solid var(--fs-panel); outline-offset: 2px;
 	}
-	/* Visually hidden, but PRESENT — for the document <h1> and the router's live region.
-	 * The distinction is the whole point: `hidden`/display:none/visibility:hidden take the
-	 * element out of the accessibility tree as well as off the page, so an h1 written to fix
-	 * a broken heading outline fixed nothing, and a live region declared that way would never
-	 * announce. Clipping is what leaves a node readable to assistive tech while occupying no
-	 * space — the same reason .fs-skip above clips instead of hiding.
-	 * white-space: nowrap keeps a long title from being clipped into a 1px-wide column of
-	 * wrapped characters, which some screen readers read out one line at a time. */
+	/* Visually hidden but PRESENT in the a11y tree — for the document <h1> and the live
+	 * region. hidden/display:none/visibility:hidden take the element out of the a11y tree
+	 * too: the h1 would fix no heading outline and the live region would never announce.
+	 * Clipping leaves a node readable to assistive tech while occupying no space.
+	 * nowrap: a long title clipped into a 1px column is read out line by line by some SRs. */
 	.fs-sr {
 		position: absolute;
 		clip-path: inset(50%);
@@ -76,10 +61,9 @@
 		overflow: hidden; white-space: nowrap;
 	}
 
-	/* the <main> the skip link targets carries tabindex="-1" so the browser will
-	 * actually MOVE focus there (Safari and Chrome refuse on a non-focusable target,
-	 * scrolling but leaving focus behind in the menu) — but it must not then paint a
-	 * focus ring around the whole page. */
+	/* the skip link's target <main> carries tabindex="-1" so the browser actually MOVES
+	 * focus there (Safari/Chrome refuse on a non-focusable target: they scroll but leave
+	 * focus in the menu) — but it must not then ring the whole page. */
 	#maincontent:focus { outline: none; }
 
 	.fs-logout { display: flex; align-items: center; color: var(--fs-dim); }
@@ -87,47 +71,38 @@
 
 	.fs-indicators { display: flex; align-items: center; gap: 8px; }
 
-	/* The 34px square icon button that .fs-themerow / .fs-logout collapse into is
-	 * NOT declared here any more. It only exists where the chrome is a bar or a rail,
-	 * and those states are already the ones that give them their border, surface and
-	 * size (20-shell.css for the rail and the phone bar, 50-toplayout.css for
-	 * the desktop bar) — an unconditional copy here was a second definition of the
-	 * same button that the layout blocks then had to re-state anyway. The two
-	 * elements it used to target (.fs-appearance-btn, .fs-top-logout) no longer
-	 * exist: one template, one Appearance row, one Logout row. */
+	/* The 34px square icon button (.fs-themerow / .fs-logout collapsed) is NOT declared
+	 * here: it only exists where the chrome is a bar or a rail, and those blocks
+	 * (20-shell.css, 50-toplayout.css) already give it its border, surface and size — an
+	 * unconditional copy here was a second definition they had to re-state anyway. */
 
 	/* Density steps for the main menu once it is a horizontal row —
-	 * menu-footstrap-common.js adds .fs-dense1/2 when the row would wrap (and strips
-	 * them while the list is a vertical sidebar, so no media guard is needed).
-	 * Padding is trimmed hard first, the font only at the d2 floor. */
+	 * menu-footstrap-common.js adds .fs-dense1/2 when the row would wrap (and strips them
+	 * in the vertical sidebar, so no media guard is needed). Padding is trimmed hard
+	 * first, the font only at the d2 floor. */
 	.fs-sidebar ul.nav.fs-dense1 > li > a { padding: 4px 8px; }
 	.fs-sidebar ul.nav.fs-dense2 > li > a { padding: 3px 6px; font-size: 14px; }
 
-	/* ------------------------------------------------------------------
-	 * Menu primitives. Both layouts render the LuCI menu as `ul.nav > li > a`,
-	 * and both used to inherit these three things from a navbar rule set the
-	 * theme no longer carries — a 19px line-height, `display: block` on the
-	 * items, and the `position: relative` that every submenu popup anchors to.
-	 * State them here, once, for both layouts.
-	 * ------------------------------------------------------------------ */
+	/* Menu primitives, once for both layouts (both render the menu as `ul.nav > li > a`):
+	 * the 19px line-height, `display: block` on the items and the `position: relative`
+	 * every submenu popup anchors to — all three used to be inherited from a navbar rule
+	 * set the theme no longer carries. */
 	ul.nav { position: relative; margin: 0; list-style: none; }
 	ul.nav > li { display: block; }
 	ul.nav a { line-height: 19px; text-decoration: none; }
 
-	/* `.dropdown-menu` is NOT the theme's menu any more — the theme's submenu is a
-	 * plain nested `ul`. It survives because luci-base's own ui.js emits it for the
-	 * split Save & Apply button, and a third-party luci-app-* may emit one too, so it
-	 * stays styled (coverage contract). Each item anchors its own nested popup, hence
+	/* `.dropdown-menu` is not the theme's menu (that is a plain nested `ul`), but ui.js
+	 * emits it for the split Save & Apply button and a third-party luci-app-* may too, so
+	 * it stays styled (coverage contract). Each item anchors its own nested popup, hence
 	 * position: relative. */
 	.dropdown-menu li { display: block; position: relative; }
 	/* wins over `ul.nav a` above: the popup sets its own denser rhythm */
 	ul.nav .dropdown-menu a, .dropdown-menu a { line-height: 18px; }
 
-	/* Menu item hover / active — one look, every layout. There is one markup now
-	 * (`ul.nav > li > a` plus a nested `ul`), so the main list, the submenu (an
-	 * accordion in the sidebar, a dropdown in the bar, a flyout in the rail), the mode
-	 * menu and the Appearance trigger row all take these two rules — no per-layout
-	 * copies to keep in step. */
+	/* Menu hover / active — one look, every layout. One markup (`ul.nav > li > a` + a
+	 * nested `ul`) serves the main list, the submenu (accordion / bar dropdown / rail
+	 * flyout), the mode menu and the Appearance row, so there are no per-layout copies to
+	 * keep in step. */
 	.fs-sidebar ul.nav > li > a:hover,
 	.fs-sidebar ul.nav ul a:hover,
 	.fs-themerow:hover {
@@ -141,10 +116,9 @@
 		background: var(--fs-accent-soft); color: var(--fs-accent);
 	}
 
-	/* Keyboard focus for the chrome controls, one look for both layouts — the
-	 * same ring every form field already gets. Form fields keep their own rules;
-	 * this covers the buttons/links the theme itself renders, which had only the
-	 * UA default (menu links: base's thin dotted outline). */
+	/* Keyboard focus for the chrome controls — the same ring every form field gets. Covers
+	 * the buttons/links the theme itself renders, which had only the UA default (menu
+	 * links: base's thin dotted outline). */
 	.fs-railtoggle:focus-visible,
 	.fs-themerow:focus-visible,
 	.fs-logout:focus-visible,

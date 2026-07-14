@@ -1,8 +1,8 @@
 @layer base {
-	/* Widgets with no generic equivalent: CBI section tables, the interface and
-	 * zone badges, the uci change dialog, spinners, the file browser, and a few
-	 * per-page rules luci-mod-* depends on. */
-	/* .hidden is theme/60-inputs.css's (with the .cbi-* variants LuCI actually emits) */
+	/* Widgets with no generic equivalent: CBI section tables, interface/zone badges,
+	 * the uci change dialog, spinners, the file browser, and a few rules luci-mod-*
+	 * depends on. */
+	/* .hidden: theme/60-inputs.css (with the .cbi-* variants LuCI emits) */
 	form.inline { display: inline; margin-bottom: 0; }
 
 	#modemenu li:last-child span.divider { display: none }
@@ -83,8 +83,8 @@
 	.td.cbi-section-actions > :not(.cbi-dropdown) > *,
 	.td.cbi-section-actions > * > form > * {
 		flex: 1 1 4em;
-		/* 1px apart put adjacent row actions inside each other's 24px target circle
-		 * (WCAG 2.2 SC 2.5.8) — see the min-height in theme/55-buttons.css. */
+		/* at 1px apart, adjacent row actions sat inside each other's 24px target circle
+		 * (WCAG 2.2 SC 2.5.8) — see the min-height in theme/55-buttons.css */
 		margin: 0 4px;
 	}
 
@@ -129,9 +129,7 @@
 		-webkit-mask-size: cover;
 	}
 
-	/* The tint (and the 6%-not-12% reasoning behind it) is theme/30-tables.css's —
-	 * absorbed. It was written out here too, comment and all, and dead: theme sets the
-	 * `background` shorthand, which a later layer wins outright. */
+	/* tint (and the 6%-not-12% reasoning): theme/30-tables.css — absorbed */
 	.cbi-section-error {
 		border: 1px solid var(--fs-danger);
 		border-radius: 3px;
@@ -142,7 +140,7 @@
 	.cbi-section-error ul { margin: 0 0 0 20px; }
 
 	.cbi-section-error ul li {
-		/* colour is theme/35-alerts.css's — absorbed */
+		/* colour: theme/35-alerts.css — absorbed */
 		font-weight: bold;
 	}
 
@@ -151,7 +149,7 @@
 		margin: 0 10px;
 		text-align: center;
 		white-space: nowrap;
-		/* the gradient surface was theme/45-misc.css's flat one — absorbed */
+		/* surface: theme/45-misc.css (flat) — absorbed */
 		border-radius: 4px;
 		box-shadow: var(--fs-emboss);
 		display: inline-flex;
@@ -164,24 +162,23 @@
 		border-bottom: 1px solid var(--fs-border);
 		border-radius: 3px 3px 0 0;
 		padding: 2px;
-		/* surface + ink are theme/45-misc.css's — absorbed */
+		/* surface + ink: theme/45-misc.css — absorbed */
 	}
 
 	.ifacebox .ifacebox-head[style] {
 		text-shadow: var(--fs-text-emboss);
 	}
 
-	/* NO FALLBACK on --zone-color-rgb, and that is load-bearing — do not "fix" it.
+	/* The !important fights luci-mod-network's inline zone-colour `style=` — a raw zone
+	 * colour is too bright on a dark panel, so re-mix it at .4/.3.
 	 *
-	 * LuCI sets the var inline only on elements that HAVE a zone colour. On the others
-	 * (the overview's .ifacebox-head, which carries a plain inline background-color),
-	 * the var is missing, the declaration is invalid at computed-value time, and —
-	 * because it is !important — it resolves to `unset`, wiping that inline background.
-	 * That is the DESIRED outcome: in dark mode, a bright colour baked into an inline
-	 * style by luci-mod-status is exactly what we do not want to paint. Adding a
-	 * fallback grey makes the rule apply to those elements instead, tinting five
-	 * interface boxes on the overview that today correctly show the panel behind them.
-	 * Measured with cssdiff.py — a fallback CHANGES rendering; leaving it out does not. */
+	 * NO FALLBACK on --zone-color-rgb: load-bearing, do not "fix" it. LuCI sets that var
+	 * inline only where there IS a zone colour; elsewhere (the overview's .ifacebox-head,
+	 * carrying a plain inline background-color) it is missing, so the declaration is
+	 * invalid at computed-value time and — being !important — resolves to `unset`, wiping
+	 * that inline background. That is the DESIRED outcome. A fallback grey makes the rule
+	 * apply there instead, tinting five interface boxes that today correctly show the panel
+	 * behind them (measured, cssdiff.py). */
 	[data-darkmode="true"] .zonebadge[style],
 	[data-darkmode="true"] .ifacebox-head[style] {
 		background: linear-gradient(rgba(var(--zone-color-rgb), .4), rgba(var(--zone-color-rgb), .3)) !important;
@@ -205,7 +202,7 @@
 		flex-direction: row;
 		border: 1px solid var(--fs-border);
 		padding: 2px;
-		/* the gradient surface is theme/45-misc.css's flat one — absorbed */
+		/* surface: theme/45-misc.css (flat) — absorbed */
 		color: var(--fs-text);
 		text-shadow: var(--fs-text-emboss);
 		border-radius: 4px;
@@ -221,7 +218,7 @@
 	}
 
 	.ifacebadge-active {
-		/* border-color is theme/45-misc.css's (the accent) — absorbed */
+		/* border-color: theme/45-misc.css (accent) — absorbed */
 		font-weight: bold;
 	}
 
@@ -309,7 +306,7 @@
 	}
 
 	.zonebadge-empty {
-		/* dashed WIDTH/STYLE only — theme/45-misc.css owns the colour and the ink */
+		/* width/style only — colour + ink: theme/45-misc.css */
 		border: 1px dashed var(--fs-border);
 		font-style: italic;
 		font-size: smaller;
@@ -342,8 +339,7 @@
 	}
 
 	#modal_overlay > .modal.login > button.important {
-		/* (0,3,2) already beats every button rule in any layer — the !important
-		 * this carried fought nothing */
+		/* no !important needed: (0,3,2) already beats every button rule in every layer */
 		font-size: 120%;
 		margin-top: .5em;
 		width: 100%;
@@ -445,24 +441,21 @@
 		margin: 15vh auto;
 	}
 
-	/* The padding reserves room for the ::before spinner glyph. The !important is
-	 * load-bearing: a spinning dropdown-button (the Save & Apply split control
-	 * while applying) is a .cbi-dropdown, whose `padding: 0 !important` in
-	 * 80-dropdown.css would otherwise win — only a later same-layer !important
-	 * longhand outranks that shorthand. It also (correctly) keeps the 32px against
-	 * the theme's own .btn padding. */
+	/* Room for the ::before spinner glyph. The !important is load-bearing: a spinning
+	 * dropdown-button (the Save & Apply split control while applying) is a .cbi-dropdown,
+	 * whose `padding: 0 !important` (80-dropdown.css) would otherwise win — only a later
+	 * same-layer important longhand outranks that important shorthand. It also holds the
+	 * 32px against theme's own .btn padding. */
 	.spinning {
 		position: relative;
 		padding-left: 32px !important;
 	}
 
-	/* The rotation used to live INSIDE the data-URI, as a SMIL <animateTransform> on
-	 * the arc. That animation runs in the SVG's own document, where the outer page's
-	 * `prefers-reduced-motion` cannot reach it — the one spinner on the page that a
-	 * motion-sensitive user could not turn off. Same glyph, rotated by CSS instead,
-	 * so theme/95-a11y-media.css can stop it like everything else. The static
-	 * circle underneath is rotationally symmetric, so spinning the whole box looks
-	 * identical to spinning just the arc. */
+	/* Rotate in CSS, NEVER with a SMIL <animateTransform> inside the data-URI: that runs in
+	 * the SVG's own document, which the page's `prefers-reduced-motion` cannot reach — the
+	 * one spinner a motion-sensitive user could not turn off. theme/95-a11y-media.css now
+	 * stops it like everything else. (The circle under the arc is rotationally symmetric,
+	 * so spinning the whole box looks identical.) */
 	.spinning::before {
 		--spinner-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' stroke='%23000' stroke-width='3' fill='none'><circle cx='10' cy='10' r='8' stroke-opacity='.5'/><path d='M10 2c4 0 8 4 8 8'/></svg>");
 
@@ -478,10 +471,9 @@
 		animation: fs-spin 1s linear infinite;
 	}
 
-	/* The spinner's keyframes. ONE user inside this theme (`.spinning::before`, above):
-	 * the rail's poll glyph is deliberately STATIC (theme/20-shell.css — the spin was what
-	 * broke that click). Kept unscoped anyway: keyframe names resolve document-wide, so a
-	 * third-party luci-app-* may ride it. */
+	/* One user in this theme (`.spinning::before` above) — the rail's poll glyph is
+	 * deliberately STATIC (theme/20-shell.css; the spin was what broke that click).
+	 * Unscoped anyway: keyframe names resolve document-wide, so a luci-app-* may ride it. */
 	@keyframes fs-spin { to { transform: rotate(360deg); } }
 
 	[data-darkmode="true"] .spinning::before {
@@ -494,8 +486,7 @@
 		overflow: hidden;
 	}
 
-	/* the revealed state of both collapsibles — the tab pane and the file browser. Same
-	 * four declarations, written twice. */
+	/* the revealed state of both collapsibles — tab pane and file browser — in one rule */
 	[data-tab-active="true"],
 	.cbi-filebrowser.open {
 		opacity: 1;
@@ -507,7 +498,7 @@
 	.cbi-filebrowser {
 		min-width: 210px;
 		max-width: 100%;
-		/* border WIDTH/STYLE only, and the radius is theme/60-inputs.css's — absorbed */
+		/* width/style only; radius: theme/60-inputs.css — absorbed */
 		border: 1px solid var(--fs-border);
 		display: flex;
 		flex-direction: column;
@@ -539,7 +530,7 @@
 		flex-direction: row;
 	}
 
-	/* the row hover surface is theme/60-inputs.css's — absorbed */
+	/* row hover surface: theme/60-inputs.css — absorbed */
 	.cbi-filebrowser > ul > li > div:first-child {
 		flex: 10;
 		overflow: hidden;
@@ -593,11 +584,9 @@
 		100% { opacity: 0; }
 	}
 
-	/* .fade-in's animation is theme/45-misc.css's (fs-fade) — absorbed. The @keyframes
-	 * above STAYS even though nothing here rides it any more: `fade-in` is an upstream
-	 * animation NAME, and a third-party luci-app-* may well write `animation: fade-in`
-	 * against it. Deleting a keyframes block is the same kind of un-theming as deleting
-	 * a selector nothing on this router happens to render. */
+	/* .fade-in's animation: theme/45-misc.css (fs-fade) — absorbed. The @keyframes above
+	 * STAY though nothing here rides them: `fade-in` is an upstream animation NAME a
+	 * luci-app-* may ride (coverage contract, CLAUDE.md). */
 	.fade-out {
 		animation: fade-out .4s ease;
 	}
@@ -627,11 +616,10 @@
 		filter: invert(100%) hue-rotate(150deg);
 	}
 
-	/* The realtime graphs (Status → Load/Traffic) inject resources/svg/*.svg into a
-	 * div with an inline style. The <svg> root itself carries no inline style, so the
-	 * background needs no flag. Its grid <line>s DO (`style="stroke:black"` in the
-	 * .svg file) — black hairlines are invisible on a dark panel, and only an author
-	 * !important beats an inline declaration. */
+	/* Realtime graphs (Status → Load/Traffic) inject resources/svg/*.svg into a div with
+	 * an inline style. The <svg> root carries none itself, so the background needs no flag.
+	 * Its grid <line>s do — `style="stroke:black"` in the .svg — and a black hairline is
+	 * invisible on a dark panel; only an author !important beats an inline declaration. */
 	#view div[style] > svg {
 		background-color: var(--fs-panel);
 	}
@@ -640,7 +628,6 @@
 		stroke: var(--fs-text) !important;
 	}
 
-	/* The overview Hide/Show toggle pills are owned by theme/35-alerts.css
-	 * (.cbi-title .label) + pages/20-overview.css (the chevron variant) —
-	 * the page-scoped block that used to sit here was fully overridden. */
+	/* Overview Hide/Show toggle pills: theme/35-alerts.css (.cbi-title .label) +
+	 * pages/20-overview.css (chevron variant) — absorbed. */
 }

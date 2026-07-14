@@ -1,19 +1,13 @@
 @layer theme {
 	/* ==================================================================
-	 * FOOTSTRAP tab strips — one component, four entry points.
-	 *
-	 * LuCI emits a tab strip under four different selectors and there is no
-	 * markup difference worth honouring between them:
+	 * Tab strips — one component, four entry points. LuCI emits a strip under four selectors
+	 * with no markup difference worth honouring:
 	 *   #tabmenu ul.tabs      page tabs, rendered into the server shell
 	 *   ul.cbi-tabmenu.mode   mode switcher (Available / Installed / Updates)
 	 *   .tabs                 view tabs (Routing -> IPv4 / IPv6)
 	 *   .cbi-tabmenu          CBI form tabs (System -> General / Logging / …)
-	 * They agree on everything except which class marks the active item:
-	 * `.active` for `ul.tabs`, `.cbi-tab` for every `.cbi-tabmenu` flavour.
-	 *
-	 * All four render as pills in a card. This file used to say that twice —
-	 * first as underline tabs, then again as pills — and the second half won
-	 * every single property. Only the pills survive.
+	 * They agree on everything except the active marker: `.active` for `ul.tabs`, `.cbi-tab`
+	 * for every `.cbi-tabmenu` flavour. All four render as pills in a card.
 	 * ================================================================== */
 	#tabmenu { margin-bottom: 0; }
 
@@ -32,13 +26,14 @@
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
-		/* styles/base paints the folder-tab baseline as a background gradient
-		 * sized 1px x 29px; zero the size instead of restating the gradient */
+		/* kills a folder-tab baseline gradient (the 1px x 29px background image the strip
+		 * conventionally carries) by zeroing its size rather than restating it — base's copy is
+		 * absorbed, but any gradient a view or third-party app sets is sized away too */
 		background-size: 0 0;
 	}
 
-	/* a strip nested inside a .cbi-section card -> softer inset row, no frame
-	 * (a card inside a card reads as a bug) */
+	/* a strip nested inside a .cbi-section card -> soft inset row, no frame (a card inside a
+	 * card reads as a bug) */
 	.cbi-section .tabs,
 	.cbi-section .cbi-tabmenu:not(.mode):not(.map) {
 		background: var(--fs-panel2);
@@ -97,12 +92,11 @@
 		font-weight: 700;
 	}
 
-	/* Density steps for a crowded strip. menu-footstrap-common.js measures whether
-	 * the tabs wrap to a second row and, if so, adds .fs-dense1 then .fs-dense2.
-	 * Padding is trimmed hard first (9/14 -> 5/9 -> 3/7), the font only at the d2
-	 * floor (13 -> 12) and the gap only there too (4 -> 3, still not touching), so a
-	 * pill never gets tighter than its label; past the floor the strip may wrap. The
-	 * id in the first selector matches the #tabmenu base rule's specificity. */
+	/* Density steps for a crowded strip: menu-footstrap-common.js MEASURES whether the tabs
+	 * wrap to a second row and, if so, adds .fs-dense1 then .fs-dense2. Padding is trimmed
+	 * hard first (9/14 -> 5/9 -> 3/7), the font only at the d2 floor (13 -> 12) and the gap
+	 * only there (4 -> 3), so a pill never gets tighter than its label; past the floor the
+	 * strip may wrap. The id in the first selector matches the #tabmenu rule's specificity. */
 	#tabmenu ul.tabs.fs-dense1 > li > a,
 	.tabs.fs-dense1 > li > a,
 	.cbi-tabmenu.fs-dense1 > li > a { padding: 5px 9px; }

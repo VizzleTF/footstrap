@@ -1,44 +1,30 @@
-/* Self-hosted webfonts. Unlayered on purpose: @font-face declares a resource, it
- * is not a style rule, so a cascade layer would mean nothing here.
+/* Self-hosted webfonts. Unlayered: @font-face declares a resource, not a style rule.
  *
- * LICENCE — the fonts are NOT under the theme's Apache-2.0. Manrope and JetBrains Mono are
- * SIL Open Font License 1.1, and OFL §2 requires every copy of the Font Software to carry the
- * copyright notice AND the licence. These .woff2 are unicode-range SUBSETS, and the subsetter
- * strips the licence out of the font's own name table — so the text has to travel beside the
- * files: htdocs/luci-static/footstrap/fonts/OFL.txt, which ships to the router with them and is
- * declared in the package (PKG_LICENSE_FILES). Do not delete it, and do not add a font without
- * adding its notice there.
+ * LICENCE — the fonts are OFL-1.1, not the theme's Apache-2.0, and OFL §2 requires every copy
+ * to carry the notice AND the licence. These .woff2 are subsets and the subsetter strips the
+ * licence out of the font's own name table, so the text has to travel beside them:
+ * fonts/OFL.txt, shipped to the router and declared in PKG_LICENSE_FILES. Do not delete it;
+ * do not add a font without adding its notice there.
  *
- * SPLIT BY SCRIPT, and that split is the whole point of this file.
- * uhttpd serves /www/luci-static/* with NO compression of any kind (there is no
- * gzip code anywhere in it — docs/18), so bytes on disk are bytes on the wire, and
- * the fonts are the most expensive thing the theme ships. Each face used to be ONE
- * file carrying Latin AND Cyrillic together (19-25 KB), so an English UI paid for
- * every Cyrillic glyph it would never draw, and a Russian one for the reverse.
- * With unicode-range the browser fetches only the subsets whose codepoints the
- * page actually contains:
+ * SPLIT BY SCRIPT (unicode-range) — the point of this file. uhttpd serves /www/luci-static/*
+ * with NO compression (docs/18), so bytes on disk are bytes on the wire and the fonts are the
+ * most expensive thing the theme ships. Each face used to be ONE file carrying Latin AND
+ * Cyrillic (19-25 KB), so an English UI paid for every Cyrillic glyph it never draws. Measured
+ * in Chromium against the live router over seven pages:
  *
- *   Latin UI:   manrope 600/700 + mono 400, latin only         ~46 KB
- *   Russian UI: + the three cyrillic subsets                   ~65 KB
- *   before the split: all five faces, unconditionally         ~105 KB
+ *   Latin UI:   manrope 600/700 + mono 400, latin only    3 files, 46 012 B
+ *   Russian UI: + the three cyrillic subsets                       ~65 KB
+ *   before the split: all five faces, unconditionally             ~105 KB
  *
- * Those numbers are measured, not computed: a Chromium run against the live router
- * over seven pages logs exactly which .woff2 the browser requests. An English UI
- * fetches three files and 46 012 bytes, and touches neither cyrillic nor latin-ext.
+ * latin-ext is ~1 KB per face, fetched only for an accented character outside Latin-1 — it
+ * stops a silent fallback to a system font mid-word.
  *
- * latin-ext is ~1 KB per face and is fetched only when a page actually shows an
- * accented character outside Latin-1 — it costs nothing to keep and it stops a
- * silent fallback to a system font mid-word.
+ * NO WEIGHT 400, deliberately: the lightest Manrope face is 600, so `font-weight: normal`
+ * resolves onto it and body text renders semibold — which is how the theme looks. A real 400
+ * costs ~13 KB and restyles every page: a design decision, not a cleanup.
  *
- * THERE IS NO WEIGHT 400, and that is deliberate. The lightest Manrope face here
- * is 600, so `font-weight: normal` resolves onto it through CSS font matching —
- * body text renders semibold, which is how the theme has always looked. Adding a
- * real 400 would cost ~13 KB and restyle every page: a design decision, not a
- * cleanup.
- *
- * Weight 800 is gone. Measured in-browser across six pages, it drew SIX elements
- * (the brand lockup and the login h2) and cost 18 KB. They resolve to 700 now,
- * which at those sizes is indistinguishable. */
+ * Weight 800 is gone: measured across six pages it drew SIX elements (the brand lockup and the
+ * login h2) for 18 KB. They resolve to 700, indistinguishable at those sizes. */
 
 /* ---- Manrope 600 — body, labels, buttons (and the 400 that maps onto it) ---- */
 @font-face{font-family:'Manrope';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/manrope-600-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
@@ -55,18 +41,14 @@
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400-latinext.woff2) format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
 
-/* ---- There is NO bold JetBrains Mono, and that is the cheapest 20 KB this theme
- * ever saved. It used to ship weight 600, and a LATIN-ONLY UI fetched it on every
- * page: 20 152 bytes, 30% of the theme's entire font payload.
+/* ---- NO BOLD MONO, and keep it that way — the cheapest 20 KB this theme ever saved.
+ * Weight 600 used to be fetched by a LATIN-ONLY UI on every page: 20 152 bytes, 30% of the
+ * theme's whole font payload — to draw (measured on the live router) 227 elements over seven
+ * pages, every one of them a LABEL. LuCI writes a status readout as `<strong>MAC:</strong>
+ * ac:1f:6b:…`: the theme puts mono on the surface, <strong> inherits it, and <strong> also
+ * means weight 700. Labels take Manrope 700 now — already downloaded, zero extra bytes;
+ * theme/45-misc.css holds that rule.
  *
- * What was it drawing? Measured in the browser on the live router: 227 elements over
- * seven pages, and every one of them a LABEL. LuCI writes a status readout as
- * `<strong>MAC:</strong> ac:1f:6b:…` — the theme puts mono on the surface, the
- * <strong> inherited it, and <strong> also means weight 700, so the word "MAC:" pulled
- * in a whole bold monospace face. The labels take Manrope 700 now (already downloaded,
- * zero extra bytes) and the face is gone; theme/45-misc.css holds that rule.
- *
- * Keep it gone. Anything that asks for mono at weight >= 600 now gets the browser's
- * SYNTHETIC bold — which smears a monospace grid — so if a new rule needs bold mono,
- * the honest question is whether that element is a label (then it is not mono at all)
- * rather than whether to re-add 20 KB. ---- */
+ * Mono at weight >= 600 now gets the browser's SYNTHETIC bold, which smears a monospace
+ * grid. If a rule seems to need bold mono, the question is whether that element is a label
+ * (then it is not mono at all), not whether to re-add 20 KB. ---- */

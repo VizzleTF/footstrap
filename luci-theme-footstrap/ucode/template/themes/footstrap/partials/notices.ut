@@ -1,11 +1,9 @@
 {#
- Shared top-of-content notices for both footstrap layouts (sidebar + top-nav):
- the no-root-password warning, the initramfs recovery warning, the noscript
- fallback and the #tabmenu container. Included as
- include('themes/footstrap/partials/notices', { boardinfo, empty_password })
- — empty_password is computed in the header (it needs luci.core imports this
- partial should not duplicate). The two copies in the headers had already
- drifted once; this is the single source now.
+ Top-of-content notices: no-root-password warning, initramfs recovery warning, the <noscript>
+ fallback, the #tabmenu container. include(…, { boardinfo, empty_password }) — empty_password
+ is computed in the header, which already imports luci.core.
+ The sentences carry no msgctxt on purpose: inheriting luci-base's translation is a feature in
+ the ~40 languages this theme has no catalogue for (see partials/appearance.ut).
  Licensed to the public under the Apache License 2.0.
 -#}
 {% if (empty_password): %}

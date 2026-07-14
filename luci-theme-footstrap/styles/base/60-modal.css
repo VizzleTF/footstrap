@@ -55,7 +55,7 @@
 
 	body.modal-overlay-active {
 		overflow: hidden;
-		height: 100dvh;	/* dvh: 100vh includes the mobile URL bar, which cropped the modal */
+		height: 100dvh;	/* dvh: 100vh counts the mobile URL bar and cropped the modal */
 	}
 
 	body.modal-overlay-active #modal_overlay {
@@ -80,14 +80,11 @@
 		border-color: var(--fs-danger) var(--fs-danger) var(--fs-danger);
 	}
 
-	/* --fs-on-GOOD, not --fs-on-danger. This read --fs-on-danger, and nothing could
-	 * see it: every shipped palette happens to give all four inks the same value, so
-	 * cssdiff found 0 diffs, audit.py saw a defined var and axe measured the right
-	 * contrast. It only breaks for the NEXT colourway — the one 03-palettes.css tells
-	 * the author to give danger its own ink. Proven live: forcing --fs-on-danger red
-	 * turns .cbi-tooltip.success red, and --fs-on-good has no effect on it at all
-	 * (.btn.success and .alert-message.success are repainted by theme; the tooltip is
-	 * not, so it is the member that was actually exposed). */
+	/* --fs-on-GOOD, never --fs-on-danger (it once was, and no tool caught it: every shipped
+	 * palette gives all four inks the same value today, so cssdiff, axe and audit.py all
+	 * pass — it breaks on the next colourway, which 03-palettes.css tells the author to give
+	 * danger its own ink). .cbi-tooltip.success is the exposed member: theme repaints
+	 * .btn/.alert-message, not the tooltip. */
 	.btn.success, .alert-message.success, .cbi-tooltip.success {
 		background: linear-gradient(var(--fs-good), var(--fs-good));
 		color: var(--fs-on-good);
@@ -106,9 +103,8 @@
 		color: var(--fs-text);
 	}
 
-	/* `.alert-message.warning` and `.modal.alert-message` are theme/35-alerts.css's —
-	 * absorbed. Both were dead here: theme paints the plain `.alert-message` with a
-	 * background and a colour, and a later layer beats an earlier one whatever the
-	 * specificity, so the tinted variants never rendered what base said. (`.cbi-tooltip`
-	 * variants above stay — theme does not claim those.) */
+	/* `.alert-message.warning` + `.modal.alert-message`: theme/35-alerts.css — absorbed.
+	 * Do not re-add them: theme paints plain `.alert-message`, and a later layer beats
+	 * this one whatever the specificity. (The .cbi-tooltip variants above stay — theme
+	 * does not claim those.) */
 }

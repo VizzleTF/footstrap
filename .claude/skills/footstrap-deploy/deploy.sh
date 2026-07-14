@@ -13,9 +13,8 @@ R="${FOOTSTRAP_SSH:-router}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)/luci-theme-footstrap"
 cd "$ROOT"
 
-# cascade.css is generated from styles/ and is untracked, so `git diff` can never
-# report it. Rebuild whenever a source file is newer, then let collect() pick it
-# up like any other runtime file. --dev keeps it readable on the router.
+# cascade.css is generated and untracked, so `git diff` can never report it. Rebuild
+# when a source file is newer, then let collect() treat it as any other runtime file.
 CSS=htdocs/luci-static/footstrap/cascade.css
 if [ ! -f "$CSS" ] || [ -n "$(find styles -name '*.css' -newer "$CSS" 2>/dev/null)" ]; then
 	./build-css.sh "$ROOT/$CSS" --dev
@@ -31,13 +30,11 @@ dest() {
 	esac
 }
 
-# root/ is in the list, and it was missing.
-#
-# dest() has always known how to map root/* to /* — but nothing ever handed it one: --all
-# searched only htdocs/ and ucode/template, and the git-diff branch was restricted to the same
-# two. So editing footstrap-selfupdate.sh or its rpcd ACL and running this script deployed
-# NOTHING, silently, and the router went on running the old backend. The package ships root/
-# (luci.mk installs it to /), so this must too.
+# Discover by GLOB/directory, NEVER by a hand-written list of names — root/ was missing
+# here: dest() always knew how to map root/* to /*, but nothing ever handed it one (both
+# branches searched htdocs/ and ucode/template only). Editing footstrap-selfupdate.sh or
+# its rpcd ACL and deploying therefore did NOTHING, silently, and the router kept running
+# the old backend. The package ships root/ (luci.mk installs it to /), so this must too.
 collect() {
 	if [ "$1" = "--all" ]; then
 		find htdocs/luci-static ucode/template root -type f \
@@ -47,7 +44,7 @@ collect() {
 	elif [ $# -gt 0 ]; then
 		printf '%s\n' "$@"
 	else
-		# changed vs HEAD (staged + unstaged), restricted to runtime dirs.
+		# changed vs HEAD (staged + unstaged), runtime dirs only.
 		# styles/ is source, not runtime: a change there means ship cascade.css.
 		{
 			git -C "$ROOT/.." diff --name-only HEAD -- \
@@ -69,7 +66,7 @@ for f in $FILES; do
 	d="$(dest "$f")" || { echo "skip (unmapped): $f"; continue; }
 	ssh "$R" "mkdir -p '$(dirname "$d")'"
 	scp -q "$f" "$R:$d"
-	# an executable on the router has to arrive executable; scp does not preserve the bit
+	# scp does not preserve the exec bit, and these have to arrive executable
 	case "$d" in /usr/libexec/*|/etc/uci-defaults/*) ssh "$R" "chmod +x '$d'" ;; esac
 	# an acl.d change only takes effect once rpcd re-reads the directory (SIGHUP)
 	case "$d" in /usr/share/rpcd/acl.d/*|/usr/libexec/*) backend=1 ;; esac
@@ -78,7 +75,7 @@ for f in $FILES; do
 done
 
 [ "$backend" = 1 ] && ssh "$R" '/etc/init.d/rpcd reload' && echo "rpcd reloaded (ACL/backend changed)"
-# BOTH caches, as the package's postinst does: a stale module cache after replacing theme JS
-# is exactly the case that bites.
+# BOTH caches, as postinst does — a stale module cache after replacing theme JS is the case
+# that bites. touch bumps pkgs_update_time, i.e. the ?v= cache-bust, so a plain F5 reloads.
 ssh "$R" 'touch /lib/apk/db/installed; rm -f /tmp/luci-indexcache*; rm -rf /tmp/luci-modulecache'
 echo "deployed $n file(s) to $R; cache bumped (F5 reloads). Active theme unchanged."

@@ -1,9 +1,8 @@
 @layer theme {
-	/* progress bars -> thin footstrap meter. One general rule for every
-	 * .cbi-progressbar (overview Memory/Storage/Network, Software disk space, package
-	 * manager, …): a slim rounded track with an accent fill, and the LuCI title
-	 * value floated just above the bar's right edge (mono/dim) instead of stuffed
-	 * inside a fat pill. No per-page overrides. */
+	/* One thin meter for every .cbi-progressbar (overview Memory/Storage/Network, Software
+	 * disk space, package manager …): slim rounded track, accent fill, and the LuCI title
+	 * value floated just above the bar's right edge (mono/dim) instead of stuffed inside a fat
+	 * pill. No per-page overrides. */
 	.cbi-progressbar {
 		position: relative;
 		height: 10px;
@@ -27,15 +26,13 @@
 		color: var(--fs-dim); white-space: nowrap; text-shadow: none;
 	}
 
-	/* Progressbar rows in a section table (e.g. luci-app-cpu-status): keep the
-	 * native label | bar layout (one row), just vertically center the cells. The
-	 * bar itself is themed by the generic .cbi-progressbar pill-meter above. */
+	/* Progressbar rows in a section table (luci-app-cpu-status): keep the native label | bar
+	 * row, just centre the cells vertically. */
 	.cbi-section .table:not([id]):not(.cbi-section-table) .tr:has(.cbi-progressbar) .td { vertical-align: middle; }
 
-	/* Multi-column DATA tables with a progressbar column (cpu-status "Detailed load
-	 * of each CPU"): the generic meter floats its value ABOVE the bar, which lands
-	 * on the row divider. Here the bar sits in a real table row, so shrink it and
-	 * put the value INLINE to its right, vertically centred — clear of the border. */
+	/* Multi-column DATA tables with a progressbar column (cpu-status per-CPU load): the
+	 * generic meter floats its value ABOVE the bar, which here lands on the row divider.
+	 * Shrink the bar and put the value INLINE to its right, clear of the border. */
 	.cbi-section .table:has(.tr.table-titles) .td .cbi-progressbar {
 		min-width: 60px; margin-right: 42px;
 	}

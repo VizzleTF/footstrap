@@ -4,6 +4,9 @@
  Copyright 2008-2022 Jo-Philipp Wich <jo@mein.io>
  Copyright 2026 footstrap theme
  Licensed to the public under the Apache License 2.0.
+
+ The chrome's strings (Skip to content, Menu, Collapse menu) are deliberately msgctxt-FREE —
+ partials/appearance.ut carries the rule and why the chrome is the exception to it.
 -#}
 
 {%
@@ -12,9 +15,10 @@
 
 	const boardinfo = ubus.call('system', 'board') ?? {};
 	const empty_password = (getuid() == 0 && getspnam('root')?.pwdp === '');
-	/* server default layout: a router migrated from the old top-nav theme carries
-	   luci.main.footstrap_layout=top (uci-defaults), so a client with no saved
-	   preference still paints top. Absent = sidebar. head.ut pre-paints it. */
+	/* the ROUTER's default layout: a router migrated from the old top-nav theme keeps its bar.
+	   A shell script cannot write localStorage, so uci-defaults records the fact in
+	   luci.main.footstrap_layout=top and head.ut stamps it; the user's own choice overrides it
+	   forever after. Absent = sidebar. */
 	const fs_layout = cursor().get('luci', 'main', 'footstrap_layout') || '';
 
 	http.prepare_content('text/html; charset=UTF-8');
@@ -23,29 +27,24 @@
 {% include('themes/footstrap/partials/head', { boardinfo, fs_layout }) %}
 
 	{#
-		data-page carries the DISPATCH path (ctx.path), not the request path. They
-		differ on a firstchild route: /admin/status renders the overview but its
-		request_path is only ['admin','status'], so data-page came out
-		"admin-status" and every `body[data-page='admin-status-overview']` rule —
-		plus the overview layout include, which gates on the same attribute —
-		silently did not apply on that URL. The SPA router stamps the resolved leaf
-		path (menu-footstrap-common.js), so ctx.path is also what keeps a full load
-		and a client-side nav agreeing on the same value.
+		data-page carries the DISPATCH path (ctx.path), not request_path: on a firstchild route
+		/admin/status renders the overview while request_path is only ['admin','status'], so
+		data-page came out "admin-status" and every `body[data-page='admin-status-overview']`
+		rule — and the overview layout include, which gates on it — silently did not apply
+		there. The SPA router stamps the resolved leaf path, so both ways of arriving agree.
 	#}
 	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', length(ctx.path) ? ctx.path : ctx.request_path), true) }}">
 		{% if (!blank_page): %}
 		{#
-			Skip link: the first thing a keyboard or screen-reader user reaches, so they
-			can jump the whole menu instead of tabbing through every section on every
-			page. Visually hidden until focused (.fs-skip, theme/10-chrome.css).
+			Skip link: jump the menu instead of tabbing through every section on every page.
+			Visually hidden until focused (.fs-skip, theme/10-chrome.css).
 		#}
 		<a class="fs-skip" href="#maincontent">{{ _('Skip to content') }}</a>
 		<div class="fs-shell">
 			{#
-				<nav>, not <aside>. This column IS the site navigation — an <aside> gets
-				role="complementary", so a screen reader could not jump to the menu by
-				landmark at all, and the shell had no navigation landmark anywhere. The
-				CSS keys off .fs-sidebar, never the tag name, so the swap is free.
+				<nav>, not <aside>: this column IS the site navigation, and an <aside> gets
+				role="complementary" — a screen reader could not reach the menu by landmark, and
+				the shell had no navigation landmark at all. CSS keys off .fs-sidebar.
 			#}
 			<nav class="fs-sidebar" aria-label="{{ _('Menu') }}">
 				<div class="fs-brandrow">
@@ -55,8 +54,7 @@
 					</button>
 				</div>
 
-				{# LuCI poll status ("Refreshing") + other indicators land here by id.
-				   Expanded: the word as a pill; collapsed rail: a spinning green glyph. #}
+				{# LuCI's poll status ("Refreshing") and other indicators land here by id. #}
 				<div id="indicators" class="fs-indicators"></div>
 
 				<div class="fs-navlabel">{{ _('Menu') }}</div>
@@ -70,29 +68,20 @@
 			</nav>
 
 			<main class="fs-main" id="maincontent" tabindex="-1">
-				{# The document's <h1>. LuCI views start their content at <h2>, so without
-				   this the page has no h1 at all and the heading outline begins mid-way
-				   down. It is not shown — the chrome already names the page — but it must
-				   still EXIST for a screen reader, and `hidden` did not do that: `hidden`
-				   is display:none, which removes the element from the accessibility tree
-				   as thoroughly as from the page. So the h1 the fix was written to provide
-				   was never there, and the SPA router's .fs-title-main text sync was
-				   updating a node no assistive tech could read.
-
-				   .fs-sr is the clip-based visually-hidden utility (theme/10-chrome.css) —
-				   the same technique .fs-skip already relies on, and for the same reason:
-				   clipped stays in the tree, display:none does not. #}
+				{# The document's <h1>: LuCI views start at <h2>, so without it the heading outline
+				   begins mid-way down. It must EXIST for a screen reader without being seen, and
+				   `hidden` cannot do that — it is display:none, which strips the element from the
+				   accessibility tree too, so the h1 was never there and the SPA router's
+				   .fs-title-main sync updated a node no assistive tech could read. .fs-sr clips
+				   instead (like .fs-skip): clipped stays in the tree. #}
 				<div class="fs-title fs-sr">
 					<h1 class="fs-title-main">{{ entityencode(striptags(dispatched?.title ? _(dispatched.title) : (boardinfo.hostname ?? 'OpenWrt')), true) }}</h1>
 				</div>
 
-				{# The SPA router swaps the page without reloading, and a screen reader has
-				   no way to notice: no document load fires, focus is destroyed along with
-				   the menu <a> that was clicked (renderChrome() empties #topmenu), and the
-				   new <title> is not announced. The router writes the incoming page's title
-				   here after every navigation, so the change is spoken; on a full load the
-				   region is empty and says nothing, which is correct — the load itself is
-				   the announcement. #}
+				{# The SPA router swaps the page with no reload, and a screen reader cannot notice:
+				   no load event, focus dies with the clicked <a> (renderChrome() empties
+				   #topmenu), the new <title> is not announced. The router writes the incoming
+				   title here after every nav; empty on a full load — that announces itself. #}
 				<div id="fs-nav-status" class="fs-sr" role="status" aria-live="polite"></div>
 
 				<div class="fs-content">

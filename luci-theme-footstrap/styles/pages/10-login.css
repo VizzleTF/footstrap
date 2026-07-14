@@ -1,32 +1,26 @@
 @layer page {
-	/* ==================================================================
-	 * LOGIN — the SERVER-rendered form of themes/footstrap/sysauth.ut, as a centred card.
+	/* LOGIN — the SERVER-rendered form of themes/footstrap/sysauth.ut, as a centred card,
+	 * scoped by the username field so nothing else on the site is touched.
 	 *
-	 * The theme ships its own sysauth.ut so the login page carries NO chrome (bootstrap
-	 * does the same; without one, LuCI falls back to the generic template, which includes
-	 * the header WITHOUT blank_page and draws the whole sidebar around a page whose only
-	 * control is a password field).
+	 * The theme ships its own sysauth.ut so the page carries NO chrome: without one, LuCI
+	 * falls back to the generic template, which includes the header WITHOUT blank_page and
+	 * draws the whole sidebar around a page whose only control is a password field.
 	 *
-	 * What that template deliberately does NOT do is bootstrap's trick of hiding the form in
-	 * a <section hidden> and revealing it from a view module. That was tried here and it
-	 * produced a BLANK PAGE WITH NO WAY TO LOG IN: the view runs before a session exists, its
-	 * RPCs answer "Access denied", the promise rejects and render() never runs. The form is
-	 * rendered by the server and works with JS off. Do not "improve" this into a modal.
-	 *
-	 * Scoped by the username field so nothing else on the site is affected.
-	 * ================================================================== */
+	 * Do NOT turn this into a modal (form in a <section hidden>, revealed by a view module).
+	 * Tried: BLANK PAGE, NO WAY TO LOG IN — the view runs before a session exists, its RPCs
+	 * answer "Access denied", the promise rejects, render() never runs. Server-rendered, the
+	 * form works with JS off. */
 	form:has(> .cbi-map input[name="luci_username"]) {
-		/* A DEFINITE width, not `max-width` — the card is now a direct flex item of <body>
+		/* A DEFINITE width, never `max-width`: the card is a direct flex item of <body>
 		 * (base/20-typography.css makes body a flex column so the footer can margin-top:auto),
 		 * and on the cross axis an `auto` side margin overrides the stretch and sizes the item
-		 * to FIT-CONTENT. `max-width: 400px` then capped nothing: the card collapsed to its
-		 * min-content, ~131px, and the description wrapped one word per line. It only ever
-		 * looked right because it used to sit inside the block .fs-content. */
+		 * to FIT-CONTENT. `max-width: 400px` capped nothing — the card collapsed to its
+		 * min-content, ~131px, and the description wrapped one word per line. */
 		width: min(400px, calc(100% - 32px));
 		margin: 7vh auto 40px;
 		background: var(--fs-panel); border: 1px solid var(--fs-border); border-radius: var(--fs-radius-lg);
-		/* --fs-shadow-pop, not a 45%-black 60px halo: that literal ignored the palette
-		 * and drew a heavy grey cloud under a white card in light mode. */
+		/* the token, not a literal 45%-black 60px halo: that ignored the palette and drew
+		 * a heavy grey cloud under a white card in light mode. */
 		padding: 26px 26px 24px; box-shadow: var(--fs-shadow-pop);
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map,
@@ -34,8 +28,8 @@
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-section-node {
 		background: none; border: 0; padding: 0; margin: 0; box-shadow: none;
 	}
-	/* the login card IS the panel — the generic "heading gets its own card" rule
-	 * would draw a second frame inside it */
+	/* the login card IS the panel — the generic "heading gets its own card" rule would
+	 * draw a second frame inside it */
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map > h2,
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-map-descr {
 		background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0;
@@ -58,8 +52,8 @@
 		width: 100%; margin: 0; box-sizing: border-box;
 	}
 	form:has(> .cbi-map input[name="luci_username"]) .alert-message { margin: 0 0 14px; border-radius: var(--fs-radius); }
-	/* a column, not a block: some auth plugins add a second action (Reset) and the
-	 * full-width buttons below carry margin:0, so they ended up glued together */
+	/* a column, not a block: some auth plugins add a second action (Reset), and the
+	 * full-width buttons below carry margin:0 — they ended up glued together */
 	form:has(> .cbi-map input[name="luci_username"]) .cbi-page-actions {
 		display: flex; flex-direction: column; gap: 10px;
 		background: none; border: 0;

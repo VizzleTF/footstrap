@@ -1,39 +1,22 @@
 #!/usr/bin/env node
-/* Structural duplicate detector: the SAME declaration body written under DIFFERENT guards.
+/* Structural duplicate detector: the SAME declaration body under DIFFERENT guards.
  *
- * WHY THIS EXISTS, AND WHY NO LINTER DOES IT
- * -----------------------------------------
- * stylelint's `no-duplicate-selectors` catches the same selector twice in a file, and
- * `declaration-block-no-duplicate-properties` catches a property twice in a block. Neither
- * can see THIS: two rules with different selectors, under mutually-exclusive guards
- * (a media query vs an attribute selector, or two @container queries), carrying an
- * IDENTICAL set of declarations.
+ * NO LINTER DOES THIS. stylelint catches one selector twice in a file, or one property twice in
+ * a block; neither sees two rules with different selectors, under mutually-exclusive guards (a
+ * media query vs an attribute selector, two @container thresholds), carrying an IDENTICAL
+ * declaration set. To a cascade-aware tool both are REQUIRED — only one ever matches — so it is
+ * findable only structurally, and it is exactly the shape that drifts: this theme had the same
+ * bar under `@media(max-width:767px)` and under `:root[data-layout=top]`, 55 of ~75 declarations
+ * identical.
  *
- * To a cascade-aware tool those two rules are not redundant — they are both required,
- * because only one of them ever matches. So no linter will ever call it an error. It is
- * only findable as a STRUCTURAL duplicate, and it is exactly the shape that drifts: the
- * two copies are correct today and silently disagree six months from now (this theme had
- * the same bar written under `@media(max-width:767px)` and under `:root[data-layout=top]`
- * — 55 of ~75 declarations identical).
- *
- * WHAT IT DOES ABOUT IT — and why there is no budget
- * ---------------------------------------------------
- * There used to be a numeric BUDGET here (2), and it was the wrong instrument: a number
- * nobody defends, which lets the next unexplained copy in for free the moment somebody
- * raises it by one. Duplication a CSS-language limit FORCES on you is legitimate; it just
- * has to be a decision rather than an accident.
- *
- * So every duplicated body must be one of two things:
- *   - folded into a single rule, or
- *   - PINNED: each copy wrapped in `/* @mirror <group>/<role> *\/ … /* @endmirror *\/`
- *     (the tag goes INSIDE the braces — the selectors legitimately differ, only the
- *     declarations must match). tools/mirror.mjs then holds the copies byte-identical.
- * An untagged duplicate is a hard failure.
- *
- * The pin is not ceremony. THIS detector only finds bodies that are IDENTICAL — so the
- * moment two copies diverge they stop looking like a duplicate and it goes quiet, exactly
- * when you need it to shout. mirror.mjs is what closes that: together they turn duplication
- * you cannot delete into duplication that cannot rot.
+ * NO BUDGET, deliberately: there used to be a numeric one (2), and a number nobody defends lets
+ * the next unexplained copy in for free the moment somebody raises it. Duplication a CSS-language
+ * limit forces on you is legitimate; it just has to be a decision. So every duplicated body is
+ * folded into one rule, or PINNED: each copy wrapped in
+ * `/* @mirror <group>/<role> *\/ … /* @endmirror *\/` — INSIDE the braces, since the selectors
+ * legitimately differ and only the declarations must match — which tools/mirror.mjs then holds
+ * byte-identical. Untagged = hard failure. The pin is not ceremony: THIS detector matches only
+ * IDENTICAL bodies, so it goes quiet the moment two copies diverge, exactly when it should shout.
  *
  * Usage: node tools/css-dup.mjs [--min N] [--json]
  */
@@ -55,8 +38,8 @@ const tmp = join(mkdtempSync(join(tmpdir(), 'cssdup-')), 'cascade.css');
 execFileSync(join(ROOT, 'luci-theme-footstrap', 'build-css.sh'), [tmp, '--dev'], { stdio: 'ignore' });
 const css = readFileSync(tmp, 'utf8');
 
-/* css-tree drops comments from the AST, so the pin has to be collected on the side and
- * matched back by LINE. onComment gives us both. */
+/* css-tree drops comments from the AST, so the pin is collected on the side and matched back by
+ * LINE. */
 const mirrorAt = new Map();		/* line -> "group/role" */
 const ast = csstree.parse(css, {
 	positions: true,
@@ -66,8 +49,7 @@ const ast = csstree.parse(css, {
 	},
 });
 
-/* the pin sits INSIDE the rule's braces, so it is a comment on some line between the
- * block's first and last */
+/* the pin sits INSIDE the braces: a comment on some line between the block's first and last */
 function mirrorFor(node) {
 	const a = node.block?.loc?.start.line, b = node.block?.loc?.end.line;
 	if (!a) return null;
@@ -76,9 +58,8 @@ function mirrorFor(node) {
 	return null;
 }
 
-/* The "guard" of a rule = the chain of at-rules it sits inside (media/container/supports)
- * plus its cascade layer. Two rules under the same guard with the same body are a plain
- * duplicate (stylelint's job); two under DIFFERENT guards are what we are hunting. */
+/* A rule's "guard" = the chain of at-rules it sits inside (media/container/supports). Same guard
+ * + same body = a plain duplicate (stylelint's job); DIFFERENT guards is what we hunt. */
 const rules = [];
 const stack = [];
 csstree.walk(ast, {
@@ -110,7 +91,7 @@ csstree.walk(ast, {
 	},
 });
 
-/* group by identical declaration body, keep only groups spanning >1 DISTINCT guard */
+/* group by identical body, keep only groups spanning >1 DISTINCT guard */
 const byBody = new Map();
 for (const r of rules) {
 	if (!byBody.has(r.key)) byBody.set(r.key, []);
@@ -128,7 +109,7 @@ findings.sort((a, b) => b.n * b.group.length - a.n * a.group.length);
 
 const wasted = findings.reduce((s, f) => s + f.n * (f.group.length - 1), 0);
 
-/* A finding is ACCEPTED only if every copy carries the same @mirror pin. */
+/* accepted only if every copy carries the SAME @mirror pin */
 const unpinned = findings.filter(f => {
 	const pins = f.group.map(r => r.mirror);
 	return pins.some(p => !p) || new Set(pins).size !== 1;

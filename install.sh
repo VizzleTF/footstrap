@@ -8,22 +8,17 @@
 #
 # Optional: pin a release tag ->  ... | sh -s v0.3.1
 #
-# Detects the OpenWrt release and its package manager, then downloads the
-# matching asset from the latest (or given) GitHub release: .apk for apk-based
-# systems (25.12+), .ipk for opkg-based systems (24.10). Licensed Apache-2.0.
-#
-# One package, translations included: the theme carries its own .lmo catalogue.
+# Detects the OpenWrt release and its package manager, then installs the matching asset
+# from the latest (or given) GitHub release: .apk on 25.12+, .ipk on 24.10. ONE package —
+# the theme carries its own .lmo catalogue. Licensed Apache-2.0.
 
 set -e
 
 REPO="VizzleTF/luci-theme-footstrap"
 TAG="${1:-latest}"
 
-# mktemp, not a fixed /tmp/footstrap-install: /tmp is 1777, so any local
-# unprivileged process can pre-create that predictable name as a symlink and this
-# script — running as root — would write the downloaded package through it to a
-# file of the attacker's choosing (CWE-377). footstrap-selfupdate.sh already
-# avoids exactly this; the installer did not.
+# mktemp, not a fixed /tmp name: /tmp is 1777, so a local unprivileged process can pre-create a
+# predictable name as a symlink and root writes the downloaded package through it (CWE-377).
 TMP="$(mktemp -d)" || { printf '[-] cannot create a temp dir\n' >&2; exit 1; }
 trap 'rm -rf "$TMP"' EXIT INT TERM
 
@@ -45,8 +40,8 @@ else
 	warn "This does not look like OpenWrt — continuing anyway."
 fi
 
-# Refuse clearly-too-old releases (theme needs the ucode theme engine + modern
-# CSS shipped by 24.10+). SNAPSHOT / empty / non-numeric versions are allowed.
+# Refuse clearly-too-old releases (the theme needs the ucode theme engine + modern CSS of
+# 24.10+). SNAPSHOT / empty / non-numeric versions are allowed through.
 case "${DISTRIB_RELEASE:-}" in
 	''|*SNAPSHOT*) : ;;
 	*)
@@ -76,27 +71,19 @@ fi
 ok "Package manager: $PM (installing .$EXT)"
 
 # --- downloader -----------------------------------------------------------
-# Prefer tools that speak HTTPS on OpenWrt; fall back through what's present.
-# $1 = url, $2 = output file (omit for stdout).
-#
-# EVERY fetch below VERIFIES THE CERTIFICATE. This script is piped from the
-# internet into `sh` as root and the thing it downloads is installed as a root
-# package, so the TLS channel is the entire trust chain (together with the sha256
-# check further down). It used to retry with `--no-check-certificate` / `-k` after
-# ANY failure of the verified attempt — which includes a MITM presenting a bogus
-# cert — and the "install the CA bundle" hint below was therefore unreachable in
-# the one case it was written for. `ca-bundle` is in OpenWrt's DEFAULT_PACKAGES,
-# so the insecure path bought nothing on a stock router and silently disarmed the
-# check on a broken one. Do not add a `-k` fallback back.
 # fetch <url> <max-seconds> [outfile]  — stdout when no outfile.
-# Same signature as footstrap-selfupdate.sh's fetch(), deliberately: the two are mirrors of
-# each other (see the @mirror note below) and a differing signature is how they drifted in the
-# first place — this one used to take (url, outfile), hardcode --max-time on the curl branch
-# and give uclient-fetch, its FIRST choice on OpenWrt, no timeout at all.
-# Last resort in the chain below is wget, effectively the non-OpenWrt path (an OpenWrt box has
-# uclient-fetch, and its /usr/bin/wget is usually the same applet). GNU wget follows an
-# https -> http redirect by default, so ask for --https-only where it exists; a wget without
-# the flag is busybox's, which we would not have reached on the boxes that ship one.
+#
+# EVERY fetch VERIFIES THE CERTIFICATE. This runs as root from `curl | sh` and installs what it
+# downloads --allow-untrusted (no package signature), so this TLS channel plus the sha256 below
+# ARE the trust chain. Never `-k` / `--no-check-certificate`, not even as a retry: a failed
+# verification IS the MITM case, and `ca-bundle` is in OpenWrt's DEFAULT_PACKAGES, so the
+# insecure path buys nothing.
+#
+# Signature pinned to footstrap-selfupdate.sh's fetch(): the two cannot share a file (this one
+# runs before the package exists) and had already drifted — this one took (url, outfile),
+# hardcoded --max-time on curl, and gave uclient-fetch, its FIRST choice on OpenWrt, no timeout.
+# wget is the last resort (non-OpenWrt); GNU wget follows https -> http redirects, hence
+# --https-only where the flag exists.
 #
 # @mirror gh/fetch
 fetch() {
@@ -125,9 +112,9 @@ fetch() {
 }
 # @endmirror
 
-# The package is downloaded from a URL read out of the API answer and then handed
-# to `apk add --allow-untrusted` as root. Pin the host, so a malformed or tampered
-# response cannot point that install at an arbitrary server.
+# The URL comes out of the API answer and the file it names is handed to `apk add
+# --allow-untrusted` as root. Pin the host, so a malformed or tampered response cannot point
+# that install at an arbitrary server.
 # @mirror gh/asset-host
 asset_host_ok() {
 	case "$1" in
@@ -137,16 +124,15 @@ asset_host_ok() {
 }
 # @endmirror
 
-# A release carries the THEME package and one luci-i18n-footstrap-<lang> package per
-# translation, so an asset has to be picked by package NAME. Matching on the extension
-# alone — `grep "\.apk$" | head -n1`, which is what this did — takes whichever asset
-# GitHub happens to list first, and once the language packages existed that could be a
-# 6 KB catalogue installed in place of the theme.
+# Pick the asset by package NAME, not by extension. `grep "\.apk$" | head -n1` — what this did —
+# takes whichever asset GitHub lists first, and the API sorts assets BY NAME: in v0.8.4, when the
+# release still carried separate luci-i18n-footstrap-<lang> packages, that was a 6 KB catalogue
+# installed in place of the theme (issue #6). Releases hold ONE package per format now; the name
+# match is the fix for the next such mistake.
 #
-# `[-_]` right after the name is the separator both naming schemes use and it is what
-# keeps the two names apart (apk: `name-1.2.3-r1.apk`, ipk: `name_1.2.3-r1_all.ipk`);
-# anchoring on `/` in front means a repo or a tag that contains the package name cannot
-# match either.
+# `[-_]` is the separator both naming schemes use and is what keeps the two names apart (apk:
+# `name-1.2.3-r1.apk`, ipk: `name_1.2.3-r1_all.ipk`); anchoring on `/` in front stops a repo or
+# tag containing the package name from matching.
 #
 # @mirror gh/asset-urls
 asset_urls() {		# <json> <package-name> -> every matching asset URL, one per line
@@ -176,11 +162,9 @@ if ! fetch "$API" 20 "$JSON" || [ ! -s "$JSON" ]; then
 	exit 1
 fi
 
-# jsonfilter is in OpenWrt's base image (this installer only ever runs on a router), and
-# it is what reads the sha256 out of the API answer — so without it there is no integrity
-# check at all and the install below is unverifiable bytes handed to root. Refuse, rather
-# than fall back to grepping the payload: the old fallback could only ever reach the
-# "no sha256 — refusing to install" branch anyway.
+# jsonfilter (OpenWrt base image) is what reads the sha256 out of the API answer — without it
+# there is no integrity check at all, only unverifiable bytes handed to root. Refuse, don't
+# fall back.
 command -v jsonfilter >/dev/null 2>&1 || {
 	err "jsonfilter not found — it is part of OpenWrt's base image."
 	err "This installer only supports OpenWrt."
@@ -194,24 +178,18 @@ if [ -z "$THEME_URL" ]; then
 	exit 1
 fi
 
-# There is exactly ONE package, and the translation catalogue rides inside it. v0.8.4 shipped
-# the catalogue as a separate luci-i18n-footstrap-<lang> package and that broke the update
-# button on every router already in the field — see the long note in the package Makefile.
-# The release must stay pickable by the self-updater the router ALREADY runs, and that one
-# takes the first asset of its extension; so a release carries one asset per format.
+# ONE package per format per release, catalogue bundled inside the theme package: the release must
+# stay pickable by the self-updater a router ALREADY runs, which takes the first asset of its
+# extension and cannot be fixed remotely — see the Makefile note and issue #6.
 
 # --- download, verify, install --------------------------------------------
-# Each package is installed as root with --allow-untrusted, i.e. with no package signature
-# to fall back on — so the sha256 the API publishes for the asset is the only integrity
-# check there is. It comes over the same TLS channel as the URL, so it does not defend
-# against a compromised api.github.com; what it does defend against is a truncated or
-# tampered download from the asset CDN, which is a different host.
-#
-# A missing digest is therefore a REFUSAL, not a warning. Half of a two-link trust chain
-# cannot be optional: whatever makes the digest empty — GitHub renaming the field, the API
-# answer not being what we think it is — leaves us installing bytes we cannot account for,
-# and printing a line about it into a `curl | sh` scroll changes nothing about that. Set
-# FOOTSTRAP_ALLOW_UNVERIFIED=1 to override; it is deliberately something you have to type.
+# --allow-untrusted = NO package signature, so the sha256 the API publishes for the asset is the
+# only integrity check there is. Same TLS channel as the URL, so it is no defence against a
+# compromised api.github.com; it IS one against a tampered or truncated download from the asset
+# CDN, a different host. A MISSING digest is a REFUSAL, not a warning: half of a two-link trust
+# chain cannot be optional, and whatever empties it (a renamed field, an unexpected answer) leaves
+# us installing bytes we cannot account for. FOOTSTRAP_ALLOW_UNVERIFIED=1 overrides — deliberately
+# something you have to type.
 install_asset() {
 	_url="$1"
 	_name=$(basename "$_url")
@@ -253,8 +231,7 @@ install_asset() {
 	if [ "$PM" = "apk" ]; then
 		apk add --allow-untrusted "$_pkg"
 	else
-		# local .ipk: opkg installs it directly; luci-base is already present on any
-		# LuCI system, so no repo fetch is needed.
+		# local .ipk; luci-base is on any LuCI system already, so no repo fetch is needed.
 		opkg install "$_pkg"
 	fi
 	rm -f "$_pkg"
@@ -262,17 +239,14 @@ install_asset() {
 
 install_asset "$THEME_URL"
 
-# BOTH caches, as postinst/postrm/uci-defaults do. This dropped only the index cache, leaving
-# /tmp/luci-modulecache behind — and a stale module cache after installing a package that
-# replaces the theme's JS is the one case where it actually bites.
+# BOTH caches, as postinst/postrm/uci-defaults do: dropping only the index cache left a stale
+# /tmp/luci-modulecache, which bites exactly here — a package that replaces the theme's JS.
 rm -f /tmp/luci-indexcache* 2>/dev/null || true
 rm -rf /tmp/luci-modulecache 2>/dev/null || true
 
-# reload, NOT restart: rpcd keeps its sessions in memory, so a restart logs every
-# LuCI user out. SIGHUP (what `reload` sends) re-reads /usr/share/rpcd/acl.d/*,
-# which is all this package's ACL needs — verified on a live router: removing the
-# ACL file and reloading flips `session access` for the script to false, and a
-# session created before the reload survives it.
+# reload, NOT restart: rpcd keeps sessions in memory, so restart logs out every LuCI user. SIGHUP
+# (reload) re-reads /usr/share/rpcd/acl.d/*, which is all this package needs — verified live:
+# removing our ACL + reload flips `session access` to false, and a session survives a reload.
 if [ -x /etc/init.d/rpcd ]; then
 	info "Reloading rpcd..."
 	/etc/init.d/rpcd reload >/dev/null 2>&1 || true

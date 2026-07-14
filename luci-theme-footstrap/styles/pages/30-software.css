@@ -1,24 +1,18 @@
 @layer page {
-	/* ---------------------------------------------------------------------------
-	 * Software (package-manager) disk-space bar -> match the overview Memory/Storage
-	 * meter: "Disk space" label + value on one line, thin accent bar below. The
-	 * value comes from the .cbi-progressbar title (moved out of the bar via ::after).
-	 * Scoped by body[data-page] — the same idiom the page's phone rules use in
-	 * theme/90-responsive.css (the SPA router re-stamps data-page, so it works
-	 * under SPA and full load alike; the old :has(#disk-space-label) scope relied
-	 * on an id 24.10 doesn't ship).
-	 * --------------------------------------------------------------------------- */
+	/* Software disk-space bar -> the overview Memory/Storage meter: label + value on one
+	 * line, bar below (the value is the .cbi-progressbar title, lifted out by ::after).
+	 * Scoped by body[data-page], NOT by :has(#disk-space-label) — 24.10 ships no such id. */
 	body[data-page='admin-system-package-manager'] #view .controls > div:first-child { position: relative; display: block; flex: 1 1 100%; width: 100%; margin: 0 0 6px; }
 
-	/* The package list's own row SHAPE. #packages is a .cbi-section-table, so it takes the
-	 * shared card from theme/30-tables.css; this only changes how a row reads — a package is
-	 * a name plus a few short facts, so label-left / value-right on one line beats the
-	 * half-width label-above-value pairs a config row wants.
+	/* The package list's row SHAPE. #packages is a DATA table (`<table class="table"
+	 * id="packages">`, no .cbi-section-table class; fs-select.js tags it .fs-dt off its
+	 * .tr.cbi-section-table-titles header), so it takes the shared card from
+	 * theme/30-tables.css when measured too narrow. This only changes how a row READS: a
+	 * package is a name plus a few short facts, so label-left / value-right on one line
+	 * beats the half-width label-above-value pairs a config row wants.
 	 *
-	 * The `@container fs-view (max-width: 800px)` that used to gate it is gone. It was one of
-	 * five guesses at "the row no longer fits", and the comment beside it admitted as much —
-	 * "on a phone it overflows to ~1000px and gets clipped". Overflow is now the TRIGGER
-	 * rather than the symptom: fs-select.js measures it. */
+	 * No @container guard, and do not re-add one — the old 800px was a guess at "the row no
+	 * longer fits". Overflow is the trigger now, and fs-select.js measures it (.fs-stacked). */
 	#packages.fs-stacked .tr { display: block; padding: 12px 16px; }
 	#packages.fs-stacked .td {
 		display: flex; align-items: baseline; justify-content: space-between;

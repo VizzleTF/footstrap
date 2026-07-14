@@ -1,24 +1,19 @@
 @layer theme {
 	.zonebadge .cbi-tooltip { box-shadow: var(--fs-shadow-pop); }
 
-	/* The "Configuration / Changes" (uci changes) diff USED to be painted twice:
-	 * styles/base gave it one set of tints and five #modal_overlay rules here gave
-	 * it another — 30%/60% against 18%/45%, i.e. the same widget with two different
-	 * strengths depending on whether it happened to be inside the modal (it always
-	 * is). Both are now the ladder in styles/base: --fs-*-fill for the block, and
-	 * --fs-*-line for its border. The rules that sat here were duplicates and are
-	 * gone; only the geometry below is the theme's.
-	 *
-	 * Round the popup itself to match the theme's cards (base is only 3px), plus
-	 * small rounding on the diff boxes and legend swatches for a cohesive look. */
+	/* The uci-changes diff used to be painted TWICE: base gave it one set of tints and five
+	 * #modal_overlay rules here gave it another — 30/60% against 18/45%, the same widget at two
+	 * strengths depending on whether it was inside the modal (it always is). Both are the ladder
+	 * in base now (--fs-*-fill for the block, --fs-*-line for its border); the duplicates are
+	 * gone and only geometry is left here — the popup rounded to match the theme's cards (base
+	 * is 3px), plus small rounding on the diff boxes and legend swatches. */
 	#modal_overlay .modal { border-radius: var(--fs-radius-lg); }
 
-	/* A config-form modal (Bridge device options, firewall rule, …) is only 600px
-	 * wide by default. That's cramped for a form with a table (Bridge VLAN filtering,
-	 * whose .cbi-map container then falls under the 960px stack threshold and cards
-	 * even on a big screen) — so give any modal carrying a .cbi-map real room. Fluid
-	 * via vw: widens toward 1280 on desktop (the container clears 960 and tables show
-	 * as tables), stays narrow (cards) on tablet/phone. */
+	/* A config-form modal (Bridge device options, firewall rule …) is only 600px wide by
+	 * default — cramped for a form with a table (Bridge VLAN filtering, whose .cbi-map container
+	 * then falls under the 960px card threshold and cards even on a big screen). Fluid via vw:
+	 * widens toward 1100 on desktop (the container clears 960 and tables stay tables), stays
+	 * narrow (cards) on tablet/phone. */
 	.modal:has(.cbi-map) { max-width: min(1100px, 94vw); }
 	#modal_overlay .uci-dialog div > ins,
 	#modal_overlay .uci-dialog div > del,

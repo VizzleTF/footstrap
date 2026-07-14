@@ -1,44 +1,35 @@
 #!/bin/sh
-# Regenerate i18n/templates/footstrap.pot from the theme sources and merge it into every
-# i18n/<lang>/footstrap.po. Run it after adding or changing ANY _('…') string.
+# Rescan the theme sources into i18n/templates/footstrap.pot and merge it into every
+# i18n/<lang>/footstrap.po. Run after adding or changing ANY _('…') string.
 #
 #   ./update-po.sh            rescan, merge, report what is still untranslated
 #   ./update-po.sh --check    change nothing; fail if the .pot is stale or a string is
-#                             untranslated. This is the CI gate.
+#                             untranslated. The CI gate.
 #
-# WHY THIS EXISTS AT ALL. The theme's strings were wrapped in _() from the start, but
-# there was no catalogue — and every _() therefore fell through to its English msgid: the
-# Appearance popover said "Palette"/"Rounding"/"Cats" on a LuCI running in Russian, and
-# nothing anywhere reported a problem. A translation that is never compiled fails silently
-# by construction, which is exactly why the --check mode is a gate and not a suggestion.
+# A missing translation CANNOT fail loudly — an uncompiled _() falls through to its English
+# msgid and nothing reports it (the popover said "Palette"/"Rounding"/"Cats" on a Russian
+# LuCI). Hence --check is a gate, not a suggestion.
 #
-# THE DIRECTORY IS `i18n/`, NOT `po/`, AND THAT IS LOAD-BEARING. luci.mk derives
-# LUCI_LANGUAGES from `$(wildcard po/*)` and emits a separate luci-i18n-footstrap-<lang>
-# package for each — which is the conventional layout, and which broke the update button for
-# every existing install (a release then has several assets, and the self-updater every router
-# already runs takes the FIRST .apk by name — the language pack). See the long note in the
-# Makefile. The catalogue is compiled into the theme package instead; renaming this directory
-# is what stops luci.mk building the language packages.
+# THE DIRECTORY IS `i18n/`, NOT `po/`, AND THAT IS LOAD-BEARING: LUCI_LANGUAGES is
+# `$(wildcard po/*)`, so a po/ dir makes luci.mk emit a separate luci-i18n-footstrap-<lang>
+# package per language — which broke the update button on every router in the field (issue #6;
+# the long note is in the Makefile). The catalogue is bundled into the theme package instead.
 #
-# Nothing here runs on the buildbot: the Makefile calls po2lmo itself. This script is for the
-# developer and for CI, and needs perl + gettext (xgettext, msgmerge, msgfmt), none of which
-# the OpenWrt build needs.
+# Nothing here runs on the buildbot — the Makefile calls po2lmo itself. This needs perl +
+# gettext (xgettext, msgmerge, msgfmt), which the OpenWrt build does not.
 #
-# The scanner is LuCI's OWN build/i18n-scan.pl, not a hand-rolled grep: it knows how to
-# lex a .ut template (it rewrites the template into JavaScript before handing it to
-# xgettext) and it already covers .js and the rpcd acl.d/*.json titles. A grep for
-# _('…') would miss the ACL description and would trip over any apostrophe in a string.
+# The scanner is LuCI's OWN build/i18n-scan.pl, not a grep: it lexes a .ut (rewriting the
+# template into JS before xgettext) and covers the rpcd acl.d/*.json title. A grep for _('…')
+# would miss the ACL string and choke on any apostrophe.
 set -eu
 
 cd "$(dirname "$0")"
 
-# Pinned to a COMMIT, not to `master`, and checksummed — this is a perl script we fetch
-# over the network and then EXECUTE, and it is the gate that decides whether the translation
-# catalogue is complete. Off a moving branch, the gate is whatever upstream pushed last.
-#
-# The commit and both checksums live in ONE file, luci-upstream.pin, which CI sources too:
-# they were written out separately here and in the workflow, each with a comment saying "bump
-# them together", and nothing enforcing it.
+# Pinned to a COMMIT, not `master`, and checksummed: a perl script we fetch over the network
+# and then EXECUTE, and the gate deciding whether the catalogue is complete. Off a moving
+# branch, the gate is whatever upstream pushed last. luci-upstream.pin is the single source of
+# the commit and both checksums (CI sources it too) — they were once written out separately
+# here and in the workflow, with nothing holding them together.
 . ./luci-upstream.pin
 SCANNER_URL="https://raw.githubusercontent.com/openwrt/luci/${LUCI_PIN}/build/i18n-scan.pl"
 SCANNER_SHA256="$I18N_SCAN_SHA256"
@@ -50,8 +41,8 @@ for tool in perl xgettext msgmerge msgfmt; do
 	command -v "$tool" >/dev/null || { echo "update-po: $tool not found (install perl + gettext)" >&2; exit 1; }
 done
 
-# Prefer a scanner from a local LuCI checkout ($LUCI_SRC), so the gate is not hostage to
-# the network; fall back to fetching it. jsmin.c is pinned the same way in CI.
+# Prefer a scanner from a local LuCI checkout ($LUCI_SRC) so the gate is not hostage to the
+# network; fall back to fetching it. jsmin.c is pinned the same way in CI.
 scanner=''
 if [ -n "${LUCI_SRC:-}" ] && [ -f "$LUCI_SRC/build/i18n-scan.pl" ]; then
 	scanner="$LUCI_SRC/build/i18n-scan.pl"
@@ -75,10 +66,10 @@ fresh="$(mktemp)"
 perl "$scanner" htdocs ucode root > "$fresh"
 
 if [ "$CHECK" = 1 ]; then
-	# Compare msgids AND msgctxt. Line-number comments churn on every edit and say nothing
-	# about whether a string is missing — but the CONTEXT is part of the key (po2lmo hashes
-	# "ctxt\1msgid"), so a .pot that still carries the same msgids with the context dropped
-	# describes a completely different catalogue. Comparing msgid alone waved that through.
+	# Compare msgid AND msgctxt (line-number comments churn on every edit and say nothing).
+	# The CONTEXT is part of the key — po2lmo hashes "ctxt\1msgid" — so a .pot carrying the
+	# same msgids with the context dropped describes a different catalogue, which comparing
+	# msgid alone waved through.
 	old_ids="$(mktemp)"; new_ids="$(mktemp)"
 	grep '^msgid\|^msgctxt' "$POT" | sort > "$old_ids"
 	grep '^msgid\|^msgctxt' "$fresh" | sort > "$new_ids"

@@ -1,63 +1,50 @@
 @layer theme {
-	/* Wallpaper axis (data-wallpaper="cats"): a doodle-cats pattern behind the
-	 * content area, composable with any palette (it was the old "Rvht" palette,
-	 * which only ever added this wallpaper on the default colours). Cards sit on
-	 * --fs-panel and cover it, so the cats show through the gaps; the pattern fill is
-	 * a low-opacity neutral grey, so it reads on both light and dark backgrounds. */
-	/* Paint the wallpaper on exactly ONE element, or two overlapping semi-transparent
-	 * tile layers double up and misalign.
+	/* Wallpaper axis (data-wallpaper="cats"): a doodle pattern behind the content,
+	 * composable with any palette. Cards sit on opaque --fs-panel and cover it, so the cats
+	 * show only through the gaps; the fill is a low-opacity neutral grey, readable on both
+	 * light and dark backgrounds.
 	 *
-	 * That element is .fs-shell — the wrapper around the chrome AND the content — in
-	 * every layout. It has to be the wrapper rather than .fs-main, because the bar
-	 * (the top layout, and the sidebar collapsed to a phone bar) is TRANSLUCENT: the
-	 * cats have to be behind it for the page to read as one sheet. The vertical
-	 * sidebar is an opaque --fs-panel column, so it covers the tiles under it by
-	 * itself — no exclusion needed, which is what the old .fs-topwrap /
-	 * .fs-main:not(.fs-main-top) split was doing by hand across two markups. */
-	/* The second half of that selector is the LOGIN page, which has no .fs-shell at all:
-	 * themes/footstrap/sysauth.ut renders with blank_page: true — no chrome, no shell wrapper,
-	 * just the form on a bare <body>. Every other Appearance axis already reached it (dark
-	 * mode, palette and tint all land on `body { background: var(--fs-bg) }`), but the
-	 * wallpaper was painted on an element that does not exist there, so a router set to Cats
-	 * showed a flat canvas on the one page you see before anything else.
+	 * Painted on exactly ONE element, or two semi-transparent tile layers double up and
+	 * misalign. That element is .fs-shell (chrome AND content) in every layout — not
+	 * .fs-main, because the bar (top layout, and the sidebar collapsed to a phone bar) is
+	 * TRANSLUCENT and the cats must sit behind it for the page to read as one sheet. The
+	 * vertical sidebar is an opaque --fs-panel column and covers its own tiles: no
+	 * exclusion needed.
 	 *
-	 * It is ONE rule, and `:not(:has(.fs-shell))` is what keeps it that way: the tiles go on
-	 * the shell when there is one and on the body when there is not — never on both, which is
-	 * the whole point of the paragraph above (two semi-transparent tile layers double up and
-	 * misalign). Writing it as a second rule would have been the same declarations twice. */
+	 * The second half of the selector is the LOGIN page, which has no .fs-shell at all
+	 * (sysauth.ut renders with blank_page: true — just the form on a bare <body>). Every
+	 * other Appearance axis reaches it via `body { background: var(--fs-bg) }`; the
+	 * wallpaper did not, so a router set to Cats showed a flat canvas on the first page you
+	 * ever see. `:not(:has(.fs-shell))` keeps it ONE rule: shell when there is one, body
+	 * when there is not, never both — which is the doubling above. */
 	:root[data-wallpaper="cats"] :is(.fs-shell, body:not(:has(.fs-shell))) {
 		background-image: url(cats.svg);
 		background-repeat: repeat;
 		background-size: 440px auto;
 	}
-	/* The doodles' strength is the `<g opacity>` baked into cats.svg (.20), not a CSS
-	 * value — CSS cannot reach inside a background image, so that attribute IS the knob.
-	 * It was .15, which the tinted canvas swallowed: once the surface carries a hue, a
-	 * neutral grey line on it differs from the surface in lightness alone and reads as
-	 * less of a line. Turn it up in the file and both cases get it; there is nothing to
-	 * scope, because a wallpaper nobody could see was not doing its job untinted either. */
-	/* .fs-main carries an opaque --fs-bg fill that would hide the wrapper's single
-	 * tiling layer — make it transparent so the one .fs-shell layer shows through the
-	 * whole content area (its own --fs-bg is the same colour, so only the cats
-	 * appear). This is what keeps a single, seam-free tiling instead of a second
-	 * misaligned layer. */
+	/* The doodles' strength is the `<g opacity>` baked into cats.svg (.20) — CSS cannot
+	 * reach inside a background image, so that attribute IS the knob. At .15 a tinted
+	 * canvas swallowed them: on a hued surface a neutral grey line differs from it in
+	 * lightness alone and reads as less of a line.
+	 *
+	 * .fs-main's opaque --fs-bg would hide the shell's single tiling layer — make it
+	 * transparent so the one layer shows through the whole content area (same colour, so
+	 * only the cats appear). That is what keeps the tiling seam-free instead of adding a
+	 * second, misaligned layer. */
 	:root[data-wallpaper="cats"] .fs-main { background-color: transparent; }
 	/* let the cats show through the footer too */
 	:root[data-wallpaper="cats"] footer.fs-footer { background: transparent; }
 
-	/* A CBI form (firewall/interfaces) has dozens of .btn/.cbi-button; a
-	 * backdrop-filter on each is a live backdrop-sampling layer over the cats.svg
-	 * wallpaper — costly on weak GPUs — yet invisible, since every button already
-	 * has an opaque --default-btn-background (or a solid colour for apply/remove).
-	 * So the blur is dropped from buttons entirely. Closed dropdowns keep the frost:
-	 * there are few of them and their body can show the wallpaper through. */
+	/* A CBI form has dozens of .btn/.cbi-button; a backdrop-filter on each is a live
+	 * backdrop-sampling layer over cats.svg — costly on weak GPUs, and invisible anyway
+	 * since every button is already opaque. Blur dropped from buttons entirely; closed
+	 * dropdowns keep the frost (few of them, and their body can show the cats through). */
 	:root[data-wallpaper="cats"] .cbi-dropdown:not([open]) {
 		backdrop-filter: blur(6px);
 		-webkit-backdrop-filter: blur(6px);
 	}
 
-	/* No wash/tint layer behind #view: the wallpaper is meant to show through the
-	 * gaps between the cards at full strength. Every block that carries text (cards,
-	 * tab strips, alerts, tables) paints an opaque --fs-panel of its own, so nothing
-	 * has to be dimmed globally. */
+	/* No wash layer behind #view: the wallpaper shows through the gaps between the cards at
+	 * full strength. Every block that carries text paints an opaque --fs-panel of its own,
+	 * so nothing has to be dimmed globally. */
 }

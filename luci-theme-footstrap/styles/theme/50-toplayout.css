@@ -2,44 +2,39 @@
 	/* ==================================================================
 	 * THE DESKTOP BAR — :root[data-layout="top"], >= 768px.
 	 *
-	 * This file is a DELTA, not a layout. The bar itself — sticky, blurred, row, the
-	 * popup submenus, the square icon buttons, the right cluster — is the unguarded
-	 * base in 20-shell.css, because the bar is what the chrome IS unless the vertical
-	 * sidebar overrides it (see the long note there). All that is left to say here is
-	 * what the DESKTOP bar wants on top of the phone bar:
-	 *
+	 * A DELTA, not a layout. The bar itself (sticky, blurred, row, popup submenus, square icon
+	 * buttons, right cluster) is the UNGUARDED base in 20-shell.css — the bar is what the
+	 * chrome IS unless the vertical sidebar overrides it; see the note there. All this file
+	 * adds is what the DESKTOP bar wants on top of the phone bar:
 	 *   - a fixed bar height, and padding aligned to the content column;
 	 *   - the menu on the brand's row instead of wrapped beneath it;
 	 *   - a dropdown anchored to its OWN item rather than to the bar's left edge.
-	 *
-	 * Below 768px this file says nothing: the phone bar in 20-shell.css already IS this
-	 * bar, for both layouts.
+	 * Below 768px this file says nothing: the phone bar in 20-shell.css already IS this bar.
 	 * ================================================================== */
 	@media (min-width: 768px) {
 		:root[data-layout="top"] .fs-sidebar {
-			/* min-height, not height: the bar has a designed height, but it must be able
-			 * to GROW — a long hostname wraps onto a second line inside the capped brand
-			 * (20-shell.css), and a fixed height would just clip it. */
+			/* min-height, not height: the bar has a designed height but must be able to GROW —
+			 * a long hostname wraps onto a second line inside the capped brand (20-shell.css),
+			 * and a fixed height would clip it. */
 			min-height: var(--fs-bar-h); height: auto;
 			gap: 12px;
-			/* nowrap while the menu rides the brand's row. Without this flexbox "helpfully"
-			 * wraps the BAR — carrying the menu onto a second line all by itself while its
-			 * own pills still sit in one row. That is a stacked bar in everything but the
-			 * styling (the right cluster keeps its single-row ordering, and the bar silently
-			 * grew to 120px), and it also destroys the fits-on-one-row measurement, because
-			 * a menu that has been given a whole row of course fits. Forbidding the wrap
-			 * forces the menu to share the row and to wrap its OWN pills when it cannot —
-			 * which is exactly the signal menu-footstrap-common.js measures. */
+			/* nowrap while the menu rides the brand's row. Without it flexbox wraps the BAR,
+			 * carrying the menu onto a second line by itself while its own pills stay in one
+			 * row — a stacked bar in everything but the styling (the right cluster keeps its
+			 * single-row ordering, and the bar silently grew to 120px). It also destroys the
+			 * fits-on-one-row MEASUREMENT, because a menu handed a whole row of course fits.
+			 * Forbidding the wrap forces the menu to share the row and to wrap its OWN pills
+			 * when it cannot — which is exactly the signal menu-footstrap-common.js measures. */
 			flex-wrap: nowrap;
-			/* align the bar's contents to the .fs-content column, so the brand and the
-			 * menu line up with the headings and the cards below */
+			/* align the bar's contents to the .fs-content column, so the brand and the menu line
+			 * up with the headings and the cards below */
 			padding: 0 max(20px, calc((100% - var(--fs-content-max)) / 2 + var(--fs-content-pad)));
 			box-shadow: 0 1px 3px color-mix(in srgb, var(--fs-border) 25%, transparent),
 			            inset 0 -1px 0 color-mix(in srgb, var(--fs-border) 25%, transparent);
 		}
 
-		/* the menu rides on the brand's row, and its flex:1 is what opens the gap that
-		 * pushes the right-hand cluster to the content column's right edge */
+		/* the menu rides the brand's row; its flex:1 opens the gap that pushes the right-hand
+		 * cluster to the content column's right edge */
 		:root[data-layout="top"] .fs-sidebar ul.nav {
 			order: 2; flex: 1 1 auto; margin-left: 8px;
 		}
@@ -47,21 +42,21 @@
 		:root[data-layout="top"] .fs-themerow,
 		:root[data-layout="top"] .fs-logout { order: 3; margin-left: 0; }
 
-		/* the dropdown hangs off its own item, so it lines up under the section it
-		 * belongs to. menu-footstrap.js nudges it back inside the viewport for items
-		 * near the right edge (clampDropdown) — the phone bar needs no such nudge,
-		 * because there the panel is pinned to the bar's left edge and capped. */
+		/* the dropdown hangs off its own item, so it lines up under the section it belongs to.
+		 * menu-footstrap.js nudges it back inside the viewport near the right edge
+		 * (clampDropdown); the phone bar needs no nudge — there the panel is pinned to the
+		 * bar's left edge and capped. */
 		:root[data-layout="top"] .fs-sidebar ul.nav > li.has-sub { position: relative; }
 		:root[data-layout="top"] .fs-sidebar ul.nav ul,
 		:root[data-layout="top"] .fs-sidebar ul.nav > li.open > ul { left: 0; }
-		/* an invisible bridge across the 8px gap, so travelling from the item down into
-		 * the panel does not drop the hover and close it */
+		/* an invisible bridge across the 8px gap, so travelling from the item down into the
+		 * panel does not drop the hover and close it */
 		:root[data-layout="top"] .fs-sidebar ul.nav > li.has-sub > ul::before {
 			content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px;
 		}
 
-		/* the mode strip (only rendered when a router has more than one top-level mode)
-		 * takes its own full-width row under the bar */
+		/* the mode strip (only rendered when a router has more than one top-level mode) takes
+		 * its own full-width row under the bar */
 		:root[data-layout="top"] .fs-modemenu {
 			display: flex; order: 4; flex: 1 1 100%; margin: 0; gap: 4px;
 		}
@@ -75,18 +70,17 @@
 	/* ==================================================================
 	 * THE MENU DOES NOT FIT ON THE BRAND'S ROW — .fs-bar-stack
 	 *
-	 * Set by menu-footstrap-common.js (fitChrome), NOT by a media query, and that is the point. Whether the
-	 * menu fits beside the brand depends on how many sections the router HAS — a stock
-	 * install renders 5, but a box with a few luci-app-* packages renders eleven. So the
-	 * width at which the bar has to stack is a property of the CONTENT, not of the
-	 * device, and a hard-coded breakpoint gets it wrong in both directions.
+	 * Set by menu-footstrap-common.js (fitChrome), NOT by a media query. Whether the menu fits
+	 * beside the brand depends on how many sections the router HAS — 5 on a stock install,
+	 * eleven with a few luci-app-* packages — so the width at which the bar must stack is a
+	 * property of the CONTENT, not of the device, and a hard-coded breakpoint gets it wrong in
+	 * both directions.
 	 *
-	 * It used to be @media (max-width: 1199px). Measured on a stock router, the bar's
-	 * contents come to ~683px (brand 109 + menu 371 + cluster 155 + gaps), so the menu
-	 * fits on one row down to ~723px — and that breakpoint was stacking it on every
-	 * laptop, throwing away a row of vertical space for nothing. The JS measures instead:
-	 * it shrinks the pills first (.fs-dense1/2, theme/10-chrome.css) and only stacks when
-	 * even the tightest step still overflows.
+	 * It used to be @media (max-width: 1199px). Measured on a stock router the bar's contents
+	 * come to ~683px (brand 109 + menu 371 + cluster 155 + gaps), so the menu fits on one row
+	 * down to ~723px — that breakpoint was stacking it on every laptop and throwing away a row
+	 * of vertical space for nothing. The JS shrinks the pills first (.fs-dense1/2,
+	 * theme/10-chrome.css) and stacks only when even the tightest step still overflows.
 	 * ================================================================== */
 	@media (min-width: 768px) {
 		:root[data-layout="top"] .fs-sidebar.fs-bar-stack {

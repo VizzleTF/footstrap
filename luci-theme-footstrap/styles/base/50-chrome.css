@@ -1,7 +1,7 @@
 @layer base {
-	/* Page chrome: the sticky <header> band, dropdown anchoring, the section tab
-	 * strip, breadcrumbs and the footer. Both layouts restyle these in
-	 * styles/theme/ — what stays here is the geometry a view can rely on. */
+	/* Page chrome: the sticky <header> band, dropdown anchoring, the tab strip,
+	 * breadcrumbs, footer. styles/theme/ repaints these; what stays here is the
+	 * geometry a view can rely on whatever the skin. */
 	header {
 		position: sticky;
 		top: 0;
@@ -19,10 +19,8 @@
 		left: 0;
 	}
 
-	/* Tab-strip VISUALS (margins, folder-tab gradients, the --tab-* token chain,
-	 * per-state colours) are owned by theme/40-tabs.css — the theme layer overrode
-	 * every one of those declarations anyway, so they were absorbed. What stays is
-	 * the strip geometry a view relies on regardless of skin. */
+	/* Tab-strip visuals (margins, gradients, per-state colours): theme/40-tabs.css —
+	 * absorbed. Left: strip geometry. */
 	.tabs > li, .cbi-tabmenu > li {
 		flex: 0 1 auto;
 		display: flex;
@@ -43,7 +41,7 @@
 
 	.cbi-tab-disabled[data-errors]::after {
 		content: attr(data-errors);
-		/* the badge fill is theme/40-tabs.css's — absorbed */
+		/* badge fill: theme/40-tabs.css — absorbed */
 		color: var(--fs-on-danger);
 		height: 16px;
 		min-width: 16px;
@@ -104,16 +102,11 @@
 		color: var(--fs-dim);
 	}
 
-	/* Footer PAINT (padding, border, colours, link colour) is owned by the theme
-	 * (`footer` rules in theme/20-shell.css) — absorbed, since the theme layer overrode all
-	 * of it. What stays is the flex skeleton the LAYOUT needs: margin-top:auto pins the
-	 * footer to the bottom of the flex-column body.
-	 *
-	 * `justify-content: space-between` and `footer span { margin-bottom: 1em }` are gone —
-	 * both were leftovers from a two-column footer this theme does not have, and with the
-	 * single <span> it emits they only pushed the credit line to the left and off the
-	 * vertical centre. The theme now centres it, which made these two declarations dead
-	 * (audit.py --strict fails on a base declaration a later layer repaints). */
+	/* Footer paint: theme/20-shell.css — absorbed. Left: the flex skeleton the layout
+	 * needs — margin-top:auto pins the footer to the bottom of the flex-column body.
+	 * Do not re-add `justify-content: space-between` / `footer span { margin-bottom }`:
+	 * they came from a two-column footer this theme does not have and only pushed the
+	 * single credit <span> off centre; theme centres it, so they are dead too. */
 	footer {
 		margin-top: auto;
 		display: flex;

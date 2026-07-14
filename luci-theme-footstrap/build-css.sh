@@ -3,26 +3,14 @@
 #
 #   ./build-css.sh [outfile] [--dev]
 #
-# One directory per cascade layer, joined in this order; inside each, files are
-# joined in filename order, so the numeric prefix IS the source order:
+# Dir order = layer order (styles/, base/, theme/, pages/); filename order = source
+# order within a dir. A later layer beats an earlier one whatever the specificity, so
+# nothing needs !important to override base (declared in styles/00-header.css).
 #
-#   styles/*.css        the banner, @font-face and the design tokens
-#   styles/base/*.css   @layer base    widget defaults every LuCI view assumes
-#   styles/theme/*.css  @layer theme   footstrap components and layouts
-#   styles/pages/*.css  @layer page    per-page corrections
-#
-# A later layer beats an earlier one whatever the selector specificity, so a
-# theme file always wins over base, and a page file over a component, without
-# !important. Layer precedence is declared once in styles/00-header.css.
-#
-# Without --dev the output is minified: comments dropped (except the /*! banner),
-# indentation and blank lines collapsed. That cuts it by ~61% (284 KB of source -> ~112 KB shipped), and it
-# matters — uhttpd serves /www/luci-static/*.css with no gzip, so the browser
-# downloads every byte. The transform never touches selectors or declarations,
-# which is why LuCI's own csstidy pass stays off (it mangles :has()/color-mix()).
-#
-# Called by the package Makefile (Build/Prepare) and by dev-sync.sh. Nothing in
-# the source tree is written unless [outfile] points there.
+# Minified unless --dev: ~296 KB of source -> ~112 KB (-62%). uhttpd serves CSS with NO
+# gzip, so every byte is a wire byte. Comments and whitespace go; a selector or a
+# declaration is never rewritten, which is why LuCI's csstidy stays off (it mangles
+# :has()/color-mix()). Needs only cat/awk, so an OpenWrt buildbot can run it.
 set -e
 
 D="$(cd "$(dirname "$0")" && pwd)"
@@ -31,9 +19,8 @@ DEV=0
 for a in "$@"; do
 	case "$a" in
 		--dev) DEV=1 ;;
-		# An unknown option used to fall through to `OUT="$a"` — so a typo like
-		# `--devv` silently made the script write the stylesheet to a file called
-		# "--devv" (and `dirname --devv` then died under set -e). Fail on it.
+		# An unknown option used to fall through to `OUT="$a"`: a typo like `--devv`
+		# wrote the stylesheet to a file named "--devv".
 		-*) echo "build-css: unknown option: $a" >&2; exit 1 ;;
 		*) OUT="$a" ;;
 	esac
@@ -55,16 +42,12 @@ cat "$D"/styles/*.css \
     "$D"/styles/theme/*.css \
     "$D"/styles/pages/*.css > "$TMP"
 
-# Strip /* ... */ comments, keeping /*! ... */ (the licence banner), and drop
-# indentation and blank lines.
+# Strip /* ... */, keep /*! ... */ (the licence banner), drop indentation/blank lines.
 #
-# STRING-AWARE, deliberately. The old scanner just hunted for the next "/*" — it
-# had no idea what a string was, so `content: "/*"` would have opened a comment and
-# eaten every rule up to the next "*/". Nothing in the tree does that today, which
-# is exactly why it was worth fixing before something does: the only guard was the
-# brace counter below, and two such literals can balance each other and let whole
-# rules disappear in silence. url(...) data-URIs (quoted, full of punctuation) run
-# through here on every build, so this path has to be correct, not lucky.
+# STRING-AWARE: the old scanner just hunted for the next "/*", so `content: "/*"` would
+# open a comment and eat every rule up to the next "*/". Its only guard was the brace
+# count below, and two such literals balance each other — rules could vanish in silence.
+# Quoted data-URIs run through here on every build.
 strip_comments() {
 	awk '
 		BEGIN { inc = 0; q = "" }
@@ -97,61 +80,45 @@ strip_comments() {
 	' "$1"
 }
 
-# Squeeze the whitespace the comment stripper leaves behind. uhttpd does not
-# compress, so every one of these bytes is a wire byte AND a flash byte.
+# Squeeze the whitespace CSS ignores — wire AND flash bytes, since uhttpd does not compress.
 #
-# WHAT IS REMOVED (all of it mechanical, none of it clever):
-#   - the space after `:` in `color: red`
-#   - spaces either side of `{ } ; ,`
-#   - the last `;` before `}`
-#   - the newline after every declaration (one line per RULE, not per declaration)
-# Worth ~9.5 KB on this sheet. A real minifier (lightningcss) gets ~13 KB, but the
-# extra 3.5 KB comes from rewriting colours and merging rules — transforms that can
-# change behaviour. These cannot: they only delete whitespace that CSS ignores.
+# REMOVED (~9.5 KB): the space after `:`, the spaces around `{ } ; ,`, the last `;` of a block,
+# the newline after every declaration (one line per RULE). lightningcss would save ~13 KB, but
+# its extra 3.5 KB comes from rewriting colours and merging rules — transforms that can change
+# behaviour. These cannot.
 #
-# WHAT IS DELIBERATELY LEFT ALONE:
-#   - a single space between selectors: `.a .b` is a DESCENDANT combinator, and
-#     `.a.b` is a different selector entirely. Runs of whitespace collapse to one
-#     space; that last space stays.
-#   - spaces inside calc(): `calc(var(--x) * 5 / 6)` REQUIRES them around `*` and
-#     `/`, and `calc(100% - 8px)` around the `-`. Nothing here touches those.
-#   - the LINE BREAK inside a declaration, which is whitespace too. This scanner is
-#     line-oriented and used to join lines with nothing between them, so a
-#     declaration wrapped onto a second line came out with its lines glued:
-#         calc(.011 + .016 * max(0, cos(…))
-#             - .004 * max(0, cos(…)))
-#     minified to `…))- .004 * …`, and a calc() `-` with no space BEFORE it is a
-#     parse error. The declaration then dropped, --fs-tint-c went undefined, --fs-bg
-#     became invalid at computed-value time and the canvas fell back to white — with
-#     no error anywhere. (export-tier.mjs caught it: contrast collapsed to 1.5:1.)
-#     A newline between two tokens is now treated exactly like a space run: kept when
-#     it separates two tokens, dropped next to a delimiter, so nothing else moves.
-#   - `>` `+` `~` keep their spaces. Stripping them is safe but buys ~200 bytes.
-#   - anything inside a string. This scanner is string-aware, like the comment one:
-#     every data-URI in the tree is quoted and full of `:`, `;` and spaces.
-#   - one newline after `}`, so the shipped file is still greppable and a devtools
-#     line number still means something.
+# LEFT ALONE, each for a reason:
+#   - the single space between selectors: `.a .b` is a DESCENDANT combinator, `.a.b` is not.
+#     Whitespace runs collapse to one space; that one stays.
+#   - spaces inside calc(): required around `*` `/` and the `-` of `calc(100% - 8px)`.
+#   - the LINE BREAK inside a declaration — whitespace too. This line-oriented scanner used to
+#     join lines with nothing between them, so a wrapped calc() came out `…))- .004 …`; a `-`
+#     with no space BEFORE it is a parse error, so the declaration dropped, --fs-tint-c went
+#     undefined, --fs-bg became invalid at computed-value time and the canvas fell back to
+#     white — silently (export-tier.mjs caught it: contrast 1.5:1). A newline is now treated
+#     exactly like a space run.
+#   - `>` `+` `~` spaces: stripping them is safe but buys only ~200 bytes.
+#   - anything inside a string: every data-URI here is quoted and full of `:` `;` and spaces.
+#   - one newline after `}`, so the shipped file stays greppable.
 squeeze() {
 	awk '
 		BEGIN { q = ""; ban = 0; lastc = ""; buf = ""; lastreal = "" }
 		{
 			line = $0
-			# The /*! ... */ licence banner is the one comment strip_comments keeps, and
-			# it must survive BYTE FOR BYTE: it is an Apache-2.0 attribution notice, not
-			# formatting. Squeezing it turned "Twitter, Inc" into "Twitter,Inc" and glued
-			# every line together. Copy it out untouched, newlines and all.
+			# The /*! banner is an Apache-2.0 attribution, not formatting: it must survive
+			# BYTE FOR BYTE. Squeezing it made "Twitter, Inc" into "Twitter,Inc" and glued its
+			# lines together. Copy it out untouched.
 			if (ban) { print line; lastc = ""; lastreal = ""; if (index(line, "*/")) ban = 0; next }
 			if (substr(line, 1, 3) == "/*!") {
 				print line; lastc = ""; lastreal = ""
 				if (!index(substr(line, 4), "*/")) ban = 1
 				next
 			}
-			# The line BREAK we are about to swallow is whitespace, and a declaration may
-			# be wrapped across it (a long calc(), a gradient). Feed it to the same
-			# whitespace-run logic below as a leading space: it survives only where a
-			# space would — between two tokens — and is dropped next to { } ; , : as
-			# before. lastc == "" means the output is already at the start of a line
-			# (after a `}` or the banner), where there is nothing to glue to.
+			# The line BREAK we are about to swallow is whitespace, and a declaration may be
+			# wrapped across it. Feed it to the whitespace-run logic below as a leading space:
+			# it survives only where a space would (between two tokens) and is dropped next to
+			# { } ; , : — lastc == "" means output is already at the start of a line, with
+			# nothing to glue to.
 			if (lastc != "" && q == "") line = " " line
 			out = ""; i = 1; n = length(line)
 			while (i <= n) {
@@ -166,8 +133,8 @@ squeeze() {
 				if (c == "\"" || c == "'"'"'") { q = c; out = out c; lastreal = ""; i++; continue }
 				if (c == " " || c == "\t") {         # collapse a run of whitespace to one space
 					while (i <= n && (substr(line, i, 1) == " " || substr(line, i, 1) == "\t")) i++
-					# prev is the last character EMITTED, which on a continuation line
-					# lives on the previous output line — hence lastc, not just `out`.
+					# the last char EMITTED, which on a continuation line lives on the
+					# previous output line — hence lastc, not just `out`.
 					prev = (length(out) ? substr(out, length(out), 1) : lastc)
 					nxt  = (i <= n ? substr(line, i, 1) : "")
 					# drop it entirely next to a delimiter; otherwise it may be a combinator
@@ -178,18 +145,15 @@ squeeze() {
 					out = out " "; lastreal = " "
 					continue
 				}
-				# THE LAST `;` OF A BLOCK IS REDUNDANT — drop it as the closing brace is
-				# emitted, i.e. INSIDE the string-aware scanner.
+				# THE LAST `;` OF A BLOCK IS REDUNDANT — dropped as the `}` is emitted, i.e.
+				# INSIDE the string-aware scanner. It used to be a `| sed "s/;}/}/g"` bolted onto
+				# the awk output, and sed cannot see strings: `content: ";}"` came out as
+				# `content: "}"`, and a data-URI containing `;}` was corrupted the same way (both
+				# reproduced). Nothing in the tree holds that byte pair today — which is how such
+				# a bug waits for whoever adds the first one.
 				#
-				# This used to be a `| sed "s/;}/}/g"` bolted onto the awk output, and sed
-				# cannot see strings: `content: ";}"` came out as `content: "}"`, and a
-				# data-URI containing `;}` was silently corrupted. Both reproduced. Nothing
-				# in the tree happens to contain that byte pair today — which is precisely
-				# how a bug like this waits to be found by whoever adds the first one.
-				#
-				# The `;` may already be sitting in the previous input line''s output, so the
-				# emitted text is held in `buf` until the rule closes rather than streamed:
-				# a `;` printed to stdout cannot be taken back.
+				# The `;` may already sit in the previous line output, so text is held in `buf`
+				# until the rule closes: a `;` already printed cannot be taken back.
 				if (c == "}") {
 					if (length(out) && substr(out, length(out), 1) == ";")
 						out = substr(out, 1, length(out) - 1)
@@ -200,19 +164,17 @@ squeeze() {
 			}
 			buf = buf out
 			if (length(out)) lastc = substr(out, length(out), 1)
-			# a newline only after a closing brace — keeps rules on their own lines.
-			# lastreal, not lastc: a line ending in a QUOTED `}` (content: "}") is not the
-			# end of a rule, and flushing there would break the rule across two lines and
-			# lose the space that separates its next token.
+			# newline only after a closing brace — one rule per line. lastreal, not lastc: a
+			# line ending in a QUOTED `}` (content: "}") is not the end of a rule, and flushing
+			# there would split the rule and lose the space before its next token.
 			if (lastreal == "}") { print buf; buf = ""; lastc = ""; lastreal = "" }
 		}
 		END { if (length(buf)) print buf; else printf "\n" }
 	' "$1"
 }
 
-# Count the braces in a file and echo "<open> <close>". Fails loudly rather than let an
-# unbalanced block ship. The braces are matched as bracket expressions: a bare /{/ is an
-# interval-expression ambiguity that some awks warn about or reject.
+# Fail loudly rather than let an unbalanced block ship. Braces matched as bracket
+# expressions: a bare /{/ is an interval-expression ambiguity some awks reject.
 brace_count() {
 	awk '{ o += gsub(/[{]/, "&"); c += gsub(/[}]/, "&") } END {
 		if (o != c) { printf "build-css: %s: unbalanced braces (%d { vs %d })\n", FILENAME, o, c > "/dev/stderr"; exit 1 }
@@ -221,10 +183,8 @@ brace_count() {
 	}' "$1"
 }
 
-# The brace check runs on a COMMENT-STRIPPED copy, always — including in --dev,
-# where comments survive into the output. It used to count braces in the raw file,
-# so a comment containing a stray "{" (prose, an example) failed the build on
-# perfectly valid CSS.
+# Always brace-check a COMMENT-STRIPPED copy, --dev included: counting braces in the raw
+# file made a stray "{" in prose fail the build on perfectly valid CSS.
 strip_comments "$TMP" > "$TMP.min"
 RULES_BEFORE=$(brace_count "$TMP.min") || exit 1
 
@@ -233,10 +193,9 @@ if [ "$DEV" -eq 0 ]; then
 	squeeze "$TMP.min" > "$TMP"
 	rm -f "$TMP.min"
 
-	# AND CHECK AGAIN, on what actually ships. The check above validated the squeeze's
-	# INPUT — while the squeeze is the pass most capable of corrupting the sheet: it is the
-	# one that tracks strings, joins lines and deletes the `;` before a `}`. Its output was
-	# never looked at. A rule count that survives it unchanged is what says so.
+	# AND AGAIN, on what actually ships: the check above only saw the squeeze's INPUT, yet
+	# the squeeze is the pass most able to corrupt the sheet — it tracks strings, joins lines
+	# and deletes the `;` before a `}`. An unchanged rule count is what says it did not.
 	RULES_AFTER=$(brace_count "$TMP") || exit 1
 	if [ "$RULES_BEFORE" != "$RULES_AFTER" ]; then
 		echo "build-css: the squeeze changed the rule count ($RULES_BEFORE -> $RULES_AFTER)." >&2
@@ -253,16 +212,12 @@ trap - EXIT
 SIZE=$(wc -c < "$OUT" | tr -d ' ')
 echo "build-css: $SIZE bytes -> $OUT"
 
-# SIZE BUDGET. uhttpd ships no compression at all (there is no gzip code in it —
-# docs/18), so every byte here is a byte on the wire, on a device whose whole point
-# is to be small. The gate is deliberately checked only for the real minified build.
-# Raise it consciously, or not at all.
+# SIZE BUDGET, minified build only. uhttpd has no gzip code at all (docs/18), so every byte
+# is a wire byte on a device whose whole point is to be small. Raise it consciously.
 #
-# The FLOOR is not symmetry for its own sake: the only gate on the finished file used to be
-# an upper bound, so every way of producing a *short* file — a truncated write, a full disk,
-# a squeeze that ate the tail — passed the build and shipped a stylesheet with its second
-# half missing. An upper bound cannot see that; the rule-count check above catches the gross
-# case, and this catches the rest.
+# The FLOOR is not symmetry: with only an upper bound, every way of producing a SHORT file —
+# a truncated write, a full disk, a squeeze that ate the tail — passed and shipped a
+# stylesheet with its second half missing.
 BUDGET=${FS_CSS_BUDGET:-117760}   # 115 KB — the sheet is ~109 KB, so this is real headroom, not slack
 FLOOR=${FS_CSS_FLOOR:-81920}      # 80 KB — well under the real sheet; only a mangled build lands here
 if [ "$DEV" -eq 0 ] && [ "$SIZE" -gt "$BUDGET" ]; then

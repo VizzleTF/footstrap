@@ -1,46 +1,38 @@
-/* Automated accessibility gate — axe-core over docs/gallery.html.
+/* Accessibility gate — axe-core (WCAG 2.2 AA) over docs/gallery.html.
  *
- * WHY THE GALLERY AND NOT THE ROUTER. LuCI renders page content client-side, so
- * auditing a real page means having a router, a session and a network. The gallery
- * is a static file that already renders EVERY widget LuCI (or any third-party
- * luci-app-*) can emit, with the real class names — so it is the whole widget
- * surface of the theme, checkable in CI with no device at all. Nothing else in the
- * LuCI theme ecosystem does this.
+ * THE GALLERY, NOT THE ROUTER: LuCI renders content client-side, so auditing a real page needs a
+ * router, a session and a network. The gallery is a static file rendering EVERY widget LuCI (or
+ * any third-party luci-app-*) can emit, with the real class names — the theme's whole widget
+ * surface, checkable in CI with no device. The full {light,dark} x {footstrap,hicontrast} matrix,
+ * because a palette switcher multiplies the contrast matrix and colour failures regress silently
+ * in the combination nobody looks at: that is how the 1.69:1 white-on-green in hicontrast dark
+ * survived as long as it did.
  *
- * It runs the full matrix — {light, dark} x {footstrap, hicontrast} — because a
- * palette switcher multiplies the contrast matrix, and colour-contrast failures are
- * exactly the kind that regress silently in the combination nobody looks at. That is
- * how the 1.69:1 white-on-green in hicontrast dark survived for as long as it did.
+ * Fails on `serious`/`critical` only. `moderate`/`minor` print but do not gate: the gallery
+ * renders widgets out of any page context (isolated <table>s, headings with no document outline),
+ * tripping landmark and heading-order rules that say nothing about the theme.
  *
  *   node tools/a11y-gallery.mjs
- *
- * Fails on `serious` and `critical` only. `moderate`/`minor` are printed but do not
- * fail the build: the gallery deliberately renders widgets out of any page context
- * (isolated <table>s, headings with no document outline), which trips landmark and
- * heading-order rules that say nothing about the theme.
  */
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
 import { buildCss, serveGallery, applyAppearance, matrix } from './lib/gallery.mjs';
 
-/* build + serve: shared with export-tier.mjs, including the rules for stamping the
- * Appearance axes onto :root (tools/lib/gallery.mjs) */
+/* build + serve + Appearance-axis stamping: shared with export-tier.mjs (tools/lib/gallery.mjs) */
 const { base, close } = await serveGallery(buildCss('cascade.css'));
 
-/* The Tint axis re-hues every surface in the gallery, so it multiplies this matrix
- * the way the palette does — and unlike the palette it is a slider, i.e. the user
- * can land anywhere on the wheel. Two hues per combination rather than the six
- * export-tier.mjs sweeps, because an axe pass is seconds and these two are the
- * extremes that matter: at the fixed lightness the tint anchor uses, yellow carries
- * the most luminance and blue the least, so they bracket what a mix can do to the
- * contrast of text sitting on the surface. `null` = untinted. */
+/* The Tint axis re-hues every surface, so it multiplies this matrix like the palette does — and
+ * unlike the palette it is a slider: the user can land anywhere on the wheel. Two hues, not the
+ * six export-tier.mjs sweeps, because these are the extremes that matter: at the tint anchor's
+ * fixed lightness, yellow carries the most luminance and blue the least, so they bracket what a
+ * mix can do to the contrast of text on the surface. `null` = untinted. */
 const TINTS = [null, 60, 260];
 
 const MATRIX = matrix(TINTS);
 
 const browser = await chromium.launch();
-/* axe-core requires a real BrowserContext (it injects into every frame), not the
- * implicit page browser.newPage() creates. */
+/* axe-core needs a real BrowserContext (it injects into every frame), not the implicit page
+ * browser.newPage() creates. */
 const ctx = await browser.newContext();
 let failed = 0;
 

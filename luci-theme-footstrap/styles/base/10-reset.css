@@ -1,15 +1,9 @@
 @layer base {
-	/* Element reset.
-	 *
-	 * Adapted from Eric Meyer's (meyerweb.com) reset, trimmed to the elements a
-	 * LuCI view can actually emit. `@layer base` holds the defaults every view
-	 * assumes are already there; styles/theme/ paints over them and always wins,
-	 * because a later layer outranks an earlier one whatever the specificity. */
+	/* Element reset (Meyer, trimmed to what a LuCI view can emit). */
 
-	/* Anchor targets must clear the sticky bar, or an in-page jump lands underneath it
-	 * (this is also WCAG 2.2 SC 2.4.11, Focus Not Obscured). The old value was a bare
-	 * 40px, which matched no bar the theme actually draws — the top-nav is 46px — and
-	 * it sat in a SECOND universal selector next to this one. One rule, one token. */
+	/* scroll-margin-top: an anchor jump must clear the sticky bar or it lands underneath
+	 * it (WCAG 2.2 SC 2.4.11). Token, never a literal — the bar is 46px, not the 40 this
+	 * used to guess. */
 	*, *::before, *::after {
 		scroll-margin-top: var(--fs-bar-h);
 		margin: 0;
@@ -72,8 +66,7 @@
 		vertical-align: baseline;
 	}
 
-	/* only <option> still renders this — 30-forms re-states line-height on
-	 * button/input/select/textarea, so the group above no longer carries it */
+	/* only <option> needs it: 30-forms re-states line-height on the rest of the group */
 	option {
 		line-height: 2em;
 	}
@@ -87,14 +80,12 @@
 		word-break: break-all;
 	}
 
-	/* the disabled-opacity fade lives in 30-forms.css (same elements, plus
-	 * pointer-events/cursor) — the copy that used to sit here was dead weight */
+	/* disabled-opacity fade: 30-forms.css, same elements + pointer-events/cursor */
 
 	input[type="search"] {
 		appearance: textfield;
-		/* NO box-sizing: content-box here. It contradicted the universal border-box a
-		 * few rules above, and since the theme sizes fields by padding, a search box
-		 * came out ~22px wider than every input beside it. */
+		/* NO box-sizing: content-box. It contradicts the universal border-box above;
+		 * the theme sizes fields by padding, so a search box came out ~22px too wide. */
 	}
 
 	input[type="search"]::-webkit-search-decoration {

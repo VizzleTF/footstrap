@@ -4,30 +4,21 @@
 'require network';
 'require fs-fit as fit';
 
-/* Footstrap overview LAYOUT-only include.
+/* Footstrap overview LAYOUT-only include: renders NOTHING of its own, only re-arranges the STOCK
+ * sections — wrapping System / Memory / Storage in a grid so Memory and Storage sit in a right
+ * column beside System. Content, data and styling stay luci-mod-status's. (Do not go back to the
+ * old 05_footstrap_dashboard.js: re-rendering a custom tree every poll flickered and reset mobile
+ * scroll.) The stock poll updates each section IN PLACE via dom.content() and never rebuilds the
+ * .cbi-section wrapper, so once moved into our grid the wrappers stay put across polls.
  *
- * Unlike the old 05_footstrap_dashboard.js (which re-rendered a whole custom
- * tree every poll and flickered/reset scroll on mobile), this include renders
- * NOTHING itself. It only re-arranges the STOCK overview sections: it wraps the
- * System / Memory / Storage sections in a grid container so Memory and Storage
- * sit in a right column beside System — the rest of the stock content, data and
- * per-section styling stay exactly as luci-mod-status renders them.
- *
- * The stock poll (index.js) updates each section IN PLACE via
- * dom.content(container, ...) — it never rebuilds the .cbi-section wrapper — so
- * once we move those wrappers into our grid they stay put across polls, and only
- * each section's small inner body repaints (minimal flicker, no full-tree swap).
- *
- * Installed to the global include dir, so LuCI loads it under EVERY theme — including
- * bootstrap, if the user switches away. Hence the gate: do nothing unless a footstrap
- * theme is the active one (L.env.media). */
+ * Installed to the global include dir, so LuCI loads it under EVERY theme — hence the gate. */
 function isFootstrapTheme() {
 	return String(L.env.media || '').indexOf('footstrap') >= 0;
 }
 
-/* section title -> grid role. Titles via _() to match the stock locale. Built once
- * at module load: it used to be rebuilt on every call, i.e. an object allocation
- * plus three _() lookups on every poll tick. */
+/* section title -> grid role. _() with NO msgctxt on purpose: these must resolve to exactly what
+ * luci-mod-status resolves to, or the titles stop matching. Built once — it used to cost an
+ * allocation plus three _() lookups per poll tick. */
 const ROLES = { [_('System')]: 'sys', [_('Memory')]: 'mem', [_('Storage')]: 'sto' };
 
 function sectionTitle(sec) {
@@ -39,11 +30,10 @@ function sectionTitle(sec) {
 let wrapEl = null;
 
 function arrange() {
-	/* the theme's SPA nav can leave this observer wired while another page
-	 * renders into #view — detach as soon as the route stops being the overview,
-	 * instead of re-running on every mutation of every subsequent page. Both the
-	 * server template and the SPA router stamp body[data-page] with the DISPATCH
-	 * path, so /admin/status (firstchild -> overview) matches too. */
+	/* the SPA nav can leave this observer wired while another page renders into #view — detach as
+	 * soon as the route stops being the overview. Both the server template and the SPA router
+	 * stamp body[data-page] with the DISPATCH path, so /admin/status (firstchild -> overview)
+	 * matches too. */
 	if ((document.body.getAttribute('data-page') || '') !== 'admin-status-overview') {
 		stopWatch();
 		return;
@@ -51,17 +41,11 @@ function arrange() {
 	const view = document.getElementById('view');
 	if (!view) return;
 
-	/* Fast path — this is where the poll lands, once a second, forever.
-	 *
-	 * The stock poll updates each section IN PLACE (dom.content) and never
-	 * rebuilds the .cbi-section wrappers, so our grid survives untouched and there
-	 * is nothing to do. Proving that used to cost a querySelectorAll over #view's
-	 * children plus a sectionTitle() DOM dig per section, every tick, before
-	 * reaching the "already wrapped" bail-out at the bottom. Now it costs an
-	 * isConnected check. Deliberately NOT a disconnect(): if some future
-	 * luci-mod-status ever DOES rebuild a section, the wrapper loses its children
-	 * and the slow path below rebuilds the grid — the layout self-heals instead of
-	 * being permanently broken by a stale assumption. */
+	/* Fast path — the poll lands here once a second, forever. The stock poll never rebuilds the
+	 * .cbi-section wrappers, so the grid survives and there is nothing to do; proving that used
+	 * to cost a querySelectorAll over #view plus a sectionTitle() dig per section, every tick.
+	 * Deliberately NOT a disconnect(): if a future luci-mod-status ever DOES rebuild a section,
+	 * the wrapper loses its children and the slow path below rebuilds the grid — self-healing. */
 	if (wrapEl && wrapEl.isConnected && wrapEl.parentElement === view && wrapEl.children.length === 3)
 		return;
 
@@ -86,13 +70,11 @@ function arrange() {
 	wrapEl = wrap;
 }
 
-/* Stock sections render/re-render async (they sort after us and repaint every
- * poll), so watch #view and re-run arrange() on change (debounced, ONE observer
- * per #view node — a per-poll observer leak would slow the page down). The SPA
- * router may REPLACE the #view element between visits, so watch() re-attaches
- * whenever the node it observed is no longer the current one; a singleton bound
- * forever to the first #view would silently watch a detached tree and the grid
- * would never apply on a later SPA visit. */
+/* Stock sections render async and repaint every poll, so watch #view and re-run arrange()
+ * (coalesced, ONE observer per #view node — a per-poll observer leak would slow the page down).
+ * The SPA router may REPLACE the #view element between visits, so re-attach when the node we
+ * observed is no longer the current one: a singleton bound to the first #view would silently
+ * watch a detached tree and the grid would never apply on a later SPA visit. */
 let observer = null, observedView = null;
 function stopWatch() {
 	if (observer) observer.disconnect();
@@ -107,44 +89,32 @@ function watch() {
 	arrange();
 	if (observer || !view) return;
 	observedView = view;
-	/* one arrange() per frame, however many mutations a poll tick delivers — fit.frame is
-	 * the theme's shared coalescer (fs-fit.js) */
+	/* one arrange() per frame, however many mutations a poll tick delivers (fit.frame — the
+	 * theme's shared coalescer, fs-fit.js) */
 	observer = new MutationObserver(fit.frame(arrange));
 	observer.observe(view, { childList: true, subtree: true });
 }
 
 /* ---- progressive paint -----------------------------------------------------
  *
- * The overview is the slowest page in LuCI, and almost none of that is rendering.
- * Stock `view.status.index` builds the section frames, then calls
- * poll_status(first_load=true), which does `Promise.all` over EVERY include's
- * load() and only resolves when the last one answers — and render() does not
- * return the tree until then. So #view stays **empty** for the duration of the
- * slowest include. Measured on the dev router (warm, SPA nav): 182 ms of blank
- * page, of which System / CPU / Memory / Storage / DHCP / Network were ready at
- * 88 ms and were simply waiting on 29_ports and 60_wifi (180 ms each).
+ * Stock `view.status.index` calls poll_status(first_load=true), which Promise.all's over EVERY
+ * include's load(), and render() does not return the tree until it resolves — so #view stays
+ * EMPTY for as long as the slowest include takes. Measured on the dev router (warm SPA nav):
+ * 182 ms of blank page, of which System/CPU/Memory/Storage/DHCP/Network were ready at 88 ms and
+ * were simply waiting on 29_ports and 60_wifi (180 ms each).
  *
- * Two things this changes, both by replacing poll_status:
+ * Replacing poll_status does two things:
+ *  1. Each section paints when ITS OWN data lands: first content halves, 182 -> ~90 ms. Nothing
+ *     jumps — the frames are already in the DOM (built before poll_status is called), a section
+ *     just goes hidden -> filled, exactly as on a stock poll tick.
+ *  2. Kills the redundant re-fetch: stock adds the poller only after the first load completes
+ *     and Poll.add() steps at once, so the overview re-fetched EVERYTHING (~250 ms of ubus)
+ *     right after the first paint. The in-flight guard joins that to the run already going.
  *
- * 1. Each section paints as soon as ITS OWN data lands, instead of the whole page
- *    waiting for the slowest one. Time to first content halves (182 -> ~90 ms);
- *    ports and wifi fill in place a beat later. The frames are already in the DOM
- *    by then — they were built before poll_status is ever called — so nothing
- *    jumps: a section switches from hidden to filled, exactly as it does on a
- *    stock poll tick.
- *
- * 2. The redundant immediate re-fetch is gone. Stock adds the poller only after
- *    the first load completes, and `Poll.add()` steps at once — so the overview
- *    fetched EVERYTHING a second time, ~250 ms of ubus work, immediately after
- *    the first paint. An in-flight guard collapses that second run into the one
- *    already running. Nothing is lost: the data it would have fetched is the data
- *    the first run is already fetching.
- *
- * Deliberately NOT a re-implementation of the overview: the section frames, the
- * hide/show toggles, the includes and their render() output all stay upstream's.
- * fillSection() is a transcription of stock's own loop, kept in the same order so
- * it can be diffed against index.js when luci-mod-status changes. If the shape it
- * expects is not there, the patch is skipped and the page runs stock. */
+ * NOT a re-implementation — frames, toggles, includes and their render() stay upstream's.
+ * fillSection() transcribes stock's own loop in the same order so it can be diffed against
+ * index.js when luci-mod-status changes; if that shape is gone, the patch is skipped and the
+ * page runs stock. */
 function fillSection(inc, container, res) {
 	if (inc.failed)
 		return;
@@ -168,8 +138,8 @@ function fillSection(inc, container, res) {
 let inflight = null;
 
 function pollProgressive(includes, containers, first_load) {
-	/* A run is already fetching exactly this data — join it instead of starting a
-	 * second stampede of the same RPCs. This is what kills the duplicate load. */
+	/* A run is already fetching exactly this data — join it instead of starting a second
+	 * stampede of the same RPCs. This is what kills the duplicate load. */
 	if (inflight)
 		return first_load ? Promise.resolve() : inflight;
 
@@ -180,8 +150,8 @@ function pollProgressive(includes, containers, first_load) {
 			const loaded = (typeof inc.load === 'function')
 				? Promise.resolve(inc.load()).catch(() => { inc.failed = true; })
 				: Promise.resolve(null);
-			/* the point of the whole patch: fill THIS section the moment ITS data is
-			 * here, rather than at the end of a Promise.all over all of them */
+			/* the point of the patch: fill THIS section the moment ITS data is here,
+			 * not at the end of a Promise.all over all of them */
 			return loaded.then((res) => {
 				try { fillSection(inc, containers[i], res); }
 				catch (e) { console.error('footstrap: overview section failed', e); }
@@ -194,16 +164,15 @@ function pollProgressive(includes, containers, first_load) {
 
 	inflight = run.finally(() => { inflight = null; });
 
-	/* On the first load, resolve NOW so index.render() returns its tree and the
-	 * frames reach #view immediately; the sections above fill themselves. On a poll
-	 * tick, resolve when the data is in — that is what the poller expects. */
+	/* First load: resolve NOW so index.render() returns its tree and the frames reach #view
+	 * immediately; the sections fill themselves. A poll tick resolves when the data is in —
+	 * that is what the poller expects. */
 	return first_load ? Promise.resolve() : inflight;
 }
 
-/* Patch the stock overview view. Runs while index.load() is requiring its includes
- * — i.e. after the instance exists and before render() is called, which is the one
- * window where replacing poll_status is safe. Applies on a full page load and on a
- * SPA nav alike, because both go through index.load(). */
+/* Patch the stock overview view while index.load() is requiring its includes — after the instance
+ * exists, before render() is called: the one window where replacing poll_status is safe. Covers a
+ * full page load and an SPA nav alike, since both go through index.load(). */
 function patchOverview() {
 	L.require('view.status.index').then((idx) => {
 		const proto = idx ? Object.getPrototypeOf(idx) : null;
@@ -216,8 +185,8 @@ function patchOverview() {
 	}).catch((e) => console.error('footstrap: overview progressive paint not applied', e));
 }
 
-/* At module-evaluation time, which is inside index.load() — before render(). Doing
- * it from render() would be too late: poll_status has already been called by then. */
+/* Module-evaluation time = inside index.load(), before render(). From render() it would be too
+ * late: poll_status has already been called by then. */
 if (isFootstrapTheme())
 	patchOverview();
 

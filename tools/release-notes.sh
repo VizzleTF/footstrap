@@ -1,19 +1,18 @@
 #!/bin/sh
-# Build a short, readable GitHub-release body from the CHANGELOG.
+# Build the GitHub-release body from the CHANGELOG — it is GENERATED, never hand-written,
+# so the changelog stays the single source.
 #
-# Every changelog bullet is written as `- **one-line summary.** then the rationale`
-# (see CLAUDE.md: "Write the effect, not the diff"). The bold lead IS the summary a
-# release reader wants — the paragraph after it is for maintainers. So the release
-# notes are just those bold leads, grouped under their `### Fixed`/`### Added`/…
-# headers; the multi-line rationale is dropped. No second copy of anything to keep in
-# sync — the changelog is the single source.
+# Every bullet is `- **one-line effect.** then the rationale` (CLAUDE.md). The bold lead is
+# what a release reader wants; the rationale is for maintainers. So the notes are just those
+# leads, grouped under their `### Fixed`/`### Added`/… headers. Consequences: a bullet with
+# NO bold lead is silently omitted, and an empty section prints no header.
 #
-# The English CHANGELOG.md is the primary source; CHANGELOG_ru.md is its mirror and its
-# summary is appended after the English one so the release page carries both languages.
+# CHANGELOG.md is primary; the CHANGELOG_ru.md mirror's summary is appended under a divider,
+# so the release page carries both languages.
 #
 # Usage: release-notes.sh <version> [changelog-file]
 #   <version>  e.g. 0.7.18 (no leading v); matches the `## [0.7.18]` heading.
-# Prints the release body to stdout. Pure sh + awk, so the release job needs no node.
+# Prints to stdout. Pure sh + awk, so the release job needs no node.
 set -eu
 
 ver="${1:?usage: release-notes.sh <version> [changelog]}"
@@ -23,14 +22,13 @@ changelog_ru="${changelog%.md}_ru.md"
 
 [ -f "$changelog" ] || { echo "no such changelog: $changelog" >&2; exit 1; }
 
-# extract(file): the bold lead of every bullet in the [ver] section, grouped under its
-# `###` headers (empty sections and rationale dropped). Same logic for either language —
-# the RU file just carries Russian headers/leads. Prints nothing if the section is absent.
+# extract(file): the bold lead of every bullet in the [ver] section, grouped under its `###`
+# headers (rationale and empty sections dropped). Same logic for either language. Prints
+# nothing if the section is absent.
 extract() {
 	awk -v ver="$ver" '
-		# Print the just-finished bold title, printing its section header first the
-		# one time a header is still pending — so an empty section (a "### Changed"
-		# with no bullets) never prints a lone header.
+		# Print the finished bold title, emitting its section header first the one time a
+		# header is still pending — so an empty section never prints a lone header.
 		function flush(   t) {
 			if (!collecting) return
 			t = title
@@ -71,11 +69,10 @@ extract() {
 	' "$1"
 }
 
-# A tag whose changelog section does not exist is a FAILED release, not a release with a
-# thin body. CLAUDE.md's rule — rename [Unreleased], commit that, then tag THAT commit — has
-# no other enforcement: warning to stderr and exiting 0 published a release page reading
-# "See the CHANGELOG" for a version the changelog had never heard of, which is precisely the
-# mistake the rule exists to prevent, made permanent and public.
+# A tag whose changelog section does not exist is a FAILED release, not a thin one. This is
+# the only enforcement of CLAUDE.md's rule (rename [Unreleased], commit that, then tag THAT
+# commit): warning to stderr and exiting 0 published a release page reading "See the
+# CHANGELOG" for a version the changelog had never heard of.
 summary="$(extract "$changelog")"
 if [ -z "$summary" ]; then
 	echo "error: no '## [$ver]' section in $changelog." >&2
@@ -84,9 +81,9 @@ if [ -z "$summary" ]; then
 	exit 1
 fi
 
-# The RU mirror must carry the section too. A mirror that silently lags is worse than none:
-# the release page would show the English half only, and nobody would know which file was
-# stale. Same rule as the changelog itself — both are edited in the same commit.
+# The RU mirror must carry the section too. A mirror that lags is worse than none: the release
+# page would show the English half only and nobody could tell which file was stale. Both are
+# edited in the same commit.
 summary_ru=""
 if [ -f "$changelog_ru" ]; then
 	summary_ru="$(extract "$changelog_ru")"

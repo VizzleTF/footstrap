@@ -1,8 +1,7 @@
 @layer base {
-	/* Buttons. `.btn` and `.cbi-button` are interchangeable in LuCI markup, and a
-	 * row-action button usually carries both plus a `-<variant>` class that says
-	 * what it means (edit, remove, apply, save). The variants only set --on-color
-	 * and a border here; styles/theme/55-buttons.css does the painting. */
+	/* `.btn` and `.cbi-button` are interchangeable in LuCI markup; a row action carries
+	 * both plus a `-<variant>` class (edit, remove, apply, save). Here the variants set
+	 * only --on-color and a border — theme/55-buttons.css paints. */
 	.item::after,
 	.btn,
 	.cbi-button {
@@ -78,10 +77,10 @@
 		margin-right: .4em;
 	}
 
-	/* The FILLS are theme/55-buttons.css's — absorbed. What stays is --on-color, which
-	 * is not paint: the spinner glyph (.spinning::before in 95-luci.css) masks itself
-	 * with it, so it must keep tracking the button's variant. border-color stays too —
-	 * theme does not set it on .cbi-page-actions .cbi-button-apply. */
+	/* Fills: theme/55-buttons.css — absorbed. --on-color stays because it is not paint:
+	 * the spinner glyph (.spinning::before, 95-luci.css) masks itself with it and must
+	 * track the button's variant. border-color stays too — theme does not set it on
+	 * .cbi-page-actions .cbi-button-apply. */
 	.btn.primary,
 	.cbi-button-action.important,
 	.cbi-page-actions .cbi-button-apply,
@@ -99,13 +98,13 @@
 
 	.cbi-button-negative.important {
 		--on-color: var(--fs-on-danger);
-		/* fill + border are theme/55-buttons.css's — absorbed */
+		/* fill + border: theme/55-buttons.css — absorbed */
 	}
 
 	.cbi-page-actions .cbi-button-apply + .cbi-button-save,
 	.cbi-page-actions .cbi-button-negative + .cbi-button-save {
 		--on-color: var(--fs-good);
 		border-color: var(--on-color);
-		/* the neutral fill is theme/55-buttons.css's — absorbed */
+		/* neutral fill: theme/55-buttons.css — absorbed */
 	}
 }
