@@ -306,14 +306,20 @@
 		<details class="dk-grab">
 			<summary>Grab it straight off a running app →</summary>
 			<p>Can't find the CSS, or it's injected from JS? Open <b>your app's page</b> in the browser,
-				press <kbd>F12</kbd> → <b>Console</b>, paste this line and hit <kbd>Enter</kbd>. It harvests every
-				<code class="dk-inline">&lt;head&gt;</code>-injected sheet, every inline <code class="dk-inline">style=</code>
-				inside <code class="dk-inline">#view</code> and every <code class="dk-inline">&lt;font color&gt;</code>,
-				copies the lot to your clipboard, then paste it below and press Fix. (A plain <b>Save Page As → HTML
-				only</b> works too — the codemod reads a whole document.)</p>
+				press <kbd>F12</kbd> → <b>Console</b>, paste this line and hit <kbd>Enter</kbd>. It harvests <b>every</b>
+				injected sheet, every inline <code class="dk-inline">style=</code> in <code class="dk-inline">#view</code>
+				and every <code class="dk-inline">&lt;font color&gt;</code> to your clipboard — <b>nothing is dropped</b>, so
+				it can't hide a bug. Paste below, press Fix.</p>
+			<p><b>Whose sheet is whose.</b> A live LuCI page also carries CSS that is <b>not yours</b>: the theme's own
+				stylesheet (skipped — it's a filtered <code class="dk-inline">&lt;link&gt;</code>), LuCI base's injected bits
+				(<code class="dk-inline">status/cpu.js</code>, <code class="dk-inline">package-manager.js</code>), and every
+				<i>other</i> app on the page. So each harvested <code class="dk-inline">&lt;head&gt;</code> sheet is <b>tagged with
+				its first selector</b> — if it doesn't start with your class prefix, it isn't yours; delete it before you
+				Fix. Type your prefix at the prompt (optional) and yours get marked <code class="dk-inline">YOURS</code>.
+				(A <b>Save Page As → HTML only</b> dump works too.)</p>
 			<div class="dk-copy dk-card" data-copy-from="dk-grab-src">
 				<span class="dk-cbtn">copy</span>
-				<pre><code class="blk" id="dk-grab-src">(function(){var v=document.querySelector('#view')||document.body,t=(window.L&amp;&amp;L.env&amp;&amp;L.env.media)||'x',o=[];document.querySelectorAll('head style,head link[rel=stylesheet]').forEach(function(n){if(n.tagName=='LINK'){if(n.href.indexOf(t)&lt;0&amp;&amp;n.href.indexOf('cascade.css')&lt;0)o.push('&lt;head&gt;&lt;link rel="stylesheet" href="'+n.href+'"&gt;&lt;/head&gt;');}else o.push('&lt;head&gt;&lt;style&gt;\n'+n.textContent.trim()+'\n&lt;/style&gt;&lt;/head&gt;');});var s=new Set();v.querySelectorAll('[style]').forEach(function(e){var x=e.getAttribute('style');if(x&amp;&amp;!s.has(x)){s.add(x);o.push(e.tagName.toLowerCase()+'[inline]{'+x+'}');}});v.querySelectorAll('style').forEach(function(e){o.push(e.textContent.trim());});v.querySelectorAll('font[color]').forEach(function(f){o.push('&lt;font color="'+f.getAttribute('color')+'"&gt;x&lt;/font&gt;');});var b=o.join('\n\n');try{copy(b)}catch(e){console.log(b)}console.log('%c[footstrap devkit] '+o.length+' snippets copied — paste into Fix my styles','color:#2563eb;font-weight:700');})();</code></pre>
+				<pre><code class="blk" id="dk-grab-src">(function(){var P=(prompt("footstrap devkit — optional: your app's class/id prefix (e.g. podkop) to mark YOUR sheets. Blank is fine — nothing is dropped either way:")||"").trim().toLowerCase();var v=document.querySelector('#view')||document.body,t=(window.L&amp;&amp;L.env&amp;&amp;L.env.media)||'x',o=[];function tag(c){var sel=((c.match(/([^{}]+)\{/)||['',''])[1]||'').trim().slice(0,70);var mine=P&amp;&amp;c.toLowerCase().indexOf(P)&gt;=0;return '/* &lt;head&gt; sheet — first selector: '+sel+(mine?' — YOURS':(P?' — probably NOT yours, delete if so':' — is this yours? delete if not'))+' */';}document.querySelectorAll('head style').forEach(function(n){var c=(n.textContent||'').trim();if(c)o.push(tag(c)+'\n&lt;head&gt;&lt;style&gt;\n'+c+'\n&lt;/style&gt;&lt;/head&gt;');});document.querySelectorAll('head link[rel=stylesheet]').forEach(function(n){if(n.href.indexOf(t)&lt;0&amp;&amp;n.href.indexOf('cascade.css')&lt;0)o.push('&lt;head&gt;&lt;link rel="stylesheet" href="'+n.href+'"&gt;&lt;/head&gt;');});var s=new Set();v.querySelectorAll('[style]').forEach(function(e){var x=e.getAttribute('style');if(x&amp;&amp;!s.has(x)){s.add(x);o.push(e.tagName.toLowerCase()+'[inline]{'+x+'}');}});v.querySelectorAll('style').forEach(function(e){var c=(e.textContent||'').trim();if(c)o.push(c);});v.querySelectorAll('font[color]').forEach(function(f){o.push('&lt;font color="'+f.getAttribute('color')+'"&gt;x&lt;/font&gt;');});var b=o.join('\n\n');try{copy(b)}catch(e){console.log(b)}console.log('%c[footstrap devkit] '+o.length+' snippet(s) copied — paste into Fix my styles','color:#2563eb;font-weight:700');})();</code></pre>
 			</div>
 		</details>
 

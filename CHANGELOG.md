@@ -32,7 +32,13 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   To feed it, paste the CSS directly, drop in a whole **Save Page As** dump (it flags a `<style>` /
   `<link>` living in `<head>`), or run the one-line console grabber on the running app — it harvests
   every `<head>`-injected sheet, every inline `style=` in `#view` and every `<font color>` to the
-  clipboard. Verified against a real excerpt of OpenClash's `oc.css`.
+  clipboard. It drops **nothing** — a prefix filter would have hidden the very un-prefixed classes
+  (`.centered`, `.toast`) the codemod exists to catch — and instead tags each `<head>` sheet with its
+  first selector, so the theme's own stylesheet, LuCI base's injected bits (`status/cpu.js`,
+  `package-manager.js`) and other apps on the page are told apart from yours. Cross-checked on a live
+  router against `luci-app-podkop`, `luci-app-justclash` and `luci-app-filemanager` (the last: 38
+  colour literals, 14 `!important`, a `<head>` sheet, a `:root {}` and unscoped stock selectors, all
+  caught) and a real excerpt of OpenClash's `oc.css`.
 
 ### Changed
 
