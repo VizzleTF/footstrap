@@ -12,14 +12,19 @@
 
 	.fs-logo {
 		width: 30px; height: 30px; border-radius: var(--fs-radius);
-		background: linear-gradient(135deg, var(--fs-accent), var(--fs-accent-lt));
-		/* the glyph inherits this (brand.ut uses currentColor) — the same ink as anything
-		 * drawn on an accent fill, so it follows palette and mode */
-		color: var(--fs-on-accent);
+		/* No accent fill — a bordered box, same look as the square buttons in the right
+		 * cluster (.fs-logout, .fs-themerow: 1px var(--fs-border)). The glyph is the OpenWrt
+		 * favicon mark (brand.ut), baked-colour, so color/currentColor is unused here. */
+		border: 1px solid var(--fs-border);
 		display: flex; align-items: center; justify-content: center;
 		flex: 0 0 auto;
 	}
 	.fs-logo svg { width: 17px; height: 17px; }
+	/* The OpenWrt ring flips with the theme mode like the SVG favicon does under
+	 * prefers-color-scheme — dark ring on the light UI, light ring on dark. The cyan arcs
+	 * stay baked (read on both). */
+	.fs-logo-ring { fill: #002b49; }
+	:root[data-darkmode="true"] .fs-logo-ring { fill: #e6f4fb; }
 
 	/* 700, not 800: no 800 face is shipped (it drew six elements for 18 KB — 01-fonts.css),
 	 * so 800 silently resolved to 700 anyway. Say so. */

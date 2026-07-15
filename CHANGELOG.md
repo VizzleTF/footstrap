@@ -10,6 +10,17 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Changed
+
+- **The brand logo is now the OpenWrt favicon mark in a bordered box, not a wifi glyph on an accent
+  tile.** The header logo dropped its accent-gradient fill for a plain 1px border, matching the
+  square buttons in the right cluster (Appearance, Logout), and the glyph is the same OpenWrt mark
+  the browser tab shows. Its ring flips with the theme mode exactly as the SVG favicon does under
+  `prefers-color-scheme` — dark ring on the light UI, light ring on dark — while the cyan arcs stay
+  fixed (legible on both).
+
 ## [0.8.9] — 2026-07-15
 
 ### Fixed
