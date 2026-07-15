@@ -152,6 +152,30 @@
 	.dk-report-empty { color: var(--fs-good); font-weight: 700; font-size: 14px; padding: 12px 0; }
 	.dk-report h4 { margin: 18px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--fs-dim); }
 
+	/* per-occurrence diagnostics — point at each problem where it is */
+	.dk-report { margin-top: 18px; display: grid; gap: 10px; }
+	.dk-diag { border: 1px solid var(--fs-border); border-left-width: 3px; border-radius: var(--fs-radius); padding: 10px 14px; }
+	.dk-diag.fix { border-left-color: var(--fs-good); }
+	.dk-diag.warn { border-left-color: var(--fs-warn); }
+	.dk-diag-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+	.dk-diag-top .ln { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fs-dim);
+	                   background: var(--fs-panel2); padding: 2px 7px; border-radius: 999px; }
+	.dk-diag-top .tag { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+	.dk-diag.fix  .tag { background: var(--fs-good-fill); color: var(--fs-good); }
+	.dk-diag.warn .tag { background: var(--fs-warn-fill); color: var(--fs-warn); }
+	.dk-diag-top .ti { font-size: 13.5px; font-weight: 700; }
+	.dk-diag-top .ti code { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: .92em; }
+	.dk-diag-code { margin: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5;
+	                background: var(--fs-panel2); border-radius: var(--fs-radius-s); padding: 8px 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+	.dk-diag-code mark { background: var(--fs-warn-fill); color: var(--fs-danger); font-weight: 700; padding: 0 2px; border-radius: 3px; }
+	.dk-diag-edit { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; flex-wrap: wrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+	.dk-diag-edit .was { color: var(--fs-danger); text-decoration: line-through; opacity: .8; }
+	.dk-diag-edit .arr { color: var(--fs-dim); }
+	.dk-diag-edit .now { background: var(--fs-good-fill); color: var(--fs-good); padding: 2px 8px; border-radius: 5px; cursor: copy; }
+	.dk-diag-edit .now:hover { outline: 1px solid var(--fs-good); }
+	.dk-diag-why { font-size: 13px; color: var(--fs-dim); line-height: 1.5; }
+	.dk-diag-why code { font-family: 'JetBrains Mono', monospace; background: var(--fs-accent-soft); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+
 	/* copy toast */
 	.dk-toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
 	            background: var(--fs-text); color: var(--fs-bg); padding: 8px 18px; border-radius: 999px; font-size: 13px;
@@ -324,26 +348,19 @@
 		</details>
 
 		<div class="dk-fixbar">
-			<button class="cbi-button cbi-button-positive" id="dk-fix-run">Fix styles ↓</button>
+			<button class="cbi-button cbi-button-positive" id="dk-fix-run">Check ↓</button>
 			<button class="cbi-button" id="dk-fix-sample">Load a broken example</button>
 			<button class="cbi-button" id="dk-fix-clear">Clear</button>
+			<button class="cbi-button" id="dk-fix-applyall" hidden>Apply every fix &amp; copy</button>
 			<span class="dk-fix-count" id="dk-fix-count"></span>
 		</div>
-		<div class="dk-fixgrid">
-			<div>
-				<div class="dk-h3" style="margin-top:0">Paste here</div>
-				<textarea id="dk-fix-in" class="dk-fixarea" spellcheck="false" placeholder="/* paste your CSS / <style> / markup */"></textarea>
-			</div>
-			<div>
-				<div class="dk-h3" style="margin-top:0">Fixed <span class="dk-cbtn" id="dk-fix-copy" style="opacity:1;position:static;cursor:copy">copy</span></div>
-				<textarea id="dk-fix-out" class="dk-fixarea" spellcheck="false" readonly placeholder="output appears here"></textarea>
-			</div>
-		</div>
+		<div class="dk-h3" style="margin-top:0">Paste here</div>
+		<textarea id="dk-fix-in" class="dk-fixarea" spellcheck="false" placeholder="/* paste your CSS / <style> / markup, or grab it above */"></textarea>
 		<div id="dk-fix-report"></div>
-		<p style="font-size:13px;color:var(--fs-dim);margin-top:16px">This is a conservative codemod, not a
-			compiler: it rewrites what is provably safe and flags the rest — it does not guarantee your app is
-			correct, only that these specific mistakes are handled. Read the flagged items against
-			<a href="#rules">the rules</a>.</p>
+		<p style="font-size:13px;color:var(--fs-dim);margin-top:16px">Each problem is pointed at where it is — the
+			line, the exact fragment, and the fix. This is a conservative checker, not a compiler: it is sure about
+			the ones it marks <b>auto-fix</b> and only flags the <b>manual</b> ones — it does not prove your app is
+			correct. Read each against <a href="#rules">the rules</a>.</p>
 	</section>
 
 	<!-- ─────────────────────────── RULES ─────────────────────────── -->
@@ -651,7 +668,7 @@ z-index: 2147483647;              /* above the theme's overlays */</pre>
 	   mistakes it must not touch. Text-based on purpose: the input is a paste — CSS, a <style>, markup
 	   with inline styles, a DevTools copy — not a parseable document. ---- */
 	(function fixTool() {
-		var inEl = $('#dk-fix-in'), outEl = $('#dk-fix-out'), rep = $('#dk-fix-report'), cnt = $('#dk-fix-count');
+		var inEl = $('#dk-fix-in'), rep = $('#dk-fix-report'), cnt = $('#dk-fix-count');
 		if (!inEl) return;
 
 		function parseHex(h) {
@@ -702,101 +719,132 @@ z-index: 2147483647;              /* above the theme's overlays */</pre>
 			'fs-panel2': 'background-color-low', 'fs-bg': 'background-color-low', 'fs-text': 'text-color-high',
 			'fs-dim': 'text-color-medium', 'fs-border': 'border-color-medium' };
 
-		function run(src) {
-			var f = [];                       // findings: {level:'fix'|'warn', msg, why}
-			function fix(msg, why) { f.push({ level: 'fix', msg: msg, why: why }); }
-			function warn(msg, why) { f.push({ level: 'warn', msg: msg, why: why }); }
-			var out = src, n;
+		function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+		function escAttr(s) { return esc(s).replace(/"/g, '&quot;'); }
 
-			// 1. colour literals → tokens, original kept as fallback
-			var cN = 0;
-			out = out.replace(/([-\w]+)\s*:\s*([^;{}]+)/g, function (m, prop, val) {
-				var kind = kindOf(prop);
-				if (!kind || /var\(/.test(val)) return m;
-				var cm = val.match(COLOR_RE); if (!cm) return m;
-				var tok = classify(kind, cm[0]); if (!tok) return m;
-				cN++;
+		/* Point at each problem where it is: return per-occurrence findings with a line number, the source
+		   line, the exact offending fragment (to highlight) and — for the mechanical ones — the precise
+		   before→after edit. run() also computes the whole-input rewrite for the "apply everything" path. */
+		function run(src) {
+			var F = [];
+			function locate(idx) {
+				var pre = src.slice(0, idx), s = pre.lastIndexOf('\n') + 1, e = src.indexOf('\n', idx);
+				if (e < 0) e = src.length;
+				return { line: pre.split('\n').length, text: src.slice(s, e) };
+			}
+			function fix(idx, mark, title, why, before, after) {
+				var l = locate(idx); F.push({ level: 'fix', line: l.line, text: l.text, mark: mark, title: title, why: why, before: before, after: after });
+			}
+			function warn(idx, mark, title, why) {
+				var l = locate(idx); F.push({ level: 'warn', line: l.line, text: l.text, mark: mark, title: title, why: why });
+			}
+			var m, re;
+
+			// 1. colour literals → tokens (original kept as fallback)
+			re = /([-\w]+)\s*:\s*([^;{}]+)/g;
+			while ((m = re.exec(src))) {
+				var kind = kindOf(m[1]); if (!kind || /var\(/.test(m[2])) continue;
+				var cm = m[2].match(COLOR_RE); if (!cm) continue;
+				var tok = classify(kind, cm[0]); if (!tok) continue;
+				var before = cm[0].trim(), after = 'var(--' + tok + ', ' + before + ')';
+				fix(m.index + m[0].indexOf(cm[0]), before, 'Hard-coded colour',
+					'A literal is right on the one theme/mode you looked at. Read the export token so it follows light/dark, the palette and the tint; your value stays as the fallback.', before, after);
+			}
+			// 2. wrong token names
+			re = /--warning-color-(high|medium|low|highest)\b/g;
+			while ((m = re.exec(src))) fix(m.index, m[0], 'Wrong token name', 'The family is <code>warn</code>, not <code>warning</code>. <code>--warning-color-*</code> is defined by nothing and silently falls through to your fallback.', m[0], '--warn-color-' + m[1]);
+			re = /--text-color(?![-\w])/g;
+			while ((m = re.exec(src))) fix(m.index, m[0], 'Wrong token name', '<code>--text-color</code> (no level) does not exist on the tier — only <code>-highest/-high/-medium/-low</code>.', '--text-color', '--text-color-high');
+			// 3. private tier reads
+			re = /--fs-([\w-]+)/g;
+			while ((m = re.exec(src))) {
+				if (FS_MAP['fs-' + m[1]]) fix(m.index, m[0], 'Reads the private tier', 'The <code>--fs-*</code> tier is internal, renamed at will, absent on every other theme. Only <code>--*-color-*</code> is a contract.', m[0], '--' + FS_MAP['fs-' + m[1]]);
+				else warn(m.index, m[0], 'Reads a private <code>--fs-*</code> with no colour equivalent', 'This is a private token (radius, z-index, spacing) with no public contract. Hardcode a value of your own, or drop the dependency on the theme.');
+			}
+			// 4. !important
+			re = /!important/g;
+			while ((m = re.exec(src))) fix(m.index, '!important', 'Needless <code>!important</code>', 'Your app CSS is unlayered and already beats every cascade layer the theme has — the flag was never what was winning. Remove it.', '!important', '');
+			// 5. absurd z-index
+			re = /z-index\s*:\s*(\d{5,})/gi;
+			while ((m = re.exec(src))) { if (+m[1] > 9999) fix(m.index, m[0], 'Runaway <code>z-index</code>', "A theme's own overlays can't coexist with <code>z-index: 2147483647</code>. Nothing you render needs to sit above everything ever.", m[0], 'z-index: 1000'); }
+			// 6. <font color>
+			re = /<font\s+color\s*=\s*["']?([^"'>]+)["']?\s*>/gi;
+			while ((m = re.exec(src))) { var ft = classify('text', m[1]) || 'text-color-high'; fix(m.index, m[0], '<code>&lt;font color&gt;</code>', 'A hardcoded font colour vanishes on half the palettes. Use a tokenised element.', m[0], '<span style="color:var(--' + ft + ', ' + m[1].trim() + ')">'); }
+
+			// ---- manual: structural, per occurrence ----
+			re = /document\.head\.(?:appendChild|append|insertBefore)/g;
+			while ((m = re.exec(src))) warn(m.index, m[0], 'CSS injected into <code>&lt;head&gt;</code> from JS', 'Under an SPA theme it outlives your view and restyles every later page. Return the <code>&lt;style&gt;</code> inside the tree your <code>render()</code> returns, or set <code>handleSaveApply=null</code> to drop stock buttons.');
+			re = /<head[\s>][\s\S]*?<(?:style|link\b[^>]*stylesheet)/gi;
+			while ((m = re.exec(src))) { warn(m.index, '<head>', 'A <code>&lt;style&gt;</code> / <code>&lt;link&gt;</code> in <code>&lt;head&gt;</code>', 'On a full reload it dies with the document; under an SPA theme it never does — it paints every later page. Return the CSS inside your view tree; never <code>&lt;link&gt;</code> an app stylesheet from <code>&lt;head&gt;</code>. (If this sheet is the theme’s or another app’s, it isn’t yours to fix.)'); if (re.lastIndex === m.index) re.lastIndex++; }
+			re = /:root\s*\{/g;
+			while ((m = re.exec(src))) warn(m.index, ':root', 'A <code>:root { … }</code> block', 'A shared global scope every app writes into. Declare your custom properties on <b>your</b> root element (<code>.myapp-root { --myapp-… }</code>), never <code>:root</code>.');
+			re = /(?:^|[^.\w#-])(\*\s*\{)/gm;
+			while ((m = re.exec(src))) warn(m.index + m[0].indexOf('*'), '*', 'A universal <code>*</code> reset', 'It flattens the theme’s own chrome. Never ship a document-wide reset.');
+			re = /\.(hidden|toast|skeleton|centered|dialog-title|flex-row|log-line|description)\b\s*\{/g;
+			while ((m = re.exec(src))) warn(m.index, '.' + m[1], 'Un-prefixed dictionary class', 'A live collision with the theme and every other app. Prefix it with your package name (<code>.myapp-' + m[1] + '</code>).');
+			re = /\b(?:window\.onload|DOMContentLoaded)\b/g;
+			while ((m = re.exec(src))) warn(m.index, m[0], 'Runs once per document', 'Fires once and never again after the first SPA navigation. Do your work in <code>render()</code> instead.');
+			re = /document\.body\.(?:appendChild|append)\b/g;
+			while ((m = re.exec(src))) warn(m.index, m[0], 'Node appended to <code>document.body</code>', 'It survives the view swap and leaks onto the next page. Put it in your view tree.');
+			re = /@media[^{]*prefers-color-scheme/gi;
+			while ((m = re.exec(src))) warn(m.index, 'prefers-color-scheme', 'Wrong dark-mode signal', 'Reports the OS, not the theme. Read the colour tokens (they already follow the theme) or sniff <code>data-theme</code> / <code>data-bs-theme</code>.');
+			re = /\.setTheme\s*\(\s*["'](?:dracula|monokai|tomorrow[-_]?night\w*|twilight|cobalt|material)/gi;
+			while ((m = re.exec(src))) warn(m.index, m[0], 'Hardcoded editor theme', 'A permanently dark editor on a light page. Pick the editor theme from <code>isDark()</code>.');
+			re = /(?:^|[{}])\s*(\.cbi-[\w-]+|table\s+th|pre)\s*\{/gm;
+			while ((m = re.exec(src))) warn(m.index + m[0].indexOf(m[1]), m[1], 'Stock LuCI selector without a scope', 'An unlayered rule on <code>' + esc(m[1]) + '</code> beats every theme layer, on every page. Scope it under your own root: <code>.myapp-root ' + esc(m[1]) + ' { … }</code>.');
+
+			F.sort(function (a, b) { return a.line - b.line || (a.level === b.level ? 0 : a.level === 'fix' ? -1 : 1); });
+			return { findings: F, fixed: computeFixed(src) };
+		}
+
+		/* the whole-input rewrite, for "apply every fix & copy" — the same edits, applied at once */
+		function computeFixed(src) {
+			var out = src.replace(/([-\w]+)\s*:\s*([^;{}]+)/g, function (mm, prop, val) {
+				var kind = kindOf(prop); if (!kind || /var\(/.test(val)) return mm;
+				var cm = val.match(COLOR_RE); if (!cm) return mm;
+				var tok = classify(kind, cm[0]); if (!tok) return mm;
 				return prop + ': ' + val.replace(COLOR_RE, 'var(--' + tok + ', ' + cm[0].trim() + ')');
 			});
-			if (cN) fix('<b>' + cN + ' hard-coded colour' + (cN > 1 ? 's' : '') + '</b> → export tokens with a literal fallback',
-				'A literal is right on the one theme/mode you looked at. The token follows light/dark, the palette and the tint; the fallback keeps your old value if a theme lacks it.');
-
-			// 2. wrong token names
-			n = 0; out = out.replace(/--warning-color-(high|medium|low|highest)\b/g, function (_m, l) { n++; return '--warn-color-' + l; });
-			if (n) fix('<b>' + n + '×</b> <code>--warning-color-*</code> → <code>--warn-color-*</code>', 'The family is <code>warn</code>. <code>--warning-color-*</code> is defined by nothing and silently falls through to your fallback.');
-			n = 0; out = out.replace(/--text-color(?![-\w])/g, function () { n++; return '--text-color-high'; });
-			if (n) fix('<b>' + n + '×</b> <code>--text-color</code> → <code>--text-color-high</code>', '<code>--text-color</code> (no level) does not exist on the tier.');
-
-			// 3. private tier reads
-			n = 0; var unmapped = {};
-			out = out.replace(/--fs-([\w-]+)/g, function (m2, name) {
-				if (FS_MAP['fs-' + name]) { n++; return '--' + FS_MAP['fs-' + name]; }
-				unmapped[name] = 1; return m2;
-			});
-			if (n) fix('<b>' + n + '×</b> private <code>--fs-*</code> → the matching export token', 'The <code>--fs-*</code> tier is internal, renamed at will, and absent on every other theme. Only <code>--*-color-*</code> is a contract.');
-			var uk = Object.keys(unmapped);
-			if (uk.length) warn('<b>' + uk.length + '× <code>--fs-*</code> with no colour equivalent</b> (' + uk.slice(0, 4).map(function (k) { return '<code>--fs-' + k + '</code>'; }).join(', ') + (uk.length > 4 ? '…' : '') + ')', 'These read the private tier (radius, z-index, spacing) — there is no public contract for them. Hardcode a value of your own or drop the dependency.');
-
-			// 4. !important (your CSS already outranks every theme layer)
-			n = 0; out = out.replace(/\s*!important/g, function () { n++; return ''; });
-			if (n) fix('<b>' + n + '×</b> <code>!important</code> removed', 'Your app CSS is unlayered and already beats every cascade layer the theme has. <code>!important</code> was never what was winning.');
-
-			// 5. absurd z-index
-			n = 0; out = out.replace(/(z-index\s*:\s*)(\d{5,})/gi, function (_m, p, v) { if (+v > 9999) { n++; return p + '1000'; } return _m; });
-			if (n) fix('<b>' + n + '×</b> runaway <code>z-index</code> → <code>1000</code>', "A theme's own overlays and dropdowns cannot coexist with <code>z-index: 2147483647</code>. Nothing you render needs to sit above everything ever.");
-
-			// 6. <font color> → span with a token
-			n = 0;
-			out = out.replace(/<font\s+color\s*=\s*["']?([^"'>]+)["']?\s*>/gi, function (_m, col) {
-				var tok = classify('text', col) || 'text-color-high'; n++;
-				return '<span style="color:var(--' + tok + ', ' + col.trim() + ')">';
-			});
-			if (n) { out = out.replace(/<\/font>/gi, '</span>'); fix('<b>' + n + '×</b> <code>&lt;font color&gt;</code> → a tokenised <code>&lt;span&gt;</code>', 'A hardcoded font colour vanishes on half the palettes.'); }
-
-			// ---- flags: structural, not auto-fixed ----
-			function count(re) { var m = src.match(re); return m ? m.length : 0; }
-			if (count(/document\.head\.(appendChild|append|insertBefore)/g))
-				warn('CSS injected into <code>&lt;head&gt;</code> from JS', 'Under an SPA theme it outlives your view and restyles every later page. Return the <code>&lt;style&gt;</code> inside the tree you render instead.');
-			// a <style> or app <link> living in <head> (from the grabber, or a Save-Page-As dump)
-			if (/<head[\s>][\s\S]*?<(?:style|link\b[^>]*stylesheet)/i.test(src))
-				warn('A <code>&lt;style&gt;</code> / <code>&lt;link&gt;</code> in <code>&lt;head&gt;</code>', 'On a full reload it dies with the document, but under an SPA theme it never does — it paints every later page. Return the CSS inside your view tree; never <code>&lt;link&gt;</code> an app stylesheet from <code>&lt;head&gt;</code>.');
-			if (/:root\s*\{/.test(src))
-				warn('A <code>:root { … }</code> block', 'A shared global scope. Declare your custom properties on <b>your</b> root element (<code>.myapp-root { --myapp-… }</code>), never <code>:root</code>.');
-			if (/(^|[^.\w#-])\*\s*\{/.test(src))
-				warn('A universal <code>* { … }</code> reset', 'It flattens the theme’s own chrome. Never ship a document-wide reset.');
-			var bare = (src.match(/\.(hidden|toast|skeleton|centered|dialog-title|flex-row|log-line|description|centered)\b\s*\{/g) || []);
-			if (bare.length)
-				warn('<b>' + bare.length + '</b> un-prefixed dictionary class' + (bare.length > 1 ? 'es' : '') + ' (' + bare.slice(0, 3).map(function (s) { return '<code>' + s.trim().replace(/\s*\{$/, '') + '</code>'; }).join(', ') + ')', 'Live collisions with the theme and other apps. Prefix every class with your package name.');
-			if (/\b(window\.onload|DOMContentLoaded)\b/.test(src))
-				warn('<code>window.onload</code> / <code>DOMContentLoaded</code>', 'Fires once per document — silently stops working after the first SPA navigation. Do your work in <code>render()</code>.');
-			if (/document\.body\.(appendChild|append)/.test(src))
-				warn('A node appended to <code>document.body</code>', 'It survives the view swap. Put it in your view tree.');
-			if (/@media\s*\([^)]*prefers-color-scheme/.test(src))
-				warn('<code>prefers-color-scheme</code>', 'Reports the OS, not the theme. Read the tokens (which already follow the theme) or sniff <code>data-theme</code> / <code>data-bs-theme</code>.');
-			if (/\.setTheme\s*\(\s*["'](dracula|monokai|tomorrow[-_]?night\w*|twilight|cobalt|material)/i.test(src))
-				warn('A hardcoded editor colour theme', 'A permanently dark editor on a light page. Pick it from <code>isDark()</code>.');
-			// a stock selector at a RULE boundary (start, or right after } / {) is unscoped; a scoped
-			// `.myapp-root .cbi-value` starts with the app class and never sits at the boundary.
-			if (/(?:^|[{}])\s*(?:\.cbi-[\w-]+|table\s+th|pre)\s*\{/m.test(src))
-				warn('Stock LuCI selectors styled without a scope', 'An unlayered rule on <code>.cbi-*</code> / <code>table</code> / <code>pre</code> beats every theme layer, everywhere. Scope it under your own root: <code>.myapp-root .cbi-value { … }</code>.');
-
-			return { out: out, findings: f };
+			out = out.replace(/--warning-color-(high|medium|low|highest)\b/g, '--warn-color-$1')
+				.replace(/--text-color(?![-\w])/g, '--text-color-high')
+				.replace(/--fs-([\w-]+)/g, function (mm, name) { return FS_MAP['fs-' + name] ? '--' + FS_MAP['fs-' + name] : mm; })
+				.replace(/\s*!important/g, '')
+				.replace(/(z-index\s*:\s*)(\d{5,})/gi, function (mm, p, v) { return +v > 9999 ? p + '1000' : mm; })
+				.replace(/<font\s+color\s*=\s*["']?([^"'>]+)["']?\s*>/gi, function (mm, col) { return '<span style="color:var(--' + (classify('text', col) || 'text-color-high') + ', ' + col.trim() + ')">'; })
+				.replace(/<\/font>/gi, '</span>');
+			return out;
 		}
 
+		var lastFixed = '';
 		function render(res) {
-			outEl.value = res.out;
-			var fixes = res.findings.filter(function (x) { return x.level === 'fix'; });
-			var warns = res.findings.filter(function (x) { return x.level === 'warn'; });
-			cnt.textContent = fixes.length + ' fixed · ' + warns.length + ' to do by hand';
-			var html = '<div class="dk-report">';
-			if (!res.findings.length) html += '<div class="dk-report-empty">Nothing to fix — this already follows the rules. ✓</div>';
-			if (fixes.length) html += '<h4>Rewritten automatically</h4>' + fixes.map(fRow).join('');
-			if (warns.length) html += '<h4>Fix these by hand</h4>' + warns.map(fRow).join('');
-			rep.innerHTML = html + '</div>';
+			lastFixed = res.fixed;
+			var fixes = res.findings.filter(function (x) { return x.level === 'fix'; }).length,
+				warns = res.findings.length - fixes;
+			cnt.textContent = res.findings.length ? (res.findings.length + ' problem' + (res.findings.length > 1 ? 's' : '') + ' — ' + fixes + ' auto-fixable, ' + warns + ' manual') : '';
+			$('#dk-fix-applyall').hidden = !fixes;
+			if (!res.findings.length) { rep.innerHTML = '<div class="dk-report-empty">Nothing flagged — this already follows the rules. ✓</div>'; return; }
+			var CAP = 200, shown = res.findings.slice(0, CAP);
+			rep.innerHTML = '<div class="dk-report">' + shown.map(card).join('') +
+				(res.findings.length > CAP ? '<p style="color:var(--fs-dim);font-size:13px">…and ' + (res.findings.length - CAP) + ' more — fix these and re-check.</p>' : '') + '</div>';
 		}
-		function fRow(x) {
-			return '<div class="dk-finding ' + x.level + '"><span class="tag">' + (x.level === 'fix' ? 'fixed' : 'manual') +
-				'</span><span class="msg">' + x.msg + '<span class="why">' + x.why + '</span></span></div>';
+		function hl(text, mark) {
+			var L = esc(text.trim()), M = esc(String(mark).trim());
+			var i = M ? L.indexOf(M) : -1;
+			return i < 0 ? L : L.slice(0, i) + '<mark>' + M + '</mark>' + L.slice(i + M.length);
+		}
+		function card(x) {
+			var isFix = x.level === 'fix';
+			var h = '<div class="dk-diag ' + x.level + '">' +
+				'<div class="dk-diag-top"><span class="ln">line ' + x.line + '</span>' +
+				'<span class="tag">' + (isFix ? 'auto-fix' : 'manual') + '</span>' +
+				'<span class="ti">' + x.title + '</span></div>' +
+				'<pre class="dk-diag-code">' + hl(x.text, x.mark) + '</pre>';
+			if (isFix && x.after != null) {
+				h += '<div class="dk-diag-edit"><span class="was">' + (esc(x.before) || '∅') + '</span>' +
+					'<span class="arr">→</span>' +
+					'<code class="now" data-copy="' + escAttr(x.after) + '" title="click to copy the fix">' + (esc(x.after) || '(remove)') + '</code></div>';
+			}
+			return h + '<div class="dk-diag-why">' + x.why + '</div></div>';
 		}
 
 		var SAMPLE = [
@@ -822,8 +870,8 @@ z-index: 2147483647;              /* above the theme's overlays */</pre>
 
 		$('#dk-fix-run').addEventListener('click', function () { render(run(inEl.value)); });
 		$('#dk-fix-sample').addEventListener('click', function () { inEl.value = SAMPLE; render(run(SAMPLE)); });
-		$('#dk-fix-clear').addEventListener('click', function () { inEl.value = ''; outEl.value = ''; rep.innerHTML = ''; cnt.textContent = ''; });
-		$('#dk-fix-copy').addEventListener('click', function () { if (outEl.value) copy(outEl.value); });
+		$('#dk-fix-clear').addEventListener('click', function () { inEl.value = ''; rep.innerHTML = ''; cnt.textContent = ''; $('#dk-fix-applyall').hidden = true; });
+		$('#dk-fix-applyall').addEventListener('click', function () { if (lastFixed) copy(lastFixed, 'copied the whole thing, fixed'); });
 	})();
 
 	/* ---- nav scroll-spy ---- */

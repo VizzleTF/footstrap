@@ -22,11 +22,13 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   behind each. It is generated (like `cascade.css`) from the sources that already exist — tokens
   parsed from `02-tokens.css`, components sliced from `docs/gallery.html`, the real stylesheet and
   its fonts inlined — so nothing is hand-copied and nothing drifts.
-- **"Fix my styles" — an in-browser codemod in the portal.** Paste a chunk of an app (CSS, a
-  `<style>`, a DevTools copy) and it rewrites the mechanical mistakes in place — colour literals to
-  export tokens with a literal fallback, `--warning-*`→`--warn-*`, private `--fs-*` to the matching
-  export token, stray `!important`, runaway `z-index`, `<font color>` — and flags the structural ones
-  it must not auto-touch (`<head>` injection, `:root {}`, un-prefixed classes, `window.onload`,
+- **"Fix my styles" — an in-browser checker in the portal.** Paste a chunk of an app (CSS, a
+  `<style>`, a DevTools copy) and it points at **each** problem where it is — the line number, the
+  source line with the offending fragment highlighted, and, for the mechanical ones, the exact
+  before→after edit (click the green to copy just that fix; or "Apply every fix & copy" for the whole
+  rewrite at once). It auto-fixes colour literals to export tokens with a literal fallback,
+  `--warning-*`→`--warn-*`, private `--fs-*` to the matching export token, stray `!important`, runaway
+  `z-index`, `<font color>` — and flags the structural ones it must not auto-touch (`<head>` injection, `:root {}`, un-prefixed classes, `window.onload`,
   `prefers-color-scheme`, a hardcoded editor theme, unscoped stock selectors). Every colour keeps the
   original as a `var(--token, original)` fallback, so a rewrite can never change how the app renders.
   To feed it, paste the CSS directly, drop in a whole **Save Page As** dump (it flags a `<style>` /
