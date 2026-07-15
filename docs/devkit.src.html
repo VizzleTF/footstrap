@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<!--
+  footstrap devkit — SOURCE template. Do not open this file in a browser; it has no stylesheet and
+  no data. The shipping page is docs/devkit.html, built by tools/devkit-build.mjs (npm run devkit),
+  which inlines the real cascade.css and injects window.FS_DEVKIT (tokens parsed from
+  styles/02-tokens.css, components sliced from docs/gallery.html). Edit chrome/prose HERE; edit
+  widget markup in docs/gallery.html; edit token values in styles/02-tokens.css.
+
+  This page's OWN chrome reads --fs-* on purpose — it is part of the footstrap repo, not a guest
+  luci-app. An actual app must NOT read --fs-* (that is the whole lesson of the Tokens section).
+-->
+<html lang="en" data-darkmode="false" data-theme="light" data-bs-theme="light" data-palette="footstrap">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>footstrap devkit — style a LuCI app that fits any theme</title>
+<style>/*__CASCADE__*/</style>
+<style>
+	/* devkit chrome only — never part of the theme, never something an app should copy */
+	:root { --dk-gap: 22px; }
+	* { box-sizing: border-box; }
+	body { background: var(--fs-bg); color: var(--fs-text); margin: 0;
+	       font-family: Manrope, system-ui, sans-serif; }
+	a { color: var(--fs-accent); }
+
+	.dk-top { position: sticky; top: 0; z-index: 900; display: flex; gap: 14px; align-items: center;
+	          padding: 12px 22px; background: var(--fs-bar-bg); backdrop-filter: blur(var(--fs-blur));
+	          border-bottom: 1px solid var(--fs-border); flex-wrap: wrap; }
+	.dk-top .dk-brand { font-size: 16px; font-weight: 700; margin: 0; flex: 1 1 auto; letter-spacing: -.01em; }
+	.dk-top .dk-brand b { color: var(--fs-accent); }
+	.dk-top .dk-ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+	.dk-top input[type=range] { width: 92px; vertical-align: middle; }
+
+	.dk-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 34px;
+	            max-width: 1200px; margin: 0 auto; padding: 26px 22px 120px; }
+	.dk-nav { position: sticky; top: 74px; align-self: start; display: flex; flex-direction: column;
+	          gap: 2px; font-size: 13px; }
+	.dk-nav a { color: var(--fs-dim); text-decoration: none; padding: 6px 10px; border-radius: var(--fs-radius-s);
+	            border-left: 2px solid transparent; }
+	.dk-nav a:hover { color: var(--fs-text); background: var(--fs-accent-soft); }
+	.dk-nav a.active { color: var(--fs-accent); border-left-color: var(--fs-accent); font-weight: 700; }
+	@media (max-width: 780px) { .dk-shell { grid-template-columns: 1fr; } .dk-nav { display: none; } }
+
+	.dk-sec { scroll-margin-top: 78px; margin: 0 0 52px; }
+	.dk-sec > h2 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.02em; }
+	.dk-sec > .dk-lead { color: var(--fs-dim); font-size: 14px; margin: 0 0 20px; max-width: 62ch; line-height: 1.5; }
+	.dk-h3 { font-size: 13px; letter-spacing: .07em; text-transform: uppercase; color: var(--fs-dim);
+	         font-weight: 700; margin: 26px 0 12px; }
+
+	.dk-card { background: var(--fs-panel); border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
+	           padding: 16px 18px; }
+	.dk-grid { display: grid; gap: var(--dk-gap); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+	/* a copyable code chip / block */
+	.dk-copy { position: relative; cursor: copy; }
+	.dk-copy pre, .dk-copy code.blk { margin: 0; overflow-x: auto; }
+	.dk-copy .dk-cbtn { position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity var(--fs-dur);
+	                    font-size: 11px; padding: 3px 8px; border-radius: var(--fs-radius-s);
+	                    background: var(--fs-glass); border: 1px solid var(--fs-border); color: var(--fs-dim); }
+	.dk-copy:hover .dk-cbtn { opacity: 1; }
+	.dk-copy:hover { outline: 1px solid var(--fs-accent-line); outline-offset: 2px; border-radius: var(--fs-radius-s); }
+	code.dk-inline { cursor: copy; background: var(--fs-accent-soft); padding: 1px 6px; border-radius: 5px;
+	                 font-family: 'JetBrains Mono', monospace; font-size: .88em; }
+
+	/* fact tiles (Start here) */
+	.dk-fact { display: flex; flex-direction: column; gap: 6px; }
+	.dk-fact .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--fs-dim); font-weight: 700; }
+	.dk-fact .v { font-family: 'JetBrains Mono', monospace; font-size: 14px; word-break: break-all; }
+	.dk-callout { border-left: 3px solid var(--fs-accent); background: var(--fs-accent-fill);
+	              padding: 12px 16px; border-radius: 0 var(--fs-radius) var(--fs-radius) 0; margin: 18px 0; font-size: 14px; }
+
+	/* tokens */
+	.dk-tok { border: 1px solid var(--fs-border); border-radius: var(--fs-radius); overflow: hidden; cursor: copy; }
+	.dk-tok .sw { height: 54px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 6px; }
+	.dk-tok .ink { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+	.dk-tok .lbl { padding: 7px 9px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+	               border-top: 1px solid var(--fs-border); background: var(--fs-panel); word-break: break-all; }
+	.dk-tokfam { margin-bottom: 20px; }
+	.dk-tokfam h4 { margin: 0 0 8px; font-size: 13px; }
+	.dk-tokfam .note { color: var(--fs-dim); font-size: 12px; margin: 0 0 10px; }
+	.dk-tokrow { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+	/* component cards */
+	.dk-comp { border: 1px solid var(--fs-border); border-radius: var(--fs-radius); overflow: hidden; margin-bottom: var(--dk-gap); }
+	.dk-comp > header { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+	                    border-bottom: 1px solid var(--fs-border); background: var(--fs-panel); }
+	.dk-comp > header h4 { margin: 0; font-size: 14px; flex: 1 1 auto; }
+	.dk-tabs { display: flex; gap: 4px; }
+	.dk-tabs button { font-size: 12px; padding: 3px 10px; border-radius: var(--fs-radius-s); border: 1px solid transparent;
+	                  background: transparent; color: var(--fs-dim); cursor: pointer; }
+	.dk-tabs button.on { background: var(--fs-accent-soft); color: var(--fs-accent); border-color: var(--fs-accent-line); }
+	.dk-panel { padding: 16px; }
+	.dk-panel.code { padding: 0; }
+	.dk-panel[hidden] { display: none; }
+	.dk-preview > * { max-width: 100%; }
+
+	/* do / don't */
+	.dk-dd { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+	@media (max-width: 680px) { .dk-dd { grid-template-columns: 1fr; } }
+	.dk-dd .box { border: 1px solid var(--fs-border); border-radius: var(--fs-radius); overflow: hidden; }
+	.dk-dd .box > .hd { padding: 8px 14px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+	.dk-dd .do  > .hd { background: var(--fs-good-fill); color: var(--fs-good); border-bottom: 1px solid var(--fs-good-line); }
+	.dk-dd .dont > .hd { background: var(--fs-danger-fill); color: var(--fs-danger); border-bottom: 1px solid var(--fs-danger-line); }
+	.dk-dd .box pre { margin: 0; border: 0; border-radius: 0; }
+	.dk-dd .box .cap { padding: 10px 14px; font-size: 13px; color: var(--fs-dim); }
+	.dk-ruletitle { font-size: 16px; margin: 30px 0 4px; }
+	.dk-ruletitle + p { margin: 0 0 14px; color: var(--fs-dim); font-size: 14px; max-width: 68ch; }
+
+	/* checklist */
+	.dk-check { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+	.dk-check li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border: 1px solid var(--fs-border);
+	               border-radius: var(--fs-radius); font-size: 14px; cursor: pointer; }
+	.dk-check li.done { opacity: .55; text-decoration: line-through; }
+	.dk-check li .bx { flex: 0 0 auto; width: 18px; height: 18px; border: 2px solid var(--fs-accent); border-radius: 5px;
+	                   display: grid; place-items: center; font-size: 12px; color: var(--fs-on-accent); margin-top: 1px; }
+	.dk-check li.done .bx { background: var(--fs-accent); }
+
+	/* fix my styles */
+	.dk-fixbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+	.dk-fix-count { font-size: 13px; color: var(--fs-dim); }
+	.dk-fixgrid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+	@media (max-width: 760px) { .dk-fixgrid { grid-template-columns: 1fr; } }
+	.dk-fixarea { width: 100%; min-height: 260px; resize: vertical; font-family: 'JetBrains Mono', monospace;
+	              font-size: 12.5px; line-height: 1.55; padding: 12px 14px; border: 1px solid var(--fs-border);
+	              border-radius: var(--fs-radius); background: var(--fs-panel); color: var(--fs-text); white-space: pre; overflow: auto; }
+	.dk-fixarea:focus { outline: 2px solid var(--fs-accent); outline-offset: 1px; }
+	.dk-report { margin-top: 20px; display: grid; gap: 8px; }
+	.dk-finding { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start;
+	              border: 1px solid var(--fs-border); border-radius: var(--fs-radius); padding: 10px 14px; font-size: 13.5px; }
+	.dk-finding .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+	                   padding: 3px 8px; border-radius: 999px; white-space: nowrap; align-self: center; }
+	.dk-finding.fix  .tag { background: var(--fs-good-fill); color: var(--fs-good); }
+	.dk-finding.warn .tag { background: var(--fs-warn-fill); color: var(--fs-warn); }
+	.dk-finding .msg b { color: var(--fs-text); }
+	.dk-finding .why { color: var(--fs-dim); display: block; margin-top: 3px; }
+	.dk-finding code { font-family: 'JetBrains Mono', monospace; background: var(--fs-accent-soft);
+	                   padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+	.dk-report-empty { color: var(--fs-good); font-weight: 700; font-size: 14px; padding: 12px 0; }
+	.dk-report h4 { margin: 18px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--fs-dim); }
+
+	/* copy toast */
+	.dk-toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+	            background: var(--fs-text); color: var(--fs-bg); padding: 8px 18px; border-radius: 999px; font-size: 13px;
+	            font-weight: 700; opacity: 0; pointer-events: none; transition: opacity var(--fs-dur-fade), transform var(--fs-dur-move); z-index: 999; }
+	.dk-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body class="lang_en">
+
+<div class="dk-top">
+	<h1 class="dk-brand"><b>footstrap</b> devkit — style a LuCI app that fits any theme</h1>
+	<div class="dk-ctl">
+		<label style="font-size:12px;color:var(--fs-dim)">tint
+			<input type="range" min="1" max="360" value="255" id="dk-tint"></label>
+		<button class="cbi-button" id="dk-pal">palette</button>
+		<button class="cbi-button" id="dk-dark">dark</button>
+	</div>
+</div>
+
+<div class="dk-shell">
+	<nav class="dk-nav" id="dk-nav">
+		<a href="#start">Start here</a>
+		<a href="#tokens">Colour tokens</a>
+		<a href="#components">Components</a>
+		<a href="#fix">Fix my styles</a>
+		<a href="#rules">The rules</a>
+		<a href="#checklist">Ship checklist</a>
+	</nav>
+
+	<main>
+	<!-- ─────────────────────────── START HERE ─────────────────────────── -->
+	<section class="dk-sec" id="start">
+		<h2>Start here</h2>
+		<p class="dk-lead">You are writing a <code class="dk-inline">luci-app-*</code> package. footstrap
+			is one of the themes it may run under. You do <b>not</b> install footstrap, import it, or depend
+			on it — you render stock LuCI widgets and read one colour contract, and the theme does the rest.
+			This page is everything you need to copy. Click any code to copy it.</p>
+
+		<div class="dk-grid">
+			<div class="dk-card dk-fact dk-copy" data-copy="Footstrap">
+				<span class="k">Theme name (luci.themes)</span><span class="v">Footstrap</span>
+				<span class="dk-cbtn">copy</span>
+			</div>
+			<div class="dk-card dk-fact dk-copy" data-copy="/luci-static/footstrap">
+				<span class="k">mediaurlbase</span><span class="v">/luci-static/footstrap</span>
+				<span class="dk-cbtn">copy</span>
+			</div>
+			<div class="dk-card dk-fact dk-copy" data-copy="L.env.media">
+				<span class="k">Detect it is active (JS)</span><span class="v">L.env.media === '/luci-static/footstrap'</span>
+				<span class="dk-cbtn">copy</span>
+			</div>
+			<div class="dk-card dk-fact">
+				<span class="k">Depends on footstrap?</span><span class="v">no — never</span>
+				<span style="font-size:12px;color:var(--fs-dim)">Your app depends on <code class="dk-inline">luci-base</code>. It works on every theme.</span>
+			</div>
+		</div>
+
+		<div class="dk-callout">
+			<b>The one golden rule.</b> Your view is swapped into a <code class="dk-inline">#view</code> you
+			share with the theme and every other app. Under a modern SPA theme the document is never reloaded,
+			so anything you leak outside your own subtree — CSS in <code class="dk-inline">&lt;head&gt;</code>,
+			a class you did not prefix, a <code class="dk-inline">:root</code> variable — outlives your page and
+			paints someone else's. Stay inside your subtree and you cannot break anything.
+		</div>
+
+		<div class="dk-h3">The 30-second version</div>
+		<div class="dk-copy dk-card" data-copy-from="dk-quickstart">
+			<span class="dk-cbtn">copy</span>
+			<pre><code class="blk" id="dk-quickstart">return E([], [
+    // 1. CSS, if any, goes INSIDE the tree you return — it dies with your view.
+    E('style', [ '.myapp-card { background: var(--background-color-low, #fff); }' ]),
+
+    // 2. Namespace everything. Read colours from the export tier, never a #hex, never --fs-*.
+    E('div', { 'class': 'myapp-card' }, [
+        E('h3', {}, _('My app')),
+        E('button', { 'class': 'cbi-button cbi-button-positive' }, _('Save'))
+    ])
+]);</code></pre>
+		</div>
+	</section>
+
+	<!-- ─────────────────────────── TOKENS ─────────────────────────── -->
+	<section class="dk-sec" id="tokens">
+		<h2>Colour tokens — the whole contract</h2>
+		<p class="dk-lead">Every LuCI theme exposes the same colour custom-properties. Read them and you follow
+			light/dark, the palette switch and the tint slider for free — try the controls up top and watch the
+			swatches move. This is the <b>only</b> footstrap surface you may read. Click a swatch to copy its
+			<code class="dk-inline">var()</code>. Always give a literal fallback: <code class="dk-inline">var(--text-color-high, #333)</code>.</p>
+		<div id="dk-tokens"></div>
+		<div class="dk-callout">
+			<b>Do not read <code class="dk-inline">--fs-*</code>.</b> Open the stylesheet and you will find ~80
+			<code class="dk-inline">--fs-accent</code>, <code class="dk-inline">--fs-panel2</code>… with nicer
+			names. They are private, renamed at will, and no other theme has them. Reading one couples your app
+			to this build and breaks on the next. The <code class="dk-inline">--*-color-*</code> names above are
+			the contract; nothing else is.
+		</div>
+		<div class="dk-callout" style="border-left-color:var(--fs-warn);background:var(--fs-warn-fill)">
+			Text on a coloured fill takes its ink from the matching <code class="dk-inline">--on-*-color</code>
+			— never a hardcoded <code class="dk-inline">#fff</code>. A white-on-fill badge fell to 1.69:1 on seven
+			dark palettes before these inks were made per-palette. The family is <code class="dk-inline">warn</code>,
+			not <code class="dk-inline">warning</code>; <code class="dk-inline">--text-color</code> (no level) does
+			not exist.
+		</div>
+	</section>
+
+	<!-- ─────────────────────────── COMPONENTS ─────────────────────────── -->
+	<section class="dk-sec" id="components">
+		<h2>Components — copy the markup</h2>
+		<p class="dk-lead">Every widget stock LuCI (and any luci-app) can emit, with the real class names
+			<code class="dk-inline">ui.js</code>/<code class="dk-inline">cbi.js</code> produce. Each card has three
+			tabs: the live <b>Preview</b>, the <b>HTML</b>, and the <b>E()</b> form — the
+			<code class="dk-inline">L.dom</code> factory you actually call in a view. Copy either. Build these from
+			<code class="dk-inline">'require ui'</code> where a real widget class exists (a
+			<code class="dk-inline">ui.Dropdown</code>, <code class="dk-inline">ui.FileUpload</code>); the markup
+			here is what those render to.</p>
+		<div id="dk-components"></div>
+	</section>
+
+	<!-- ─────────────────────────── FIX MY STYLES ─────────────────────────── -->
+	<section class="dk-sec" id="fix">
+		<h2>Fix my styles</h2>
+		<p class="dk-lead">Paste a chunk of your app — CSS, a <code class="dk-inline">&lt;style&gt;</code> block,
+			markup with inline styles, a snippet copied straight out of DevTools — and press <b>Fix</b>. The
+			mechanical mistakes are rewritten in place; the structural ones (that can't be auto-fixed without
+			risking your code) are flagged with the manual fix. Every colour keeps your original as a
+			<code class="dk-inline">var(--token, <i>original</i>)</code> fallback, so a rewrite can never change
+			how your app renders on a theme that lacks the token — worst case, it does exactly what it did before.</p>
+
+		<div class="dk-fixbar">
+			<button class="cbi-button cbi-button-positive" id="dk-fix-run">Fix styles ↓</button>
+			<button class="cbi-button" id="dk-fix-sample">Load a broken example</button>
+			<button class="cbi-button" id="dk-fix-clear">Clear</button>
+			<span class="dk-fix-count" id="dk-fix-count"></span>
+		</div>
+		<div class="dk-fixgrid">
+			<div>
+				<div class="dk-h3" style="margin-top:0">Paste here</div>
+				<textarea id="dk-fix-in" class="dk-fixarea" spellcheck="false" placeholder="/* paste your CSS / <style> / markup */"></textarea>
+			</div>
+			<div>
+				<div class="dk-h3" style="margin-top:0">Fixed <span class="dk-cbtn" id="dk-fix-copy" style="opacity:1;position:static;cursor:copy">copy</span></div>
+				<textarea id="dk-fix-out" class="dk-fixarea" spellcheck="false" readonly placeholder="output appears here"></textarea>
+			</div>
+		</div>
+		<div id="dk-fix-report"></div>
+		<p style="font-size:13px;color:var(--fs-dim);margin-top:16px">This is a conservative codemod, not a
+			compiler: it rewrites what is provably safe and flags the rest — it does not guarantee your app is
+			correct, only that these specific mistakes are handled. Read the flagged items against
+			<a href="#rules">the rules</a>.</p>
+	</section>
+
+	<!-- ─────────────────────────── RULES ─────────────────────────── -->
+	<section class="dk-sec" id="rules">
+		<h2>The rules — and why each one exists</h2>
+		<p class="dk-lead">Every rule below is a bug found in a real, popular app, on a theme its author never
+			tested. Do / Don't pairs; the reason is the point.</p>
+
+		<h3 class="dk-ruletitle">1. CSS lifetime — where you put a <code class="dk-inline">&lt;style&gt;</code> decides who it hits</h3>
+		<p>Return it inside your tree and it dies with your view. Append it to <code class="dk-inline">&lt;head&gt;</code>
+			and under an SPA theme it lives forever and restyles every later page.</p>
+		<div class="dk-dd">
+			<div class="box do"><div class="hd">✓ Do — in the view tree</div>
+				<pre>return E([], [
+    E('style', [ css ]),   // scoped to this view by construction
+    E('div', { 'class': 'myapp-root' }, …)
+]);</pre>
+				<div class="cap">Stock <code class="dk-inline">package-manager.js</code>, <code class="dk-inline">nftables.js</code>, <code class="dk-inline">aria2/log.js</code> all do this.</div>
+			</div>
+			<div class="box dont"><div class="hd">✗ Don't — append to head</div>
+				<pre>document.head.appendChild(style);
+// .cbi-button-save { display:none !important }
+// → every config page in the session is now unsavable</pre>
+				<div class="cap">Real: <code class="dk-inline">luci-app-filemanager</code> hid the stock Save/Apply/Reset this way. To drop stock buttons, set <code class="dk-inline">handleSaveApply = null</code>.</div>
+			</div>
+		</div>
+
+		<h3 class="dk-ruletitle">2. Namespace everything you declare</h3>
+		<p>You share <code class="dk-inline">:root</code> and the class-name space with the theme and every other app.</p>
+		<div class="dk-dd">
+			<div class="box do"><div class="hd">✓ Do — prefix with your package</div>
+				<pre>.myapp-card { … }
+#cbi-myapp-section { … }
+.myapp-root { --myapp-accent: … }   /* on YOUR root */</pre>
+			</div>
+			<div class="box dont"><div class="hd">✗ Don't — claim shared names</div>
+				<pre>.hidden, .toast, .label, .skeleton { … }
+:root { --accent: … }        /* repaints the theme */
+* { margin: 0; padding: 0 }  /* flattens the chrome */</pre>
+				<div class="cap">Each one is a live collision seen in the top-30 apps. A hostile <code class="dk-inline">:root</code> repainted 312 of 336 theme elements before the tokens were split private/export.</div>
+			</div>
+		</div>
+
+		<h3 class="dk-ruletitle">3. Colour — the tier, never a literal</h3>
+		<p>A hardcoded colour is right on exactly the one configuration you looked at. It is wrong the instant the
+			user picks the high-contrast palette or drags the tint.</p>
+		<div class="dk-dd">
+			<div class="box do"><div class="hd">✓ Do — read the export tier</div>
+				<pre>color:            var(--text-color-high, #333);
+background-color: var(--background-color-low, #f5f5f5);
+color:            var(--error-color-medium, #f44336);
+/* text on a fill: */
+background: var(--success-color-high, #2e7d32);
+color:      var(--on-success-color, #fff);</pre>
+			</div>
+			<div class="box dont"><div class="hd">✗ Don't — hardcode or read privates</div>
+				<pre>background: #f7f7f7;   /* black-on-black in dark */
+background: white;     /* white box on a dark page */
+color: var(--fs-accent);      /* private tier */
+color: var(--warning-color-medium);  /* no such name */
+&lt;font color="green"&gt;   /* vanishes on half the palettes */</pre>
+			</div>
+		</div>
+		<p style="font-size:14px;color:var(--fs-dim)"><b>The good half:</b> because the theme reads only its own
+			private tokens, your <code class="dk-inline">:root</code> can no longer repaint it — and inside your own
+			subtree your unlayered CSS already outranks every theme layer. If you have an <code class="dk-inline">!important</code>
+			to beat the theme, delete it; it was never what was winning.</p>
+
+		<h3 class="dk-ruletitle">4. Dark mode — <code class="dk-inline">prefers-color-scheme</code> is the wrong question</h3>
+		<p>That media query reports the operating system, not the theme. A user who forces the theme dark on a
+			light OS gets your light card on their dark page.</p>
+		<div class="dk-dd">
+			<div class="box do"><div class="hd">✓ Do — ask the theme, or don't ask at all</div>
+				<pre>function isDark() {
+    var r = document.documentElement;
+    if (r.dataset.darkmode) return r.dataset.darkmode === 'true';
+    if (r.dataset.theme)    return r.dataset.theme === 'dark';
+    if (r.dataset.bsTheme)  return r.dataset.bsTheme === 'dark';
+    // fallback: body luminance, works on any theme
+}
+// BEST: read every colour from the tier and never detect at all.</pre>
+				<div class="cap">footstrap stamps all three attributes on <code class="dk-inline">:root</code> before first paint, so any check works.</div>
+			</div>
+			<div class="box dont"><div class="hd">✗ Don't</div>
+				<pre>@media (prefers-color-scheme: dark) { … }
+editor.setTheme('dracula');   /* black editor on a light page */</pre>
+				<div class="cap">Pick the editor theme from <code class="dk-inline">isDark()</code>, not hardcoded.</div>
+			</div>
+		</div>
+
+		<h3 class="dk-ruletitle">5. Layout &amp; SPA</h3>
+		<div class="dk-dd">
+			<div class="box do"><div class="hd">✓ Do</div>
+				<pre>/* key on your container, not the viewport */
+@container (max-width: 700px) { … }
+
+// do work in render(), clear your own pollers,
+// put nodes in your view tree</pre>
+			</div>
+			<div class="box dont"><div class="hd">✗ Don't</div>
+				<pre>@media (max-width: 768px) { … }   /* sidebar eats 224px */
+window.onload = …                 /* fires once per document */
+document.body.appendChild(toast)  /* survives the view swap */
+z-index: 2147483647;              /* above the theme's overlays */</pre>
+			</div>
+		</div>
+	</section>
+
+	<!-- ─────────────────────────── CHECKLIST ─────────────────────────── -->
+	<section class="dk-sec" id="checklist">
+		<h2>Ship checklist</h2>
+		<p class="dk-lead">Tick these before you tag. Click to mark done (saved locally).</p>
+		<ul class="dk-check" id="dk-check">
+			<li data-k="c1"><span class="bx">✓</span><span><code class="dk-inline">&lt;style&gt;</code> returned inside the view tree, not appended to <code class="dk-inline">&lt;head&gt;</code></span></li>
+			<li data-k="c2"><span class="bx">✓</span><span>Every class, id and custom property prefixed with the app name</span></li>
+			<li data-k="c3"><span class="bx">✓</span><span>No <code class="dk-inline">:root { … }</code>, no <code class="dk-inline">* { … }</code>, no imported CSS framework</span></li>
+			<li data-k="c4"><span class="bx">✓</span><span>No stock <code class="dk-inline">.cbi-*</code> / <code class="dk-inline">table</code> / <code class="dk-inline">pre</code> selector styled outside your own subtree</span></li>
+			<li data-k="c5"><span class="bx">✓</span><span>All colours from the <code class="dk-inline">--*-color-*</code> export names with a literal fallback; <code class="dk-inline">warn</code>, not <code class="dk-inline">warning</code></span></li>
+			<li data-k="c6"><span class="bx">✓</span><span>No <code class="dk-inline">--fs-*</code> read anywhere — that is the private tier</span></li>
+			<li data-k="c7"><span class="bx">✓</span><span>Text on a coloured fill takes its ink from <code class="dk-inline">--on-*-color</code>, never <code class="dk-inline">#fff</code></span></li>
+			<li data-k="c8"><span class="bx">✓</span><span>No <code class="dk-inline">!important</code> to beat the theme — your CSS already outranks every layer</span></li>
+			<li data-k="c9"><span class="bx">✓</span><span>Dark mode from <code class="dk-inline">data-theme</code> / <code class="dk-inline">data-bs-theme</code> / luminance, never <code class="dk-inline">prefers-color-scheme</code></span></li>
+			<li data-k="c10"><span class="bx">✓</span><span>Editor theme chosen from the page's mode, not hardcoded</span></li>
+			<li data-k="c11"><span class="bx">✓</span><span>Layout keyed to the container, not the viewport</span></li>
+			<li data-k="c12"><span class="bx">✓</span><span><code class="dk-inline">handleSaveApply = null</code> instead of hiding stock buttons</span></li>
+			<li data-k="c13"><span class="bx">✓</span><span>No <code class="dk-inline">window.onload</code>, no body-level leftovers, no <code class="dk-inline">popstate</code> hijack, no <code class="dk-inline">z-index: 2147483647</code></span></li>
+		</ul>
+		<p style="margin-top:22px;font-size:14px;color:var(--fs-dim)">Reference apps that get it right:
+			<code class="dk-inline">luci-app-nikki</code> (zero injected CSS, zero literals),
+			stock <code class="dk-inline">luci-app-ttyd</code> (the iframe done right),
+			<code class="dk-inline">luci-app-internet-detector</code> (namespaced <code class="dk-inline">:root</code> vars, dark keyed off the theme's attribute).</p>
+	</section>
+	</main>
+</div>
+
+<div class="dk-toast" id="dk-toast">copied</div>
+
+<script>/*__DATA__*/</script>
+<script>
+(function () {
+	'use strict';
+	var D = window.FS_DEVKIT || { tiers: [], components: [] };
+	var $ = function (s, r) { return (r || document).querySelector(s); };
+
+	/* ---- clipboard + toast ---- */
+	var toast = $('#dk-toast'), tt;
+	function flash(msg) { toast.textContent = msg || 'copied'; toast.classList.add('show');
+		clearTimeout(tt); tt = setTimeout(function () { toast.classList.remove('show'); }, 1100); }
+	function copy(text, label) {
+		navigator.clipboard.writeText(text).then(function () { flash(label || 'copied'); },
+			function () { flash('copy failed'); });
+	}
+	document.addEventListener('click', function (e) {
+		var el = e.target.closest('[data-copy]');
+		if (el) { copy(el.getAttribute('data-copy'), 'copied ' + el.getAttribute('data-copy')); return; }
+		var from = e.target.closest('[data-copy-from]');
+		if (from) { copy($('#' + from.getAttribute('data-copy-from')).textContent); return; }
+		var inl = e.target.closest('code.dk-inline');
+		if (inl && !e.target.closest('a')) { copy(inl.textContent); }
+	});
+
+	/* ---- tokens ---- */
+	var NOTES = {
+		background: 'Elevation, not emphasis: high = raised (a card), low = recessed (the page).',
+		border: 'high = the visible rule, low = the hairline that fades into the surface.',
+		text: 'Four levels. -low equals -medium on purpose — a fainter grey would fail AA.',
+		primary: 'The accent ramp. Chroma at constant lightness — every level is legible as text.',
+		success: 'high / medium / low are three real colours, not aliases.',
+		warn: 'The family is warn, NOT warning. --warning-color-* does not exist.',
+		error: ''
+	};
+	function readableInk(fam) { return fam ? 'var(--on-' + fam + '-color)' : '#fff'; }
+	(function renderTokens() {
+		var mount = $('#dk-tokens'); if (!mount) return;
+		D.tiers.forEach(function (t) {
+			var fam = document.createElement('div'); fam.className = 'dk-tokfam';
+			var h = document.createElement('h4'); h.textContent = t.family; fam.appendChild(h);
+			if (NOTES[t.family]) { var n = document.createElement('p'); n.className = 'note'; n.textContent = NOTES[t.family]; fam.appendChild(n); }
+			var row = document.createElement('div'); row.className = 'dk-tokrow';
+			t.levels.forEach(function (name) {
+				var v = 'var(--' + name + ')';
+				var card = document.createElement('div'); card.className = 'dk-tok'; card.setAttribute('data-copy', v);
+				var sw = document.createElement('div'); sw.className = 'sw'; sw.style.background = v;
+				if (t.ink) { var ink = document.createElement('span'); ink.className = 'ink';
+					ink.style.background = 'var(--' + t.ink + ')'; ink.style.color = v; ink.textContent = 'ink'; sw.appendChild(ink); }
+				var lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = '--' + name;
+				card.appendChild(sw); card.appendChild(lbl); row.appendChild(card);
+			});
+			if (t.ink) {
+				var v2 = 'var(--' + t.ink + ')';
+				var card2 = document.createElement('div'); card2.className = 'dk-tok'; card2.setAttribute('data-copy', v2);
+				var sw2 = document.createElement('div'); sw2.className = 'sw'; sw2.style.background = 'var(--' + t.family + '-color-high)';
+				var chip = document.createElement('span'); chip.className = 'ink'; chip.style.color = v2; chip.textContent = 'Aa'; chip.style.fontSize = '15px';
+				sw2.appendChild(chip);
+				var lbl2 = document.createElement('div'); lbl2.className = 'lbl'; lbl2.textContent = '--' + t.ink;
+				card2.appendChild(sw2); card2.appendChild(lbl2); row.appendChild(card2);
+			}
+			fam.appendChild(row); mount.appendChild(fam);
+		});
+	})();
+
+	/* ---- DOM → E(): the L.dom factory an app actually calls. Prints indented, string child when
+	   an element holds only text, attrs object omitted when empty. Matches the live preview node. ---- */
+	function domToE(node, indent) {
+		var pad = new Array(indent + 1).join('    ');
+		var tag = node.tagName.toLowerCase();
+		var attrs = {};
+		for (var i = 0; i < node.attributes.length; i++) attrs[node.attributes[i].name] = node.attributes[i].value;
+		var attrStr = Object.keys(attrs).length
+			? '{ ' + Object.keys(attrs).map(function (k) { return "'" + k + "': '" + attrs[k].replace(/'/g, "\\'") + "'"; }).join(', ') + ' }'
+			: '{}';
+		var kids = Array.prototype.filter.call(node.childNodes, function (c) {
+			return c.nodeType === 1 || (c.nodeType === 3 && c.textContent.trim());
+		});
+		if (!kids.length) return pad + "E('" + tag + "', " + attrStr + ')';
+		if (kids.length === 1 && kids[0].nodeType === 3)
+			return pad + "E('" + tag + "', " + attrStr + ", '" + kids[0].textContent.trim().replace(/'/g, "\\'") + "')";
+		var childCode = kids.map(function (c) {
+			if (c.nodeType === 3) return pad + "    '" + c.textContent.trim().replace(/'/g, "\\'") + "'";
+			return domToE(c, indent + 1);
+		}).join(',\n');
+		return pad + "E('" + tag + "', " + attrStr + ', [\n' + childCode + '\n' + pad + '])';
+	}
+	function fragToE(container) {
+		var els = Array.prototype.filter.call(container.children, function (c) { return c.nodeType === 1; });
+		if (els.length === 1) return domToE(els[0], 0) + ';';
+		return 'E([], [\n' + els.map(function (el) { return domToE(el, 1); }).join(',\n') + '\n]);';
+	}
+
+	/* ---- components: three tabs off the one rendered preview ---- */
+	(function renderComponents() {
+		var mount = $('#dk-components'); if (!mount) return;
+		D.components.forEach(function (c, idx) {
+			var comp = document.createElement('div'); comp.className = 'dk-comp';
+			var head = document.createElement('header');
+			var h = document.createElement('h4'); h.textContent = c.title;
+			var tabs = document.createElement('div'); tabs.className = 'dk-tabs';
+			head.appendChild(h); head.appendChild(tabs); comp.appendChild(head);
+
+			var preview = document.createElement('div'); preview.className = 'dk-panel dk-preview';
+			preview.innerHTML = c.markup;
+
+			var htmlWrap = document.createElement('div'); htmlWrap.className = 'dk-panel code dk-copy'; htmlWrap.hidden = true;
+			var htmlPre = document.createElement('pre'); var htmlCode = document.createElement('code'); htmlCode.className = 'blk';
+			htmlCode.textContent = c.markup.replace(/\t/g, '  ').trim();
+			htmlPre.appendChild(htmlCode); htmlWrap.appendChild(htmlPre);
+			var hb = document.createElement('span'); hb.className = 'dk-cbtn'; hb.textContent = 'copy'; htmlWrap.appendChild(hb);
+			htmlWrap.addEventListener('click', function () { copy(htmlCode.textContent); });
+
+			var eWrap = document.createElement('div'); eWrap.className = 'dk-panel code dk-copy'; eWrap.hidden = true;
+			var ePre = document.createElement('pre'); var eCode = document.createElement('code'); eCode.className = 'blk';
+			eCode.textContent = fragToE(preview);
+			ePre.appendChild(eCode); eWrap.appendChild(ePre);
+			var eb = document.createElement('span'); eb.className = 'dk-cbtn'; eb.textContent = 'copy'; eWrap.appendChild(eb);
+			eWrap.addEventListener('click', function () { copy(eCode.textContent); });
+
+			comp.appendChild(preview); comp.appendChild(htmlWrap); comp.appendChild(eWrap);
+
+			[['Preview', preview], ['HTML', htmlWrap], ['E()', eWrap]].forEach(function (pair, i) {
+				var b = document.createElement('button'); b.textContent = pair[0]; if (i === 0) b.className = 'on';
+				b.addEventListener('click', function () {
+					tabs.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+					b.classList.add('on');
+					[preview, htmlWrap, eWrap].forEach(function (p) { p.hidden = true; });
+					pair[1].hidden = false;
+				});
+				tabs.appendChild(b);
+			});
+			mount.appendChild(comp);
+		});
+	})();
+
+	/* ---- controls: dark / palette / tint ---- */
+	var root = document.documentElement;
+	function setDark(on) {
+		root.setAttribute('data-darkmode', on ? 'true' : 'false');
+		root.setAttribute('data-theme', on ? 'dark' : 'light');
+		root.setAttribute('data-bs-theme', on ? 'dark' : 'light');
+	}
+	$('#dk-dark').addEventListener('click', function () { setDark(root.getAttribute('data-darkmode') !== 'true'); });
+	$('#dk-pal').addEventListener('click', function () {
+		root.setAttribute('data-palette', root.getAttribute('data-palette') === 'hicontrast' ? 'footstrap' : 'hicontrast');
+	});
+	$('#dk-tint').addEventListener('input', function () {
+		root.style.setProperty('--fs-tint-h', this.value);   // property BEFORE attribute (the head.ut ordering rule)
+		root.setAttribute('data-tint', 'on');
+	});
+
+	/* ---- checklist (localStorage) ---- */
+	var CK = 'dk-check';
+	var done = {};
+	try { done = JSON.parse(localStorage.getItem(CK) || '{}'); } catch (e) { done = {}; }
+	$('#dk-check').querySelectorAll('li').forEach(function (li) {
+		var k = li.getAttribute('data-k');
+		if (done[k]) li.classList.add('done');
+		li.addEventListener('click', function () {
+			li.classList.toggle('done'); done[k] = li.classList.contains('done');
+			try { localStorage.setItem(CK, JSON.stringify(done)); } catch (e) {}
+		});
+	});
+
+	/* ---- fix my styles: a conservative in-browser codemod ----
+	   Rewrites only what is provably safe (every colour keeps the original as a var() fallback, so a
+	   rewrite can never change rendering on a theme without the token) and FLAGS the structural
+	   mistakes it must not touch. Text-based on purpose: the input is a paste — CSS, a <style>, markup
+	   with inline styles, a DevTools copy — not a parseable document. ---- */
+	(function fixTool() {
+		var inEl = $('#dk-fix-in'), outEl = $('#dk-fix-out'), rep = $('#dk-fix-report'), cnt = $('#dk-fix-count');
+		if (!inEl) return;
+
+		function parseHex(h) {
+			h = h.replace('#', '');
+			if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+			if (h.length < 6 || /[^0-9a-f]/i.test(h.slice(0, 6))) return null;
+			return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+		}
+		var NAMED = { white: [255, 255, 255], black: [0, 0, 0], red: [255, 0, 0], green: [0, 128, 0],
+			blue: [0, 0, 255], orange: [255, 165, 0], gray: [128, 128, 128], grey: [128, 128, 128],
+			whitesmoke: [245, 245, 245], silver: [192, 192, 192], lime: [0, 255, 0], navy: [0, 0, 128],
+			teal: [0, 128, 128], maroon: [128, 0, 0], yellow: [255, 255, 0] };
+		function rgbOf(c) {
+			c = c.trim().toLowerCase();
+			if (c[0] === '#') return parseHex(c);
+			if (NAMED[c]) return NAMED[c].slice();
+			var m = c.match(/^rgba?\(([^)]+)\)/);
+			if (m) { var p = m[1].split(',').map(parseFloat); return [p[0], p[1], p[2]]; }
+			return null;
+		}
+		/* (property-kind, colour) → the export token that role should read. Chromatic colours map to a
+		   status family by dominant hue; greys map by luminance on an elevation/text ladder. */
+		function classify(kind, color) {
+			var rgb = rgbOf(color); if (!rgb) return null;
+			var r = rgb[0], g = rgb[1], b = rgb[2],
+				lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255, sat = Math.max(r, g, b) - Math.min(r, g, b);
+			if (sat > 50) {
+				var fam;
+				if (g >= r && g >= b) fam = 'success';
+				else if (b >= r && b >= g) fam = 'primary';
+				else fam = (g > 110 ? 'warn' : 'error');       // red dominant; strong green too → orange/amber
+				return kind === 'bg' ? fam + '-color-high' : fam + '-color-medium';
+			}
+			if (kind === 'bg') return lum > 0.92 ? 'background-color-high' : 'background-color-low';
+			if (kind === 'border') return 'border-color-medium';
+			return lum < 0.5 ? 'text-color-high' : 'text-color-medium';
+		}
+		var COLOR_RE = /#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|\b(?:white|black|red|green|blue|orange|gray|grey|whitesmoke|silver|lime|navy|teal|maroon|yellow)\b/;
+		function kindOf(prop) {
+			prop = prop.toLowerCase();
+			if (/^background(-color)?$/.test(prop)) return 'bg';
+			if (/^border(-(top|right|bottom|left))?(-color)?$/.test(prop)) return 'border';
+			if (prop === 'color' || prop === 'fill' || prop === 'stroke') return 'text';
+			return null;
+		}
+		var FS_MAP = { 'fs-accent': 'primary-color-high', 'fs-danger': 'error-color-high',
+			'fs-good': 'success-color-high', 'fs-warn': 'warn-color-high', 'fs-panel': 'background-color-high',
+			'fs-panel2': 'background-color-low', 'fs-bg': 'background-color-low', 'fs-text': 'text-color-high',
+			'fs-dim': 'text-color-medium', 'fs-border': 'border-color-medium' };
+
+		function run(src) {
+			var f = [];                       // findings: {level:'fix'|'warn', msg, why}
+			function fix(msg, why) { f.push({ level: 'fix', msg: msg, why: why }); }
+			function warn(msg, why) { f.push({ level: 'warn', msg: msg, why: why }); }
+			var out = src, n;
+
+			// 1. colour literals → tokens, original kept as fallback
+			var cN = 0;
+			out = out.replace(/([-\w]+)\s*:\s*([^;{}]+)/g, function (m, prop, val) {
+				var kind = kindOf(prop);
+				if (!kind || /var\(/.test(val)) return m;
+				var cm = val.match(COLOR_RE); if (!cm) return m;
+				var tok = classify(kind, cm[0]); if (!tok) return m;
+				cN++;
+				return prop + ': ' + val.replace(COLOR_RE, 'var(--' + tok + ', ' + cm[0].trim() + ')');
+			});
+			if (cN) fix('<b>' + cN + ' hard-coded colour' + (cN > 1 ? 's' : '') + '</b> → export tokens with a literal fallback',
+				'A literal is right on the one theme/mode you looked at. The token follows light/dark, the palette and the tint; the fallback keeps your old value if a theme lacks it.');
+
+			// 2. wrong token names
+			n = 0; out = out.replace(/--warning-color-(high|medium|low|highest)\b/g, function (_m, l) { n++; return '--warn-color-' + l; });
+			if (n) fix('<b>' + n + '×</b> <code>--warning-color-*</code> → <code>--warn-color-*</code>', 'The family is <code>warn</code>. <code>--warning-color-*</code> is defined by nothing and silently falls through to your fallback.');
+			n = 0; out = out.replace(/--text-color(?![-\w])/g, function () { n++; return '--text-color-high'; });
+			if (n) fix('<b>' + n + '×</b> <code>--text-color</code> → <code>--text-color-high</code>', '<code>--text-color</code> (no level) does not exist on the tier.');
+
+			// 3. private tier reads
+			n = 0; var unmapped = {};
+			out = out.replace(/--fs-([\w-]+)/g, function (m2, name) {
+				if (FS_MAP['fs-' + name]) { n++; return '--' + FS_MAP['fs-' + name]; }
+				unmapped[name] = 1; return m2;
+			});
+			if (n) fix('<b>' + n + '×</b> private <code>--fs-*</code> → the matching export token', 'The <code>--fs-*</code> tier is internal, renamed at will, and absent on every other theme. Only <code>--*-color-*</code> is a contract.');
+			var uk = Object.keys(unmapped);
+			if (uk.length) warn('<b>' + uk.length + '× <code>--fs-*</code> with no colour equivalent</b> (' + uk.slice(0, 4).map(function (k) { return '<code>--fs-' + k + '</code>'; }).join(', ') + (uk.length > 4 ? '…' : '') + ')', 'These read the private tier (radius, z-index, spacing) — there is no public contract for them. Hardcode a value of your own or drop the dependency.');
+
+			// 4. !important (your CSS already outranks every theme layer)
+			n = 0; out = out.replace(/\s*!important/g, function () { n++; return ''; });
+			if (n) fix('<b>' + n + '×</b> <code>!important</code> removed', 'Your app CSS is unlayered and already beats every cascade layer the theme has. <code>!important</code> was never what was winning.');
+
+			// 5. absurd z-index
+			n = 0; out = out.replace(/(z-index\s*:\s*)(\d{5,})/gi, function (_m, p, v) { if (+v > 9999) { n++; return p + '1000'; } return _m; });
+			if (n) fix('<b>' + n + '×</b> runaway <code>z-index</code> → <code>1000</code>', "A theme's own overlays and dropdowns cannot coexist with <code>z-index: 2147483647</code>. Nothing you render needs to sit above everything ever.");
+
+			// 6. <font color> → span with a token
+			n = 0;
+			out = out.replace(/<font\s+color\s*=\s*["']?([^"'>]+)["']?\s*>/gi, function (_m, col) {
+				var tok = classify('text', col) || 'text-color-high'; n++;
+				return '<span style="color:var(--' + tok + ', ' + col.trim() + ')">';
+			});
+			if (n) { out = out.replace(/<\/font>/gi, '</span>'); fix('<b>' + n + '×</b> <code>&lt;font color&gt;</code> → a tokenised <code>&lt;span&gt;</code>', 'A hardcoded font colour vanishes on half the palettes.'); }
+
+			// ---- flags: structural, not auto-fixed ----
+			function count(re) { var m = src.match(re); return m ? m.length : 0; }
+			if (count(/document\.head\.(appendChild|append|insertBefore)/g))
+				warn('CSS injected into <code>&lt;head&gt;</code>', 'Under an SPA theme it outlives your view and restyles every later page. Return the <code>&lt;style&gt;</code> inside the tree you render instead.');
+			if (/:root\s*\{/.test(src))
+				warn('A <code>:root { … }</code> block', 'A shared global scope. Declare your custom properties on <b>your</b> root element (<code>.myapp-root { --myapp-… }</code>), never <code>:root</code>.');
+			if (/(^|[^.\w#-])\*\s*\{/.test(src))
+				warn('A universal <code>* { … }</code> reset', 'It flattens the theme’s own chrome. Never ship a document-wide reset.');
+			var bare = (src.match(/\.(hidden|toast|skeleton|centered|dialog-title|flex-row|log-line|description|centered)\b\s*\{/g) || []);
+			if (bare.length)
+				warn('<b>' + bare.length + '</b> un-prefixed dictionary class' + (bare.length > 1 ? 'es' : '') + ' (' + bare.slice(0, 3).map(function (s) { return '<code>' + s.trim().replace(/\s*\{$/, '') + '</code>'; }).join(', ') + ')', 'Live collisions with the theme and other apps. Prefix every class with your package name.');
+			if (/\b(window\.onload|DOMContentLoaded)\b/.test(src))
+				warn('<code>window.onload</code> / <code>DOMContentLoaded</code>', 'Fires once per document — silently stops working after the first SPA navigation. Do your work in <code>render()</code>.');
+			if (/document\.body\.(appendChild|append)/.test(src))
+				warn('A node appended to <code>document.body</code>', 'It survives the view swap. Put it in your view tree.');
+			if (/@media\s*\([^)]*prefers-color-scheme/.test(src))
+				warn('<code>prefers-color-scheme</code>', 'Reports the OS, not the theme. Read the tokens (which already follow the theme) or sniff <code>data-theme</code> / <code>data-bs-theme</code>.');
+			if (/\.setTheme\s*\(\s*["'](dracula|monokai|tomorrow[-_]?night\w*|twilight|cobalt|material)/i.test(src))
+				warn('A hardcoded editor colour theme', 'A permanently dark editor on a light page. Pick it from <code>isDark()</code>.');
+			// a stock selector at a RULE boundary (start, or right after } / {) is unscoped; a scoped
+			// `.myapp-root .cbi-value` starts with the app class and never sits at the boundary.
+			if (/(?:^|[{}])\s*(?:\.cbi-[\w-]+|table\s+th|pre)\s*\{/m.test(src))
+				warn('Stock LuCI selectors styled without a scope', 'An unlayered rule on <code>.cbi-*</code> / <code>table</code> / <code>pre</code> beats every theme layer, everywhere. Scope it under your own root: <code>.myapp-root .cbi-value { … }</code>.');
+
+			return { out: out, findings: f };
+		}
+
+		function render(res) {
+			outEl.value = res.out;
+			var fixes = res.findings.filter(function (x) { return x.level === 'fix'; });
+			var warns = res.findings.filter(function (x) { return x.level === 'warn'; });
+			cnt.textContent = fixes.length + ' fixed · ' + warns.length + ' to do by hand';
+			var html = '<div class="dk-report">';
+			if (!res.findings.length) html += '<div class="dk-report-empty">Nothing to fix — this already follows the rules. ✓</div>';
+			if (fixes.length) html += '<h4>Rewritten automatically</h4>' + fixes.map(fRow).join('');
+			if (warns.length) html += '<h4>Fix these by hand</h4>' + warns.map(fRow).join('');
+			rep.innerHTML = html + '</div>';
+		}
+		function fRow(x) {
+			return '<div class="dk-finding ' + x.level + '"><span class="tag">' + (x.level === 'fix' ? 'fixed' : 'manual') +
+				'</span><span class="msg">' + x.msg + '<span class="why">' + x.why + '</span></span></div>';
+		}
+
+		var SAMPLE = [
+			'/* paste from DevTools — this example trips most rules */',
+			'.myapp-card {',
+			'  background: #f7f7f7;',
+			'  color: #333;',
+			'  border: 1px solid #ddd !important;',
+			'}',
+			'.hidden { display: none }',
+			':root { --accent: #0d6efd; }',
+			'.log { background: #1e1e1e; color: #22c55e; }',
+			'.status { color: var(--warning-color-medium, orange); }',
+			'.brand { color: var(--fs-accent); border-radius: var(--fs-radius); }',
+			'.cbi-value { padding: 20px }',
+			'@media (prefers-color-scheme: dark) { .myapp-card { background: #222 } }',
+			'',
+			'// in the view module:',
+			'document.head.appendChild(style);',
+			'window.onload = init;',
+			'editor.setTheme("dracula");'
+		].join('\n');
+
+		$('#dk-fix-run').addEventListener('click', function () { render(run(inEl.value)); });
+		$('#dk-fix-sample').addEventListener('click', function () { inEl.value = SAMPLE; render(run(SAMPLE)); });
+		$('#dk-fix-clear').addEventListener('click', function () { inEl.value = ''; outEl.value = ''; rep.innerHTML = ''; cnt.textContent = ''; });
+		$('#dk-fix-copy').addEventListener('click', function () { if (outEl.value) copy(outEl.value); });
+	})();
+
+	/* ---- nav scroll-spy ---- */
+	var links = Array.prototype.slice.call(document.querySelectorAll('.dk-nav a'));
+	var secs = links.map(function (a) { return $(a.getAttribute('href')); });
+	var spy = new IntersectionObserver(function (ents) {
+		ents.forEach(function (en) {
+			if (!en.isIntersecting) return;
+			links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + en.target.id); });
+		});
+	}, { rootMargin: '-40% 0px -55% 0px' });
+	secs.forEach(function (s) { if (s) spy.observe(s); });
+})();
+</script>
+</body>
+</html>

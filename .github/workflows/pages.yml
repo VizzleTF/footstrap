@@ -1,0 +1,60 @@
+# Publishes the developer portal to GitHub Pages. devkit.html is generated (like cascade.css), so
+# it is built here, never committed. The gallery is published too — it needs a real cascade.css +
+# the font/wallpaper assets next to it, so those are copied in.
+#
+# One-time setup by a maintainer: repo Settings → Pages → Source = "GitHub Actions".
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/devkit.src.html'
+      - 'docs/gallery.html'
+      - 'luci-theme-footstrap/styles/**'
+      - 'tools/devkit-build.mjs'
+      - 'tools/lib/gallery.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - name: Build the portal
+        run: |
+          set -e
+          npm run devkit
+          FONTS=luci-theme-footstrap/htdocs/luci-static/footstrap
+          mkdir -p _site/fonts
+          cp docs/devkit.html _site/index.html          # portal is the Pages root
+          cp docs/devkit.html _site/devkit.html
+          cp docs/gallery.html _site/gallery.html
+          luci-theme-footstrap/build-css.sh _site/cascade.css   # gallery loads this by <link>
+          cp "$FONTS"/fonts/*.woff2 _site/fonts/
+          cp "$FONTS"/cats.svg "$FONTS"/logo.svg _site/
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
