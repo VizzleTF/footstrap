@@ -11,7 +11,21 @@ Style and format guide: [docs/21-changelog-stil-i-format.md](docs/21-changelog-s
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
-## [Unreleased]
+## [0.9.0] — 2026-07-15
+
+### Added
+
+- **Appearance now has "Save as default", which stores the current look as the router-wide default
+  for every browser and device.** Until now the whole popover lived only in the browser's
+  localStorage, so a second device — or a cleared cache — started from the built-in defaults. Save
+  writes all eight axes (layout, theme, palette, wallpaper, tint, accent, rounding, submenus) into
+  `/etc/config/footstrap`; the server stamps them before the first paint, so a fresh browser inherits
+  them with no flash. The write goes through a scoped rpcd ACL that grants the session `uci` write to
+  the `footstrap` config only — rpcd validates every name, so no value reaches a shell. **The browser
+  always wins**: this device's own choice, stored explicitly, overrides the saved default in either
+  direction (you can still turn a router-defaulted tint back off), and "Reset" clears this browser's
+  overrides so it drops back onto the saved default. A router upgraded from the old top-nav theme
+  keeps reading its `luci.main.footstrap_layout` migration seed as the layout fallback.
 
 ### Changed
 
@@ -1842,6 +1856,7 @@ line, not one per tag. The individual patch releases are in the git history.
   nested `calc()`, which broke the layout outright. JS minification came back in 0.7.12,
   once jsmin was proven safe by a token-equivalence gate.
 
+[0.9.0]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.9...v0.9.0
 [0.8.9]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.6...v0.8.7

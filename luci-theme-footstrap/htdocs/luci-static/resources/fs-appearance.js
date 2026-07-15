@@ -12,6 +12,13 @@ function wireAppearance() {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
 
+	/* every saved axis re-checks the Save button after it applies, so the button greys the moment
+	 * this browser matches the saved default again and un-greys the moment it diverges. Wrapped
+	 * around the appliers because the seg/slider controls call them directly and have no other seam
+	 * back to here. refreshSave is a hoisted function declaration; saveBtn it reads is assigned
+	 * below, before any of these fire (all are user events). */
+	const bump = fn => v => { fn(v); refreshSave(); };
+
 	/* Axes in order: Layout, Theme, Palette, Wallpaper, Tint, Accent, Rounding, Submenus (sidebar
 	 * only), Updates.
 	 *
@@ -31,7 +38,7 @@ function wireAppearance() {
 			widgets.segControl(prefs.currentLayout(), [
 				{ val: 'sidebar', label: _('Sidebar', 'footstrap') },
 				{ val: 'top',     label: _('Top', 'footstrap') }
-			], prefs.applyLayout, _('Layout', 'footstrap'))
+			], bump(prefs.applyLayout), _('Layout', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Theme', 'footstrap') ]),
@@ -39,21 +46,21 @@ function wireAppearance() {
 				{ val: 'auto',  label: _('Auto', 'footstrap') },
 				{ val: 'light', label: _('Light', 'footstrap') },
 				{ val: 'dark',  label: _('Dark', 'footstrap') }
-			], prefs.applyMode, _('Theme', 'footstrap'))
+			], bump(prefs.applyMode), _('Theme', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Palette', 'footstrap') ]),
 			widgets.segControl(prefs.currentPalette(), [
 				{ val: 'footstrap',  label: 'Footstrap' },
 				{ val: 'hicontrast', label: 'Hi-Contrast' }
-			], prefs.applyPalette, _('Palette', 'footstrap'))
+			], bump(prefs.applyPalette), _('Palette', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Wallpaper', 'footstrap') ]),
 			widgets.segControl(prefs.currentWallpaper(), [
 				{ val: 'off',  label: _('Off', 'footstrap') },
 				{ val: 'cats', label: _('Cats', 'footstrap') }
-			], prefs.applyWallpaper, _('Wallpaper', 'footstrap'))
+			], bump(prefs.applyWallpaper), _('Wallpaper', 'footstrap'))
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			/* the caption says what the axis is FOR: "Tint" alone reads as decoration and
@@ -61,7 +68,7 @@ function wireAppearance() {
 			E('div', { 'class': 'fs-ap-label' }, [ _('Tint (router identification)', 'footstrap') ]),
 			/* step 5 = 72 hues, which is finer than anyone can name and coarse enough
 			 * that the same router lands on the same colour when it is set again. */
-			widgets.sliderControl(prefs.currentTint(), 0, 360, prefs.applyTint, _('Tint (router identification)', 'footstrap'), {
+			widgets.sliderControl(prefs.currentTint(), 0, 360, bump(prefs.applyTint), _('Tint (router identification)', 'footstrap'), {
 				step: 5,
 				cls: 'fs-range-hue',
 				fmt: v => (v ? v + '°' : _('Off', 'footstrap'))
@@ -71,7 +78,7 @@ function wireAppearance() {
 			E('div', { 'class': 'fs-ap-label' }, [ _('Accent', 'footstrap') ]),
 			/* recolours the accented CONTROLS (buttons/toggles/sliders/focus rings), not
 			 * the canvas the way Tint does — same hue slider, off at 0 = palette default */
-			widgets.sliderControl(prefs.currentAccent(), 0, 360, prefs.applyAccent, _('Accent', 'footstrap'), {
+			widgets.sliderControl(prefs.currentAccent(), 0, 360, bump(prefs.applyAccent), _('Accent', 'footstrap'), {
 				step: 5,
 				cls: 'fs-range-hue fs-range-accent',
 				fmt: v => (v ? v + '°' : _('Off', 'footstrap'))
@@ -79,7 +86,7 @@ function wireAppearance() {
 		]),
 		E('div', { 'class': 'fs-ap-group' }, [
 			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding', 'footstrap') ]),
-			widgets.sliderControl(prefs.currentRadius(), 0, 20, prefs.applyRadius, _('Rounding', 'footstrap'))
+			widgets.sliderControl(prefs.currentRadius(), 0, 20, bump(prefs.applyRadius), _('Rounding', 'footstrap'))
 		])
 	];
 
@@ -94,7 +101,7 @@ function wireAppearance() {
 		widgets.segControl(prefs.currentAutoCollapse() ? 'on' : 'off', [
 			{ val: 'off', label: _('Keep open', 'footstrap') },
 			{ val: 'on',  label: _('Auto-collapse', 'footstrap') }
-		], prefs.applyAutoCollapse, _('Submenus', 'footstrap'))
+		], bump(prefs.applyAutoCollapse), _('Submenus', 'footstrap'))
 	]));
 
 	/* version line + "new version" badge + one-click Update button (the last two
@@ -113,6 +120,22 @@ function wireAppearance() {
 			{ val: 'on',  label: _('Check', 'footstrap') },
 			{ val: 'off', label: _('Off', 'footstrap') }
 		], update.applyUpdateCheck, _('Updates', 'footstrap'))
+	]));
+
+	/* Save the current look as the ROUTER-WIDE default (fs-prefs writes it to /etc/config/footstrap
+	 * via the scoped uci ACL). It does NOT change this browser — localStorage keeps overriding, so
+	 * the saved default only shows on a fresh browser/device. "Reset" is the escape hatch: it clears
+	 * this browser's overrides and reloads onto the saved default (a two-click confirm, since it
+	 * discards local tweaks).
+	 *
+	 * No status text — the Save BUTTON itself is the status: enabled "Save as default" when this
+	 * browser diverges from the saved default, disabled "Saved as default" when it already matches
+	 * (nothing to save). refreshSave() below drives that from prefs.matchesSavedDefault(). */
+	const saveBtn = E('button', { 'class': 'btn cbi-button-action', 'type': 'button' }, [ _('Save as default', 'footstrap') ]);
+	const resetBtn = E('button', { 'class': 'btn', 'type': 'button' }, [ _('Reset', 'footstrap') ]);
+	groups.push(E('div', { 'class': 'fs-ap-group fs-ap-actions' }, [
+		E('div', { 'class': 'fs-ap-label' }, [ _('Router default', 'footstrap') ]),
+		E('div', { 'class': 'fs-ap-actrow' }, [ saveBtn, resetBtn ])
 	]));
 
 	groups.push(E('div', { 'class': 'fs-ap-footer' }, [
@@ -155,6 +178,38 @@ function wireAppearance() {
 		update.run();
 	});
 
+	/* the Save button IS the status: match -> disabled "Saved as default", diverged -> enabled
+	 * "Save as default". Called after every axis change (via bump) and on open. */
+	function refreshSave() {
+		const saved = prefs.matchesSavedDefault();
+		saveBtn.disabled = saved;
+		saveBtn.textContent = saved ? _('Saved as default', 'footstrap') : _('Save as default', 'footstrap');
+	}
+	saveBtn.addEventListener('click', () => {
+		saveBtn.disabled = true;
+		prefs.saveAsDefault()
+			.then(() => { saveBtn.removeAttribute('title'); })
+			/* no status text (only two buttons) — on failure re-enable so the user can retry, and
+			 * park the rpc error in a title tooltip for debugging. An rpc error string is the one
+			 * string here neither the theme nor LuCI composed; a title attribute never parses it. */
+			.catch((e) => { saveBtn.title = _('Could not save the default.', 'footstrap') + ' ' + String((e && e.message) || e); })
+			.finally(refreshSave);
+	});
+	/* two-click confirm: the first click arms, the second resets — clearing this browser's overrides
+	 * and reloading is destructive of local tweaks, and a native confirm() is banned in this UI. */
+	let resetArmed = false;
+	resetBtn.addEventListener('click', () => {
+		if (!resetArmed) {
+			resetArmed = true;
+			resetBtn.textContent = _('Confirm reset', 'footstrap');
+			resetBtn.classList.add('fs-ap-armed');
+			return;
+		}
+		prefs.resetToDefault();
+		location.reload();
+	});
+	refreshSave();	/* correct label/enabled state before the first open */
+
 	/* Clicking outside means the user is going elsewhere — closing must not yank their focus back
 	 * to the trigger. Escape and the trigger itself do. */
 	function outside(e) { if (!pop.contains(e.target) && !btn.contains(e.target) && e.target !== btn) close(false); }
@@ -176,6 +231,7 @@ function wireAppearance() {
 	}
 	function open() {
 		pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+		refreshSave();	/* the saved default may have changed since this popover was built */
 		reposition();
 		pop.querySelector(FOCUSABLE)?.focus();
 		document.addEventListener('click', outside, true);
@@ -186,6 +242,13 @@ function wireAppearance() {
 	function close(returnFocus = true) {
 		if (pop.hidden) return;
 		pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
+		/* disarm a primed Reset, so re-opening never carries a live "Confirm reset" a stray click
+		 * would fire */
+		if (resetArmed) {
+			resetArmed = false;
+			resetBtn.textContent = _('Reset', 'footstrap');
+			resetBtn.classList.remove('fs-ap-armed');
+		}
 		document.removeEventListener('click', outside, true);
 		document.removeEventListener('keydown', keydown);
 		window.removeEventListener('resize', reposition);

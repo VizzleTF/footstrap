@@ -15,16 +15,28 @@
 
 	const boardinfo = ubus.call('system', 'board') ?? {};
 	const empty_password = (getuid() == 0 && getspnam('root')?.pwdp === '');
-	/* the ROUTER's default layout: a router migrated from the old top-nav theme keeps its bar.
-	   A shell script cannot write localStorage, so uci-defaults records the fact in
-	   luci.main.footstrap_layout=top and head.ut stamps it; the user's own choice overrides it
-	   forever after. Absent = sidebar. */
-	const fs_layout = cursor().get('luci', 'main', 'footstrap_layout') || '';
+	/* The ROUTER's saved Appearance defaults (Appearance -> Save as default, in /etc/config/footstrap):
+	   head.ut stamps them before paint and the client's own localStorage overrides every one — the
+	   browser choice always wins. Layout falls back to the legacy migration seed
+	   luci.main.footstrap_layout=top, which uci-defaults sets for a router upgraded from the old
+	   top-nav theme (a shell script cannot write localStorage). Absent = the built-in defaults. */
+	const c = cursor();
+	const fsd = c.get_all('footstrap', 'settings') ?? {};
+	const fs_defaults = {
+		layout:       fsd.layout || c.get('luci', 'main', 'footstrap_layout') || '',
+		darkmode:     fsd.darkmode || '',
+		palette:      fsd.palette || '',
+		wallpaper:    fsd.wallpaper || '',
+		tint:         fsd.tint || '',
+		accent:       fsd.accent || '',
+		rounding:     fsd.rounding || '',
+		autocollapse: fsd.autocollapse || ''
+	};
 
 	http.prepare_content('text/html; charset=UTF-8');
 -%}
 
-{% include('themes/footstrap/partials/head', { boardinfo, fs_layout }) %}
+{% include('themes/footstrap/partials/head', { boardinfo, fs_defaults }) %}
 
 	{#
 		data-page carries the DISPATCH path (ctx.path), not request_path: on a firstchild route

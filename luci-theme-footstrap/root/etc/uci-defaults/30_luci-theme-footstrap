@@ -76,6 +76,17 @@ esac
 
 uci commit luci
 
+# Appearance "Save as default" writes the router-wide axis defaults into /etc/config/footstrap
+# through the scoped uci ACL (config 'footstrap' only). The rpcd uci `set` backend the browser
+# calls needs the section to ALREADY EXIST, so guarantee it here — the shipped conffile carries it,
+# but a router that installed a footstrap predating this feature has no such file. `uci set` refuses
+# to CREATE the config file (only the section within one), so touch it first. Idempotent.
+[ -f /etc/config/footstrap ] || touch /etc/config/footstrap
+if ! uci -q get footstrap.settings >/dev/null 2>&1; then
+	uci set footstrap.settings=footstrap
+	uci commit footstrap
+fi
+
 # these caches embed theme paths — drop them so the switch applies on the next request
 rm -f /tmp/luci-indexcache* 2>/dev/null
 rm -rf /tmp/luci-modulecache 2>/dev/null

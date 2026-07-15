@@ -1,32 +1,60 @@
 {#
- <head> for the ONE template. include(…, { boardinfo, fs_layout }); everything else comes from
- the render scope. fs_layout = the ROUTER's default layout (luci.main.footstrap_layout).
+ <head> for the ONE template. include(…, { boardinfo, fs_defaults }); everything else comes from
+ the render scope. fs_defaults = the ROUTER's saved Appearance defaults (luci-theme-footstrap
+ /etc/config/footstrap), which the client's own localStorage overrides before paint.
  Licensed to the public under the Apache License 2.0.
 -#}
 <!DOCTYPE html>
+{%
+	/* Sanitise the ROUTER's saved Appearance defaults (Appearance -> Save as default, stored in
+	   /etc/config/footstrap) into the window.__fsSD object the pre-paint below reads. Enums are
+	   whitelisted and the two hues + rounding clamped to range, so a hand-edited config can neither
+	   break the inline script nor inject markup (defence in depth — writing that file already needs
+	   root). Absent/invalid becomes '' (or 0, or -1 for rounding whose 0 is a real value), which the
+	   JS reads as "no router default". The client's own localStorage overrides every one of these
+	   before paint — the browser choice always wins (see fs-prefs.js). */
+	fs_defaults = fs_defaults ?? {};
+	let _sd_lay  = index([ 'sidebar', 'top' ], fs_defaults.layout) >= 0 ? fs_defaults.layout : '';
+	let _sd_dark = index([ 'auto', 'light', 'dark' ], fs_defaults.darkmode) >= 0 ? fs_defaults.darkmode : '';
+	let _sd_pal  = index([ 'footstrap', 'hicontrast' ], fs_defaults.palette) >= 0 ? fs_defaults.palette : '';
+	let _sd_wall = index([ 'off', 'cats' ], fs_defaults.wallpaper) >= 0 ? fs_defaults.wallpaper : '';
+	let _sd_ac   = index([ 'on', 'off' ], fs_defaults.autocollapse) >= 0 ? fs_defaults.autocollapse : '';
+	let _tt = int(fs_defaults.tint),   _sd_tint = (_tt >= 1 && _tt <= 360) ? _tt : 0;
+	let _aa = int(fs_defaults.accent), _sd_acc  = (_aa >= 1 && _aa <= 360) ? _aa : 0;
+	let _rr = int(fs_defaults.rounding);
+	/* rounding 0 is SHARP corners, a real choice, so '' (unset) must map to -1, not 0 */
+	let _sd_round = (fs_defaults.rounding != '' && _rr >= 0 && _rr <= 20) ? _rr : -1;
+%}
 {# The SERVER always stamps data-layout with an EXPLICIT value (sidebar|top): every layout rule
    then matches POSITIVELY, so a future third layout must opt in rather than inherit the
    sidebar's rules by not being "top" — never write a :not([data-layout=…]) guard. And the
    chrome is right with JS off; the script below only overrides it.
-   fs_layout: uci-defaults sets `top` when migrating an old top-nav install (a shell script
-   cannot write localStorage), so that router keeps its bar. Absent = sidebar. #}
-<html lang="{{ dispatcher.lang }}" data-layout="{{ fs_layout == 'top' ? 'top' : 'sidebar' }}">
+   fs_defaults.layout: the router-wide default (Appearance -> Save as default, or uci-defaults'
+   `top` seed when migrating an old top-nav install). Absent = sidebar. #}
+<html lang="{{ dispatcher.lang }}" data-layout="{{ fs_defaults.layout == 'top' ? 'top' : 'sidebar' }}">
 	<head>
 		<meta charset="utf-8">
 		{# entityencode AROUND striptags: striptags drops tags but escapes neither `&` nor quotes,
 		   so a hostname with `&` broke entity parsing. No XSS (the tags are gone), but the markup
 		   must be well-formed. #}
 		<title>{{ entityencode(striptags(`${boardinfo.hostname ?? 'OpenWrt'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`), true) }}</title>
+		{# The router-wide Appearance defaults, read by BOTH the pre-paint below and fs-prefs.js's
+		   current*() (so the popover's controls show the effective default when this browser has no
+		   localStorage of its own). Enums are '', the hues 0 (=off), rounding -1 (=unset) — see the
+		   sanitiser above. #}
+		<script>window.__fsSD={layout:"{{ _sd_lay }}",darkmode:"{{ _sd_dark }}",palette:"{{ _sd_pal }}",wallpaper:"{{ _sd_wall }}",tint:{{ _sd_tint }},accent:{{ _sd_acc }},rounding:{{ _sd_round }},autocollapse:"{{ _sd_ac }}"};</script>
 		<script>
 			/* Each block below pre-paints one Appearance axis before the first frame, duplicating
-			   a live applier in menu-footstrap-common.js. They cannot share code — this runs
-			   before the module loader exists — so tools/axes.mjs derives the contract (keys,
-			   attrs, properties, ranges, default, ORDER) from the JS and holds this template to
-			   it.
-			   Dark mode: a saved preference wins, else the OS. */
+			   a live applier in fs-prefs.js. They cannot share code — this runs before the module
+			   loader exists — so tools/axes.mjs derives the contract (keys, attrs, properties,
+			   ranges, default, ORDER) from the JS and holds this template to it.
+			   PRECEDENCE, every axis: this browser's localStorage wins; absent -> the router default
+			   (window.__fsSD); absent -> the built-in default. So the effective value is
+			   localStorage ?? router-default ?? built-in, and the browser choice always overrides.
+			   Dark mode: a saved preference wins, else the router default, else the OS. */
 			(function() {
 				var root = document.querySelector(':root'),
-				    saved = null;
+				    saved = null, sd = (window.__fsSD || {}).darkmode;
 				try { saved = localStorage.getItem('fs-darkmode'); } catch (e) {}
 				var mq = window.matchMedia('(prefers-color-scheme: dark)');
 				/* data-darkmode is what THIS theme's CSS reads. data-theme / data-bs-theme are
@@ -38,55 +66,78 @@
 					root.setAttribute('data-theme', dark ? 'dark' : 'light');
 					root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
 				}
-				if (saved === 'true' || saved === 'false')
-					set(saved === 'true');
-				else
-					set(mq.matches);
+				/* localStorage stores 'true'/'false' (explicit) or 'auto' (explicitly follow OS);
+				   absent falls to the router default, then the OS. */
+				var explicit = (saved === 'true') ? true
+				             : (saved === 'false') ? false
+				             : (saved === 'auto') ? 'auto'
+				             : (sd === 'dark') ? true
+				             : (sd === 'light') ? false
+				             : 'auto';
+				set(explicit === true || (explicit === 'auto' && mq.matches));
 				/* ALWAYS registered (it re-checks storage): the user can switch to Auto after
-				   loading with a saved value, and OS flips must track live from then on. */
+				   loading with a saved value, and OS flips must track live from then on. An
+				   explicit browser choice or an explicit router default does NOT follow the OS. */
 				mq.addEventListener('change', function(m) {
-					try { if (localStorage.getItem('fs-darkmode')) return; } catch (e) {}
+					try {
+						var s = localStorage.getItem('fs-darkmode');
+						if (s === 'true' || s === 'false') return;
+						if (s === null && (sd === 'dark' || sd === 'light')) return;
+					} catch (e) {}
 					set(m.matches);
 				});
 			})();
 		</script>
 		<script>
-			/* palette, wallpaper, rounding, tint, accent. */
+			/* palette, wallpaper, rounding, tint, accent. Each: localStorage (this browser) wins;
+			   absent -> the router default in window.__fsSD; absent -> the built-in. */
 			(function() {
 				try {
 					var root = document.querySelector(':root'),
+					    sd = window.__fsSD || {},
 					    p = localStorage.getItem('fs-palette');
 					/* legacy 'rvht'/'roman' = default colours + cats wallpaper -> split onto both
-					   axes. */
+					   axes; legacy 'github' = the footstrap default, now stored explicitly. Migrate
+					   to the current explicit value, do NOT clear (an absent key means "inherit the
+					   router default", which is no longer the same as "the built-in default"). */
 					if (p === 'rvht' || p === 'roman') {
 						localStorage.setItem('fs-wallpaper', 'cats');
-						localStorage.removeItem('fs-palette'); p = null;
+						localStorage.setItem('fs-palette', 'footstrap'); p = 'footstrap';
+					} else if (p === 'github') {
+						localStorage.setItem('fs-palette', 'footstrap'); p = 'footstrap';
 					}
-					/* the default palette is a bare :root; the legacy names map onto it, and only
-					   hicontrast is opt-in. */
-					if (p === 'github' || p === 'footstrap') { localStorage.removeItem('fs-palette'); p = null; }
+					/* the default palette is a bare :root; only hicontrast is opt-in. */
+					if (p === null) p = sd.palette || null;
 					if (p === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
 					else root.removeAttribute('data-palette');
-					if (localStorage.getItem('fs-wallpaper') === 'cats')
-						root.setAttribute('data-wallpaper', 'cats');
+
+					var w = localStorage.getItem('fs-wallpaper');
+					if (w === null) w = sd.wallpaper || null;
+					if (w === 'cats') root.setAttribute('data-wallpaper', 'cats');
+					else root.removeAttribute('data-wallpaper');
+
 					/* Rounding 0-20px (02-tokens derives the control/chip radii from it). The
 					   default is a LITERAL: this runs before the stylesheet and cannot read the
-					   CSS token, so axes.mjs is the only thing checking the two agree. */
-					var r = parseInt(localStorage.getItem('fs-radius'), 10);
+					   CSS token, so axes.mjs is the only thing checking the two agree. sd.rounding
+					   is -1 when the router has no default. */
+					var rRaw = localStorage.getItem('fs-radius'), r = parseInt(rRaw, 10);
+					if (rRaw === null) r = (sd.rounding >= 0 ? sd.rounding : 12);
 					if (r >= 0 && r <= 20 && r !== 12)
 						root.style.setProperty('--fs-radius-base', r + 'px');
 					/* Tint: a hue (1-360) washed into the page CANVAS so this router is
-					   recognisable at a glance (localStorage is per ORIGIN = already per router).
-					   Absent/0 = off. Set the PROPERTY BEFORE THE ATTRIBUTE that switches the
-					   mixes on, or a reload paints one frame with the previous hue. */
-					var t = parseInt(localStorage.getItem('fs-tint'), 10);
+					   recognisable at a glance. Absent/0 = off. Set the PROPERTY BEFORE THE
+					   ATTRIBUTE that switches the mixes on, or a reload paints one frame with the
+					   previous hue. */
+					var tRaw = localStorage.getItem('fs-tint'), t = parseInt(tRaw, 10);
+					if (tRaw === null) t = sd.tint | 0;
 					if (t >= 1 && t <= 360) {
 						root.style.setProperty('--fs-tint-h', String(t));
 						root.setAttribute('data-tint', '');
 					}
 					/* Accent: a hue (1-360) rotating the UI accent. Absent/0 = the palette's own.
 					   Property before attribute, as above. */
-					var a = parseInt(localStorage.getItem('fs-accent'), 10);
+					var aRaw = localStorage.getItem('fs-accent'), a = parseInt(aRaw, 10);
+					if (aRaw === null) a = sd.accent | 0;
 					if (a >= 1 && a <= 360) {
 						root.style.setProperty('--fs-accent-h', String(a));
 						root.setAttribute('data-accent', '');
@@ -95,7 +146,8 @@
 			})();
 		</script>
 		<script>
-			/* the icon-rail preference, so a reload doesn't flash the full sidebar first. */
+			/* the icon-rail preference, so a reload doesn't flash the full sidebar first. Not a
+			   router-wide default (it is a transient chrome collapse, not an appearance choice). */
 			(function() {
 				try {
 					if (localStorage.getItem('fs-rail') === 'true')

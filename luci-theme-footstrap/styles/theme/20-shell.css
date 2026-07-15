@@ -333,6 +333,15 @@
 	:root[data-layout="top"] .fs-ap-submenus { display: none; }
 	.fs-ap-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fs-faint); }
 
+	/* Save-as-default / Reset row: two equal buttons, no status text — the Save button's own
+	 * label/disabled state is the status. They take their look from .btn / .cbi-button-action
+	 * (base + theme/55-buttons.css); a disabled .cbi-button-action already greys via base. */
+	.fs-ap-actrow { display: flex; gap: 8px; }
+	.fs-ap-actrow .btn { flex: 1; font-size: 12px; padding: 7px 10px; cursor: pointer; }
+	.fs-ap-actrow .btn:disabled { cursor: default; }
+	/* the primed Reset (second click confirms) reads as the destructive action it is */
+	.fs-ap-armed { color: var(--fs-on-danger); background: var(--fs-danger); border-color: transparent; }
+
 	/* version line + "new version" pill + Update button at the foot of the popover */
 	.fs-ap-footer {
 		display: flex; flex-direction: column; gap: 8px;
