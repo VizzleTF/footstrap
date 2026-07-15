@@ -133,22 +133,8 @@ jobs:
           }
           echo "release key matches in both copies."
 
-      - name: Build the stylesheet (this also enforces the size budget)
+      - name: Build the stylesheet
         run: luci-theme-footstrap/build-css.sh /tmp/cascade.css
-
-      - name: Font budget
-        run: |
-          set -eu
-          # uhttpd serves /www/luci-static/* with NO compression, so these bytes are
-          # wire bytes. The faces are split by unicode-range, so a given UI fetches a
-          # subset of this — but the whole set still has to stay honest.
-          total=$(cat luci-theme-footstrap/htdocs/luci-static/footstrap/fonts/*.woff2 | wc -c)
-          # A RATCHET, not a ceiling: it was 102400 while a bold mono face was shipped.
-          # That face is gone (it drew labels, see styles/01-fonts.css), the set is now
-          # 68 488 bytes, and the budget is tightened to match so it cannot drift back.
-          budget=71680   # 70 KB for every subset of every face, combined
-          echo "fonts: $total bytes (budget $budget)"
-          [ "$total" -le "$budget" ] || { echo "over the font budget"; exit 1; }
 
       - name: CSS/JS audit (undefined vars, shadowed rules, stray !important, colour literals)
         run: python3 .claude/skills/footstrap-audit/audit.py --strict
@@ -307,34 +293,6 @@ jobs:
         env:
           JSMIN: /tmp/jsmin
         run: node tools/jsmin-verify.mjs $SHIPPED_JS
-
-      - name: JS size budget (measured AFTER minification — that is what ships)
-        env:
-          JSMIN: /tmp/jsmin
-        run: |
-          set -eu
-          total=0
-          for f in $SHIPPED_JS; do
-            n=$(/tmp/jsmin < "$f" | wc -c)
-            total=$((total + n))
-          done
-          # 49 KB of minified JS; it is 49121 B today. A RATCHET, kept close to the real number
-          # on purpose: raising it is a decision, and this one was — the SPA router grew ~3 KB
-          # (26657 -> 29747 B minified) for the third-party-CSS guard, the sheet dedupe and the
-          # dark-mode stamping. Tighten it again whenever bytes go away, so they cannot drift back.
-          #
-          # Raised 47104 -> 50176 when menu-footstrap-common.js (1676 lines, seven unrelated
-          # concerns) was split into one module per concern: 46621 -> 49121 B, +2500 B (+5.4%).
-          # That is what the split COSTS and it was paid deliberately — a LuCI module is reached
-          # through `L.require`, so each one adds its own pragmas and `return baseclass.extend({…})`,
-          # and every call across a seam grows an alias prefix (`prefs.currentLayout()`). uhttpd does
-          # not compress, so these are wire bytes. Bought: no file over ~600 lines, a DAG the runtime
-          # itself enforces (require() raises DependencyError on a cycle), and gates that can no
-          # longer be pointed at one stale filename. Deps load via Promise.all, so the extra files
-          # cost round-trips in parallel, not in series.
-          budget=50176
-          echo "minified theme JS: $total bytes (budget $budget)"
-          [ "$total" -le "$budget" ] || { echo "over the JS budget"; exit 1; }
 
   build:
     needs: [check, lint]

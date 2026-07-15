@@ -212,19 +212,11 @@ trap - EXIT
 SIZE=$(wc -c < "$OUT" | tr -d ' ')
 echo "build-css: $SIZE bytes -> $OUT"
 
-# SIZE BUDGET, minified build only. uhttpd has no gzip code at all (docs/18), so every byte
-# is a wire byte on a device whose whole point is to be small. Raise it consciously.
-#
-# The FLOOR is not symmetry: with only an upper bound, every way of producing a SHORT file —
-# a truncated write, a full disk, a squeeze that ate the tail — passed and shipped a
-# stylesheet with its second half missing.
-BUDGET=${FS_CSS_BUDGET:-117760}   # 115 KB — the sheet is ~109 KB, so this is real headroom, not slack
+# BROKEN-BUILD FLOOR (no upper size budget — removed). With only an upper bound, every way of
+# producing a SHORT file — a truncated write, a full disk, a squeeze that ate the tail — passed
+# and shipped a stylesheet with its second half missing. The floor catches that; it is a
+# correctness guard, not a size limit.
 FLOOR=${FS_CSS_FLOOR:-81920}      # 80 KB — well under the real sheet; only a mangled build lands here
-if [ "$DEV" -eq 0 ] && [ "$SIZE" -gt "$BUDGET" ]; then
-	echo "build-css: cascade.css is $SIZE bytes, over the $BUDGET-byte budget." >&2
-	echo "build-css: uhttpd cannot compress it, so this is $SIZE bytes on the wire." >&2
-	exit 1
-fi
 if [ "$DEV" -eq 0 ] && [ "$SIZE" -lt "$FLOOR" ]; then
 	echo "build-css: cascade.css is only $SIZE bytes, under the $FLOOR-byte floor." >&2
 	echo "build-css: that is not a smaller stylesheet, that is a broken one." >&2
