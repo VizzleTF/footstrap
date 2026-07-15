@@ -203,10 +203,28 @@
 	 * sidebar). Below 521 no cut leaves 500px anyway — it states the measurement's
 	 * conclusion in advance. */
 	@media (min-width: 521px) {
-		:root[data-layout="sidebar"]:not([data-narrow]) .fs-shell { flex-direction: row; }
+		/* SCROLL MODEL for the desktop sidebar layout: the shell is pinned to the viewport and the
+		 * CONTENT column scrolls inside itself, so the sidebar is a STATIC element that simply
+		 * stays put — it is NOT position:sticky. This is the fix for issue #7: a sticky sidebar is
+		 * a composited GPU layer, and with overflow:visible (needed so the rail flyouts escape
+		 * sideways) every hover repaint of the column left a 1px seam of the flyout's
+		 * buttons/headers at the layer's edge that only a full repaint cleared — visible on the
+		 * live collapse and on hover, never on a fresh load. A static sidebar is not a layer, so
+		 * there is nothing to leave stale. It also drops the z-index juggling: sticky ALWAYS makes
+		 * a stacking context (which is why the sidebar needed z-index to sit above .fs-main at
+		 * all), whereas a static sidebar is none, so the flyouts resolve their own --fs-z-flyout in
+		 * the ROOT stacking context and sit above the content for free. Confined to the desktop
+		 * sidebar: the top layout and the phone bar keep window scrolling and their sticky bar. */
+		:root[data-layout="sidebar"]:not([data-narrow]) .fs-shell {
+			flex-direction: row; height: 100dvh; overflow: hidden;
+		}
+		:root[data-layout="sidebar"]:not([data-narrow]) .fs-main {
+			height: 100dvh; overflow-y: auto;
+		}
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar {
 			width: var(--fs-sidebar-w); height: 100dvh;
 			flex: 0 0 auto;
+			position: static;
 			flex-direction: column; flex-wrap: nowrap; align-items: normal;
 			gap: normal; padding: 22px 14px;
 			background: var(--fs-panel);
@@ -479,7 +497,10 @@
 			/* the default `overflow-y: auto` computes overflow-x to `auto` as well,
 			 * which would clip the flyouts; the rail is short enough not to scroll */
 			overflow: visible;
-			z-index: var(--fs-z-sticky);
+			/* NO z-index / no sticky: the sidebar is a static element (see the scroll-model note
+			 * above), so it is not a composited layer and its overflow:visible flyouts leave no
+			 * stale seam (issue #7). The flyouts still cover the content on their own --fs-z-flyout
+			 * in the root stacking context. */
 		}
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-brandrow { flex-direction: column; gap: 10px; padding: 0 0 18px; }
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-brand { flex: 0 0 auto; justify-content: center; }

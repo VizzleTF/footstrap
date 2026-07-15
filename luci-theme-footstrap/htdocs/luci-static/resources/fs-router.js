@@ -282,9 +282,15 @@ function navigate(pathname, push) {
 	chrome.renderChrome();
 
 	/* a full load starts at the top; the in-place swap must too, or navigating away from a long
-	 * page opens the next one mid-scroll. popstate replays keep the browser's scroll handling. */
-	if (push)
+	 * page opens the next one mid-scroll. popstate replays keep the browser's scroll handling.
+	 * In the desktop sidebar layout the window does NOT scroll — .fs-main is the scroll container
+	 * (it owns overflow-y so the sidebar can be static, not a composited sticky layer — issue #7),
+	 * so reset it too; scrollTo on whichever is not the scroller is a harmless no-op. */
+	if (push) {
 		window.scrollTo(0, 0);
+		const sc = document.getElementById('maincontent');
+		if (sc) sc.scrollTo(0, 0);
+	}
 
 	/* ---- what a full load does for a keyboard/screen-reader user, and the SPA did not ----
 	 * renderChrome() has just done `#topmenu.innerHTML = ''`, so the very <a> the user activated with

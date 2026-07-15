@@ -61,6 +61,16 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **The collapsed sidebar (icon rail) no longer leaves 1px specks of the hidden submenu at its edge**
+  (issue #7). The sidebar was `position: sticky`, which the browser promotes to a composited GPU
+  layer; with `overflow: visible` (needed so the rail's flyouts escape sideways) every hover repaint
+  of the column left a 1px seam of the flyout's buttons/headers at the layer's edge, cleared only by a
+  full repaint — visible on the live collapse and on hover, never on a fresh load. The desktop sidebar
+  is now a STATIC element (not a layer, so nothing can be left stale) and the content column scrolls
+  inside `.fs-main` instead of the window. It also drops the z-index the sticky layer needed: a static
+  sidebar is no stacking context, so the flyouts sit above the content on their own `--fs-z-flyout` in
+  the root context. Confined to the desktop sidebar via the `:not([data-narrow])` guard — the top
+  layout and the phone bar keep window scrolling and their sticky bar.
 - **Hovering the Diagnostics page no longer highlights the whole controls block, and empty tables
   no longer light up their "no data" row** (issue #5). A single generic `.table .tr:hover` tint hit
   every table, including layout tables the theme never meant to make interactive: the Diagnostics
