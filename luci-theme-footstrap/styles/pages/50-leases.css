@@ -12,12 +12,37 @@
 	 * is DISCOVERED and the card lives once, in theme/30-tables.css. `:not(.fs-stacked)` is
 	 * the whole guard: once carded, the cells must wrap again. */
 	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td { white-space: nowrap; }
-	/* The three that may wrap. overflow-wrap:anywhere (not word-break) takes the natural
-	 * breaks first — the hyphens in "Yandex-Station-Midi-61QK" — and only splits mid-token
-	 * when nothing else fits; short names stay on one line. */
-	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td[data-title="DUID"],
-	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td[data-title="IPv6 addresses"],
-	#view table.fs-dt:is(.leases, .leases6):not(.fs-stacked) .td[data-title="Hostname"] {
+	/* ---- NEVER MATCH A `data-title` VALUE: it is a TRANSLATED, RENDER-DEPENDENT string ----
+	 *
+	 * LuCI fills `data-title` from the column HEADING, so on a localised router the value is the
+	 * translation ("MAC-адрес"), and an English literal in a selector simply never matches — the rule
+	 * is dead in ~40 languages while looking perfectly alive here. That is exactly how the reported
+	 * bug survived (#7): the MAC nowrap below worked on an English router and the reporter, on a
+	 * Russian one, still had his MAC split across two lines.
+	 *
+	 * Worse, for tables whose rows LuCI builds from the heading's `innerText`, the value is what the
+	 * heading RENDERS — and `theme/30-tables.css` uppercases `.th`. So the theme's own CSS rewrites
+	 * the string the theme's own CSS matches on: `#packages` really carries `data-title="DESCRIPTION"`,
+	 * and the `[data-title="Description"]` rule that used to be here matched NOTHING, on every router,
+	 * in every language (measured: 0 elements).
+	 *
+	 * Anchor on the COLUMN instead. A translation cannot reorder columns, and `tools/css-i18n.mjs`
+	 * fails the build on any `[data-title="…"]` value match so this cannot come back. */
+
+	/* The long opaque columns, which may wrap. overflow-wrap:anywhere (not word-break) takes the
+	 * natural breaks first — the hyphens in "Yandex-Station-Midi-61QK" — and only splits mid-token
+	 * when nothing else fits; short names stay on one line.
+	 *
+	 *   .leases    1 Hostname | 2 IPv4 address    | 3 MAC address | 4 DUID | 5 IAID | 6 Remaining | 7 Static
+	 *   .leases6   1 Interface| 2 Hostname        | 3 IPv6 addrs  | 4 DUID | 5 IAID | 6 Remaining | 7 Static
+	 *
+	 * so: hostname + DUID in .leases, hostname + the IPv6 list + DUID in .leases6. IPv4/MAC/IAID
+	 * keep the nowrap above — they are the strings that must never be split. */
+	#view table.fs-dt.leases:not(.fs-stacked) .td:nth-child(1),
+	#view table.fs-dt.leases:not(.fs-stacked) .td:nth-child(4),
+	#view table.fs-dt.leases6:not(.fs-stacked) .td:nth-child(2),
+	#view table.fs-dt.leases6:not(.fs-stacked) .td:nth-child(3),
+	#view table.fs-dt.leases6:not(.fs-stacked) .td:nth-child(4) {
 		white-space: normal; overflow-wrap: anywhere;
 	}
 }

@@ -30,8 +30,13 @@
 		font-size: 10px; font-weight: 700; letter-spacing: .05em;
 		text-transform: uppercase; color: var(--fs-faint); white-space: nowrap;
 	}
-	#packages.fs-stacked .td[data-title="Description"] { display: block; text-align: left; overflow-wrap: anywhere; word-break: break-word; }
-	#packages.fs-stacked .td[data-title="Description"]::before { display: block; margin-bottom: 3px; }
+	/* Column 4 = Description. NOT `[data-title="Description"]`: LuCI builds this table's cells from
+	 * the heading's innerText, and theme/30-tables.css uppercases `.th` — so the attribute really
+	 * says "DESCRIPTION" and the old literal matched ZERO elements on every router, in every
+	 * language (measured). The theme's own CSS was rewriting the string the theme's own CSS keyed
+	 * off. Columns: 1 Package name | 2 Version | 3 Size | 4 Description | 5 actions. */
+	#packages.fs-stacked .td:nth-child(4) { display: block; text-align: left; overflow-wrap: anywhere; word-break: break-word; }
+	#packages.fs-stacked .td:nth-child(4)::before { display: block; margin-bottom: 3px; }
 	#packages.fs-stacked .td.cbi-section-actions { justify-content: flex-end; margin-top: 6px; }
 	#packages.fs-stacked .td.cbi-section-actions::before,
 	#packages.fs-stacked .td:not([data-title])::before { content: none; }

@@ -12,6 +12,37 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The zone colour spilled past the rounded corner of an interface box** (issue #7). Network →
+  Interfaces draws the zone as an inline background on `.ifacebox-head`, and `base` pairs a 4px box
+  with a 3px head so the two round together — but `theme` bumped only the BOX to `--fs-radius`
+  (10px by default), leaving a 3px head whose square corners cut straight through the rounding. The
+  head now derives its radius from the box's, minus the 1px border it is inset by, so the two round
+  together at any setting of the Rounding axis.
+- **A MAC address still broke across two lines on every non-English router** (issue #7). The nowrap
+  that was supposed to stop it keyed on `[data-title="MAC address"]` — and LuCI fills `data-title`
+  from the column HEADING, so on a Russian router the cell says `MAC-адрес` and the rule matched
+  nothing. It was fixed, released, and the reporter kept seeing the bug, because the fix only ever
+  worked in the language it was written in. Anchored on the column instead; a translation cannot
+  reorder columns. The same dead-in-40-languages pattern was in the DHCP leases table (DUID, the
+  IPv6 list, the hostname) and is fixed with it.
+- **A package-manager rule matched nothing at all, on every router, in every language.** The stacked
+  card's Description cell keyed on `[data-title="Description"]`, but LuCI builds that table's cells
+  from the heading's `innerText` — and the theme's own `text-transform: uppercase` on `.th` means the
+  attribute really reads `DESCRIPTION`. The theme's CSS was rewriting the string the theme's CSS
+  matched on, so the cell never got its block layout (measured: 0 elements matched). Anchored on the
+  column; the layout now applies.
+
+### Added
+
+- **A gate against the whole class of bug above: no CSS rule may key off a `data-title` VALUE**
+  (`npm run css-i18n`, and a CI step). Reading the attribute is fine — that is how a carded table
+  prints its column labels — but matching it means matching a translated, render-dependent UI
+  string, and the failure is silent in both directions: dead in every language you do not speak, and
+  dead everywhere if your own stylesheet uppercases the heading. Presence tests (`[data-title]`) stay
+  allowed.
+
 ### Changed
 
 - **The 1676-line `menu-footstrap-common.js` is now one module per concern.** It had grown to hold

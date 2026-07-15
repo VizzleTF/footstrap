@@ -10,6 +10,11 @@
 	 * Exactly the shape pages/50-leases.css already uses, and for the same reason — see the note
 	 * there about why the nowrap is also the table's floor, and why `:not(.fs-stacked)` is the
 	 * whole guard: once fs-select.js has measured that the table no longer fits and carded it, the
-	 * cells must be free to wrap again. */
-	#view table.fs-dt.assoclist:not(.fs-stacked) .td[data-title="MAC address"] { white-space: nowrap; }
+	 * cells must be free to wrap again.
+	 *
+	 * Column 2, NOT `[data-title="MAC address"]` — that literal is a translated string and the rule
+	 * was dead on every localised router, which is precisely how the bug was still being reported
+	 * (#7) after it had been "fixed". See the note in pages/50-leases.css.
+	 * Columns: 1 Network | 2 MAC address | 3 Host | 4 Signal/Noise | 5 RX/TX Rate | 6 Disconnect. */
+	#view table.fs-dt.assoclist:not(.fs-stacked) .td:nth-child(2) { white-space: nowrap; }
 }

@@ -132,6 +132,18 @@
 
 	/* generic links/labels inside cards */
 	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: var(--fs-radius); }
+	/* ...and the head has to round WITH the box. It sits inside the box's 1px border and carries the
+	 * zone colour as an inline background, so its own corners are what you see: base pairs a 4px box
+	 * with a 3px head, but the line above bumps only the BOX to --fs-radius (10px by default), which
+	 * left a 3px head whose square corners cut straight through the rounding — the zone colour
+	 * visibly spilling past the corner on Network → Interfaces (issue #7).
+	 * Minus the 1px border the head is inset by; max() because the Rounding axis goes down to 0,
+	 * where a bare subtraction is negative — an invalid declaration, silently dropped, which would
+	 * put base's 3px back. */
+	.cbi-section .ifacebox > .ifacebox-head {
+		--fs-head-radius: max(0px, calc(var(--fs-radius) - 1px));
+		border-radius: var(--fs-head-radius) var(--fs-head-radius) 0 0;
+	}
 
 	/* Inactive tab panes. Base's [data-tab-title] rule sets height:0/overflow:hidden, collapsing only
 	 * the CONTENT box — padding/border/margin still draw empty bars (podkop and Network → Interfaces

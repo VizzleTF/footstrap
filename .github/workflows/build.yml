@@ -227,6 +227,17 @@ jobs:
       - name: "Duplicated declaration bodies across guards"
         run: node tools/css-dup.mjs
 
+      # A CSS rule may READ data-title (`content: attr(data-title)`) but must never MATCH its
+      # value. LuCI fills it from the column heading, so the value is the TRANSLATION on a
+      # localised router — an English literal in a selector matches nothing and the rule dies
+      # in ~40 languages while looking alive on the dev box (issue #7: the MAC nowrap was
+      # "fixed", released, and the reporter still had his MAC split in two). Worse, for tables
+      # LuCI builds from the heading's innerText the value is what the heading RENDERS, and the
+      # theme uppercases `.th` — so `[data-title="Description"]` matched ZERO elements
+      # everywhere. Anchor on the column; no translation can reorder one.
+      - name: "No CSS rule keys off a translated data-title value"
+        run: node tools/css-i18n.mjs
+
       # ...and the other half of that: css-dup only sees bodies that are IDENTICAL, so it
       # goes quiet the moment two copies drift — exactly when it should shout. This holds
       # every @mirror-pinned copy byte-identical, across CSS *and* shell (install.sh and
