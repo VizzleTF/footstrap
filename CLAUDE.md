@@ -416,10 +416,17 @@ to both as well, when a tag is asked for.
 
 ## CHANGELOG — every commit writes into `## [Unreleased]`, and a tag renames it
 
+**Full style + format guide: `docs/21-changelog-stil-i-format.md`** (research-backed against Keep
+a Changelog 1.1.0, Common Changelog and Conventional Commits) — the single source of truth for
+category set, fixed section order, entry structure and the release workflow. Always follow it; the
+summary below is the pointer, the doc is the contract.
+
 Two files, kept in lockstep: **`CHANGELOG.md`** (English) and **`CHANGELOG_ru.md`** (Russian
-mirror). Keep a Changelog format, newest first, sections `Added` / `Changed` / `Fixed` /
-`Removed` / `Security` / `Performance`. **Both are edited in the same commit** — a mirror that
-lags is worse than no mirror, because the reader cannot tell which one is stale.
+mirror). Keep a Changelog format, newest first. Sections in the FIXED order `Added` / `Changed` /
+`Deprecated` / `Removed` / `Fixed` / `Security` / `Performance` (KaC order + the project's
+`Performance` extension), one section of each type per release, no duplicates. **Both are edited in
+the same commit** — a mirror that lags is worse than no mirror, because the reader cannot tell which
+one is stale.
 
 **Every substantive commit adds its entry to the `## [Unreleased]` section at the top**, above
 the newest tagged version — in the same commit as the code, never as a follow-up. A changelog

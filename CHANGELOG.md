@@ -3,8 +3,9 @@
 Notable changes to `luci-theme-footstrap`, newest first. Format is
 [Keep a Changelog](https://keepachangelog.com/1.1.0/); commits are
 [Conventional Commits](https://www.conventionalcommits.org/), versions are
-[SemVer](https://semver.org/). Sections: Added, Changed, Fixed, Removed,
-Security, Performance.
+[SemVer](https://semver.org/). Sections, in fixed order: Added, Changed,
+Deprecated, Removed, Fixed, Security, Performance — one of each per release.
+Style and format guide: [docs/21-changelog-stil-i-format.md](docs/21-changelog-stil-i-format.md).
 
 [CHANGELOG_ru.md](CHANGELOG_ru.md) mirrors this file. Edit both in one commit.
 
@@ -14,36 +15,14 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
-- **The brand logo is now the OpenWrt favicon mark in a bordered box, not a wifi glyph on an accent
-  tile.** The header logo dropped its accent-gradient fill for a plain 1px border, matching the
-  square buttons in the right cluster (Appearance, Logout), and the glyph is the same OpenWrt mark
-  the browser tab shows. Its ring flips with the theme mode exactly as the SVG favicon does under
-  `prefers-color-scheme` — dark ring on the light UI, light ring on dark — while the cyan arcs stay
-  fixed (legible on both).
+- **The header logo now shows the OpenWrt favicon mark in a bordered box.** The accent-gradient tile
+  behind the logo is gone; in its place is a plain 1px border, the same treatment the square buttons
+  in the right cluster carry (Appearance, Logout). The glyph is the mark the browser tab already
+  shows. Its ring follows the theme mode — dark on the light UI, light on dark — the way the SVG
+  favicon follows `prefers-color-scheme`, though the logo reads the theme's own dark-mode flag rather
+  than the media query. The cyan arcs are fixed and stay legible in both modes.
 
 ## [0.8.9] — 2026-07-15
-
-### Fixed
-
-- **The zone colour spilled past the rounded corner of an interface box** (issue #7). Network →
-  Interfaces draws the zone as an inline background on `.ifacebox-head`, and `base` pairs a 4px box
-  with a 3px head so the two round together — but `theme` bumped only the BOX to `--fs-radius`
-  (10px by default), leaving a 3px head whose square corners cut straight through the rounding. The
-  head now derives its radius from the box's, minus the 1px border it is inset by, so the two round
-  together at any setting of the Rounding axis.
-- **A MAC address still broke across two lines on every non-English router** (issue #7). The nowrap
-  that was supposed to stop it keyed on `[data-title="MAC address"]` — and LuCI fills `data-title`
-  from the column HEADING, so on a Russian router the cell says `MAC-адрес` and the rule matched
-  nothing. It was fixed, released, and the reporter kept seeing the bug, because the fix only ever
-  worked in the language it was written in. Anchored on the column instead; a translation cannot
-  reorder columns. The same dead-in-40-languages pattern was in the DHCP leases table (DUID, the
-  IPv6 list, the hostname) and is fixed with it.
-- **A package-manager rule matched nothing at all, on every router, in every language.** The stacked
-  card's Description cell keyed on `[data-title="Description"]`, but LuCI builds that table's cells
-  from the heading's `innerText` — and the theme's own `text-transform: uppercase` on `.th` means the
-  attribute really reads `DESCRIPTION`. The theme's CSS was rewriting the string the theme's CSS
-  matched on, so the cell never got its block layout (measured: 0 elements matched). Anchored on the
-  column; the layout now applies.
 
 ### Added
 
@@ -81,6 +60,26 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   bytes — the raise is a deliberate trade for no file over ~600 lines, not drift.
 
 ### Fixed
+
+- **The zone colour spilled past the rounded corner of an interface box** (issue #7). Network →
+  Interfaces draws the zone as an inline background on `.ifacebox-head`, and `base` pairs a 4px box
+  with a 3px head so the two round together — but `theme` bumped only the BOX to `--fs-radius`
+  (10px by default), leaving a 3px head whose square corners cut straight through the rounding. The
+  head now derives its radius from the box's, minus the 1px border it is inset by, so the two round
+  together at any setting of the Rounding axis.
+- **A MAC address still broke across two lines on every non-English router** (issue #7). The nowrap
+  that was supposed to stop it keyed on `[data-title="MAC address"]` — and LuCI fills `data-title`
+  from the column HEADING, so on a Russian router the cell says `MAC-адрес` and the rule matched
+  nothing. It was fixed, released, and the reporter kept seeing the bug, because the fix only ever
+  worked in the language it was written in. Anchored on the column instead; a translation cannot
+  reorder columns. The same dead-in-40-languages pattern was in the DHCP leases table (DUID, the
+  IPv6 list, the hostname) and is fixed with it.
+- **A package-manager rule matched nothing at all, on every router, in every language.** The stacked
+  card's Description cell keyed on `[data-title="Description"]`, but LuCI builds that table's cells
+  from the heading's `innerText` — and the theme's own `text-transform: uppercase` on `.th` means the
+  attribute really reads `DESCRIPTION`. The theme's CSS was rewriting the string the theme's CSS
+  matched on, so the cell never got its block layout (measured: 0 elements matched). Anchored on the
+  column; the layout now applies.
 
 - **Three gates were aimed at one filename and would have gone quiet.** `tools/axes.mjs` read the
   Appearance contract out of `menu-footstrap-common.js` by name, so an axis living anywhere else
@@ -142,6 +141,62 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [0.8.7] — 2026-07-14
 
+### Added
+- **The widget gallery renders LuCI's real `ui.FileUpload`** — closed, and with the file browser
+  open: the listing rows, the breadcrumb and the `Browse… / Filename / Upload file` strip, with the
+  class names `ui.js` actually emits. It was represented by a bare `<input type="file">`, which
+  shares none of that markup and so hid the clipped-button bug above from every check the theme has.
+- **The gallery also renders the tooltip colour words, `.cbi-select` (valid and rejected) and an
+  alert's full body** (`h5`, a list, a `<pre>`) — the widgets whose styling could not be settled
+  either way while nothing drew them.
+- **`galdiff.py`: a computed-style differ for the gallery**, and the reason the change above could
+  be made safely. `cssdiff.py` drives a live router page, so it only ever sees widgets some page
+  renders — exactly *not* the ones the absorption backlog is about; on those it reports no diff
+  whatever you delete. The gallery has them all, so a base rule that still does work shows up as a
+  real diff. It needs no router.
+
+### Changed
+- **Three `!important`s are gone from `styles/base` (33 → 30), and they are the three that should
+  never have been there.** A flag in `base` is a flag aimed at the theme — `!important` inverts the
+  layer order — so the rule this project writes down is that a flag must fight an *inline* or
+  *unlayered* declaration, never another footstrap rule. These three fought footstrap: `.cbi-dropdown`'s
+  `display` and `padding` were flagged to beat **base's own** generic form-field rule (which sets
+  `display: inline-block` / `padding: 4px` on that very selector at a higher specificity), and
+  `.spinning`'s `padding-left` was flagged to beat *them*. A later layer answers the first two for
+  free and one specificity ladder answers the third, which is exactly what the layer split is for.
+  Computed styles are identical — over the gallery and over three router pages, 0 diffs — and the
+  ratchet is tightened to 30 so they cannot drift back.
+  The remaining 30 all earn their place, and now provably: the six dropdown-state flags, the six
+  forcing utilities (`.td.right` and friends — LuCI writes them on a cell *to* override the table's
+  own alignment, and they lose to it on specificity alone), and the flags that fight an inline
+  `style=`, an unlayered `<style>` blob, or `prefers-reduced-motion`.
+- **CI is off the deprecated Node 20 runtime.** Every action was three or four majors behind
+  (`checkout@v4` → `v7`, `setup-node@v4` → `v5`, `upload/download-artifact` → `v7`/`v8`,
+  `action-gh-release@v2` → `v3`), and GitHub was already force-running them on Node 24 while
+  warning on every job — the one piece of debt here with somebody else's clock on it. The inputs
+  this workflow passes are unchanged across those majors; `download-artifact@v8` additionally turns
+  an artifact hash mismatch into an error rather than a warning, which is the direction this
+  repository's release path wants anyway.
+- **The validation tooltip is themed now, and half of the base layer's absorption backlog is
+  gone with it (50 declarations → 25).** `.cbi-tooltip`'s colour words were the one status surface
+  the theme had never claimed — base carried them, and a comment there said so in as many words.
+  Nothing could contradict it: the gallery rendered a *plain* tooltip only, and an un-rendered
+  widget shows no diff, which reads as "that rule is already dead". The gallery renders all four
+  now, and the measurement said the opposite — they were alive and un-themed. They are the theme's,
+  in tokens.
+  The same instrument then settled the rest of the backlog by measurement rather than by reading:
+  every `border-color` base declared for a button variant (`.cbi-button-edit`, `-apply`, `-save`, …)
+  turned out to be **dead on arrival** — the theme sets `border` on `.cbi-button`, and a later layer
+  beats an earlier one whatever the specificity, so those buttons never wore the colour base
+  declared. Deleted. What was genuinely alive got absorbed: the dropdown's width and its menu rows
+  (the Save & Apply split button's menu had kept base's tight rows while every other dropdown was
+  themed), the `…` overflow chip beside the chevron, the `<var>` in a form row, the invalid state of
+  a `ui.Dropdown`, and an alert's `h5`/`ul`/`li`/`pre`.
+  What remains in base is base doing its documented job — the focus ring and the transition every
+  *unnamed* `input`, `button` and `select` falls back on. Absorbing those would mean the theme
+  claiming every bare element selector, and the layer split exists precisely so overrides do not
+  depend on source order.
+
 ### Fixed
 - **The file browser clipped its own buttons: `Delete` was served sliced by the widget's border.**
   LuCI's `ui.FileUpload` sizes a listing row by proportion — name `flex: 10`, actions `flex: 3` —
@@ -198,105 +253,51 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   for browsers without SVG favicons and carries the light variant. It is also **320 bytes now,
   against 2 337** — uhttpd serves `/www` with no compression, so that is wire bytes.
 
-### Changed
-- **Three `!important`s are gone from `styles/base` (33 → 30), and they are the three that should
-  never have been there.** A flag in `base` is a flag aimed at the theme — `!important` inverts the
-  layer order — so the rule this project writes down is that a flag must fight an *inline* or
-  *unlayered* declaration, never another footstrap rule. These three fought footstrap: `.cbi-dropdown`'s
-  `display` and `padding` were flagged to beat **base's own** generic form-field rule (which sets
-  `display: inline-block` / `padding: 4px` on that very selector at a higher specificity), and
-  `.spinning`'s `padding-left` was flagged to beat *them*. A later layer answers the first two for
-  free and one specificity ladder answers the third, which is exactly what the layer split is for.
-  Computed styles are identical — over the gallery and over three router pages, 0 diffs — and the
-  ratchet is tightened to 30 so they cannot drift back.
-  The remaining 30 all earn their place, and now provably: the six dropdown-state flags, the six
-  forcing utilities (`.td.right` and friends — LuCI writes them on a cell *to* override the table's
-  own alignment, and they lose to it on specificity alone), and the flags that fight an inline
-  `style=`, an unlayered `<style>` blob, or `prefers-reduced-motion`.
-- **CI is off the deprecated Node 20 runtime.** Every action was three or four majors behind
-  (`checkout@v4` → `v7`, `setup-node@v4` → `v5`, `upload/download-artifact` → `v7`/`v8`,
-  `action-gh-release@v2` → `v3`), and GitHub was already force-running them on Node 24 while
-  warning on every job — the one piece of debt here with somebody else's clock on it. The inputs
-  this workflow passes are unchanged across those majors; `download-artifact@v8` additionally turns
-  an artifact hash mismatch into an error rather than a warning, which is the direction this
-  repository's release path wants anyway.
-- **The validation tooltip is themed at last, and half of the base layer's absorption backlog is
-  gone with it (50 declarations → 25).** `.cbi-tooltip`'s colour words were the one status surface
-  the theme had never claimed — base carried them, and a comment there said so in as many words.
-  Nothing could contradict it: the gallery rendered a *plain* tooltip only, and an un-rendered
-  widget shows no diff, which reads as "that rule is already dead". The gallery renders all four
-  now, and the measurement said the opposite — they were alive and un-themed. They are the theme's,
-  in tokens.
-  The same instrument then settled the rest of the backlog by measurement rather than by reading:
-  every `border-color` base declared for a button variant (`.cbi-button-edit`, `-apply`, `-save`, …)
-  turned out to be **dead on arrival** — the theme sets `border` on `.cbi-button`, and a later layer
-  beats an earlier one whatever the specificity, so those buttons never wore the colour base
-  declared. Deleted. What was genuinely alive got absorbed: the dropdown's width and its menu rows
-  (the Save & Apply split button's menu had kept base's tight rows while every other dropdown was
-  themed), the `…` overflow chip beside the chevron, the `<var>` in a form row, the invalid state of
-  a `ui.Dropdown`, and an alert's `h5`/`ul`/`li`/`pre`.
-  What remains in base is base doing its documented job — the focus ring and the transition every
-  *unnamed* `input`, `button` and `select` falls back on. Absorbing those would mean the theme
-  claiming every bare element selector, and the layer split exists precisely so overrides do not
-  depend on source order.
-
-### Added
-- **The widget gallery renders LuCI's real `ui.FileUpload`** — closed, and with the file browser
-  open: the listing rows, the breadcrumb and the `Browse… / Filename / Upload file` strip, with the
-  class names `ui.js` actually emits. It was represented by a bare `<input type="file">`, which
-  shares none of that markup and so hid the clipped-button bug above from every check the theme has.
-- **The gallery also renders the tooltip colour words, `.cbi-select` (valid and rejected) and an
-  alert's full body** (`h5`, a list, a `<pre>`) — the widgets whose styling could not be settled
-  either way while nothing drew them.
-- **`galdiff.py`: a computed-style differ for the gallery**, and the reason the change above could
-  be made safely. `cssdiff.py` drives a live router page, so it only ever sees widgets some page
-  renders — exactly *not* the ones the absorption backlog is about; on those it reports no diff
-  whatever you delete. The gallery has them all, so a base rule that still does work shows up as a
-  real diff. It needs no router.
-
 ## [0.8.6] — 2026-07-14
 
-### Security
-- **Every release package is now signed with ed25519, and both the installer and the Update button
-  refuse a package that does not carry our signature.** The sha256 the installer already checked
-  cannot stand alone, and the reason is exact: GitHub *computes* the digest it publishes from the
-  bytes that were uploaded. Anyone able to replace a release asset — a leaked write-scoped token is
-  enough, no CI run involved — gets the digest recomputed for them, and the checksum then verifies
-  the attacker's package happily. The signing key is a CI secret, is in no branch, and cannot be
-  read back out of GitHub, so the same swap fails the signature: demonstrated end to end on the
-  router with the real script (asset replaced, digest recomputed → sha256 passes, `ERR: BAD
-  SIGNATURE`). `usign` is on every OpenWrt image (`base-files` depends on it), so this costs the
-  theme no new runtime dependency, it covers apk and ipk with one mechanism, and — unlike trusting
-  our key in `/etc/apk/keys` — it authorises nothing on the router beyond this one package. Both
-  checks fail **closed**: a missing digest, a missing `.sig` asset or no `usign` on the box all
-  refuse. A signature that is present and *wrong* is never overridable.
-- **CI refuses to publish a release it cannot sign, and refuses a key the routers would reject.**
-  The public half ships in the package and is embedded a second time in `install.sh` (which runs
-  from `curl | sh`, before any package exists). A divergence between the two copies cannot be
-  caught by any test — the installer would simply reject every release with `BAD SIGNATURE`, i.e.
-  the failure would look exactly like the attack — so CI compares them on every run, and the
-  release job re-verifies each freshly signed package against the key the router will actually use.
-
-### Performance
-- **A page load no longer spawns a CGI process to fetch an empty translation catalogue — 31 ms off
-  every full load on an English router.** `<head>` loaded `admin/translations/<lang>` synchronously,
-  and at `lang=en` that spent 31 ms (measured, five runs) to deliver **13 bytes** — `window.TR={};` —
-  because there is no English catalogue to deliver: the msgids already are English. The process was
-  the cost, not the data. The template now emits those 13 bytes inline when the language has no
-  catalogue, and keeps the tag when it has one. The probe mirrors the server's own rule (`*.<lang>.lmo`
-  in `/usr/lib/lua/luci/i18n`, which is what `load_catalog` globs), so a router that does ship an
-  English catalogue still gets the tag; deciding by language name would have silently dropped it. It
-  fails **open** — a throwing probe keeps the tag — because a missing catalogue makes every `_()`
-  render English and report nothing. `defer` was rejected, not overlooked: `footer.ut` runs
-  `L.require('menu-footstrap')` inline while the parser is still going, so a module's `_()` would race
-  a deferred `window.TR` and lose silently.
-- **The login page dropped its 17 copies of a 49-character `:has()` selector — 663 bytes of CSS.**
-  Every rule keyed off `form:has(> .cbi-map input[name="luci_username"])`, on the assumption that the
-  markup was stock LuCI's and therefore unnameable. It is ours: `sysauth.ut` renders that form, so it
-  now carries `class="fs-login"`. The audit's stated blocker — that `ui.js` might re-render the login
-  form for its session-expiry modal — was checked and is false: `ui.js` contains no `luci_username`
-  and builds no login form at all, so nothing else ever matched those selectors. Computed styles on
-  the live router are identical in light and dark (0 property diffs over every element of the page).
+### Changed
+- **The whole `docs/` tree now describes the theme that exists.** All twenty documents were checked
+  claim by claim against the code. Two were deleted: `docs/10` (85 of its 94 lines specified a
+  top-nav renderer that was removed — its one unique piece, `clampDropdown`, lives in
+  `menu-footstrap.js` with a fuller comment) and `docs/12` (80% a worse copy of `docs/gallery.html`,
+  and it "covered" a `.cbi-fileupload*` selector that exists in neither LuCI nor this theme). The rest
+  were corrected: every token name they printed was dead (`--accent` → `--fs-accent`; the export tier
+  was called a "bridge" when it is one-way and reading it from inside `styles/` fails the build), the
+  layout was still described as a server-side theme entry, `dev-sync.sh` was documented with 1 of 5
+  points right, and the benchmark numbers carried no version stamp. Exact byte counts were replaced
+  with approximations plus the budget — the sheet grew by 37 bytes during this very pass, which is how
+  precise numbers rot.
+- **The READMEs describe the theme that exists.** The package README promised **two** theme entries
+  (`FootstrapSidebar` / `FootstrapOnTop`), a `/luci-static/footstrap-top` symlink, `-dark`/`-light`
+  symlinks, a `mobile.css` and a `sysauth.js` — none of which exist — claimed the theme needs OpenWrt
+  25.12+ (24.10 is supported too), and told the reader to customise `cascade.css`, a **generated** file
+  that is in `.gitignore`. It is now a short, true file: one theme entry, one renderer, where the CSS
+  source actually lives, and `npm run check` before pushing. The root README (and its Russian mirror)
+  had its benchmark labels swapped and its own result understated — the median page is **3.4×** faster
+  than luci-theme-bootstrap and the whole 38-page run **2.3×**, with requests per page falling from
+  15–48 to **0–8**; it read "≈2.3× median, ~1.9× overall, 15–39 → 1–4", and that 1.9× appears nowhere
+  in the benchmark. It also promised the theme "carries its own translations, so it follows whatever
+  language LuCI is set to" — the catalogue is **Russian only**; other locales get English for the
+  theme's own strings.
+- **CLAUDE.md now asks for comments that are minimally sufficient, not maximally dense — and its own
+  stale numbers are fixed.** The guidance said "comment as densely as you like — the comments do not
+  ship", which is how forty lying paragraphs grew: bytes are genuinely free (jsmin and `build-css.sh`
+  strip them, so a "why" is never worth trading for bytes), but the reader's attention is not. The
+  rule is now to state the problem and the reason and stop, and to treat a comment that cannot be made
+  true as something to delete. Four of its own facts had rotted: the JS byte figures were measured on
+  a tree that no longer existed (it claimed 78 KB of comments in 126 KB of source, when the source was
+  really 159 KB before this release's rewrite; it is now 72 KB of 127 KB, minifying to 47 KB), the CSS
+  source is ~255 KB and not ~284 KB, and `@mirror` was described as pinning **four** groups when it
+  pins **six** — `gh/asset-urls` and `theme/legacy-names` went unlisted, along with the whole-file
+  `@same-file LICENSE` pin. That last one is the exact blindness the mechanism exists to prevent.
+- **Comments across the whole tree are cut to what states the problem and the reason, ~30–40% shorter.**
+  The comments do not ship — jsmin and `build-css.sh` strip them — so this buys no bytes; it buys a
+  reader who reaches the point. What went was narrative, rhetorical framing, restatement of the next
+  line, and passages that merely re-told CLAUDE.md (now one-line pointers). What stayed is every
+  defect, every measurement and every "do NOT" — those are the load-bearing half, and they set a floor
+  well above the 50–70% cut that was aimed for. Verified mechanically that only comments changed: the
+  built `cascade.css` is byte-identical (112 115 B), every JS token stream is identical under acorn,
+  the Python AST minus docstrings is identical, and `npm run check` plus `jsmin-verify` are clean.
 
 ### Fixed
 - **Dark mode: the selected row of an open dropdown failed WCAG AA at 4.21:1.** It painted accent text
@@ -354,51 +355,52 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   `audit.py`'s docstring advertised a JS bracket check that was deliberately removed, and the
   uci-defaults marker comment said "drop the marker" where the code **writes** it.
 
-### Changed
-- **The whole `docs/` tree now describes the theme that exists.** All twenty documents were checked
-  claim by claim against the code. Two were deleted: `docs/10` (85 of its 94 lines specified a
-  top-nav renderer that was removed — its one unique piece, `clampDropdown`, lives in
-  `menu-footstrap.js` with a fuller comment) and `docs/12` (80% a worse copy of `docs/gallery.html`,
-  and it "covered" a `.cbi-fileupload*` selector that exists in neither LuCI nor this theme). The rest
-  were corrected: every token name they printed was dead (`--accent` → `--fs-accent`; the export tier
-  was called a "bridge" when it is one-way and reading it from inside `styles/` fails the build), the
-  layout was still described as a server-side theme entry, `dev-sync.sh` was documented with 1 of 5
-  points right, and the benchmark numbers carried no version stamp. Exact byte counts were replaced
-  with approximations plus the budget — the sheet grew by 37 bytes during this very pass, which is how
-  precise numbers rot.
-- **The READMEs describe the theme that exists.** The package README promised **two** theme entries
-  (`FootstrapSidebar` / `FootstrapOnTop`), a `/luci-static/footstrap-top` symlink, `-dark`/`-light`
-  symlinks, a `mobile.css` and a `sysauth.js` — none of which exist — claimed the theme needs OpenWrt
-  25.12+ (24.10 is supported too), and told the reader to customise `cascade.css`, a **generated** file
-  that is in `.gitignore`. It is now a short, true file: one theme entry, one renderer, where the CSS
-  source actually lives, and `npm run check` before pushing. The root README (and its Russian mirror)
-  had its benchmark labels swapped and its own result understated — the median page is **3.4×** faster
-  than luci-theme-bootstrap and the whole 38-page run **2.3×**, with requests per page falling from
-  15–48 to **0–8**; it read "≈2.3× median, ~1.9× overall, 15–39 → 1–4", and that 1.9× appears nowhere
-  in the benchmark. It also promised the theme "carries its own translations, so it follows whatever
-  language LuCI is set to" — the catalogue is **Russian only**; other locales get English for the
-  theme's own strings.
-- **CLAUDE.md now asks for comments that are minimally sufficient, not maximally dense — and its own
-  stale numbers are fixed.** The guidance said "comment as densely as you like — the comments do not
-  ship", which is how forty lying paragraphs grew: bytes are genuinely free (jsmin and `build-css.sh`
-  strip them, so a "why" is never worth trading for bytes), but the reader's attention is not. The
-  rule is now to state the problem and the reason and stop, and to treat a comment that cannot be made
-  true as something to delete. Four of its own facts had rotted: the JS byte figures were measured on
-  a tree that no longer existed (it claimed 78 KB of comments in 126 KB of source, when the source was
-  really 159 KB before this release's rewrite; it is now 72 KB of 127 KB, minifying to 47 KB), the CSS
-  source is ~255 KB and not ~284 KB, and `@mirror` was described as pinning **four** groups when it
-  pins **six** — `gh/asset-urls` and `theme/legacy-names` went unlisted, along with the whole-file
-  `@same-file LICENSE` pin. That last one is the exact blindness the mechanism exists to prevent.
-- **Comments across the whole tree are cut to what states the problem and the reason, ~30–40% shorter.**
-  The comments do not ship — jsmin and `build-css.sh` strip them — so this buys no bytes; it buys a
-  reader who reaches the point. What went was narrative, rhetorical framing, restatement of the next
-  line, and passages that merely re-told CLAUDE.md (now one-line pointers). What stayed is every
-  defect, every measurement and every "do NOT" — those are the load-bearing half, and they set a floor
-  well above the 50–70% cut that was aimed for. Verified mechanically that only comments changed: the
-  built `cascade.css` is byte-identical (112 115 B), every JS token stream is identical under acorn,
-  the Python AST minus docstrings is identical, and `npm run check` plus `jsmin-verify` are clean.
+### Security
+- **Every release package is now signed with ed25519, and both the installer and the Update button
+  refuse a package that does not carry our signature.** The sha256 the installer already checked
+  cannot stand alone, and the reason is exact: GitHub *computes* the digest it publishes from the
+  bytes that were uploaded. Anyone able to replace a release asset — a leaked write-scoped token is
+  enough, no CI run involved — gets the digest recomputed for them, and the checksum then verifies
+  the attacker's package. The signing key is a CI secret, is in no branch, and cannot be
+  read back out of GitHub, so the same swap fails the signature: demonstrated end to end on the
+  router with the real script (asset replaced, digest recomputed → sha256 passes, `ERR: BAD
+  SIGNATURE`). `usign` is on every OpenWrt image (`base-files` depends on it), so this costs the
+  theme no new runtime dependency, it covers apk and ipk with one mechanism, and — unlike trusting
+  our key in `/etc/apk/keys` — it authorises nothing on the router beyond this one package. Both
+  checks fail **closed**: a missing digest, a missing `.sig` asset or no `usign` on the box all
+  refuse. A signature that is present and *wrong* is never overridable.
+- **CI refuses to publish a release it cannot sign, and refuses a key the routers would reject.**
+  The public half ships in the package and is embedded a second time in `install.sh` (which runs
+  from `curl | sh`, before any package exists). A divergence between the two copies cannot be
+  caught by any test — the installer would simply reject every release with `BAD SIGNATURE`, i.e.
+  the failure would look exactly like the attack — so CI compares them on every run, and the
+  release job re-verifies each freshly signed package against the key the router will actually use.
+
+### Performance
+- **A page load no longer spawns a CGI process to fetch an empty translation catalogue — 31 ms off
+  every full load on an English router.** `<head>` loaded `admin/translations/<lang>` synchronously,
+  and at `lang=en` that spent 31 ms (measured, five runs) to deliver **13 bytes** — `window.TR={};` —
+  because there is no English catalogue to deliver: the msgids already are English. The process was
+  the cost, not the data. The template now emits those 13 bytes inline when the language has no
+  catalogue, and keeps the tag when it has one. The probe mirrors the server's own rule (`*.<lang>.lmo`
+  in `/usr/lib/lua/luci/i18n`, which is what `load_catalog` globs), so a router that does ship an
+  English catalogue still gets the tag; deciding by language name would have silently dropped it. It
+  fails **open** — a throwing probe keeps the tag — because a missing catalogue makes every `_()`
+  render English and report nothing. `defer` was rejected, not overlooked: `footer.ut` runs
+  `L.require('menu-footstrap')` inline while the parser is still going, so a module's `_()` would race
+  a deferred `window.TR` and lose silently.
+- **The login page dropped its 17 copies of a 49-character `:has()` selector — 663 bytes of CSS.**
+  Every rule keyed off `form:has(> .cbi-map input[name="luci_username"])`, on the assumption that the
+  markup was stock LuCI's and therefore unnameable. It is ours: `sysauth.ut` renders that form, so it
+  now carries `class="fs-login"`. The audit's stated blocker — that `ui.js` might re-render the login
+  form for its session-expiry modal — was checked and is false: `ui.js` contains no `luci_username`
+  and builds no login form at all, so nothing else ever matched those selectors. Computed styles on
+  the live router are identical in light and dark (0 property diffs over every element of the page).
 
 ## [0.8.5] — 2026-07-14
+
+### Changed
+- **The layout toggle reads «Сбоку» / «Сверху» in Russian.**
 
 ### Fixed
 - **The Update button installed a 6 KB translation catalogue instead of the theme.** v0.8.4 added a
@@ -423,10 +425,14 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   the theme ships no catalogue for), and so do System/Memory/Storage in the overview include — that
   one *matches* the stock section titles and must resolve exactly as `luci-mod-status` does.
 
-### Changed
-- **The layout toggle reads «Сбоку» / «Сверху» in Russian.**
-
 ## [0.8.4] — 2026-07-14
+
+### Changed
+- **`install.sh` now requires `jsonfilter` instead of falling back to grepping the API payload.**
+  It is part of OpenWrt's base image and it is what reads the asset's sha256 — the only integrity
+  check there is behind `--allow-untrusted` — so the fallback could only ever walk into the
+  "no sha256 available — refusing to install" refusal anyway. Failing with one clear line beats
+  failing three steps later with a security message.
 
 ### Fixed
 - **The theme's own strings rendered in English on a translated LuCI — the release never carried
@@ -453,14 +459,44 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   every CI run would have stamped them `0.<yymmdd>.<secs>`: a version unrelated to the release, and
   a different one on every rebuild of the same tag.
 
-### Changed
-- **`install.sh` now requires `jsonfilter` instead of falling back to grepping the API payload.**
-  It is part of OpenWrt's base image and it is what reads the asset's sha256 — the only integrity
-  check there is behind `--allow-untrusted` — so the fallback could only ever walk into the
-  "no sha256 available — refusing to install" refusal anyway. Failing with one clear line beats
-  failing three steps later with a security message.
-
 ## [0.8.3] — 2026-07-14
+
+### Added
+- **CI compile-checks the ucode templates.** They had no parser anywhere: `luci.mk` copies them
+  to the router verbatim, so a stray brace in `header.ut` built green, released, and then every
+  user's LuCI silently fell back to a different theme. CI now builds `ucode` from a pinned
+  upstream commit — the same discipline `jsmin.c` already gets, and for the same reason — and
+  runs LuCI's own `ucode -T -c` over every `.ut`.
+- **CI validates the rpcd ACL as JSON.** rpcd skips a file it cannot parse and says nothing, so a
+  trailing comma there would have taken the update badge and the Update button away from every
+  user with no other symptom.
+- **The OpenWrt SDK is checksummed.** Two *linters* were pinned by commit and sha256 while the
+  toolchain that actually builds the released package arrived on trust; its published
+  `sha256sums` is now checked, and the download pins https across redirects.
+
+### Changed
+- **`build-css.sh` checks the file it actually writes, and refuses one that is too small.** The
+  brace/rule-count check ran on the squeeze's *input* — while the squeeze is the pass most able
+  to corrupt a stylesheet, being the one that tracks strings, joins lines and drops the last
+  `;` — and the only gate on the finished file was an upper size bound, so every way of
+  producing a *truncated* `cascade.css` passed silently. The rule count must now survive the
+  squeeze unchanged, and the sheet has a floor as well as a ceiling.
+- **A tag whose changelog section is missing now fails the release.** `release-notes.sh` warned
+  to stderr and exited 0, publishing a release page reading "See the CHANGELOG" for a version
+  the changelog had never heard of — precisely the mistake the "never tag first" rule exists to
+  prevent, made permanent and public. The Russian mirror is required too.
+- The installer's failure modal builds its message as a text node rather than through
+  `innerHTML`: `luci.js` assigns a *bare string* child via `innerHTML` and only text-nodes an
+  array, and what lands there is raw `apk`/`opkg` stderr — the one string in this theme that
+  neither the theme nor LuCI composed.
+- `tools/fs-orphans.mjs` no longer reports the `fs-fit` *module* as an unstyled class. A
+  permanent false "NEW" line in a report is how a report teaches you to stop reading it.
+- **`audit.py` reported the wrong line for every finding it has ever printed.** Stripping a
+  comment deleted its newlines too, and the line numbers are derived from that stripped copy —
+  so each `file:line` was shifted up by however many comment lines sat above the rule. In a tree
+  where the comments outweigh the code that is a large shift: the focus block it called
+  `30-forms.css:336` really lives at `:353`. A finding that points at the wrong line is a finding
+  you go and "fix" in the wrong rule.
 
 ### Fixed
 - **The ACE editor apps embed (SSClash, and any other app shipping ace.js) rendered as a black
@@ -536,7 +572,7 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   history entry unconditionally, so a click on the active menu item added a duplicate; Back then
   fired `popstate`, found the path unchanged, and correctly did nothing — once per stray click.
   A re-navigation to the current URL now replaces its entry, as a full page load does.
-- **The Update button could wedge until the router was rebooted.** A worker killed mid-`apk add`
+- **The Update button could hang until the router was rebooted.** A worker killed mid-`apk add`
   (an OOM on a 128 MB box, and apk is the memory-hungry part) left `status=RUNNING` and its
   staged copy behind forever, and a pre-check in front of the lock answered `RUNNING` to every
   later click — the client polled its full 300 s and reported "timed out waiting for the
@@ -589,43 +625,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   was workflow-wide, so it was in reach of the `npm ci` in the lint job — i.e. of the lifecycle
   scripts of every dev dependency — on a `pull_request` run. Only the release job declares it now.
 
-### Added
-- **CI compile-checks the ucode templates.** They had no parser anywhere: `luci.mk` copies them
-  to the router verbatim, so a stray brace in `header.ut` built green, released, and then every
-  user's LuCI silently fell back to a different theme. CI now builds `ucode` from a pinned
-  upstream commit — the same discipline `jsmin.c` already gets, and for the same reason — and
-  runs LuCI's own `ucode -T -c` over every `.ut`.
-- **CI validates the rpcd ACL as JSON.** rpcd skips a file it cannot parse and says nothing, so a
-  trailing comma there would have taken the update badge and the Update button away from every
-  user with no other symptom.
-- **The OpenWrt SDK is checksummed.** Two *linters* were pinned by commit and sha256 while the
-  toolchain that actually builds the released package arrived on trust; its published
-  `sha256sums` is now checked, and the download pins https across redirects.
-
-### Changed
-- **`build-css.sh` checks the file it actually writes, and refuses one that is too small.** The
-  brace/rule-count check ran on the squeeze's *input* — while the squeeze is the pass most able
-  to corrupt a stylesheet, being the one that tracks strings, joins lines and drops the last
-  `;` — and the only gate on the finished file was an upper size bound, so every way of
-  producing a *truncated* `cascade.css` passed silently. The rule count must now survive the
-  squeeze unchanged, and the sheet has a floor as well as a ceiling.
-- **A tag whose changelog section is missing now fails the release.** `release-notes.sh` warned
-  to stderr and exited 0, publishing a release page reading "See the CHANGELOG" for a version
-  the changelog had never heard of — precisely the mistake the "never tag first" rule exists to
-  prevent, made permanent and public. The Russian mirror is required too.
-- The installer's failure modal builds its message as a text node rather than through
-  `innerHTML`: `luci.js` assigns a *bare string* child via `innerHTML` and only text-nodes an
-  array, and what lands there is raw `apk`/`opkg` stderr — the one string in this theme that
-  neither the theme nor LuCI composed.
-- `tools/fs-orphans.mjs` no longer reports the `fs-fit` *module* as an unstyled class. A
-  permanent false "NEW" line in a report is how a report teaches you to stop reading it.
-- **`audit.py` reported the wrong line for every finding it has ever printed.** Stripping a
-  comment deleted its newlines too, and the line numbers are derived from that stripped copy —
-  so each `file:line` was shifted up by however many comment lines sat above the rule. In a tree
-  where the comments outweigh the code that is a large shift: the focus block it called
-  `30-forms.css:336` really lives at `:353`. A finding that points at the wrong line is a finding
-  you go and "fix" in the wrong rule.
-
 ## [0.8.2] — 2026-07-13
 
 ### Changed
@@ -668,41 +667,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [0.8.1] — 2026-07-13
 
-### Security
-- **`install.sh` no longer disables TLS certificate verification.** The installer is piped from the
-  internet into `sh` as root, and it retried every download with `--no-check-certificate` (or
-  `curl -k`) after *any* failure of the verified attempt — which includes a man-in-the-middle
-  presenting a bogus certificate. Whatever came back was then installed as a root package. The
-  "install the CA bundle" hint it prints was therefore unreachable in the one case it was written
-  for. `ca-bundle` is in OpenWrt's `DEFAULT_PACKAGES`, so the insecure path bought nothing on a
-  stock router and silently disarmed the check on a broken one.
-- **The theme package is now verified against the sha256 GitHub publishes for it, in both the
-  installer and the self-updater.** Both install with `apk add --allow-untrusted`, i.e. with no
-  package signature to fall back on, so the release API's per-asset `digest` is the only integrity
-  check there is — and neither script was reading it. A mismatch now refuses the install. It rides
-  the same TLS channel as the URL, so it does not defend against a compromised `api.github.com`;
-  what it does defend against is a truncated or tampered download from the asset CDN, which is a
-  different host.
-- **The asset host is pinned, and the redirect scheme is pinned on the backends that can express it.**
-  The download URL is read out of an API response and handed to `apk add` as root; it is now required
-  to be a GitHub host. `curl` additionally gets `--proto '=https' --proto-redir '=https'`, so it will
-  not follow a redirect to plain `http://` on the way to the asset CDN. **`uclient-fetch` — the
-  first-choice backend, and the one a stock OpenWrt router actually has — has no equivalent flag**, so
-  on that path the guards are the host allowlist and the sha256, not a scheme pin.
-- **`install.sh` downloads into `mktemp -d`, not a predictable `/tmp/footstrap-install`.** `/tmp` is
-  1777, so any local unprivileged process could pre-create that name as a symlink and have root
-  write the package through it to a file of its choosing (CWE-377) — the same race
-  `footstrap-selfupdate.sh` already documents six lines of reasoning about avoiding.
-- **The self-updater cannot start two concurrent installs any more.** Its "is a run already in
-  progress?" test was a read followed by a write, so two RPCs arriving together both read "no" and
-  both spawned an `apk add` on the same package — reproduced by firing the script twice at once.
-  An atomic `mkdir` lock replaces it, with the lock's own mtime as the staleness signal (five
-  simultaneous invocations now yield exactly one `STARTED` and four `RUNNING`).
-- **CI's jsmin and the i18n scanner are pinned to a commit SHA and checksummed.** Both were fetched
-  from `openwrt/luci@master` and then *executed* — jsmin is compiled from C and is the gate that
-  decides whether the shipped JavaScript is safe. Off a moving branch, the gate is whatever upstream
-  pushed last.
-
 ### Added
 - **A gate for the one duplication that cannot be pinned: the Appearance axes.** Every axis is
   implemented twice — `head.ut` stamps `:root` before the first paint (inline, before the module
@@ -725,14 +689,14 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   duplicate, and the budget is gone. It covers **shell as well as CSS** — see below.
 
 ### Changed
-- **Save and Reset in the page action bar carry a tint, and the hover cue is finally visible.** A
+- **Save and Reset in the page action bar carry a tint, and the hover cue is now visible.** A
   transparent button beside the solid Save & Apply read as disabled rather than as secondary. Both now take the same step of the
   role ladder — `-soft` at rest, `-fill` on hover — Save off the accent role and Reset off danger,
   which it already declared on hover. Their labels are `--fs-text` and **not** the role colour: text of
   colour C on a translucent tint of C is the mistake this project documents having learned the hard
   way, and axe measured it immediately (accent on accent-soft: 4.25:1, an AA failure). The fill and the
   border carry the role; the label only has to be legible.
-- **The hover lift flips direction per mode, and that is a WCAG fix, not a flourish.** `filter`
+- **The hover lift flips direction per mode, and that is a WCAG fix.** `filter`
   recolours an element's *text* as well as its fill, and a light-mode solid button is a saturated fill
   carrying WHITE ink — which cannot get any brighter. Brightening it only closes the gap: on
   `--fs-accent` the white ink measures 5.19:1 at rest, the old `brightness(1.08)` already dropped it to
@@ -938,6 +902,41 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 - **The installer told new users to pick theme entries that no longer exist** (`FootstrapSidebar` /
   `FootstrapOnTop`). There is one `Footstrap` entry; layout is a per-browser toggle in Appearance.
 
+### Security
+- **`install.sh` no longer disables TLS certificate verification.** The installer is piped from the
+  internet into `sh` as root, and it retried every download with `--no-check-certificate` (or
+  `curl -k`) after *any* failure of the verified attempt — which includes a man-in-the-middle
+  presenting a bogus certificate. Whatever came back was then installed as a root package. The
+  "install the CA bundle" hint it prints was therefore unreachable in the one case it was written
+  for. `ca-bundle` is in OpenWrt's `DEFAULT_PACKAGES`, so the insecure path bought nothing on a
+  stock router and silently disarmed the check on a broken one.
+- **The theme package is now verified against the sha256 GitHub publishes for it, in both the
+  installer and the self-updater.** Both install with `apk add --allow-untrusted`, i.e. with no
+  package signature to fall back on, so the release API's per-asset `digest` is the only integrity
+  check there is — and neither script was reading it. A mismatch now refuses the install. It rides
+  the same TLS channel as the URL, so it does not defend against a compromised `api.github.com`;
+  what it does defend against is a truncated or tampered download from the asset CDN, which is a
+  different host.
+- **The asset host is pinned, and the redirect scheme is pinned on the backends that can express it.**
+  The download URL is read out of an API response and handed to `apk add` as root; it is now required
+  to be a GitHub host. `curl` additionally gets `--proto '=https' --proto-redir '=https'`, so it will
+  not follow a redirect to plain `http://` on the way to the asset CDN. **`uclient-fetch` — the
+  first-choice backend, and the one a stock OpenWrt router actually has — has no equivalent flag**, so
+  on that path the guards are the host allowlist and the sha256, not a scheme pin.
+- **`install.sh` downloads into `mktemp -d`, not a predictable `/tmp/footstrap-install`.** `/tmp` is
+  1777, so any local unprivileged process could pre-create that name as a symlink and have root
+  write the package through it to a file of its choosing (CWE-377) — the same race
+  `footstrap-selfupdate.sh` already documents six lines of reasoning about avoiding.
+- **The self-updater cannot start two concurrent installs any more.** Its "is a run already in
+  progress?" test was a read followed by a write, so two RPCs arriving together both read "no" and
+  both spawned an `apk add` on the same package — reproduced by firing the script twice at once.
+  An atomic `mkdir` lock replaces it, with the lock's own mtime as the staleness signal (five
+  simultaneous invocations now yield exactly one `STARTED` and four `RUNNING`).
+- **CI's jsmin and the i18n scanner are pinned to a commit SHA and checksummed.** Both were fetched
+  from `openwrt/luci@master` and then *executed* — jsmin is compiled from C and is the gate that
+  decides whether the shipped JavaScript is safe. Off a moving branch, the gate is whatever upstream
+  pushed last.
+
 ## [0.8.0] — 2026-07-13
 
 ### Added
@@ -1041,6 +1040,22 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   control radius now; in the vertical sidebar, where its neighbours are full-width rows rather than
   square buttons, it spans the column instead of floating in the middle of it as a stray chip.
 
+### Removed
+- **The second menu renderer, the second template and the second stylesheet are gone**
+  (`menu-footstrap-top.js`, `ucode/template/themes/footstrap-top/`, the `/luci-static/footstrap-top`
+  symlink, `styles/theme/50-topnav.css`). They were never two designs — the sidebar renderer already
+  emitted the markup that its own CSS turns into a horizontal bar on a phone, and it already had a
+  "flyout mode" in which a section behaves exactly like a top-nav dropdown. The top layout is that
+  mode, at desktop width: **the whole of the deleted renderer's unique logic was one function**
+  (`clampDropdown`, which nudges a dropdown back inside the viewport near the right edge), and it now
+  lives in the surviving renderer. Hover-to-open was always pure CSS. Deleting the second stylesheet
+  paid for the new one almost exactly: the layout merge itself cost **+78 bytes of CSS**. (The release
+  as a whole is +971 bytes — the rest buys the hostname wrap, the measured stacking and the
+  content-width sidebar.)
+- **The `with_label` template parameter and the elements it forked** (`.fs-appearance-btn`,
+  `.fs-top-logout`). A layout is a presentation choice, so it must not fork the markup: Appearance and
+  Log out are one row each, and the bar and the rail squash them into icon buttons in CSS.
+
 ### Fixed
 - **A page with nothing to poll (Software, Backup…) showed a "Paused" pill, reporting on a poll that
   does not exist there.** LuCI shows the indicator on a `poll-start` event and flips it to "Paused" on
@@ -1092,25 +1107,9 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   the one string that tells you WHICH router you are looking at. It now breaks across lines —
   `overflow-wrap: anywhere`, so it will break mid-word when a single "word" is itself wider than the box,
   but only when there is no better break, so a normal dotted name still breaks at its dots. Wrapping
-  alone was not enough: the bar is flex-wrap, so instead of squeezing the brand, flexbox happily wrapped
+  alone was not enough: the bar is flex-wrap, so instead of squeezing the brand, flexbox wrapped
   the *menu* away and let a 78-character hostname sit on its own line 609 px wide. The brand is therefore
   also **capped** (30ch), and the bar grows in height to hold the extra line.
-
-### Removed
-- **The second menu renderer, the second template and the second stylesheet are gone**
-  (`menu-footstrap-top.js`, `ucode/template/themes/footstrap-top/`, the `/luci-static/footstrap-top`
-  symlink, `styles/theme/50-topnav.css`). They were never two designs — the sidebar renderer already
-  emitted the markup that its own CSS turns into a horizontal bar on a phone, and it already had a
-  "flyout mode" in which a section behaves exactly like a top-nav dropdown. The top layout is that
-  mode, at desktop width: **the whole of the deleted renderer's unique logic was one function**
-  (`clampDropdown`, which nudges a dropdown back inside the viewport near the right edge), and it now
-  lives in the surviving renderer. Hover-to-open was always pure CSS. Deleting the second stylesheet
-  paid for the new one almost exactly: the layout merge itself cost **+78 bytes of CSS**. (The release
-  as a whole is +971 bytes — the rest buys the hostname wrap, the measured stacking and the
-  content-width sidebar.)
-- **The `with_label` template parameter and the elements it forked** (`.fs-appearance-btn`,
-  `.fs-top-logout`). A layout is a presentation choice, so it must not fork the markup: Appearance and
-  Log out are one row each, and the bar and the rail squash them into icon buttons in CSS.
 
 ## [0.7.18] — 2026-07-13
 
@@ -1173,7 +1172,7 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   never gets the border and no specificity battle decides it. Invisible before only where
   the table was `overflow:hidden` and clipped the line.
 - **The DHCP leases table stopped shrinking at ~736px and spilled out of its section.**
-  The leases costyl kept every mono column (IPv4/MAC/IAID/Remaining/the Static-Lease
+  The leases workaround kept every mono column (IPv4/MAC/IAID/Remaining/the Static-Lease
   button/Interface) on one line — `white-space: nowrap` — down to a 568px container, so
   the table held a data-dependent intrinsic floor (~736px on a busy router). But the
   card-stack that folds a data table into label/value pairs only kicked in below 568px,
@@ -1186,6 +1185,32 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   the shared 568px threshold.
 
 ## [0.7.17] — 2026-07-13
+
+### Changed
+- **Data tables on a phone stack the way stock LuCI stacks them: the column label sits
+  above its value, and each cell takes half the row.** They used to put label and value
+  on one line with the value flushed right, which left the value about 40% of the
+  width. An Associated Stations row then spent 7 full-width lines, and its
+  `.ifacebadge`, signal graph and long DUID wrapped under their own labels anyway.
+  Half-width pairs fold the same row into 4 lines and hand the value the whole
+  half-column. The row's buttons (Disconnect, Reserve IP) take a full-width line of
+  their own below the pairs. Values stay left-aligned: a MAC, a DUID or a rate is an
+  opaque string, and a ragged right edge reads worse than a ragged left one.
+- **Config tables stack the same way, and a cell holding a widget keeps the full
+  width.** A `.cbi-section-table` row (OpenVPN instances, firewall zones, port
+  forwards) used to card into `label : value` lines with the value flushed right. It
+  now uses the pair layout above: read-only cells at half a row (`data-widget` =
+  dummy/flag/button, in both the `CBI.*` spelling `form.js` emits and the lowercase one
+  the Lua CBI does), and any cell with an input, select or dropdown in it at the full
+  width, because a dropdown half a phone wide cannot be used. Row buttons get their own
+  line.
+- **The width at which a data table stops being a table is stock LuCI's now, not
+  ours.** Bootstrap's `mobile.css` stacks at `max-device-width: 600px`; the theme
+  carded at a container width of 800px, i.e. on small tablets and narrow desktop
+  windows where the real table still fits. The threshold is a 568px `#view` container:
+  a 600px viewport, less the 16px of side padding `.fs-content` carries below the 767px
+  tier. The DHCP-leases nowrap rule moved to the adjacent `min-width: 569px`, so no band
+  of widths is left with neither behaviour.
 
 ### Fixed
 - **A dialog on a phone laid its form out as if it were a desktop, and cut the inputs
@@ -1222,32 +1247,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   still render through (`luci-app-openvpn`) emits a bare `tr.cbi-section-table-titles`
   instead. Both are hidden now.
 
-### Changed
-- **Data tables on a phone stack the way stock LuCI stacks them: the column label sits
-  above its value, and each cell takes half the row.** They used to put label and value
-  on one line with the value flushed right, which left the value about 40% of the
-  width. An Associated Stations row then spent 7 full-width lines, and its
-  `.ifacebadge`, signal graph and long DUID wrapped under their own labels anyway.
-  Half-width pairs fold the same row into 4 lines and hand the value the whole
-  half-column. The row's buttons (Disconnect, Reserve IP) take a full-width line of
-  their own below the pairs. Values stay left-aligned: a MAC, a DUID or a rate is an
-  opaque string, and a ragged right edge reads worse than a ragged left one.
-- **Config tables stack the same way, and a cell holding a widget keeps the full
-  width.** A `.cbi-section-table` row (OpenVPN instances, firewall zones, port
-  forwards) used to card into `label : value` lines with the value flushed right. It
-  now uses the pair layout above: read-only cells at half a row (`data-widget` =
-  dummy/flag/button, in both the `CBI.*` spelling `form.js` emits and the lowercase one
-  the Lua CBI does), and any cell with an input, select or dropdown in it at the full
-  width, because a dropdown half a phone wide cannot be used. Row buttons get their own
-  line.
-- **The width at which a data table stops being a table is stock LuCI's now, not
-  ours.** Bootstrap's `mobile.css` stacks at `max-device-width: 600px`; the theme
-  carded at a container width of 800px, i.e. on small tablets and narrow desktop
-  windows where the real table still fits. The threshold is a 568px `#view` container:
-  a 600px viewport, less the 16px of side padding `.fs-content` carries below the 767px
-  tier. The DHCP-leases nowrap rule moved to the adjacent `min-width: 569px`, so no band
-  of widths is left with neither behaviour.
-
 ### Performance
 - **The overview showed nothing at all until its slowest section answered.** Stock
   `view.status.index` calls `poll_status()` with a `Promise.all` over every include's
@@ -1277,7 +1276,7 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 - The SPA router now follows `alias` and `firstchild` menu nodes, so the links
   that used to be its blind spot navigate in place like every other page:
   Firewall, System Log, Realtime Graphs, Administration, Terminal, Attended
-  Sysupgrade. Those are 7 of the 27 links the menu renders — and among the most
+  Sysupgrade. Those are 6 of the 27 links the menu renders — and among the most
   clicked — yet each one still did a full page reload, because the router only
   recognised `view` nodes and an alias is a redirect, not a page. Coverage over
   every clickable node goes from 50 to 62.
@@ -1294,6 +1293,30 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   and a wrong guess would open the wrong page — worse than the reload it falls
   back to).
 - This changelog and its Russian mirror.
+
+### Changed
+- Stylesheet deduplicated: 1.4 KB smaller, nothing rendered differently
+  (`cssdiff` over nine pages). The solid buttons were written out twice, byte for
+  byte, so a recolour would have landed on half of them. Twelve `base`
+  declarations that a `theme` rule already repaints through a *different* selector
+  are gone; `audit.py` compares identical selectors only and could not see them.
+- `setOpen`, the Space key, click-outside and Escape lived in both menu files, and
+  the copies had drifted: only the sidebar checked flyout mode. One implementation
+  in `menu-footstrap-common.js` now, with the selector passed in. Byte-neutral
+  after minification, but the two layouts can no longer disagree on what `.open`
+  means.
+
+### Fixed
+- Read-only users got working Save/Apply/Reset buttons. The SPA router rebuilt
+  `L.env.nodespec` on every navigation and dropped its `readonly` flag, which
+  `luci.js` reads as `hasViewPermission() = !env.nodespec.readonly`. A full page
+  load disabled the buttons correctly; arriving by menu click did not.
+- The active interface lost its highlight. `.ifacebox-head.active` was declared in
+  `base` while `theme` repainted the plain `.ifacebox-head`, and a cascade layer
+  beats specificity, so IPv4 Upstream and the radios drew as flat grey plates.
+- The SSH-Keys list was capped at 440 px, wrapping a ~400-char key over three
+  lines. Its `max-width: none` sat in `base` and lost the same way. Moved to
+  `@layer page`, which actually wins.
 
 ### Performance
 - **Every view was rendered twice on the first visit to a page, and registered two
@@ -1341,30 +1364,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   already satisfied. Readiness is now "the old nodes are gone", which is exactly what
   `dom.content(#view, …)` guarantees.
 
-### Fixed
-- Read-only users got working Save/Apply/Reset buttons. The SPA router rebuilt
-  `L.env.nodespec` on every navigation and dropped its `readonly` flag, which
-  `luci.js` reads as `hasViewPermission() = !env.nodespec.readonly`. A full page
-  load disabled the buttons correctly; arriving by menu click did not.
-- The active interface lost its highlight. `.ifacebox-head.active` was declared in
-  `base` while `theme` repainted the plain `.ifacebox-head`, and a cascade layer
-  beats specificity, so IPv4 Upstream and the radios drew as flat grey plates.
-- The SSH-Keys list was capped at 440 px, wrapping a ~400-char key over three
-  lines. Its `max-width: none` sat in `base` and lost the same way. Moved to
-  `@layer page`, which actually wins.
-
-### Changed
-- Stylesheet deduplicated: 1.4 KB smaller, nothing rendered differently
-  (`cssdiff` over nine pages). The solid buttons were written out twice, byte for
-  byte, so a recolour would have landed on half of them. Twelve `base`
-  declarations that a `theme` rule already repaints through a *different* selector
-  are gone; `audit.py` compares identical selectors only and could not see them.
-- `setOpen`, the Space key, click-outside and Escape lived in both menu files, and
-  the copies had drifted: only the sidebar checked flyout mode. One implementation
-  in `menu-footstrap-common.js` now, with the selector passed in. Byte-neutral
-  after minification, but the two layouts can no longer disagree on what `.open`
-  means.
-
 ## [0.7.15] — 2026-07-12
 
 ### Fixed
@@ -1380,7 +1379,7 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   byte-identically.
 - The tint had a flat chroma, so its strength depended on which hue you picked,
   which is the one thing an identity cue must not do. Blue and violet did nothing
-  (the canvas is a blue-grey and already out-chroma'd them), warm hues shouted, and
+  (the canvas is a blue-grey and already out-chroma'd them), warm hues were too strong, and
   light mode showed nothing at all. Chroma is now a floor plus a `cos()` boost
   peaking at 258° and a warm-sector subtraction at 55°. Light gets a higher floor
   than dark, because near-white has almost no chroma of its own.
@@ -1426,14 +1425,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [0.7.13] — 2026-07-12
 
-### Performance
-- The bold mono face is gone: 20 KB fetched on every page, 30% of the font payload,
-  drawing 227 elements across seven pages that were all *labels*. LuCI writes every
-  status readout as `<strong>MAC:</strong> ac:1f:6b:…`, where the strong names the
-  datum and the text after it is the datum. Labels take the UI face now, at zero
-  cost, since Manrope 700 is already loaded. Fonts on disk 94 664 → 68 488 B; the
-  CI budget ratchets down to 70 KB.
-
 ### Changed
 - Tokens split into a private tier and an outbound export tier. `:root` is a shared
   global scope, and every `luci-app-*` drops its CSS into the same document
@@ -1455,8 +1446,16 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   absorption backlog (50 declarations where only part of a selector group is
   repainted), which must not be deleted: that would un-theme the widgets no shipped
   LuCI page renders but a third-party app does.
-- 11 redundant `!important` flags (43 → 33), each checked property by property
+- 11 redundant `!important` flags (44 → 33), each checked property by property
   against the JS that writes the inline style it was supposed to fight.
+
+### Performance
+- The bold mono face is gone: 20 KB fetched on every page, 30% of the font payload,
+  drawing 227 elements across seven pages that were all *labels*. LuCI writes every
+  status readout as `<strong>MAC:</strong> ac:1f:6b:…`, where the strong names the
+  datum and the text after it is the datum. Labels take the UI face now, at zero
+  cost, since Manrope 700 is already loaded. Fonts on disk 94 664 → 68 488 B; the
+  CI budget ratchets down to 70 KB.
 
 ## [0.7.12] — 2026-07-12
 
@@ -1474,26 +1473,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   branches. Only the package manager differs (apk vs opkg).
 - `docs/18`: the peer baseline (what argon/aurora/proton2025 actually ship, measured
   from their repos), the standards checklist, and the audit this release came out of.
-
-### Performance
-- The JS is minified again (83 → 35 KB). `LUCI_MINIFY_JS:=0` had been copied from
-  the CSS side, where it is justified, since csstidy mangles `:has()`/`color-mix()`.
-  But `luci.mk` minifies JS with jsmin, which is already on the buildbot, and uhttpd
-  serves `/www` uncompressed, so those were wire bytes and flash bytes both.
-  Comments stay in git. jsmin's hazard is real and silent: it tells a regex from a
-  division by one preceding character, and can swallow the rest of a file while
-  exiting 0. So `wrap-regex` forbids the shape and `tools/jsmin-verify.mjs` proves
-  the output is token-identical to the source.
-- `build-css.sh` squeezes the whitespace CSS ignores (117.5 → 108.3 KB), proven
-  behaviour-neutral with `cssdiff` over ~4000 elements.
-
-### Security
-- The self-update script's state moved out of `/tmp` into root-owned
-  `/var/run/footstrap-update`. `/tmp` is 1777 and the old paths were predictable, so
-  a local user could pre-create them as symlinks and make root's `cp`, `chmod`,
-  `curl -o` and `>` write through to a file of their choosing (CWE-377). `PATH` is
-  pinned, since rpcd lets the caller pass env. Both `curl` calls gained timeouts, and
-  a truncated cache no longer wedges the update button until reboot.
 
 ### Fixed
 - Accessibility, up to WCAG 2.2 AA. Buttons had no focus indicator at all: base
@@ -1515,7 +1494,32 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   `dev-sync.sh` ever took the upgrade branch. A marker file decides fresh install vs
   upgrade now.
 
+### Security
+- The self-update script's state moved out of `/tmp` into root-owned
+  `/var/run/footstrap-update`. `/tmp` is 1777 and the old paths were predictable, so
+  a local user could pre-create them as symlinks and make root's `cp`, `chmod`,
+  `curl -o` and `>` write through to a file of their choosing (CWE-377). `PATH` is
+  pinned, since rpcd lets the caller pass env. Both `curl` calls gained timeouts, and
+  a truncated cache no longer wedges the update button until reboot.
+
+### Performance
+- The JS is minified again (83 → 35 KB). `LUCI_MINIFY_JS:=0` had been copied from
+  the CSS side, where it is justified, since csstidy mangles `:has()`/`color-mix()`.
+  But `luci.mk` minifies JS with jsmin, which is already on the buildbot, and uhttpd
+  serves `/www` uncompressed, so those were wire bytes and flash bytes both.
+  Comments stay in git. jsmin's hazard is real and silent: it tells a regex from a
+  division by one preceding character, and can swallow the rest of a file while
+  exiting 0. So `wrap-regex` forbids the shape and `tools/jsmin-verify.mjs` proves
+  the output is token-identical to the source.
+- `build-css.sh` squeezes the whitespace CSS ignores (117.5 → 108.3 KB), proven
+  behaviour-neutral with `cssdiff` over ~4000 elements.
+
 ## [0.7.11] — 2026-07-12
+
+### Added
+- Bilingual GitHub issue forms. The bug form asks for what a layout bug cannot be
+  reproduced without: theme version, board, layout, palette/mode, page path, viewport,
+  and whether stock `luci-theme-bootstrap` shows it too.
 
 ### Changed
 - The HSL component bridge is gone. Every base shadow and hairline that read
@@ -1539,11 +1543,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   Pinned.
 - `postrm` moves an active footstrap `mediaurlbase` back to `bootstrap` instead of
   leaning on LuCI's runtime fallback.
-
-### Added
-- Bilingual GitHub issue forms. The bug form asks for what a layout bug cannot be
-  reproduced without: theme version, board, layout, palette/mode, page path, viewport,
-  and whether stock `luci-theme-bootstrap` shows it too.
 
 ## [0.7.10] — 2026-07-11
 
@@ -1585,7 +1584,7 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 ### Changed
 - Standard breakpoints: mobile ≤767, tablet 768–1199, desktop ≥1200, remapped
   everywhere including the flyout-mode JS breakpoint. The overview grid moved from a
-  viewport `@media` to a robust `@container`, and the content column cap goes
+  viewport `@media` to a `@container`, and the content column cap goes
   1040 → 1280.
 - The Port status cards on the overview are count-agnostic (`auto-fit
   minmax(126,200)`, so 2 to 24+ ports lay out without a card stretching full-width),
@@ -1656,6 +1655,9 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [0.7.0] — 2026-07-10
 
+### Added
+- `audit.py` checks for declarations shadowed within a layer, so the stylesheet cannot
+  drift back into a changelog.
 ### Changed
 - The styles tree is one directory per cascade layer (`tokens, base, theme, page`),
   with the 2300-line base stylesheet split by component. Rule order inside each layer
@@ -1675,9 +1677,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   `uci-defaults` migrates a stale `mediaurlbase` before the on-disk check runs, so they
   guarded nothing.
 
-### Added
-- `audit.py` checks for declarations shadowed within a layer, so the stylesheet cannot
-  drift back into a changelog.
 
 ---
 
