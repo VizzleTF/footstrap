@@ -885,7 +885,7 @@
 	if(pop)pop.querySelectorAll('button,a').forEach(function(b){if(b.closest('.fs-seg'))return;b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();});});
 	// the playground banner
 	var host=document.querySelector('.fs-content')||document.getElementById('view');
-	if(host){var bn=document.createElement('div');bn.className='pg-banner';bn.innerHTML='<span>\ud83c\udf9b\ufe0f <b>Playground.</b> A real footstrap overview (data anonymised). Click <b>Appearance</b> to open the controls \u2014 drag them and the whole page repaints. <b>Nothing navigates</b>; the menu just opens and closes.</span><span class="sp"></span><a class="pg-link" href="devkit.html">\u2190 Back to the devkit</a>';host.insertBefore(bn,host.firstChild);}
+	if(host){var bn=document.createElement('div');bn.className='pg-banner';bn.innerHTML='<span>\ud83c\udf9b\ufe0f <b>Playground.</b> A real footstrap overview (data anonymised). Click <b>Appearance</b> to open the controls \u2014 drag them and the whole page repaints. <b>Nothing navigates</b>; the menu just opens and closes.</span><span class="sp"></span><a class="pg-link" href="https://github.com/VizzleTF/luci-theme-footstrap" target="_blank" rel="noopener noreferrer">View on GitHub \u2197</a>';host.insertBefore(bn,host.firstChild);}
 })();
 </script>
 </body></html>
