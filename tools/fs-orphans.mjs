@@ -34,13 +34,21 @@ const IGNORE_EXACT = new Set([
 	'fs-rail', 'fs-layout', 'fs-menu-open', 'fs-menu-autocollapse', 'fs-update-check',
 	/* custom events / id prefixes */
 	'fs-autocollapse', 'fs-sub-', 'fs-topsub-',
-	/* MODULE NAMES, not classes — they appear as `require fs-x as y`. Every resource module the
-	 * theme adds must land here; fs-fit did not, and sat in the report as a permanent "NEW:
-	 * style it, delete it, or justify it" line — which is how a report teaches you to stop
-	 * reading it. */
-	'fs-select', 'fs-fit',
+	/* a console log PREFIX (`console.error('fs-fit: a fitter threw')`), not markup. This is the one
+	 * name still ignored BY NAME, and it is safe only because nothing styles `.fs-fit`; see the note
+	 * below for why the blanket list of module names was the wrong fix. */
+	'fs-fit',
 ]);
-const IGNORE_PREFIX = ['--fs-'];		/* custom properties */
+/* MODULE NAMES are not classes — and they are handled by STRIPPING the two places a module is
+ * REFERENCED (the `'require fs-x as y'` pragma, and footer.ut's `L.require('fs-x')`), not by listing
+ * the names. Listing every module was the first fix and it is wrong the moment a module is named
+ * after the markup it owns: `fs-appearance` is BOTH a module and the id of the button that opens it,
+ * so ignoring the NAME to silence the pragma also silenced the real `#fs-appearance` — and the tool
+ * duly reported a live selector as dead CSS. Blind the scan to a POSITION, never to a name. */
+/* Two more POSITIONS in which an fs-* token is not a class: a custom property (`--fs-accent`) and a
+ * data attribute (`data-fs-select`, `data-fs-shell`). Matched by what PRECEDES the token, so a class
+ * that happens to share a name with one of them is still seen. */
+const NOT_A_CLASS_BEFORE = /(?:--|data-)$/;
 
 function walk(dir, out = []) {
 	for (const e of readdirSync(dir)) {
@@ -72,10 +80,15 @@ for (const f of walk(join(PKG, 'styles')).filter(p => p.endsWith('.css'))) {
  * gone because…"). A sweep that reads comments reports those as live markup — backwards. */
 function stripComments(text, file) {
 	if (file.endsWith('.ut'))
-		return text.replace(/\{#[\s\S]*?#\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
+		return text.replace(/\{#[\s\S]*?#\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ')
+			.replace(/L\.require\('[^']*'\)/g, ' ');	/* footer.ut mounts the modules by name */
 	return text
 		.replace(/\/\*[\s\S]*?\*\//g, ' ')					/* block */
-		.replace(/(^|[^:])\/\/.*$/gm, '$1');				/* line (keep http://) */
+		.replace(/(^|[^:])\/\/.*$/gm, '$1')				/* line (keep http://) */
+		/* `'require fs-chrome as chrome';` names a MODULE, not a class — and blanking the POSITION
+		 * rather than the name is what lets a module share its name with the markup it owns. */
+		.replace(/^'require\s+[^']*';\s*$/gm, ' ')
+		.replace(/L\.require\('[^']*'\)/g, ' ');
 }
 
 const emitted = new Map();
@@ -89,7 +102,7 @@ for (const f of SRC) {
 		for (const m of line.matchAll(/\bfs-[a-z0-9-]+/g)) {
 			const name = m[0];
 			if (IGNORE_EXACT.has(name)) continue;
-			if (IGNORE_PREFIX.some(p => line.slice(Math.max(0, m.index - 2)).startsWith(p))) continue;
+			if (NOT_A_CLASS_BEFORE.test(line.slice(0, m.index))) continue;
 			if (!emitted.has(name)) emitted.set(name, `${f.slice(ROOT.length + 1)}:${i + 1}`);
 		}
 	});

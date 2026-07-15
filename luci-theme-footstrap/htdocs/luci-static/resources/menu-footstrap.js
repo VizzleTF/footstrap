@@ -2,11 +2,17 @@
 'require baseclass';
 'require ui';
 'require fs-fit as fit';
+'require fs-prefs as prefs';
+'require fs-widgets as widgets';
 'require menu-footstrap-common as common';
 
 /* The theme's ONE menu renderer: a vertical #topmenu the CSS also turns into the top bar and the
- * rail flyouts — same markup, no second renderer (CLAUDE.md). Shared mode/tab/toggle logic is in
- * menu-footstrap-common (composed via common.init). Spec: docs/09-realizatsiya-sidebar.md */
+ * rail flyouts — same markup, no second renderer (CLAUDE.md). The disclosure primitives it builds
+ * sections on come from fs-widgets and the auto-collapse preference from fs-prefs; the rest of the
+ * chrome (mode menu, tabs, rail, router, popover) is bootstrapped by menu-footstrap-common, which
+ * this file composes with by injecting renderMainMenu into common.init — a callback, not an
+ * override, because a required LuCI module is a singleton and cannot be subclassed (docs/11).
+ * Spec: docs/09-realizatsiya-sidebar.md */
 
 const ICONS = {
 	status:   '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
@@ -42,12 +48,12 @@ function iconSvg(name) {
 const _mqMobile = window.matchMedia('(max-width: 767px)');
 
 /* Is a section's panel a POPUP (flyout / bar dropdown) rather than an unfolded accordion? Must
- * read the same input the STYLESHEET does: `data-narrow` (fitShell() in menu-footstrap-common.js
+ * read the same input the STYLESHEET does: `data-narrow` (fitShell() in fs-chrome.js
  * stamps it before the menu renders). NEVER a viewport breakpoint: it used to be
  * matchMedia('(max-width: 767px)') while the CSS turns the sidebar into a bar as soon as the
  * content column drops below --fs-content-min — 780px with the sidebar expanded. At 770-775px on
  * the router the chrome was a bar while the menu still believed it was an accordion: Escape and
- * click-outside did not close a panel (common.wireDismiss gates on this) and clampDropdown
+ * click-outside did not close a panel (widgets.wireDismiss gates on this) and clampDropdown
  * refused to place it. */
 function flyoutMode() {
 	const root = document.documentElement;
@@ -56,7 +62,7 @@ function flyoutMode() {
 	       root.hasAttribute('data-narrow');
 }
 
-/* The trigger — a bare <a>. common.setOpen keeps `.open` and aria-expanded in step. */
+/* The trigger — a bare <a>. widgets.setOpen keeps `.open` and aria-expanded in step. */
 const TRIGGER = ':scope > a';
 const OPEN_LI = '#topmenu > li.open';
 
@@ -66,9 +72,9 @@ const OPEN_LI = '#topmenu > li.open';
  * viewport. Nudge it back inside. Desktop bar only: the phone bar anchors every panel to the
  * bar's left edge and caps it to the viewport, and the rail flies panels out sideways — neither
  * can overflow this way. */
-/* the viewport edge gap, defined once in common.js — the Appearance popover keeps a popup off
+/* the viewport edge gap, defined once in fs-widgets.js — the Appearance popover keeps a popup off
  * the edge by the same amount, and the two used to state it separately */
-const EDGE_GAP = common.EDGE_GAP;
+const EDGE_GAP = widgets.EDGE_GAP;
 function topBarMode() {
 	return document.documentElement.getAttribute('data-layout') === 'top' && !_mqMobile.matches;
 }
@@ -101,7 +107,7 @@ function clearClamps() {
 }
 
 function setOpen(li, on) {
-	common.setOpen(li, on, TRIGGER);
+	widgets.setOpen(li, on, TRIGGER);
 }
 
 function closeFlyouts(except) {
@@ -116,7 +122,7 @@ function closeFlyouts(except) {
  * rebuilt on a rail toggle the remembered set was never re-applied, so expanding the rail folded
  * every section and "Keep open" quietly meant nothing. */
 function restoreAccordion() {
-	const auto = common.autoCollapse();
+	const auto = prefs.currentAutoCollapse();
 	document.querySelectorAll('#topmenu > li.has-sub').forEach((li) => {
 		const name = li.dataset.name || '';
 		setOpen(li, li.classList.contains('active') || (!auto && _openSections.has(name)));
@@ -165,7 +171,7 @@ function renderMainMenu(tree, url, level) {
 
 		/* expanded sidebar + Keep open: a section starts open if it is the active one OR was
 		 * left open before this re-render. Auto-collapse and flyout mode ignore the set. */
-		const keepOpen = hasSub && !level && !flyoutMode() && !common.autoCollapse();
+		const keepOpen = hasSub && !level && !flyoutMode() && !prefs.currentAutoCollapse();
 		const startOpen = hasSub && !flyoutMode() &&
 			(isActive || (keepOpen && _openSections.has(child.name)));
 		if (keepOpen && startOpen && !_openSections.has(child.name)) {
@@ -232,7 +238,7 @@ function renderMainMenu(tree, url, level) {
 				}
 				/* the expanded-sidebar accordion folds the others back only when asked
 				 * (Appearance -> Submenus) */
-				if (common.autoCollapse()) { closeFlyouts(); _openSections.clear(); }
+				if (prefs.currentAutoCollapse()) { closeFlyouts(); _openSections.clear(); }
 				setOpen(li, !open);
 				/* remember the accordion state so any navigation restores it (Keep open) */
 				if (!open) _openSections.add(child.name);
@@ -240,7 +246,7 @@ function renderMainMenu(tree, url, level) {
 				saveOpenSections();
 			});
 
-			common.wireSpaceKey(link);
+			widgets.wireSpaceKey(link);
 
 			/* hybrid devices: once a real MOUSE enters, drop the tap-opened panel so hover is
 			 * authoritative and two panels never stack. Guarded on pointerType — a touch tap
@@ -267,7 +273,7 @@ return baseclass.extend({
 
 		/* Click-outside and Escape close an open flyout. Gated on flyoutMode(): outside it
 		 * `.open` means "unfolded accordion", which must not fold on a click elsewhere. */
-		common.wireDismiss({
+		widgets.wireDismiss({
 			when: flyoutMode,
 			inside: '#topmenu > li.has-sub',
 			open: OPEN_LI,
@@ -278,7 +284,7 @@ return baseclass.extend({
 		/* Entering flyout mode: fold everything, or a section left open as an accordion
 		 * reappears as a popup panel stuck on screen. Leaving it: restoreAccordion().
 		 *
-		 * Watch the ATTRIBUTE, not the rail button: common.wireRail() registers its click
+		 * Watch the ATTRIBUTE, not the rail button: fs-chrome's wireRail() registers its click
 		 * handler from inside the ui.menu.load() promise, i.e. AFTER this runs, so a listener
 		 * added here would fire first and read the old data-rail. data-layout rides along —
 		 * toggling the layout live is the same transition, so it needs no menu re-render. */
@@ -301,7 +307,7 @@ return baseclass.extend({
 		 * is dragged */
 		window.addEventListener('resize', fit.frame(clearClamps));
 
-		/* Appearance -> Submenus -> auto-collapse lives in common.js, which can only reach the
+		/* Appearance -> Submenus -> auto-collapse lives in fs-prefs.js, which can only reach the
 		 * DOM — the remembered set is here. Without this, switching auto-collapse ON folded the
 		 * sections on screen but left them in the set, and the next navigation unfolded them
 		 * all again. */

@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import { readFileSync, readdirSync } from 'node:fs';
 
 /* ESLint for the theme's browser JS. Runs in CI and locally, never on the OpenWrt buildbot: it
  * has no node and needs none — luci.mk copies htdocs/ verbatim.
@@ -10,6 +11,24 @@ import globals from 'globals';
  * A stock parser rejects a top-level `return`, so without this the whole tree fails to parse and
  * the lint is worthless.
  */
+
+/* Every theme module, with the alias each one binds via a `'require <mod> as <alias>'` pragma.
+ * `'require ui'` with no alias binds the bare name and is already a global below; only the
+ * aliased form needs deriving. See the config entry at the bottom for why this is read from the
+ * source rather than written out. */
+const RESOURCES = 'luci-theme-footstrap/htdocs/luci-static/resources';
+function resourceFiles() {
+	return readdirSync(RESOURCES, { recursive: true })
+		.filter((f) => f.endsWith('.js'))
+		.map((f) => {
+			const file = `${RESOURCES}/${f}`.replace(/\\/g, '/');
+			const src = readFileSync(file, 'utf8');
+			const aliases = [...src.matchAll(/^'require\s+\S+\s+as\s+(\w+)'/gm)].map((m) => m[1]);
+			return { file, aliases };
+		})
+		.filter((e) => e.aliases.length);
+}
+
 export default [
 	/* eslint:recommended as the FLOOR. The hand-picked list below used to be the whole config,
 	 * which quietly left every other free correctness rule off (no-dupe-keys, no-unreachable,
@@ -87,23 +106,20 @@ export default [
 			'wrap-regex': 'error',
 		},
 	},
-	{
-		/* `'require menu-footstrap-common as common';` — the same pragma mechanism as
-		 * `ui`/`baseclass` above: luci.js resolves the module and binds it into this file's scope
-		 * under the alias. A real binding at runtime; ESLint cannot see the pragma that makes it. */
-		files: [
-			'luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap.js',
-		],
-		languageOptions: { globals: { common: 'readonly' } },
-	},
-	{
-		/* `'require fs-fit as fit';` — same pragma mechanism, same invisible-to-ESLint binding. */
-		files: [
-			'luci-theme-footstrap/htdocs/luci-static/resources/fs-select.js',
-			'luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap.js',
-			'luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap-common.js',
-			'luci-theme-footstrap/htdocs/luci-static/resources/view/status/include/05_footstrap_overview_layout.js',
-		],
-		languageOptions: { globals: { fit: 'readonly' } },
-	},
+	/* `'require fs-prefs as prefs';` — the same pragma mechanism as `ui`/`baseclass` above: luci.js
+	 * resolves the module and passes it into this file's factory as a formal PARAMETER, so the alias
+	 * is a real binding at runtime with no declaration ESLint could see. Without a global it is a
+	 * `no-undef` error in every file that composes with another module.
+	 *
+	 * DERIVED FROM THE PRAGMAS, not listed: each file gets exactly the aliases it actually requires.
+	 * The two shapes this avoids are both real. A hand-written per-file list is what dev-sync.sh had,
+	 * and it silently stopped covering the next module somebody added. Declaring every alias for the
+	 * whole tree is worse in the other direction: `no-undef` is precisely the check that catches a
+	 * file USING `prefs.` without requiring it — a ReferenceError at load — and a blanket global
+	 * switches that check off. Per file, from the file's own text, is the only version that keeps it.
+	 */
+	...resourceFiles().map(({ file, aliases }) => ({
+		files: [ file ],
+		languageOptions: { globals: Object.fromEntries(aliases.map((a) => [ a, 'readonly' ])) },
+	})),
 ];

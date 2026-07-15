@@ -236,8 +236,8 @@ jobs:
         run: node tools/mirror.mjs
 
       # The Appearance axes are implemented TWICE and cannot be merged: head.ut stamps :root
-      # before the first paint (inline, before the module loader exists) and
-      # menu-footstrap-common.js applies them live. This holds the two to the same contract —
+      # before the first paint (inline, before the module loader exists) and fs-prefs.js /
+      # fs-update.js apply them live. This holds the two to the same contract —
       # key names, attributes, custom properties, ranges, the rounding default, and the
       # ordering rule (custom property BEFORE the attribute, or a reload paints one frame with
       # the previous hue). Its only symptom is a single wrong frame, which nobody reports.
@@ -307,11 +307,21 @@ jobs:
             n=$(/tmp/jsmin < "$f" | wc -c)
             total=$((total + n))
           done
-          # 46 KB of minified JS; it is 46249 B today. A RATCHET, kept close to the real number
+          # 49 KB of minified JS; it is 49121 B today. A RATCHET, kept close to the real number
           # on purpose: raising it is a decision, and this one was — the SPA router grew ~3 KB
           # (26657 -> 29747 B minified) for the third-party-CSS guard, the sheet dedupe and the
           # dark-mode stamping. Tighten it again whenever bytes go away, so they cannot drift back.
-          budget=47104
+          #
+          # Raised 47104 -> 50176 when menu-footstrap-common.js (1676 lines, seven unrelated
+          # concerns) was split into one module per concern: 46621 -> 49121 B, +2500 B (+5.4%).
+          # That is what the split COSTS and it was paid deliberately — a LuCI module is reached
+          # through `L.require`, so each one adds its own pragmas and `return baseclass.extend({…})`,
+          # and every call across a seam grows an alias prefix (`prefs.currentLayout()`). uhttpd does
+          # not compress, so these are wire bytes. Bought: no file over ~600 lines, a DAG the runtime
+          # itself enforces (require() raises DependencyError on a cycle), and gates that can no
+          # longer be pointed at one stale filename. Deps load via Promise.all, so the extra files
+          # cost round-trips in parallel, not in series.
+          budget=50176
           echo "minified theme JS: $total bytes (budget $budget)"
           [ "$total" -le "$budget" ] || { echo "over the JS budget"; exit 1; }
 

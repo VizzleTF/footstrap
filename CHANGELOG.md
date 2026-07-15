@@ -10,6 +10,53 @@ Security, Performance.
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Changed
+
+- **The 1676-line `menu-footstrap-common.js` is now one module per concern.** It had grown to hold
+  seven unrelated things at once — the Appearance axes, the disclosure primitives, the menu-tree
+  resolution, the chrome render and its measurements, the SPA router, the third-party-CSS guard and
+  the self-updater — and a file that large stops being read: the same `EDGE_GAP` was written twice,
+  and the update UI reached its own refresh through a `window.__fsUpdateApply` global for want of a
+  seam. Split into `fs-menutree` (path ⇄ menu node, the port of `dispatcher.uc`), `fs-prefs` (the
+  axes and their localStorage), `fs-widgets` (disclosure primitives, seg/slider controls, popup
+  placement), `fs-chrome` (mode menu, tabs, rail, `fitShell`/`fitChrome`), `fs-router` (the SPA
+  router), `fs-sheets` (the injected-CSS guard), `fs-update` (`FS_VERSION`, the check, the one-click
+  install) and `fs-appearance` (the popover DOM); `menu-footstrap-common.js` keeps only the
+  bootstrap. Nothing changed behaviourally — verified on the router: the chrome renders, an SPA nav
+  still swaps the view in place (no full load), Back works, the popover builds all nine groups and
+  the axes still apply, with zero console errors; jsmin's output stays token-identical for all 13
+  shipped files.
+- **Modules compose by CALLING, and the runtime enforces the graph.** `L.require` instantiates each
+  module once as a singleton, so a module cannot subclass another (docs/11), and it raises
+  `DependencyError` on a cycle — so shared halves (`fs-menutree`, `fs-prefs`) were pulled DOWN into
+  their own modules rather than reached across, making the graph a DAG the runtime itself checks.
+  Dependencies resolve through `Promise.all`, so the extra files cost round-trips in parallel.
+- **The minified-JS ratchet goes 47104 → 50176 B, and that is what the split costs.** 46 621 →
+  49 121 B, +2 500 B (+5.4 %): every module adds its own pragmas and `return baseclass.extend({…})`,
+  and each call across a seam grows an alias prefix. uhttpd does not compress, so these are wire
+  bytes — the raise is a deliberate trade for no file over ~600 lines, not drift.
+
+### Fixed
+
+- **Three gates were aimed at one filename and would have gone quiet.** `tools/axes.mjs` read the
+  Appearance contract out of `menu-footstrap-common.js` by name, so an axis living anywhere else
+  would have been checked by nothing; it now reads the whole resources tree, which cannot go stale
+  that way. The ESLint globals for `'require x as y'` aliases were a hand-written per-file list —
+  the exact shape that stopped covering the next module added — and are now derived from each file's
+  own pragmas, which also keeps `no-undef` able to catch a file using `prefs.` without requiring it.
+  `Makefile` and `dev-sync.sh` stamp `FS_VERSION` by `sed`-ing a path, so both now point at
+  `fs-update.js`; had they not, the popover would have silently shown "(dev)" and the update check
+  would have stopped.
+- **`css-orphans` reported a live selector as dead CSS, because it blinded itself to a NAME.** Module
+  names were ignored by name so their `require` pragmas would not read as classes — which broke the
+  moment a module was named after markup it owns: `fs-appearance` is both a module and the id of the
+  button that opens it, so the ignore also hid the real `#fs-appearance`. It now blanks the
+  POSITIONS a module is referenced from (the pragma line, `L.require('…')`) and the positions an
+  `fs-` token is not a class (`--fs-*` custom properties, `data-fs-*` attributes), so a name can be
+  shared between a module and its markup without lying to the tool.
+
 ## [0.8.8] — 2026-07-14
 
 ### Fixed

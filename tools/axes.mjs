@@ -5,7 +5,8 @@
  *   1. `partials/head.ut` — inline <script>s that read localStorage and stamp :root BEFORE THE
  *      FIRST PAINT, or the page flashes the wrong theme on every reload. They cannot `require` a
  *      LuCI module: the module loader does not exist yet.
- *   2. `menu-footstrap-common.js` — the live appliers behind the Appearance popover.
+ *   2. `fs-prefs.js` (+ `fs-update.js` for the update-check axis) — the live appliers behind the
+ *      Appearance popover.
  *
  * Forced duplication, like the @mirror cases — but these two can never be byte-identical (inline
  * script vs module), so mirror.mjs cannot hold them. What CAN be held is the CONTRACT: key names,
@@ -14,9 +15,13 @@
  *      set the custom property BEFORE the attribute that switches the mixes on,
  *      or a fresh load paints one frame with the previous hue.
  *
- * The contract is DERIVED FROM THE JS, not restated here a third time: read the axes out of
- * menu-footstrap-common.js, then hold head.ut (plus the CSS token and fs-orphans' ignore list) to
+ * The contract is DERIVED FROM THE JS, not restated here a third time: read the axes out of the
+ * theme's resource modules, then hold head.ut (plus the CSS token and fs-orphans' ignore list) to
  * them. Add an axis and the gate tells you what you forgot.
+ *
+ * The JS side is the WHOLE resources tree concatenated, deliberately: it used to name one file, and
+ * an axis moved (or added) elsewhere would have left the gate quietly checking nothing. A glob
+ * cannot go stale that way.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -29,8 +34,13 @@ const readTree = (p) => readdirSync(join(ROOT, p), { recursive: true })
 	.map((f) => read(join(p, f)))
 	.join('\n');
 
-const COMMON = read('luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap-common.js');
-const MENU = read('luci-theme-footstrap/htdocs/luci-static/resources/menu-footstrap.js');
+const readJs = (p) => readdirSync(join(ROOT, p), { recursive: true })
+	.filter((f) => f.endsWith('.js'))
+	.map((f) => read(join(p, f)))
+	.join('\n');
+
+/* every module the theme ships — the axes live across fs-prefs.js, fs-update.js and menu-footstrap.js */
+const JS = readJs('luci-theme-footstrap/htdocs/luci-static/resources');
 const HEAD = read('luci-theme-footstrap/ucode/template/themes/footstrap/partials/head.ut');
 const TOKENS = read('luci-theme-footstrap/styles/02-tokens.css');
 const STYLES = readTree('luci-theme-footstrap/styles');
@@ -50,10 +60,10 @@ const keysIn = (src) => {
 };
 /* ...plus the hue axes, which pass their key INTO hueAxis(key, attr, prop): an lsGet('fs-…')
  * scan misses those entirely. */
-const hueAxes = [...COMMON.matchAll(/hueAxis\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*'([^']+)'\s*\)/g)]
+const hueAxes = [...JS.matchAll(/hueAxis\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*'([^']+)'\s*\)/g)]
 	.map(([, key, attr, prop]) => ({ key, attr, prop }));
 
-const jsKeys = new Set([...keysIn(COMMON), ...keysIn(MENU), ...hueAxes.map(a => a.key)]);
+const jsKeys = new Set([...keysIn(JS), ...hueAxes.map(a => a.key)]);
 const headKeys = keysIn(HEAD);
 
 if (!jsKeys.size) errors.push('found no fs-* localStorage keys in the theme JS — this tool is broken, not the theme');
@@ -65,7 +75,7 @@ for (const k of headKeys)
 		errors.push(`head.ut reads localStorage '${k}', but no theme JS ever writes it — dead pre-paint, or a typo`);
 
 /* ---- 2. the hue axes: key, attribute, custom property, order, range ------------------ */
-if (!hueAxes.length) errors.push('no hueAxis() calls found in menu-footstrap-common.js — did the axis helper get renamed?');
+if (!hueAxes.length) errors.push('no hueAxis() calls found in the theme JS — did the axis helper get renamed?');
 
 for (const { key, attr, prop } of hueAxes) {
 	const where = `hue axis '${key}'`;
@@ -89,10 +99,10 @@ for (const { key, attr, prop } of hueAxes) {
 }
 
 /* ---- 3. the rounding default: JS, template and CSS token must be the same number ----- */
-const jsRadius = COMMON.match(/const\s+FS_RADIUS_DEFAULT\s*=\s*(\d+)/);
+const jsRadius = JS.match(/const\s+FS_RADIUS_DEFAULT\s*=\s*(\d+)/);
 const cssRadius = TOKENS.match(/--fs-radius-base:\s*(\d+)px/);
 const headRadius = HEAD.match(/r\s*!==?\s*(\d+)/);
-if (!jsRadius) errors.push('FS_RADIUS_DEFAULT not found in menu-footstrap-common.js');
+if (!jsRadius) errors.push('FS_RADIUS_DEFAULT not found in the theme JS (fs-prefs.js)');
 else if (!cssRadius) errors.push('--fs-radius-base not found in styles/02-tokens.css');
 else if (!headRadius) errors.push('head.ut no longer skips the default rounding (the `r !== <default>` test is gone)');
 else if (!(jsRadius[1] === cssRadius[1] && cssRadius[1] === headRadius[1]))
@@ -112,10 +122,10 @@ const stampBody = (src, re) => (src.match(re) || [, null])[1];
 const attrsIn = (body) => new Map([...(body || '').matchAll(
 	/setAttribute\('([^']+)',\s*dark\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/g)].map((m) => [m[1], `${m[2]}/${m[3]}`]));
 
-const jsStamp = attrsIn(stampBody(COMMON, /function stampDark\([^)]*\)\s*\{([\s\S]*?)\n\}/));
+const jsStamp = attrsIn(stampBody(JS, /function stampDark\([^)]*\)\s*\{([\s\S]*?)\n\}/));
 const headStamp = attrsIn(stampBody(HEAD, /function set\(dark\)\s*\{([\s\S]*?)\n\t\t\t\t\}/));
 
-if (!jsStamp.size) errors.push('no stampDark() found in menu-footstrap-common.js — did the dark-mode applier get renamed?');
+if (!jsStamp.size) errors.push('no stampDark() found in the theme JS — did the dark-mode applier get renamed?');
 else if (!headStamp.size) errors.push('head.ut no longer stamps the dark-mode attributes in its pre-paint set(dark)');
 else {
 	for (const [attr, val] of jsStamp)
@@ -153,8 +163,8 @@ console.log(`  ok   ${jsKeys.size} localStorage keys, all known to css-orphans`)
 if (errors.length) {
 	console.error('\nFAIL: the Appearance axes have drifted between their two implementations.');
 	for (const e of errors) console.error('  - ' + e);
-	console.error('\nhead.ut pre-paints every axis before the first frame and menu-footstrap-common.js');
-	console.error('applies it live; the two cannot share code (the template runs before the module');
+	console.error('\nhead.ut pre-paints every axis before the first frame and fs-prefs.js/fs-update.js');
+	console.error('apply it live; the two cannot share code (the template runs before the module');
 	console.error('loader exists), so this is what keeps them saying the same thing.');
 	process.exit(1);
 }

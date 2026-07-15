@@ -28,10 +28,47 @@ Registered in `luci.themes` (System → System → Language and Style): **1 entr
 - **Toggling the layout re-renders nothing.** The DOM already serves both; CSS morphs the chrome, and `menu-footstrap.js`'s `MutationObserver` on `data-layout` folds the accordion into dropdowns / restores it — the same state change as collapsing the icon rail. `applyLayout()` is the one Appearance axis that writes its DEFAULT value **explicitly** (`'sidebar'`, not `lsDel`), because a migrated router carries a server default that would otherwise re-assert `top`.
 - **Migration:** a router that was on the old top-nav theme keeps its bar. A shell script cannot write `localStorage`, so `uci-defaults` records the router's DEFAULT layout in `luci.main.footstrap_layout=top`; `head.ut` stamps it, and the user's own choice overrides it forever after. `postrm` deletes the key.
 - `ucode/template/themes/footstrap/` — the ONE template dir. `htdocs/luci-static/footstrap/` — the ONE media dir. No `-top` dir, no symlink.
-- `menu-footstrap.js` is the ONE renderer (vertical accordion / bar dropdowns / rail flyouts — all the same markup); `menu-footstrap-common.js` carries the shared chrome, the SPA router and the Appearance popover.
+- `menu-footstrap.js` is the ONE renderer (vertical accordion / bar dropdowns / rail flyouts — all the same markup); `menu-footstrap-common.js` is the chrome BOOTSTRAP and everything else is one module per concern — see "The JS modules" below.
 - **The BAR is the base; the vertical sidebar is the exception.** The bar is what the chrome IS — for the top layout at every width, and for the sidebar layout on a phone. It is written ONCE, unguarded, in `styles/theme/20-shell.css`. The vertical sidebar is a single guarded override (`@media(min-width:521px){ :root[data-layout="sidebar"]:not([data-narrow]) … }`) and it wins on **specificity** (`0,4,0` vs `0,1,0`), never on source order. The guard is **not** a viewport breakpoint dressed up as one: `data-narrow` is what actually decides (see `fs-fit`/`fitShell` below), and `521px` is only the floor below which no sidebar cut could leave a readable column anyway. `50-toplayout.css` is a pure **delta** — only what the DESKTOP bar adds (fixed height, content-aligned padding, menu on the brand's row, per-item dropdown anchoring).
   Why this way round: the bar is needed when `(≤767px) OR ([data-layout="top"])`, and CSS cannot OR a media query with an attribute selector in one selector — so writing the bar under both guards meant writing it twice (measured: 55 of ~75 declarations identical, free to drift). Inverting states each of the three chrome states exactly once. **This is only expressible because `data-layout` always carries an explicit value.** The price is that the vertical override must answer every declaration the bar makes — which is precisely what `cssdiff` proves (desktop sidebar byte-identical). If you add a declaration to the bar, ask whether the column needs to undo it, and re-run `cssdiff`.
-- **The bar stacks its menu onto a second row by MEASUREMENT, not by a breakpoint** (`.fs-bar-stack`, set in `menu-footstrap-common.js` `fitChrome()`). Whether the menu fits beside the brand depends on how many sections the router has, not on the screen — so there is no `@media` for it. The unstacked desktop bar is `flex-wrap: nowrap` on purpose: otherwise flexbox wraps the BAR, hands the menu a whole row, and the "does it fit" measurement always says yes. Escalation is shrink-then-stack: `.fs-dense1/2` trims the pills first, and only when even the tightest step still wraps does the menu take its own row.
+- **The bar stacks its menu onto a second row by MEASUREMENT, not by a breakpoint** (`.fs-bar-stack`, set in `fs-chrome.js` `fitChrome()`). Whether the menu fits beside the brand depends on how many sections the router has, not on the screen — so there is no `@media` for it. The unstacked desktop bar is `flex-wrap: nowrap` on purpose: otherwise flexbox wraps the BAR, hands the menu a whole row, and the "does it fit" measurement always says yes. Escalation is shrink-then-stack: `.fs-dense1/2` trims the pills first, and only when even the tightest step still wraps does the menu take its own row.
+
+## The JS modules — one concern each, and the runtime enforces the graph
+
+A LuCI resource module is reached through `L.require`, which **instantiates it once as a singleton**
+and passes it into the dependent's factory as a formal parameter (`'require fs-prefs as prefs'`).
+Two consequences the whole layout rests on: a module can never be `extend`-ed by another (a base
+class across modules throws — docs/11, proven, not assumed), so composition is by **calling**, never
+by inheriting; and `require()` **raises `DependencyError` on a cycle**, so the graph below is a DAG
+that the runtime itself checks. Shared halves are pulled DOWN into their own module rather than
+reached across — that is what keeps it acyclic.
+
+| module | owns |
+|---|---|
+| `fs-fit.js` | the one "does it still fit?" engine (below) |
+| `fs-menutree.js` | path ⇄ menu node; the `alias`/`firstchild` resolution, a port of `dispatcher.uc` |
+| `fs-prefs.js` | the Appearance axes and their `localStorage` (the live half of the `axes` gate) |
+| `fs-widgets.js` | disclosure primitives (`setOpen`/`wireSpaceKey`/`wireDismiss`), the seg/slider controls, `EDGE_GAP` + `placePopover` |
+| `fs-chrome.js` | mode menu, section tabs, the rail toggle, `fitShell`/`fitChrome` |
+| `fs-sheets.js` | the guard against a view's injected CSS repainting every later page |
+| `fs-router.js` | the SPA client router (docs/14) |
+| `fs-update.js` | **`FS_VERSION`**, the update check, the one-click self-update |
+| `fs-appearance.js` | the popover DOM |
+| `menu-footstrap-common.js` | the BOOTSTRAP: load the tree once, hand it out, wire the rest in order |
+| `menu-footstrap.js` | the ONE menu renderer; injects `renderMainMenu` into `common.init` |
+
+Dependencies: `prefs→fit`, `widgets→prefs`, `chrome→{fit,prefs,menutree}`, `appearance→{prefs,widgets,update}`,
+`update→prefs`, `router→{menutree,chrome,sheets,update}`, `common→` all.
+
+- **`FS_VERSION` lives in `fs-update.js`, and the FILE NAME is part of the contract**: the package
+  `Makefile` (`Build/Prepare`) and `dev-sync.sh` both stamp the git version by `sed`-ing that literal
+  **by path**. Moving the constant means changing both, and nothing else would notice — the popover
+  would just show "(dev)" and the update check would go quiet.
+- **Splitting cost 2 500 B of minified JS** (46 621 → 49 121 B, +5.4%; the CI ratchet went 47104 →
+  50176). Each module adds its pragmas and a `return baseclass.extend({…})`, and each call across a
+  seam grows an alias prefix; uhttpd does not compress, so those are wire bytes. It buys no file over
+  ~600 lines and gates that can no longer be aimed at one stale filename. `require()` resolves
+  dependencies with `Promise.all`, so the extra files cost round-trips in **parallel**, not in series.
 
 ## `fs-fit.js` — the one "does it still fit?" engine, and what may and may not be measured
 
@@ -241,7 +278,7 @@ npm run axes         # head.ut's pre-paint agrees with the live Appearance appli
 
 - **`axes` is the gate for the one duplication that cannot be pinned.** Every Appearance axis is
   implemented twice: `partials/head.ut` stamps `:root` **before the first paint** (inline, before the
-  module loader exists — it cannot `require` anything), and `menu-footstrap-common.js` applies it
+  module loader exists — it cannot `require` anything), and `fs-prefs.js` / `fs-update.js` apply it
   live. Neither copy can go, and they cannot be byte-identical, so `@mirror` cannot hold them. What
   `tools/axes.mjs` holds is the **contract** — and it derives it *from the JS* rather than restating
   it: the localStorage keys, the `:root` attributes, the custom properties, the 1–360 ranges, the

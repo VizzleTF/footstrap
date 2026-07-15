@@ -23,7 +23,7 @@ luci-theme-footstrap/
 │   │   ├── logo.svg  logo_48.png  cats.svg
 │   └── resources/                 # → /www/luci-static/resources/
 │       ├── menu-footstrap.js          # рендер меню (единственный)
-│       ├── menu-footstrap-common.js   # хром, SPA-роутер, поповер Appearance
+│       ├── menu-footstrap-common.js   # bootstrap хрома; концерны — в fs-*.js (см. CLAUDE.md)
 │       ├── fs-fit.js  fs-select.js
 │       └── view/status/include/05_footstrap_overview_layout.js
 ├── root/                          # → / (корень rootfs)
@@ -100,7 +100,7 @@ include $(TOPDIR)/feeds/luci/luci.mk   # АБСОЛЮТНЫЙ путь, не ../
 
 1. `build-css.sh` → `cascade.css` в build-дерево (`cat`/`awk`, host-тулчейн не нужен — потому
    это и работает на buildbot'е OpenWrt);
-2. `sed`'ом штампует git-версию в `menu-footstrap-common.js` (`FS_VERSION`);
+2. `sed`'ом штампует git-версию в `fs-update.js` (`FS_VERSION`) — путь к файлу часть контракта;
 3. `po2lmo` компилирует каталог перевода **внутрь пакета темы**.
 4. Кладёт `LICENSE` в `PKG_BUILD_DIR` — `PKG_LICENSE_FILES` резолвится относительно него, а
    luci.mk корень пакета не копирует.

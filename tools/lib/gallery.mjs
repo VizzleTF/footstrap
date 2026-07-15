@@ -3,7 +3,7 @@
  *
  * Both gates repeated the same ~20 lines (build the stylesheet, serve the gallery on an ephemeral
  * port, stamp the Appearance axes onto :root). The stamping is what mattered: each gate's
- * `applyAppearance()` was one more copy of rules that already live in menu-footstrap-common.js
+ * `applyAppearance()` was one more copy of rules that already live in fs-prefs.js
  * and head.ut's pre-paint script — including the load-bearing one:
  *
  *     set --fs-tint-h BEFORE the data-tint attribute
@@ -53,7 +53,7 @@ export async function serveGallery(cssPath) {
 /* Stamp one point of the Appearance matrix onto :root, exactly the way the theme does.
  *
  * THE ONE COPY. It must stay in step with applyMode/applyPalette/hueAxis in
- * menu-footstrap-common.js and head.ut's pre-paint script — if an axis changes shape, change it
+ * fs-prefs.js and head.ut's pre-paint script — if an axis changes shape, change it
  * here too, or these gates go on proving something that is no longer true.
  *
  * `tint`/`accent`: null (or 0) = off, which CLEARS both attribute and custom property. An

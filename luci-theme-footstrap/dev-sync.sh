@@ -32,14 +32,15 @@ scp -q  "$D"/htdocs/luci-static/resources/*.js "$R":/www/luci-static/resources/
 scp -q  "$D"/htdocs/luci-static/resources/view/status/include/*.js \
 	"$R":/www/luci-static/resources/view/status/include/
 
-# stamp the git-derived version into the deployed common.js (the package does the same in
-# Build/Prepare) so the popover shows a real version and the update check works here.
+# stamp the git-derived version into the deployed fs-update.js (the package does the same in
+# Build/Prepare) so the popover shows a real version and the update check works here. The FILE NAME
+# is part of the contract: FS_VERSION lives in fs-update.js and moving it means changing both seds.
 FS_V="$(git -C "$D" describe --tags --always 2>/dev/null | sed 's/^v//')"
 # if-form, not `[ -n ] && ssh`: under set -e a failed &&-list aborts the whole sync when git
 # describe yields nothing (a copied tree without .git). expr refuses a tag with
 # sed/shell-special characters rather than interpolating it.
 if [ -n "$FS_V" ] && expr "$FS_V" : '[0-9A-Za-z._-]*$' >/dev/null; then
-	ssh "$R" "sed -i \"s#const FS_VERSION = '[^']*'#const FS_VERSION = '$FS_V'#\" /www/luci-static/resources/menu-$N-common.js"
+	ssh "$R" "sed -i \"s#const FS_VERSION = '[^']*'#const FS_VERSION = '$FS_V'#\" /www/luci-static/resources/fs-update.js"
 fi
 
 # The catalogue, which the PACKAGE compiles in Build/Prepare. po2lmo is a luci-base host tool,

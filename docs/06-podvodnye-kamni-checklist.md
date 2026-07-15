@@ -197,7 +197,9 @@
 > (`styles/theme/90-responsive.css`). Шапка/подвал разбиты на `partials/*.ut`.
 > **Свой `sysauth.ut` ЕСТЬ и обязателен** (см. п. выше и docs/03).
 > Клиентского JS четыре файла: `menu-footstrap.js` (единственный рендерер меню),
-> `menu-footstrap-common.js` (общий хром, SPA-роутер, попап Appearance), `fs-fit.js`
+> `menu-footstrap-common.js` (bootstrap хрома) и модули `fs-*.js` — по одному на концерн
+> (`fs-router`, `fs-chrome`, `fs-prefs`, `fs-widgets`, `fs-menutree`, `fs-sheets`,
+> `fs-appearance`, `fs-update`), `fs-fit.js`
 > (единственный движок «влезает ли ещё?») и `fs-select.js`. Файла с суффиксом `-top` нет
 > ни одного — второго рендерера не существует.
 > Запись в `luci.themes` **одна** (`Footstrap`): раскладка — это `:root[data-layout]`,

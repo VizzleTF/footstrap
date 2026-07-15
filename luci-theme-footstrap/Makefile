@@ -157,7 +157,7 @@ define Build/Prepare/luci-theme-footstrap
 	$(CP) $(CURDIR)/LICENSE $(PKG_BUILD_DIR)/
 	$(SHELL) $(CURDIR)/build-css.sh $(PKG_BUILD_DIR)/htdocs/luci-static/footstrap/cascade.css
 	$(if $(PKG_VERSION),$(SED) "s#const FS_VERSION = '[^']*'#const FS_VERSION = '$(PKG_VERSION)'#" \
-		$(PKG_BUILD_DIR)/htdocs/luci-static/resources/menu-footstrap-common.js)
+		$(PKG_BUILD_DIR)/htdocs/luci-static/resources/fs-update.js)
 	$(INSTALL_DIR) $(PKG_BUILD_DIR)/root/usr/lib/lua/luci/i18n
 	$(foreach po,$(wildcard $(CURDIR)/i18n/*/*.po), \
 		po2lmo $(po) \

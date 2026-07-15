@@ -80,11 +80,12 @@ luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — r
   `:root[data-layout]`;
 - копирует статику (`cascade.css`, шрифты, лого) и **все** resource-JS **глобом**
   (`resources/*.js`: сейчас `menu-footstrap.js`, `menu-footstrap-common.js`, `fs-fit.js`,
-  `fs-select.js`) плюс overview-include. Именно глобом, а не списком имён: список был
+  `fs-select.js` и модули концернов `fs-{menutree,prefs,widgets,chrome,router,sheets,update,appearance}.js`)
+  плюс overview-include. Именно глобом, а не списком имён: список был
   багом — пятый файл попадал в пакет (`luci.mk` копирует `htdocs/` целиком), но на
   дев-роутер молча не доезжал и впервые проверялся уже после релиза;
 - штампует версию из `git describe` в `FS_VERSION` внутри залитого
-  `menu-footstrap-common.js` — то же делает `Build/Prepare` в пакете, иначе поповер
+  `fs-update.js` — то же делает `Build/Prepare` в пакете, иначе поповер
   показывает `dev` и проверка обновлений не работает;
 - компилирует каталог переводов `i18n/*/*.po` → `/usr/lib/lua/luci/i18n/footstrap-theme.<lang>.lmo`,
   если в `$PATH` есть `po2lmo` (это host-tool `luci-base`; без него строки остаются
@@ -178,7 +179,7 @@ ls bin/packages/*/luci/luci-theme-footstrap*.apk
 `cascade.css` в git не лежит: его генерирует хук `Build/Prepare` в Makefile
 темы — он вызывает `build-css.sh` уже по копии дерева в `PKG_BUILD_DIR` (нужны
 только `cat`/`awk`, поэтому это работает и на билдботе OpenWrt). Там же в
-`menu-footstrap-common.js` штампуется версия.
+`fs-update.js` штампуется версия.
 
 ### Установка на роутер
 
@@ -216,7 +217,7 @@ src-git mytheme https://github.com/<you>/<repo>.git
   hicontrast), узкое окно, длинные hostname/SSID.
 - **Брейкпойнтов для «влезает или нет» нет — это ИЗМЕРЕНИЕ.** Сайдбар уступает место
   бару, когда ширина контентной колонки (`innerWidth − сайдбар/рельс − паддинги`) падает
-  ниже `--fs-content-min`: считает `fitShell()` (`menu-footstrap-common.js`), читая токены
+  ниже `--fs-content-min`: считает `fitShell()` (`fs-chrome.js`), читая токены
   `--fs-sidebar-w` / `--fs-rail-w` / `--fs-content-min` из CSS (`fs-fit.js` владеет
   наблюдателем и коалесингом), и ставит `data-narrow` на `:root` — на него и смотрят CSS, и
   `flyoutMode()`. Меню верхнего бара так же по измерению сначала ужимается (`.fs-dense1/2`)

@@ -33,7 +33,9 @@ build-css.sh                      styles/ -> htdocs/luci-static/footstrap/cascad
 i18n/                             каталог перевода (НЕ po/ — иначе luci.mk наплодит пакетов)
 ucode/template/themes/footstrap/  header.ut, footer.ut, sysauth.ut, partials/
 htdocs/luci-static/footstrap/     cascade.css (генерируется), fonts/, cats.svg
-htdocs/luci-static/resources/     menu-footstrap.js, menu-footstrap-common.js, fs-fit.js, fs-select.js
+htdocs/luci-static/resources/     menu-footstrap.js (рендерер), menu-footstrap-common.js (bootstrap),
+                                  fs-{menutree,prefs,widgets,chrome,router,sheets,update,appearance}.js,
+                                  fs-fit.js, fs-select.js
   …/view/status/include/          05_footstrap_overview_layout.js
 root/etc/uci-defaults/            регистрация темы и миграция легаси-имён
 root/usr/libexec/                 footstrap-selfupdate.sh (+ ACL в root/usr/share/rpcd/acl.d/)

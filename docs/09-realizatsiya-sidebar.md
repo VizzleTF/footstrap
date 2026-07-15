@@ -82,7 +82,7 @@
 68px рельс), так что один брейкпойнт давал обоим состояниям один ответ, и рельс складывался
 на той же ширине, что и полный сайдбар.
 
-`fitShell()` (`menu-footstrap-common.js`) вычитает срез из `innerWidth` и сравнивает остаток
+`fitShell()` (`fs-chrome.js`) вычитает срез из `innerWidth` и сравнивает остаток
 с `--fs-content-min`; ширины он **читает из CSS-токенов** (`--fs-sidebar-w`, `--fs-rail-w`,
 `--fs-content-min`, `--fs-content-pad`) через `getComputedStyle`, а не хранит копией — иначе
 сужение рельса в стилях оставило бы измерение вычитать старое число, и ни один гейт этого
@@ -143,7 +143,8 @@
   `<li><a><icon><span class="fs-label">title</span><chevron></a></li>`, активный — по
   `L.env.dispatchpath`. Иконки — map по имени раздела (`status`, `system`, `network`, `vpn`,
   `docker`, …) с regex-фолбэком и generic-SVG; SVG инлайн в JS. Всё общее (табы, режимы,
-  поповер Appearance, рельс, SPA-роутер) — в `menu-footstrap-common.js`; layout-специфичен
+  поповер Appearance, рельс, SPA-роутер) — в модулях `fs-*.js`, которые разводит
+  `menu-footstrap-common.js`; layout-специфичен
   только `renderMainMenu`, он передаётся в `common.init()` (композиция, а не наследование:
   LuCI делает из каждого baseclass синглтон).
 - Верхний узел `admin/logout` из дерева выкидывается — свой Log out хром рисует сам
@@ -171,7 +172,12 @@
   `fit.frame()` этого выразить не может — это задокументированное исключение.
 - Hover-открытие — чистый CSS.
 
-### `menu-footstrap-common.js` — общий хром
+### `menu-footstrap-common.js` — bootstrap общего хрома
+
+> Сам файл теперь только грузит дерево меню и разводит модули: рендер табов и mode-меню, рельс и
+> замеры — в `fs-chrome.js`, SPA-роутер — в `fs-router.js`, оси — в `fs-prefs.js`, поповер — в
+> `fs-appearance.js`, примитивы disclosure — в `fs-widgets.js`. См. CLAUDE.md, «The JS modules».
+
 
 Поповер **Appearance** (`#fs-appearance`) — все оси клиентские, из `localStorage`, без сервера
 и перезагрузки: **Layout** (sidebar/top), **Theme** (auto/light/dark), **Palette**

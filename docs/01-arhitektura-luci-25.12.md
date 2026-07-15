@@ -137,7 +137,7 @@ baseclass, в `__init__` делает `ui.menu.load().then(tree => this.render(t
 **Важно**: menu-JS кладётся в `htdocs/luci-static/resources/` (не в каталог темы),
 потому что грузится через `L.require()`, который ищет в `resourcebase`. Оттуда же
 подтягиваются зависимости по прагмам `'require <модуль> as <имя>'` — так у нас
-`menu-footstrap` тянет `fs-fit` и `menu-footstrap-common`.
+`menu-footstrap` тянет `fs-fit`, `fs-prefs`, `fs-widgets` и `menu-footstrap-common`, а тот — весь остальной граф модулей (`fs-menutree`, `fs-chrome`, `fs-router`, `fs-sheets`, `fs-appearance`, `fs-update`). Граф ацикличен, и это проверяет сам рантайм: `require()` кидает `DependencyError` на цикле.
 
 ## Регистрация темы в UCI
 
@@ -176,7 +176,15 @@ config internal 'themes'
 /www/luci-static/footstrap/             cascade.css (генерится build-css.sh), fonts/, logo.svg, …
 /www/luci-static/resources/
         menu-footstrap.js               единственный рендерер меню (аккордеон/бар/флайаут)
-        menu-footstrap-common.js        общая скорлупа, SPA-роутер, попап Appearance
+        menu-footstrap-common.js        bootstrap хрома (грузит дерево меню, разводит модули)
+        fs-menutree.js                  путь ⇄ узел меню, разрешение alias/firstchild
+        fs-prefs.js                     оси Appearance + localStorage
+        fs-widgets.js                   disclosure-примитивы, seg/slider, placePopover
+        fs-chrome.js                    mode-меню, табы, рельс, fitShell/fitChrome
+        fs-router.js                    SPA-роутер
+        fs-sheets.js                    защита от чужого инжектнутого CSS
+        fs-update.js                    FS_VERSION, проверка и установка обновления
+        fs-appearance.js                DOM поповера Appearance
         fs-fit.js                       общий «а влезает ли?» движок (ResizeObserver, rAF)
         fs-select.js                    <select> → ui.Dropdown, карточный режим таблиц
 /www/luci-static/resources/view/status/include/05_footstrap_overview_layout.js
