@@ -109,7 +109,7 @@
 	 * --fs-icon-refresh as the rail, and the same reason it does not spin.
 	 * ================================================================== */
 	:root[data-layout="top"] .fs-sidebar.fs-ind-compact #indicators [data-indicator="poll-status"] {
-		width: 34px; padding: 0; font-size: 0; justify-content: center; position: relative;
+		width: var(--fs-btn-size); padding: 0; font-size: 0; justify-content: center; position: relative;
 	}
 	:root[data-layout="top"] .fs-sidebar.fs-ind-compact #indicators [data-indicator="poll-status"]::before {
 		content: ""; width: 18px; height: 18px;

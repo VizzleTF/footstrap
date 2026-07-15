@@ -15,6 +15,11 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **The header logo box is now the same size as the other square buttons in the bar (34px).** It sat
+  at 30px while Appearance, Log out and the collapsed "Refreshing" pill were all 34 — the one odd
+  square in the right cluster's row. The size is now a single token (`--fs-btn-size`) that all four
+  read, so the row stays a set of equal squares and can be retuned in one place. The mark inside the
+  box grew from 17 to 20px to fill the larger square.
 - **The header logo now shows the OpenWrt favicon mark in a bordered box.** The accent-gradient tile
   behind the logo is gone; in its place is a plain 1px border, the same treatment the square buttons
   in the right cluster carry (Appearance, Logout). The glyph is the mark the browser tab already

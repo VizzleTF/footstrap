@@ -11,7 +11,7 @@
 	}
 
 	.fs-logo {
-		width: 30px; height: 30px; border-radius: var(--fs-radius);
+		width: var(--fs-btn-size); height: var(--fs-btn-size); border-radius: var(--fs-radius);
 		/* No accent fill — a bordered box, same look as the square buttons in the right
 		 * cluster (.fs-logout, .fs-themerow: 1px var(--fs-border)). The glyph is the OpenWrt
 		 * favicon mark (brand.ut), baked-colour, so color/currentColor is unused here. */
@@ -19,7 +19,7 @@
 		display: flex; align-items: center; justify-content: center;
 		flex: 0 0 auto;
 	}
-	.fs-logo svg { width: 17px; height: 17px; }
+	.fs-logo svg { width: 20px; height: 20px; }
 	/* The OpenWrt ring flips with the theme mode like the SVG favicon does under
 	 * prefers-color-scheme — dark ring on the light UI, light ring on dark. The cyan arcs
 	 * stay baked (read on both). */

@@ -155,7 +155,7 @@
 		flex: 0 0 auto; order: 2; margin-left: auto;
 		/* see the :not(:empty) rule below — two margin-left:autos would SPLIT the free
 		 * space between them instead of pushing one cluster to the right edge */
-		width: 34px; height: 34px; padding: 0;
+		width: var(--fs-btn-size); height: var(--fs-btn-size); padding: 0;
 		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
 		background: var(--fs-panel2); color: var(--fs-dim);
 		font: inherit; font-weight: 600; font-size: 14px; line-height: 1.1;
@@ -170,7 +170,7 @@
 	.fs-sidebar #indicators:not(:empty) ~ .fs-themerow { margin-left: 0; }
 	.fs-logout {
 		flex: 0 0 auto; order: 2; justify-content: center;
-		width: 34px; height: 34px; padding: 0;
+		width: var(--fs-btn-size); height: var(--fs-btn-size); padding: 0;
 		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
 		background: var(--fs-panel2);
 	}
@@ -634,12 +634,12 @@
 	#indicators [data-indicator] {
 		/* An indicator sits in a ROW of controls — in the bar, followed by Appearance and Log
 		 * out — so it must look like one of them or the cluster reads as three unrelated
-		 * things. Same 34px height (a box sized by its font's line-box came out 28px, visibly
-		 * the odd one out) and the same --fs-radius corner, not --fs-radius-pill: a capsule
-		 * beside two rounded squares announced itself as a different KIND of object, which it
-		 * is not — it is a control you click to pause the poll. WIDTH stays its content's. */
+		 * things. Same --fs-btn-size height (a box sized by its font's line-box came out 28px,
+		 * visibly the odd one out) and the same --fs-radius corner, not --fs-radius-pill: a
+		 * capsule beside two rounded squares announced itself as a different KIND of object,
+		 * which it is not — it is a control you click to pause the poll. WIDTH stays content's. */
 		display: inline-flex; align-items: center;
-		min-height: 34px;
+		min-height: var(--fs-btn-size);
 		text-transform: none;
 		font-weight: 600; font-size: 12px;
 		background: var(--fs-panel2); background-image: none;

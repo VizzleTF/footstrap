@@ -143,6 +143,11 @@
 		/* height of that bar, and the scroll-margin every anchor target needs to clear it
 		 * (base/10-reset.css) — if the two drift, an in-page jump lands under the bar. */
 		--fs-bar-h: 46px;
+		/* the square icon-button in the bar/rail: the logo box, Appearance (.fs-themerow),
+		 * Log out (.fs-logout) and the collapsed poll pill are all one size so the right
+		 * cluster reads as a row of equal squares. Was a bare 34px in three files with the
+		 * logo left at 30 — the odd one out. */
+		--fs-btn-size: 34px;
 
 		/* Corner-radius scale. One user-tunable base (Appearance → Rounding, 0–20px,
 		 * localStorage `fs-radius`, pre-painted inline on :root by partials/head.ut before
