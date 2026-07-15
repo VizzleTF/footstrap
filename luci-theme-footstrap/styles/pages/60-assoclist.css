@@ -12,9 +12,25 @@
 	 * whole guard: once fs-select.js has measured that the table no longer fits and carded it, the
 	 * cells must be free to wrap again.
 	 *
-	 * Column 2, NOT `[data-title="MAC address"]` — that literal is a translated string and the rule
+	 * Column INDICES, NOT `[data-title="…"]` — those literals are translated strings and the rule
 	 * was dead on every localised router, which is precisely how the bug was still being reported
 	 * (#7) after it had been "fixed". See the note in pages/50-leases.css.
-	 * Columns: 1 Network | 2 MAC address | 3 Host | 4 Signal/Noise | 5 RX/TX Rate | 6 Disconnect. */
-	#view table.fs-dt.assoclist:not(.fs-stacked) .td:nth-child(2) { white-space: nowrap; }
+	 * Columns: 1 Network | 2 MAC address | 3 Host | 4 Signal/Noise | 5 RX/TX Rate | 6 Disconnect.
+	 *
+	 * Signal/Noise (4) and RX/TX Rate (5) get the same nowrap as the MAC (#7 again): `anywhere`
+	 * split the short "-54/-90 dBm" wherever a character landed, and the wider modulation string
+	 * ("229 Mbit/s, 20 MHz, HE-MCS 9, HE-NSS 2") stacked into 6-9 lines, so a client row grew a
+	 * tower of half-values. Measured on the router: at ~1024px the whole table was a 9-line mess.
+	 * nowrap keeps each on one line AND raises the table's floor, so fs-select.js cards it a step
+	 * earlier (into the clean per-field card) instead of crushing the columns. Host (3) is left to
+	 * wrap: a hostname + IPv6 is legitimately long and nobody asked to keep it on one line. */
+	#view table.fs-dt.assoclist:not(.fs-stacked) .td:nth-child(2),
+	#view table.fs-dt.assoclist:not(.fs-stacked) .td:nth-child(4),
+	#view table.fs-dt.assoclist:not(.fs-stacked) .td:nth-child(5) { white-space: nowrap; }
+	/* Signal/Noise renders its value inside an `.ifacebadge` (a `display:flex` column: signal-bars
+	 * icon over the reading), and the badge re-declares `white-space: normal`, so the cell's nowrap
+	 * never reaches the reading — "-26/-91 dBm" wrapped its "dBm" onto a second line in the ~50px
+	 * badge (issue #7). Put the nowrap on the badge's own text; the badge then widens to fit the
+	 * one-line reading (the cell is already nowrap, so the column follows). */
+	#view table.fs-dt.assoclist:not(.fs-stacked) .td:nth-child(4) .ifacebadge { white-space: nowrap; }
 }

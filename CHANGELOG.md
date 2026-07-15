@@ -61,6 +61,14 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **The Wireless "Associated Stations" table no longer wraps Signal/Noise and the RX/TX rate onto
+  extra lines** (issue #7). `overflow-wrap: anywhere` split the short "-54/-90 dBm" wherever a
+  character landed and stacked the modulation string ("229 Mbit/s, 20 MHz, HE-MCS 9, HE-NSS 2") into
+  6-9 lines per client — at ~1024px the whole table was a nine-line mess (measured on the router).
+  Both columns are now nowrap, like the MAC already was, which also raises the table's floor so
+  `fs-select.js` folds it into the clean per-field card a step earlier instead of crushing the
+  columns. The Signal reading sits inside an `.ifacebadge` that re-declares `white-space: normal`, so
+  its own text takes the nowrap too. Host is left to wrap — a hostname plus IPv6 is legitimately long.
 - **The collapsed sidebar (icon rail) no longer leaves 1px specks of the hidden submenu at its edge**
   (issue #7). The sidebar was `position: sticky`, which the browser promotes to a composited GPU
   layer; with `overflow: visible` (needed so the rail's flyouts escape sideways) every hover repaint
