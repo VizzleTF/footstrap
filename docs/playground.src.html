@@ -1,48 +1,51 @@
 <!DOCTYPE html>
 <!--
-  footstrap playground — SOURCE template. The shipping page is docs/playground.html, built by
-  tools/devkit-build.mjs (npm run devkit): it inlines the real cascade.css + fonts. Edit chrome
-  HERE.
+  footstrap playground — SOURCE template. Shipping page is docs/playground.html, built by
+  tools/devkit-build.mjs (npm run devkit): it inlines the real cascade.css + fonts. Edit HERE.
 
-  A sandbox of the theme's own chrome and its Appearance controls. Every control (Layout, Theme,
-  Palette, Wallpaper, Tint, Accent, Rounding, Submenus, the icon rail) drives the SAME :root
-  attributes / custom properties the real theme uses (contract in tools/axes.mjs), so the whole page
-  repaints live. NOTHING navigates: every menu link is href="#" and preventDefault'd, and the
-  appliers deliberately do NOT touch localStorage — this page must not change the real theme's saved
-  look on the same origin.
-
-  The control markup reuses the theme's real classes (.fs-ap-group/.fs-ap-label/.fs-seg/.fs-range…),
-  so it is styled by cascade.css, not by this file — and repaints along with everything else.
+  A sandbox of the theme's own chrome and its Appearance controls. The Appearance button opens the
+  REAL popover (.fs-appearance-pop), positioned like the theme does; every control drives the SAME
+  :root attributes / custom properties the real theme uses (contract in tools/axes.mjs), so the
+  whole page repaints live. NOTHING navigates: every menu link is href="#" and preventDefault'd, and
+  the appliers deliberately touch NO localStorage — this page must not change the real theme's saved
+  look on the same origin. All data is fictional.
 -->
-<html lang="en" data-layout="sidebar" data-darkmode="false" data-theme="light" data-bs-theme="light">
+<html lang="en" data-layout="sidebar" data-darkmode="false" data-theme="light" data-bs-theme="light" data-page="admin-status-overview">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>footstrap playground — touch every appearance control</title>
+<title>footstrap playground — a full themed overview you can restyle</title>
 <style>/*__CASCADE__*/</style>
 <style>
 	/* playground-only chrome — never part of the theme */
 	.pg-banner { background: var(--fs-accent-fill); border: 1px solid var(--fs-accent-line);
-	             border-radius: var(--fs-radius); padding: 12px 16px; margin: 0 0 20px;
-	             display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+	             border-radius: var(--fs-radius); padding: 11px 16px; margin: 0 0 18px;
+	             display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13.5px; }
 	.pg-banner b { color: var(--fs-text); }
 	.pg-banner .sp { flex: 1 1 auto; }
 	.pg-banner a.pg-link { color: var(--fs-accent); font-weight: 700; text-decoration: none;
 	                       border: 1px solid var(--fs-accent-line); padding: 5px 12px; border-radius: var(--fs-radius-s); white-space: nowrap; }
 	.pg-banner a.pg-link:hover { background: var(--fs-accent-soft); }
 
-	/* the Appearance control card — real .fs-ap-* controls, laid out in a grid so all are visible */
-	.pg-appear { border: 1px solid var(--fs-border); border-radius: var(--fs-radius); background: var(--fs-panel);
-	             padding: 18px 20px; margin: 0 0 24px; }
-	.pg-appear > h3 { margin: 0 0 4px; font-size: 15px; }
-	.pg-appear > p { margin: 0 0 16px; font-size: 13px; color: var(--fs-dim); }
-	.pg-ap-grid { display: grid; gap: 16px 24px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+	/* network-ports grid over the theme's own .ifacebox cards (no port_*.svg dependency) */
+	.pg-ports { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 180px)); gap: 10px; }
+	.pg-port .ifacebox-head { display: flex; align-items: center; gap: 6px; justify-content: center; }
+	.pg-port .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--fs-dim); }
+	.pg-port.up   .dot { background: var(--fs-good); }
+	.pg-port.down .dot { background: var(--fs-border); }
+	.pg-port .sp { font-weight: 700; }
+	.pg-port .tr { color: var(--fs-dim); font-size: 80%; }
+	.pg-port .ico { width: 22px; height: 22px; color: var(--fs-dim); margin-bottom: 2px; }
 
-	/* keep the fake logout / appearance trigger from looking clickable-to-navigate */
+	/* wireless cards */
+	.pg-wifi { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+	.pg-wifi .row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 13px; }
+	.pg-wifi .row .k { color: var(--fs-dim); }
+	.pg-signal { display: inline-flex; align-items: baseline; gap: 4px; }
 	.fs-sidebar a[href="#"], .pg-fake { cursor: default; }
 </style>
 </head>
-<body class="lang_en" data-page="admin-status-overview">
+<body class="lang_en">
 <a class="fs-skip" href="#maincontent">Skip to content</a>
 <div class="fs-shell">
 
@@ -53,21 +56,23 @@
 				<span class="fs-wordmark">OpenWrt</span>
 			</a>
 			<button type="button" class="fs-railtoggle" id="pg-rail" aria-label="Collapse menu" title="Collapse menu">
-				<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+				<svg class="fs-ico" width="20" height="20" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
 			</button>
 		</div>
 
-		<div id="indicators" class="fs-indicators"></div>
+		<div id="indicators" class="fs-indicators">
+			<span class="fs-indicator" title="Refreshing"><span class="spinning"></span>Auto refresh</span>
+		</div>
 
 		<div class="fs-navlabel">Menu</div>
 		<ul class="nav" id="topmenu"></ul>
 
 		<div class="fs-spacer"></div>
 
-		<a class="fs-appearance pg-fake" href="#" onclick="return false" title="Appearance controls are in the page →">
-			<svg class="fs-ico" width="18" height="18" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+		<button type="button" class="fs-appearance" id="fs-appearance" title="Appearance">
+			<svg class="fs-ico" width="18" height="18" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
 			<span class="fs-label">Appearance</span>
-		</a>
+		</button>
 		<a class="fs-logout pg-fake" href="#" onclick="return false">
 			<svg class="fs-ico" width="18" height="18" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
 			<span class="fs-label">Logout</span>
@@ -78,77 +83,92 @@
 		<div class="fs-content">
 
 			<div class="pg-banner">
-				<span>🎨 <b>Playground.</b> Drag the controls below and watch the whole page repaint — this is footstrap's real chrome and its real Appearance controls. <b>Nothing here navigates</b>; the menu just opens and closes.</span>
+				<span>🎛️ <b>Playground.</b> This is footstrap's real chrome. Click <b>Appearance</b> (bottom-left) to open the controls — drag them and the whole page repaints. <b>Nothing navigates</b>; the menu just opens and closes, and all data is fictional.</span>
 				<span class="sp"></span>
 				<a class="pg-link" href="devkit.html">← Back to the devkit</a>
 			</div>
 
-			<!-- The Appearance controls — real .fs-ap-* / .fs-seg / .fs-range classes, so cascade.css
-			     styles them and they repaint along with everything else. -->
-			<div class="pg-appear">
-				<h3>Appearance</h3>
-				<p>The exact controls the theme puts in its Appearance popover. Every one drives the same
-					<code>:root</code> attribute / custom property the real theme uses. Changes are live and local —
-					they do not touch your saved theme.</p>
-				<div class="pg-ap-grid" id="pg-controls"></div>
-			</div>
+			<h2>Status</h2>
 
-			<h2>Status overview</h2>
-
-			<div class="cbi-section">
-				<h3>System</h3>
-				<div class="table">
-					<div class="tr"><div class="td">Hostname</div><div class="td">OpenWrt</div></div>
-					<div class="tr"><div class="td">Model</div><div class="td">Netcore N60 Pro</div></div>
-					<div class="tr"><div class="td">Firmware Version</div><div class="td">OpenWrt 24.10</div></div>
-					<div class="tr"><div class="td">Uptime</div><div class="td">8d 14h 11m 18s</div></div>
-					<div class="tr"><div class="td">Load Average</div><div class="td">0.14, 0.09, 0.03</div></div>
+			<!-- System / Memory / Storage — the theme's signature overview grid (.fs-ovl) -->
+			<div class="fs-ovl">
+				<div class="cbi-section fs-ovl-sys">
+					<h3>System</h3>
+					<div class="table">
+						<div class="tr"><div class="td">Hostname</div><div class="td">OpenWrt</div></div>
+						<div class="tr"><div class="td">Model</div><div class="td">Netcore N60 Pro</div></div>
+						<div class="tr"><div class="td">Architecture</div><div class="td">MediaTek MT7981B</div></div>
+						<div class="tr"><div class="td">Firmware Version</div><div class="td">OpenWrt 24.10.0 r28427</div></div>
+						<div class="tr"><div class="td">Kernel Version</div><div class="td">6.6.73</div></div>
+						<div class="tr"><div class="td">Local Time</div><div class="td">2026-07-15 14:02:11</div></div>
+						<div class="tr"><div class="td">Uptime</div><div class="td">8d 14h 11m 18s</div></div>
+						<div class="tr"><div class="td">Load Average</div><div class="td">0.14, 0.09, 0.03</div></div>
+					</div>
+				</div>
+				<div class="cbi-section fs-ovl-mem">
+					<h3>Memory</h3>
+					<div class="table">
+						<div class="tr"><div class="td">Total Available</div><div class="td"><div class="cbi-progressbar" title="303 MiB / 484 MiB (62%)"><div style="width:62%"></div></div></div></div>
+						<div class="tr"><div class="td">Free</div><div class="td"><div class="cbi-progressbar" title="181 MiB / 484 MiB (37%)"><div style="width:37%"></div></div></div></div>
+						<div class="tr"><div class="td">Buffered</div><div class="td"><div class="cbi-progressbar" title="24 MiB / 484 MiB (5%)"><div style="width:5%"></div></div></div></div>
+					</div>
+				</div>
+				<div class="cbi-section fs-ovl-sto">
+					<h3>Storage</h3>
+					<div class="table">
+						<div class="tr"><div class="td">Root (overlay)</div><div class="td"><div class="cbi-progressbar" title="41 MiB / 104 MiB (39%)"><div style="width:39%"></div></div></div></div>
+						<div class="tr"><div class="td">/tmp</div><div class="td"><div class="cbi-progressbar" title="3 MiB / 242 MiB (1%)"><div style="width:1%"></div></div></div></div>
+					</div>
 				</div>
 			</div>
 
+			<!-- Network ports -->
 			<div class="cbi-section">
-				<h3>Memory</h3>
-				<div class="cbi-progressbar" title="303 MiB / 484 MiB (62%)"><div style="width:62%"></div></div>
-				<div class="cbi-progressbar" title="3 MiB / 242 MiB (1%)"><div style="width:1%"></div></div>
+				<h3>Network ports</h3>
+				<div class="pg-ports" id="pg-ports"></div>
 			</div>
 
+			<!-- Wireless -->
 			<div class="cbi-section">
-				<h3>Active DHCP Leases</h3>
-				<table class="table" id="status_leases">
-					<tr class="tr table-titles">
-						<th class="th">Hostname</th><th class="th">IPv4 address</th><th class="th">MAC</th><th class="th">&nbsp;</th>
-					</tr>
+				<h3>Wireless</h3>
+				<div class="pg-wifi" id="pg-wifi"></div>
+			</div>
+
+			<!-- Interfaces / network status -->
+			<div class="cbi-section">
+				<h3>Network</h3>
+				<table class="table network-status-table">
+					<tr class="tr table-titles"><th class="th">Interface</th><th class="th">Status</th><th class="th">&nbsp;</th></tr>
 					<tr class="tr cbi-rowstyle-1">
-						<td class="td">Watch</td><td class="td">10.11.12.131</td><td class="td">E6:EF:BA:54:DE:32</td>
-						<td class="td"><button class="cbi-button cbi-button-apply">Reserve IP</button></td>
+						<td class="td"><span class="ifacebadge ifacebadge-active">WAN</span></td>
+						<td class="td"><strong>Uptime:</strong> 8d 14h · <strong>IPv4:</strong> 203.0.113.42/24 · <strong>RX:</strong> 8.31 GiB · <strong>TX:</strong> 1.20 GiB</td>
+						<td class="td"><button class="cbi-button cbi-button-neutral">Restart</button></td>
 					</tr>
 					<tr class="tr cbi-rowstyle-2">
-						<td class="td">iPhone</td><td class="td">10.11.12.182</td><td class="td">F4:A3:10:96:E0:53</td>
-						<td class="td"><button class="cbi-button cbi-button-apply">Reserve IP</button></td>
+						<td class="td"><span class="ifacebadge ifacebadge-active">LAN</span></td>
+						<td class="td"><strong>IPv4:</strong> 192.168.1.1/24 · <strong>MAC:</strong> AC:1F:6B:4E:22:C1 · <strong>RX:</strong> 44.9 GiB · <strong>TX:</strong> 61.2 GiB</td>
+						<td class="td"><button class="cbi-button cbi-button-neutral">Restart</button></td>
+					</tr>
+					<tr class="tr cbi-rowstyle-1">
+						<td class="td"><span class="ifacebadge">WAN6</span></td>
+						<td class="td"><strong>IPv6:</strong> 2001:db8:42::1/64 · <strong>RX:</strong> 1.02 GiB · <strong>TX:</strong> 210 MiB</td>
+						<td class="td"><button class="cbi-button cbi-button-neutral">Restart</button></td>
 					</tr>
 				</table>
 			</div>
 
+			<!-- DHCP leases -->
 			<div class="cbi-section">
-				<h3>A form, for the controls</h3>
-				<div class="cbi-section-node">
-					<div class="cbi-value">
-						<label class="cbi-value-title" for="pg-h">Hostname</label>
-						<div class="cbi-value-field"><input id="pg-h" type="text" class="cbi-input-text" value="OpenWrt"></div>
-					</div>
-					<div class="cbi-value">
-						<label class="cbi-value-title" for="pg-s">Time zone</label>
-						<div class="cbi-value-field"><select id="pg-s" class="cbi-input-select"><option>UTC</option><option>Europe/Moscow</option></select></div>
-					</div>
-					<div class="cbi-value">
-						<label class="cbi-value-title">Enable</label>
-						<div class="cbi-value-field"><div class="cbi-checkbox"><input id="pg-cb" type="checkbox" checked><label for="pg-cb"></label></div></div>
-					</div>
-				</div>
+				<h3>Active DHCP Leases</h3>
+				<table class="table" id="status_leases">
+					<tr class="tr table-titles">
+						<th class="th">Hostname</th><th class="th">IPv4 address</th><th class="th">MAC</th><th class="th">Lease time</th><th class="th">&nbsp;</th>
+					</tr>
+					<tr class="tr cbi-rowstyle-1"><td class="td">Watch</td><td class="td">10.11.12.131</td><td class="td">E6:EF:BA:54:DE:32</td><td class="td">9h 10m 51s</td><td class="td"><button class="cbi-button cbi-button-apply">Reserve IP</button></td></tr>
+					<tr class="tr cbi-rowstyle-2"><td class="td">iPhone</td><td class="td">10.11.12.182</td><td class="td">F4:A3:10:96:E0:53</td><td class="td">8h 56m 4s</td><td class="td"><button class="cbi-button cbi-button-apply">Reserve IP</button></td></tr>
+					<tr class="tr cbi-rowstyle-1"><td class="td">laptop</td><td class="td">10.11.12.104</td><td class="td">3C:22:FB:1A:9D:74</td><td class="td">11h 02m 33s</td><td class="td"><button class="cbi-button cbi-button-apply">Reserve IP</button></td></tr>
+				</table>
 			</div>
-
-			<div class="alert-message success">Configuration applied. Watch the accent, tint and rounding move this whole page.</div>
-			<div class="alert-message warning">Try the Palette and Theme controls — the surfaces, borders and inks all follow.</div>
 
 			<div class="cbi-page-actions">
 				<button class="cbi-button cbi-button-apply">Save &amp; Apply</button>
@@ -163,15 +183,16 @@
 <script>
 (function () {
 	'use strict';
-	var root = document.documentElement, E = function (t, a, k) {
+	var root = document.documentElement, body = document.body;
+	function E(t, a, k) {
 		var el = document.createElement(t); a = a || {};
 		for (var n in a) if (a[n] != null) el.setAttribute(n, a[n]);
 		(k || []).forEach(function (c) { el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
 		return el;
-	};
+	}
 
-	/* ---- the appliers: same contract as fs-prefs.js, but NO localStorage (sandbox) and the
-	   load-bearing order — custom property BEFORE the attribute — preserved for tint/accent. ---- */
+	/* ---- appliers: same contract as fs-prefs.js, NO localStorage (sandbox); tint/accent keep the
+	   load-bearing order — custom property BEFORE the attribute. ---- */
 	var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : { matches: false };
 	function stampDark(dark) {
 		root.setAttribute('data-darkmode', dark ? 'true' : 'false');
@@ -179,7 +200,7 @@
 		root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
 	}
 	var A = {
-		layout: function (v) { root.setAttribute('data-layout', v === 'top' ? 'top' : 'sidebar'); },
+		layout: function (v) { root.setAttribute('data-layout', v === 'top' ? 'top' : 'sidebar'); if (pop && !pop.hidden) place(); },
 		mode: function (v) { stampDark(v === 'dark' || (v === 'auto' && mq.matches)); },
 		palette: function (v) { v === 'hicontrast' ? root.setAttribute('data-palette', 'hicontrast') : root.removeAttribute('data-palette'); },
 		wallpaper: function (v) { v === 'cats' ? root.setAttribute('data-wallpaper', 'cats') : root.removeAttribute('data-wallpaper'); },
@@ -213,17 +234,42 @@
 	function group(label, control) { return E('div', { 'class': 'fs-ap-group' }, [E('div', { 'class': 'fs-ap-label' }, [label]), control]); }
 	function off(v) { return v ? v + '°' : 'Off'; }
 
-	var host = document.getElementById('pg-controls');
-	host.appendChild(group('Layout', seg('sidebar', [{ val: 'sidebar', label: 'Sidebar' }, { val: 'top', label: 'Top' }], A.layout, 'Layout')));
-	host.appendChild(group('Theme', seg('auto', [{ val: 'auto', label: 'Auto' }, { val: 'light', label: 'Light' }, { val: 'dark', label: 'Dark' }], A.mode, 'Theme')));
-	host.appendChild(group('Palette', seg('footstrap', [{ val: 'footstrap', label: 'Footstrap' }, { val: 'hicontrast', label: 'Hi-Contrast' }], A.palette, 'Palette')));
-	host.appendChild(group('Wallpaper', seg('off', [{ val: 'off', label: 'Off' }, { val: 'cats', label: 'Cats' }], A.wallpaper, 'Wallpaper')));
-	host.appendChild(group('Tint (router identification)', slider(0, 0, 360, A.tint, 'Tint', { step: 5, cls: 'fs-range-hue', fmt: off })));
-	host.appendChild(group('Accent', slider(0, 0, 360, A.accent, 'Accent', { step: 5, cls: 'fs-range-hue fs-range-accent', fmt: off })));
-	host.appendChild(group('Rounding', slider(12, 0, 20, A.radius, 'Rounding')));
-	host.appendChild(group('Submenus', seg('off', [{ val: 'off', label: 'Keep open' }, { val: 'on', label: 'Auto-collapse' }], A.submenus, 'Submenus')));
+	/* ---- the Appearance popover — real .fs-appearance-pop, opened from the sidebar button ---- */
+	var btn = document.getElementById('fs-appearance');
+	var pop = E('div', { 'class': 'fs-appearance-pop', 'role': 'dialog', 'aria-label': 'Appearance', 'hidden': '' }, [
+		group('Layout', seg('sidebar', [{ val: 'sidebar', label: 'Sidebar' }, { val: 'top', label: 'Top' }], A.layout, 'Layout')),
+		group('Theme', seg('auto', [{ val: 'auto', label: 'Auto' }, { val: 'light', label: 'Light' }, { val: 'dark', label: 'Dark' }], A.mode, 'Theme')),
+		group('Palette', seg('footstrap', [{ val: 'footstrap', label: 'Footstrap' }, { val: 'hicontrast', label: 'Hi-Contrast' }], A.palette, 'Palette')),
+		group('Wallpaper', seg('off', [{ val: 'off', label: 'Off' }, { val: 'cats', label: 'Cats' }], A.wallpaper, 'Wallpaper')),
+		group('Tint (router identification)', slider(0, 0, 360, A.tint, 'Tint', { step: 5, cls: 'fs-range-hue', fmt: off })),
+		group('Accent', slider(0, 0, 360, A.accent, 'Accent', { step: 5, cls: 'fs-range-hue fs-range-accent', fmt: off })),
+		group('Rounding', slider(12, 0, 20, A.radius, 'Rounding')),
+		group('Submenus', seg('off', [{ val: 'off', label: 'Keep open' }, { val: 'on', label: 'Auto-collapse' }], A.submenus, 'Submenus'))
+	]);
+	body.appendChild(pop);
 
-	/* ---- the menu: real accordion markup, but every link is inert (nothing navigates) ---- */
+	/* placePopover, ported from fs-widgets.js: sidebar → left of the trigger's right edge, opening
+	   upward; top layout → below, right-aligned; clamped to the viewport. */
+	function place() {
+		var gap = 8, r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+		var vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+		var topL = root.getAttribute('data-layout') === 'top';
+		var left = topL ? (r.right - w) : (r.right + gap);
+		var top = topL ? (r.bottom + gap) : (r.bottom - h);
+		if (!topL && left + w > vw - gap) { left = r.left; top = r.top - h - gap; }
+		pop.style.left = Math.max(gap, Math.min(left, vw - w - gap)) + 'px';
+		pop.style.top = Math.max(gap, Math.min(top, vh - h - gap)) + 'px';
+	}
+	function openPop() { pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); place(); }
+	function closePop() { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+	btn.setAttribute('aria-haspopup', 'dialog');
+	btn.setAttribute('aria-expanded', 'false');
+	btn.addEventListener('click', function () { pop.hidden ? openPop() : closePop(); });
+	document.addEventListener('click', function (e) { if (!pop.hidden && !pop.contains(e.target) && !btn.contains(e.target)) closePop(); });
+	document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { closePop(); btn.focus(); } });
+	window.addEventListener('resize', function () { if (!pop.hidden) place(); });
+
+	/* ---- menu: real accordion markup, every link inert (nothing navigates) ---- */
 	var CHEV = '<svg class="fs-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 	var ICO = '<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
 	var MENU = [
@@ -238,7 +284,7 @@
 		sec.kids.forEach(function (k, i) {
 			var a = E('a', { 'href': '#', 'class': (si === 0 && i === 0) ? 'active' : '', 'aria-current': (si === 0 && i === 0) ? 'page' : null });
 			a.innerHTML = '<span class="fs-label"></span>'; a.querySelector('.fs-label').textContent = k;
-			a.addEventListener('click', function (e) { e.preventDefault(); });   /* leaves never navigate */
+			a.addEventListener('click', function (e) { e.preventDefault(); });
 			subUl.appendChild(E('li', {}, [a]));
 		});
 		var link = E('a', { 'href': '#', 'role': 'button', 'aria-controls': subUl.id, 'aria-expanded': sec.open ? 'true' : 'false', 'data-label': sec.title });
@@ -255,9 +301,45 @@
 		top.appendChild(li);
 	});
 
-	/* ---- icon rail toggle (data-rail), like the real chrome ---- */
+	/* ---- icon rail toggle (data-rail) ---- */
 	document.getElementById('pg-rail').addEventListener('click', function () {
 		root.getAttribute('data-rail') === 'true' ? root.removeAttribute('data-rail') : root.setAttribute('data-rail', 'true');
+		if (!pop.hidden) place();
+	});
+
+	/* ---- fictional content: network ports + wireless ---- */
+	var ETH = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="11" rx="2"/><path d="M7 8V6M12 8V6M17 8V6M8 19v-3M12 19v-3M16 19v-3"/></svg>';
+	var PORTS = [
+		{ name: 'WAN', up: true, sp: '1000', tr: '▲ 1.20 GiB  ▼ 8.31 GiB' },
+		{ name: 'LAN1', up: true, sp: '1000', tr: '▲ 61.2 GiB  ▼ 44.9 GiB' },
+		{ name: 'LAN2', up: true, sp: '100', tr: '▲ 3.1 GiB  ▼ 9.8 GiB' },
+		{ name: 'LAN3', up: false, sp: '', tr: 'no link' },
+		{ name: 'LAN4', up: false, sp: '', tr: 'no link' }
+	];
+	var pgP = document.getElementById('pg-ports');
+	PORTS.forEach(function (p) {
+		var head = E('div', { 'class': 'ifacebox-head' }); head.innerHTML = '<span class="dot"></span>' + p.name;
+		var bodyEl = E('div', { 'class': 'ifacebox-body' });
+		bodyEl.innerHTML = ETH + '<div>' + (p.up ? '<span class="sp">' + p.sp + '</span> Mbit/s' : 'no link') + '</div><div class="tr">' + (p.up ? p.tr : '&nbsp;') + '</div>';
+		pgP.appendChild(E('div', { 'class': 'ifacebox pg-port ' + (p.up ? 'up' : 'down') }, [head, bodyEl]));
+	});
+
+	var WIFI = [
+		{ radio: 'radio0 · 5 GHz (802.11ax)', ssid: 'OpenWrt-5G', ch: '36 (80 MHz)', rate: '1201 Mbit/s', sig: '-52 dBm', clients: 4, active: true },
+		{ radio: 'radio1 · 2.4 GHz (802.11n)', ssid: 'OpenWrt', ch: '6 (20 MHz)', rate: '144 Mbit/s', sig: '-67 dBm', clients: 2, active: true }
+	];
+	var pgW = document.getElementById('pg-wifi');
+	WIFI.forEach(function (w) {
+		var card = E('div', { 'class': 'ifacebox' });
+		var head = E('div', { 'class': 'ifacebox-head' }, [w.radio]);
+		var b = E('div', { 'class': 'ifacebox-body left' });
+		b.innerHTML =
+			'<div class="row"><span class="k">SSID</span><span><span class="ifacebadge ifacebadge-active">' + w.ssid + '</span></span></div>' +
+			'<div class="row"><span class="k">Channel</span><span>' + w.ch + '</span></div>' +
+			'<div class="row"><span class="k">Bitrate</span><span>' + w.rate + '</span></div>' +
+			'<div class="row"><span class="k">Signal</span><span class="pg-signal">' + w.sig + ' <span class="label success">good</span></span></div>' +
+			'<div class="row"><span class="k">Associations</span><span>' + w.clients + ' clients</span></div>';
+		card.appendChild(head); card.appendChild(b); pgW.appendChild(card);
 	});
 })();
 </script>
