@@ -60,12 +60,32 @@ else
 	echo "  (po2lmo not found — skipping the translation catalogue; strings stay English)"
 fi
 
-# root/usr -> /usr as a TREE, never as a list of names. luci.mk installs root/ wholesale, so a
-# file named here one-by-one is a file that ships in the package and silently never reaches the
-# dev router — first noticed after a release. This directory now carries three unrelated things
-# (the self-update backend, its rpcd ACL, the release public key), and the next one must arrive
-# for free. tar, not `scp -r`, because scp's merge semantics on an existing /usr are ambiguous.
-tar -C "$D/root" -cf - usr | ssh "$R" "tar -C / -xf -"
+# root/ -> / as a TREE, never as a list of names. luci.mk installs root/ wholesale, so a file named
+# here one-by-one is a file that ships in the package and silently never reaches the dev router —
+# first noticed after a release. The top-level dirs come from a GLOB for the same reason: this used
+# to tar `usr` literally, which is a hand-written list of one, and root/etc/ was the counterexample
+# already sitting in the tree — root/etc/config/footstrap shipped in the package and never reached
+# the router. tar, not `scp -r`, because scp's merge semantics on an existing /usr are ambiguous.
+#
+# Two subtrees have semantics a blind tar would break, so each is excluded and handled explicitly
+# below. Both exclusions are about BEHAVIOUR, not about naming files: a new file under either dir
+# still arrives for free.
+#   - etc/uci-defaults: deliberately run from /tmp (see below). Landing it in /etc/uci-defaults
+#     would make the router's next boot execute it and then DELETE it.
+#   - etc/config: conffiles. The package manager does not overwrite them on upgrade (Makefile's
+#     conffiles define) and neither may dev-sync — the live file holds the admin's "Save as
+#     default", and clobbering it here would be the very wipe that define exists to prevent.
+set --
+for _d in "$D"/root/*/; do set -- "$@" "$(basename "$_d")"; done
+tar -C "$D/root" --exclude=etc/uci-defaults --exclude=etc/config -cf - "$@" | ssh "$R" "tar -C / -xf -"
+
+# conffiles: install only when ABSENT, which is exactly what the package manager does with them.
+for _f in "$D"/root/etc/config/*; do
+	[ -f "$_f" ] || continue
+	_b=$(basename "$_f")
+	scp -q "$_f" "$R":"/tmp/.fs-conf-$_b"
+	ssh "$R" "[ -f /etc/config/$_b ] || { mv /tmp/.fs-conf-$_b /etc/config/$_b; echo '  installed /etc/config/$_b (was absent)'; }; rm -f /tmp/.fs-conf-$_b"
+done
 ssh "$R" "chmod +x /usr/libexec/footstrap-selfupdate.sh; /etc/init.d/rpcd reload 2>/dev/null; rm -f /tmp/luci-indexcache*"
 
 ssh "$R" "

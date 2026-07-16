@@ -206,19 +206,25 @@ else
 	rm -f "$TMP.min"
 fi
 
-mv "$TMP" "$OUT"
-trap - EXIT
-
-SIZE=$(wc -c < "$OUT" | tr -d ' ')
-echo "build-css: $SIZE bytes -> $OUT"
-
 # BROKEN-BUILD FLOOR (no upper size budget — removed). With only an upper bound, every way of
 # producing a SHORT file — a truncated write, a full disk, a squeeze that ate the tail — passed
 # and shipped a stylesheet with its second half missing. The floor catches that; it is a
 # correctness guard, not a size limit.
+#
+# Measured on $TMP and BEFORE the mv, with the EXIT trap still armed — like the brace checks above,
+# which had this order right. It used to run after, so the guard's own failure path LEFT the mangled
+# sheet at $OUT with nothing to clean it up: make aborts in Build/Prepare, fine, but dev-sync.sh
+# writes straight into htdocs/luci-static/footstrap/cascade.css, so a truncated sheet stayed in the
+# working tree and the CSS-only iterate loop (scp that same file) would ship it.
+SIZE=$(wc -c < "$TMP" | tr -d ' ')
 FLOOR=${FS_CSS_FLOOR:-81920}      # 80 KB — well under the real sheet; only a mangled build lands here
 if [ "$DEV" -eq 0 ] && [ "$SIZE" -lt "$FLOOR" ]; then
-	echo "build-css: cascade.css is only $SIZE bytes, under the $FLOOR-byte floor." >&2
-	echo "build-css: that is not a smaller stylesheet, that is a broken one." >&2
+	echo "build-css: cascade.css would be only $SIZE bytes, under the $FLOOR-byte floor." >&2
+	echo "build-css: that is not a smaller stylesheet, that is a broken one. $OUT left untouched." >&2
 	exit 1
 fi
+
+mv "$TMP" "$OUT"
+trap - EXIT
+
+echo "build-css: $SIZE bytes -> $OUT"
