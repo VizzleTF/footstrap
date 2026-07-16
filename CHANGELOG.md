@@ -71,7 +71,9 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   attacker's SDK — demonstrated, the previous code passes that attack. It is now checked against
   `sha256sums.sig` with OpenWrt's release key, pinned by commit and sha256 and fetched from
   `github.com/openwrt/keyring` so that `downloads.openwrt.org` cannot vouch for itself. Verified end
-  to end; a flipped byte gives `verification failed`, a swapped key gives a sha256 mismatch.
+  to end; a flipped byte gives `verification failed`, a swapped key gives a sha256 mismatch. The
+  two branches do not share a key — 24.10 has a release key of its own, 25.12 is signed by the
+  unattended-build key — so each matrix leg pins its own beside its channel.
 - **The release action is pinned by commit.** `softprops/action-gh-release@v3` was the only
   third-party action, on a mutable tag, in the only job holding `contents: write`. It never sees the
   signing secret and so cannot re-sign, but a tag is a mutable pointer and that is the wrong place to

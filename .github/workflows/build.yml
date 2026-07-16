@@ -329,14 +329,25 @@ jobs:
           # same argument this workflow already accepted for 24.10. `fallback` is what the
           # resolver pins to if downloads.openwrt.org cannot be listed; it must stay a version
           # that exists.
+          #
+          # `sdk_key` is the usign key OpenWrt signs THAT BRANCH's sha256sums with, and the two
+          # branches do not share one — 24.10 has a release key of its own, 25.12 is signed by the
+          # unattended-build key. Pinning one for both was measured wrong the only way it can be:
+          # the 24.10 leg refused to build. It lives here, next to the channel, because that is what
+          # it is a property of; the keyring COMMIT it is fetched from stays in luci-upstream.pin.
+          # `sdk_key_sha256` is what actually holds the content — see there.
           - fmt: apk
             channel: '25.12'
             fallback: '25.12.5'
             use_apk: 'y'
+            sdk_key: 'b5043e70f9a75cde'
+            sdk_key_sha256: 'd7ac10f9ed1b38033855f3d27c9327d558444fca804c685b17d9dcfb0648228f'
           - fmt: ipk
             channel: '24.10'
             fallback: '24.10.4'
             use_apk: 'n'
+            sdk_key: 'd310c6f2833e97f7'
+            sdk_key_sha256: 'e3624aa9be785362a172595b4919b233268871c4365a9b8da2b42ac41745ad95'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -392,16 +403,20 @@ jobs:
           curl -sfL --proto '=https' --proto-redir '=https' "$BASE/sha256sums" -o "$RUNNER_TEMP/sha256sums"
           curl -sfL --proto '=https' --proto-redir '=https' "$BASE/sha256sums.sig" -o "$RUNNER_TEMP/sha256sums.sig"
           curl -sfL --proto '=https' --proto-redir '=https' \
-            "https://raw.githubusercontent.com/openwrt/keyring/$OPENWRT_KEYRING_PIN/usign/$OPENWRT_RELEASE_KEY" \
+            "https://raw.githubusercontent.com/openwrt/keyring/$OPENWRT_KEYRING_PIN/usign/${{ matrix.sdk_key }}" \
             -o "$RUNNER_TEMP/openwrt.pub"
-          echo "$OPENWRT_RELEASE_KEY_SHA256  $RUNNER_TEMP/openwrt.pub" | sha256sum -c - \
-            || { echo "OpenWrt release key does not match its pin — refusing to verify with it"; exit 1; }
+          echo "${{ matrix.sdk_key_sha256 }}  $RUNNER_TEMP/openwrt.pub" | sha256sum -c - \
+            || { echo "OpenWrt's ${{ matrix.channel }} key does not match its pin — refusing to verify with it"; exit 1; }
 
           "$U" -V -m "$RUNNER_TEMP/sha256sums" -p "$RUNNER_TEMP/openwrt.pub" -x "$RUNNER_TEMP/sha256sums.sig" \
             || { echo "BAD SIGNATURE on OpenWrt's sha256sums — refusing to build with this SDK."; \
-                 echo "If OpenWrt has rotated its signing key this looks identical to an attack:"; \
-                 echo "read the keynum in sha256sums.sig before touching the pin."; exit 1; }
-          echo "OpenWrt sha256sums: signature verified with $OPENWRT_RELEASE_KEY."
+                 echo "The keynum this signature names:"; \
+                 sed -n 2p "$RUNNER_TEMP/sha256sums.sig" | base64 -d | xxd -s2 -l8 -p; \
+                 echo "matrix.sdk_key for ${{ matrix.channel }} says: ${{ matrix.sdk_key }}"; \
+                 echo "If those differ, OpenWrt rotated the branch's key — that looks identical to"; \
+                 echo "an attack, so check the keyring before touching the pin. If they match, the"; \
+                 echo "sha256sums really is not the one OpenWrt signed."; exit 1; }
+          echo "OpenWrt sha256sums: signature verified with ${{ matrix.sdk_key }}."
 
           # Now the checksum means something: it is a line in a file we just authenticated.
           WANT="$(grep -F " *$SDK_FILE" "$RUNNER_TEMP/sha256sums" | cut -d' ' -f1)"

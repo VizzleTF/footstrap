@@ -57,10 +57,16 @@ USIGN_PIN=c4c72b1b07945ee192361dc751291a7c98d6adcd
 # with the router's own usign: signature OK, one byte flipped in sha256sums -> "verification failed".
 #
 # Note the mirror does not carry the git.openwrt.org commit openwrt/openwrt pins, so this is the
-# mirror's own; the sha256 is what actually holds the content, exactly as for jsmin.c. To bump:
-# change the commit, re-fetch, update the sha256. The key id is the file name, and it is the keynum
-# usign embeds in the signature — if a release ever comes back "verification failed", read the sig's
-# keynum before assuming an attack: OpenWrt rotating its key looks identical.
+# mirror's own. To bump: change the commit and re-fetch every key it serves, then update their
+# sha256s — the sha256 is what actually holds the content, exactly as for jsmin.c.
+#
+# Only the COMMIT is here. WHICH key is a property of the branch, not of this file, and the two
+# branches do not share one: 24.10 has a release key of its own (d310c6f2833e97f7) while 25.12 is
+# signed by the unattended-build key (b5043e70f9a75cde). So each leg names its own in build.yml's
+# matrix, beside its channel. Pinning one key for both was wrong in the only way it could be — the
+# 24.10 leg refused to build, which is the gate doing its job on its author.
+#
+# The key id IS the file name in the keyring, and it is the keynum usign embeds in the signature. If
+# a build ever comes back "verification failed", read that keynum first (the step prints it): OpenWrt
+# rotating a branch's key looks exactly like an attack.
 OPENWRT_KEYRING_PIN=fbae29d730f81c892f52e0ff00fe867444aeeae6
-OPENWRT_RELEASE_KEY=b5043e70f9a75cde
-OPENWRT_RELEASE_KEY_SHA256=d7ac10f9ed1b38033855f3d27c9327d558444fca804c685b17d9dcfb0648228f
