@@ -51,10 +51,33 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   whole; ten mutations are checked to fail, including that one. Two vacuous passes went with it: the
   dark-mode guard reported "watches all 0 dialects" when both halves of its comparison came back
   empty, and the pin was matched by position rather than by identity.
+- **The build's SDK fallback and the self-updater's signature-host check said what they did not do.**
+  Under `set -euo pipefail` a bare `VAR="$(pipeline)"` *is* the command, so a failed release listing
+  killed the step before the fallback could run — proven, the branch was unreachable. The
+  self-updater's "signature from an unexpected host" can likewise never print, since the signature
+  URL is derived from one already checked; it stays as the guard for the day that changes, and now
+  says so instead of claiming a bug it fixed.
 - **The one expression for "is this page dark" is now the one all three callers use.** Only the guard
   called `intendedDark()`; the applier and the OS listener spelled the condition out again, three
   lines under a comment saying they could not disagree.
 
+### Security
+
+- **CI verifies the OpenWrt SDK by signature, not by a checksum the same host publishes.** The SDK is
+  the least verified input in this repository and the only one that ends up *inside* the package
+  users install — the two borrowed linters are pinned by commit and sha256 while the toolchain that
+  compiles the release arrived on nothing but TLS. `sha256sums` sits in the same directory as the
+  tarball, unsigned: whoever can replace one replaces the other, and the check then verifies the
+  attacker's SDK — demonstrated, the previous code passes that attack. It is now checked against
+  `sha256sums.sig` with OpenWrt's release key, pinned by commit and sha256 and fetched from
+  `github.com/openwrt/keyring` so that `downloads.openwrt.org` cannot vouch for itself. Verified end
+  to end; a flipped byte gives `verification failed`, a swapped key gives a sha256 mismatch.
+- **The release action is pinned by commit.** `softprops/action-gh-release@v3` was the only
+  third-party action, on a mutable tag, in the only job holding `contents: write`. It never sees the
+  signing secret and so cannot re-sign, but a tag is a mutable pointer and that is the wrong place to
+  trust one.
+- **The docs and both installers no longer claim the sha256 survives a missing `usign`.** Nothing
+  does: no `usign` is a refusal. The behaviour was always right; the promise was not.
 
 ## [0.9.1] — 2026-07-16
 

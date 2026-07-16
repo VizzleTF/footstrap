@@ -35,4 +35,32 @@ UCODE_PIN=be92ebd706339fd4a848b88ee516b1ac4eb62ef8
 # This is the commit the router's own binary is built from (`usign-2025.10.03~c4c72b1b`), so the
 # signer in CI and the verifier in the field are the same code. It needs neither cmake nor
 # libubox: `cc *.c` over the six sources plus the bundled base64.c is the whole build.
+#
+# CI builds it TWICE for two different jobs (verify the SDK, sign the release), through
+# tools/build-usign.sh so the two cannot drift onto different commits.
 USIGN_PIN=c4c72b1b07945ee192361dc751291a7c98d6adcd
+
+# OpenWrt's own usign RELEASE key, and the keyring commit it comes from — what CI checks the SDK
+# with. The SDK is the least verified input in this repo and the only one that ends up inside the
+# package users install: jsmin.c and i18n-scan.pl are LINTERS pinned by commit and sha256, while the
+# toolchain that compiles the released artifact arrived on nothing but TLS.
+#
+# The sha256 next to the tarball cannot fix that, and the reason is this project's own argument
+# against GitHub's asset digest (CLAUDE.md): `sha256sums` is served by the SAME host, from the SAME
+# directory, unsigned — whoever can replace openwrt-sdk-*.tar.zst can replace the checksum beside it,
+# and the check then verifies the attacker's SDK. It is worth keeping for a truncated download; it is
+# not a verification, and the comment in build.yml used to say it was.
+#
+# What makes it one is `sha256sums.sig`, an ed25519 signature over that file — verified with a key
+# this repo pins from a DIFFERENT host (github.com/openwrt/keyring, the mirror of the keyring
+# openwrt/openwrt itself ships), so downloads.openwrt.org cannot vouch for itself. Proven end to end
+# with the router's own usign: signature OK, one byte flipped in sha256sums -> "verification failed".
+#
+# Note the mirror does not carry the git.openwrt.org commit openwrt/openwrt pins, so this is the
+# mirror's own; the sha256 is what actually holds the content, exactly as for jsmin.c. To bump:
+# change the commit, re-fetch, update the sha256. The key id is the file name, and it is the keynum
+# usign embeds in the signature — if a release ever comes back "verification failed", read the sig's
+# keynum before assuming an attack: OpenWrt rotating its key looks identical.
+OPENWRT_KEYRING_PIN=fbae29d730f81c892f52e0ff00fe867444aeeae6
+OPENWRT_RELEASE_KEY=b5043e70f9a75cde
+OPENWRT_RELEASE_KEY_SHA256=d7ac10f9ed1b38033855f3d27c9327d558444fca804c685b17d9dcfb0648228f

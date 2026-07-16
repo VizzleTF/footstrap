@@ -226,8 +226,9 @@ fi
 #    verify. `apk add --allow-untrusted` means the PACKAGE MANAGER holds no key of ours — it does
 #    not mean the package is unverified; this script is what verifies it.
 #  - the sha256 still earns its place: it catches a tampered or truncated download from the asset
-#    CDN (a different host from api.github.com) with a clearer message, and it is what remains if
-#    usign is somehow absent.
+#    CDN (a different host from api.github.com) with a clearer message. It does NOT remain if usign
+#    is absent — nothing does: no usign is a REFUSAL below, which is correct and is the opposite of
+#    what this comment used to promise.
 #
 # A MISSING digest or a MISSING signature is a REFUSAL, not a warning: half of a trust chain
 # cannot be optional, and whatever empties it (a renamed field, an unexpected answer) leaves us

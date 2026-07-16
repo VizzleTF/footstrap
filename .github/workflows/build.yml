@@ -356,28 +356,59 @@ jobs:
         run: |
           set -euo pipefail
           # newest point release of this leg's branch (25.12.x / 24.10.x)
+          #
+          # `|| VAR=''` is what makes the guard below REACHABLE, and it is not noise: under
+          # `set -euo pipefail` a bare `VAR="$(pipeline)"` IS the command, so a failed curl kills
+          # the step right here and the fallback never runs. Both guards were dead — the resolver
+          # silently had no fallback at all, and "SDK filename not found" could not print. Proven:
+          # with the host pointed at an invalid name, the fallback line is never reached.
           CH_RE="$(printf '%s' '${{ matrix.channel }}' | sed 's/\./\\./g')"
           LATEST="$(curl -sfL 'https://downloads.openwrt.org/releases/' \
-            | grep -oE "${CH_RE}\.[0-9]+" | sort -V | uniq | tail -n1)"
-          [ -n "$LATEST" ] || LATEST='${{ matrix.fallback }}'
+            | grep -oE "${CH_RE}\.[0-9]+" | sort -V | uniq | tail -n1)" || LATEST=''
+          [ -n "$LATEST" ] || { LATEST='${{ matrix.fallback }}'; echo "release listing failed; falling back"; }
           echo "Using OpenWrt release: $LATEST"
           BASE="https://downloads.openwrt.org/releases/$LATEST/targets/x86/64"
 
-          SDK_FILE="$(curl -sfL "$BASE/" | grep -oE 'openwrt-sdk-[^"<]+\.tar\.(zst|xz)' | head -n1)"
+          SDK_FILE="$(curl -sfL "$BASE/" | grep -oE 'openwrt-sdk-[^"<]+\.tar\.(zst|xz)' | head -n1)" || SDK_FILE=''
           [ -n "$SDK_FILE" ] || { echo "SDK filename not found at $BASE"; exit 1; }
           echo "Using SDK: $SDK_FILE"
           curl -fL --proto '=https' --proto-redir '=https' "$BASE/$SDK_FILE" -o "$RUNNER_TEMP/sdk.tar"
 
-          # The SDK is the least verified input in this repo and the only one that ends up in
-          # the released package: jsmin.c and i18n-scan.pl — two LINTERS — are pinned by commit
-          # and sha256, while the toolchain that actually builds the artifact users install
-          # arrived on trust. OpenWrt publishes sha256sums next to the tarball; check it.
+          # ---- verify the SDK: signature first, checksum under it -------------------------
+          # The SDK is the least verified input in this repo and the only one that ends up INSIDE
+          # the package users install: jsmin.c and i18n-scan.pl — two LINTERS — are pinned by commit
+          # and sha256, while the toolchain that compiles the released artifact arrived on nothing
+          # but TLS.
+          #
+          # `sha256sums` alone does not fix that, and this project already made the argument against
+          # it (CLAUDE.md, on GitHub's asset digest): it is served by the SAME host from the SAME
+          # directory, unsigned, so whoever can replace the tarball replaces the checksum beside it
+          # and the check verifies the attacker's SDK. What makes it a verification is the ed25519
+          # signature over that file, checked with a key pinned from a DIFFERENT host — so
+          # downloads.openwrt.org cannot vouch for itself. See luci-upstream.pin.
+          . luci-theme-footstrap/luci-upstream.pin
+          U="$(tools/build-usign.sh "$RUNNER_TEMP/usign")"
+
           curl -sfL --proto '=https' --proto-redir '=https' "$BASE/sha256sums" -o "$RUNNER_TEMP/sha256sums"
+          curl -sfL --proto '=https' --proto-redir '=https' "$BASE/sha256sums.sig" -o "$RUNNER_TEMP/sha256sums.sig"
+          curl -sfL --proto '=https' --proto-redir '=https' \
+            "https://raw.githubusercontent.com/openwrt/keyring/$OPENWRT_KEYRING_PIN/usign/$OPENWRT_RELEASE_KEY" \
+            -o "$RUNNER_TEMP/openwrt.pub"
+          echo "$OPENWRT_RELEASE_KEY_SHA256  $RUNNER_TEMP/openwrt.pub" | sha256sum -c - \
+            || { echo "OpenWrt release key does not match its pin — refusing to verify with it"; exit 1; }
+
+          "$U" -V -m "$RUNNER_TEMP/sha256sums" -p "$RUNNER_TEMP/openwrt.pub" -x "$RUNNER_TEMP/sha256sums.sig" \
+            || { echo "BAD SIGNATURE on OpenWrt's sha256sums — refusing to build with this SDK."; \
+                 echo "If OpenWrt has rotated its signing key this looks identical to an attack:"; \
+                 echo "read the keynum in sha256sums.sig before touching the pin."; exit 1; }
+          echo "OpenWrt sha256sums: signature verified with $OPENWRT_RELEASE_KEY."
+
+          # Now the checksum means something: it is a line in a file we just authenticated.
           WANT="$(grep -F " *$SDK_FILE" "$RUNNER_TEMP/sha256sums" | cut -d' ' -f1)"
           [ -n "$WANT" ] || { echo "no sha256 published for $SDK_FILE"; exit 1; }
           GOT="$(sha256sum "$RUNNER_TEMP/sdk.tar" | cut -d' ' -f1)"
           [ "$WANT" = "$GOT" ] || { echo "SDK checksum mismatch: want $WANT, got $GOT"; exit 1; }
-          echo "SDK sha256 verified."
+          echo "SDK sha256 verified against the signed list."
 
           case "$SDK_FILE" in
             *.zst) tar --zstd -xf "$RUNNER_TEMP/sdk.tar" -C "$RUNNER_TEMP" ;;
@@ -493,13 +524,10 @@ jobs:
           }
 
           # Built from the commit the ROUTER's own usign is built from (luci-upstream.pin), so
-          # signer and verifier are the same code. No cmake, no libubox: the six sources plus
-          # the bundled base64 compile with plain cc.
-          . luci-theme-footstrap/luci-upstream.pin
-          git clone -q https://github.com/openwrt/usign "$RUNNER_TEMP/usign"
-          git -C "$RUNNER_TEMP/usign" checkout -q "$USIGN_PIN"
-          ( cd "$RUNNER_TEMP/usign" && cc -O2 -o usign ed25519.c edsign.c f25519.c fprime.c sha512.c main.c base64.c )
-          U="$RUNNER_TEMP/usign/usign"
+          # signer and verifier are the same code. The build job builds it too — to check OpenWrt's
+          # sha256sums.sig before trusting the SDK — so the recipe is one script both call, not a
+          # copy each, which is how two `checkout <pin>`s end up on different commits.
+          U="$(tools/build-usign.sh "$RUNNER_TEMP/usign")"
 
           # The secret is the base64 of usign's two-line secret-key FILE — one canonical form,
           # so nothing has to guess whether newlines survived a copy-paste.
@@ -563,8 +591,13 @@ jobs:
           sh tools/release-notes.sh "$ver" > "$RUNNER_TEMP/notes.md"
           cat "$RUNNER_TEMP/notes.md"
 
+      # Pinned by COMMIT, not by the `v3` tag: this is the only third-party action in the workflow
+      # and the only step in the only job that holds `contents: write`, so whoever can move that tag
+      # can publish assets under our release. It never sees the signing secret (step-scoped env) and
+      # so cannot re-sign, which is what keeps the blast radius to "assets a router will refuse" —
+      # but a tag is a mutable pointer and this is the wrong place to trust one. (= tag v3.)
       - name: Attach to release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
         with:
           files: dist/*
           body_path: ${{ runner.temp }}/notes.md

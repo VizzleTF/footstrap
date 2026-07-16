@@ -180,7 +180,9 @@ verify_sig() {		# <file> <sigfile> <pubkey-file> -> 0 iff the signature is ours 
 #    replaced asset fails here.
 #  - the sha256 still earns its place: it catches a tampered or TRUNCATED download from the asset
 #    CDN (objects.githubusercontent.com — a different host from api.github.com) with a clearer
-#    failure than a signature mismatch, and it is the check that survives if usign is ever absent.
+#    failure than a signature mismatch. It does NOT survive usign's absence — nothing does: a
+#    missing usign is rc=2 below and refuses, which is the correct behaviour and the opposite of
+#    what this comment used to promise.
 #
 # Both fail CLOSED. A missing digest, a missing .sig asset, no usign on the box: all refuse. The
 # `if [ -n "$digest" ]` shape this once had fails OPEN — a renamed field, a predicate that stops
@@ -209,10 +211,13 @@ fetch_verify_install() {
 		rm -f "$pkg"; return 1
 	}
 
-	# Two DIFFERENT faults, reported apart (install.sh already distinguishes them). Collapsed into
-	# one message, an unexpected signature host — which is what an attack would look like — was
-	# reported to the admin as "the release publishes no signature", pointing at the release
-	# instead. Both still fail closed; only the diagnosis differed.
+	# Two DIFFERENT faults, reported apart: "the release publishes no signature" points at the
+	# release, "from an unexpected host" is what an attack looks like, and one message for both sent
+	# the admin after the wrong one. Only the FIRST can fire today — sig_url() matches `$url.sig`
+	# with grep -Fx, and $url passed asset_host_ok above, so the host of a found signature is
+	# already pinned by construction. The check stays anyway, and not as decoration: it is what
+	# holds the day sig_url() stops deriving the URL from an already-checked one (taking any asset
+	# whose name ends in .sig would be an ordinary-looking refactor). Both fail closed.
 	surl="$(sig_url "$json" "$url")"
 	[ -n "$surl" ] || {
 		echo "ERR: release publishes no signature for the package, refusing to install" > "$STATUS"
