@@ -140,7 +140,7 @@ function wireAppearance() {
 	 * without writing the file, returning success — measured on the router. The package owns that
 	 * file and the read side falls back to built-in defaults, so that edge is left to the package.) */
 	const saveErr = E('div', { 'class': 'fs-ap-err', 'role': 'alert', 'hidden': '' });
-	groups.push(E('div', { 'class': 'fs-ap-group fs-ap-actions' }, [
+	groups.push(E('div', { 'class': 'fs-ap-group' }, [
 		E('div', { 'class': 'fs-ap-label' }, [ _('Router default', 'footstrap') ]),
 		E('div', { 'class': 'fs-ap-actrow' }, [ saveBtn, resetBtn ]),
 		saveErr
@@ -159,7 +159,10 @@ function wireAppearance() {
 		updateBtn
 	]));
 
-	const pop = E('div', { 'class': 'fs-appearance-pop', 'role': 'dialog', 'aria-label': _('Appearance'), 'hidden': '' }, groups);
+	/* aria-modal matches what the popover already DOES: keydown() traps Tab inside it and Escape
+	 * closes it, so without the attribute it announced as a non-modal dialog while behaving as a
+	 * modal one — a screen reader would offer the page behind it that Tab cannot actually reach. */
+	const pop = E('div', { 'class': 'fs-appearance-pop', 'role': 'dialog', 'aria-modal': 'true', 'aria-label': _('Appearance'), 'hidden': '' }, groups);
 	document.body.appendChild(pop);
 
 	/* reveal the badge + Update button and mark the trigger (green dot) when a newer release
@@ -232,10 +235,19 @@ function wireAppearance() {
 	 * stayed on the page behind, Tab walked straight out of the open dialog into the view
 	 * underneath, and a click-outside close dropped focus on the floor. */
 	const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+	/* The tab sequence inside the popover, in DOM order. `tabIndex >= 0` is load-bearing, not
+	 * belt-and-braces: segControl's radiogroups use a roving tabindex, so an unchecked radio is
+	 * still a <button> (i.e. still matches FOCUSABLE) but is NOT in the tab sequence. Counting one
+	 * made `first` an element Tab can never land on, so shift+Tab off the checked radio matched no
+	 * boundary and walked straight out of the dialog. */
+	function tabbables() {
+		return [...pop.querySelectorAll(FOCUSABLE)]
+			.filter((el) => !el.disabled && el.offsetParent !== null && el.tabIndex >= 0);
+	}
 	function keydown(e) {
 		if (e.key === 'Escape') { close(); return; }
 		if (e.key !== 'Tab') return;
-		const items = [...pop.querySelectorAll(FOCUSABLE)].filter((el) => !el.disabled && el.offsetParent !== null);
+		const items = tabbables();
 		if (!items.length) return;
 		const first = items[0], last = items[items.length - 1];
 		/* wrap at both ends so focus cannot leave an open dialog */
@@ -247,7 +259,7 @@ function wireAppearance() {
 		saveErr.hidden = true;	/* a stale save error must not greet the next open */
 		refreshSave();	/* the saved default may have changed since this popover was built */
 		reposition();
-		pop.querySelector(FOCUSABLE)?.focus();
+		tabbables()[0]?.focus();	/* the first TABBABLE, so a roving-tabindex group opens on its checked radio */
 		document.addEventListener('click', outside, true);
 		document.addEventListener('keydown', keydown);
 		window.addEventListener('resize', reposition);

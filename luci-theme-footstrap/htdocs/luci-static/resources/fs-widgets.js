@@ -58,6 +58,24 @@ function wireDismiss(opts) {
  * group of unrelated buttons with no indication of which was in effect. It is a radio group. */
 function segControl(current, opts, onPick, label) {
 	const wrap = E('div', { 'class': 'fs-seg', 'role': 'radiogroup', 'aria-label': label || '' });
+
+	/* Select one option and make it the group's single tab stop. role="radio" is a PROMISE of APG
+	 * behaviour, and it was half-kept: the roles were there but every button stayed natively
+	 * tabbable and the arrows did nothing, so a keyboard user tabbed through N stops in a control
+	 * a screen reader had told them was one radio group. axe cannot catch this (it checks names and
+	 * roles, not key handling), which is why `npm run a11y` was green over it. */
+	function select(b, focus) {
+		wrap.querySelectorAll('button').forEach(x => {
+			const on = (x === b);
+			x.classList.toggle('active', on);
+			x.setAttribute('aria-checked', on ? 'true' : 'false');
+			/* roving tabindex: only the checked radio is in the tab sequence, so Tab enters and
+			 * leaves the GROUP once and the arrows move within it. */
+			x.tabIndex = on ? 0 : -1;
+		});
+		if (focus) b.focus();
+	}
+
 	opts.forEach(o => {
 		const active = (o.val === current);
 		const b = E('button', {
@@ -65,18 +83,30 @@ function segControl(current, opts, onPick, label) {
 			'class': active ? 'active' : '',
 			'role': 'radio',
 			'aria-checked': active ? 'true' : 'false',
+			'tabindex': active ? '0' : '-1',
 			'data-val': o.val
 		}, [ o.label ]);
-		b.addEventListener('click', () => {
-			onPick(o.val);
-			wrap.querySelectorAll('button').forEach(x => {
-				const on = (x === b);
-				x.classList.toggle('active', on);
-				x.setAttribute('aria-checked', on ? 'true' : 'false');
-			});
-		});
+		b.addEventListener('click', () => { onPick(o.val); select(b, false); });
 		wrap.appendChild(b);
 	});
+
+	/* In a radiogroup an arrow both MOVES and SELECTS (APG), and the ends wrap. Home/End are the
+	 * same move to the first/last. Space/Enter reach the button as a native click already. */
+	wrap.addEventListener('keydown', (ev) => {
+		const KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 0, End: 0 };
+		if (!(ev.key in KEYS)) return;
+		const list = [ ...wrap.querySelectorAll('button') ];
+		if (!list.length) return;
+		const at = list.indexOf(document.activeElement);
+		if (at < 0) return;
+		ev.preventDefault();
+		const next = ev.key === 'Home' ? list[0]
+			: ev.key === 'End' ? list[list.length - 1]
+			: list[(at + KEYS[ev.key] + list.length) % list.length];
+		onPick(next.getAttribute('data-val'));
+		select(next, true);
+	});
+
 	return wrap;
 }
 
