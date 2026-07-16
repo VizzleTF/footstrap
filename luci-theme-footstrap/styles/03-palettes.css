@@ -14,7 +14,7 @@
 	 *      --fs-accent-lt-base → --fs-accent/--fs-accent-lt (ACCENT block; accent-lt-base is
 	 *      light-only, dark inherits it).
 	 *   3. Set the four INKS (--fs-on-accent/-good/-warn/-danger) — see below.
-	 *   4. Register the name: applyPalette()/currentPalette() in menu-footstrap-common.js and
+	 *   4. Register the name: applyPalette()/currentPalette() in fs-prefs.js and
 	 *      the head.ut pre-paint switch.
 	 * Nothing else — layout, components and the --*-color-* export bridge (02-tokens) key off
 	 * these tokens, and every tint/shadow/hairline is a color-mix() OVER them.
@@ -94,7 +94,7 @@
 		--fs-accent: var(--fs-accent-base);
 		--fs-accent-lt: var(--fs-accent-lt-base);
 		/* The hues the user picked, in degrees (Appearance → Accent / Tint). Declared here,
-		 * not only inline by head.ut/menu-footstrap-common.js, so the stylesheet stands on
+		 * not only inline by head.ut/fs-prefs.js, so the stylesheet stands on
 		 * its own: a var() with no definition anywhere is invalid at computed-value time and
 		 * takes the whole declaration down SILENTLY. Their values are irrelevant while
 		 * data-accent / data-tint are absent. */

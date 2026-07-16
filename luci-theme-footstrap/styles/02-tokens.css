@@ -128,7 +128,7 @@
 		--fs-content-pad: 28px;
 		/* ------------------------------------------------------------------------
 		 * THE SHELL'S GEOMETRY — tokens, not literals, because the JS reads them back with
-		 * getPropertyValue(): the CSS lays the sidebar out, and menu-footstrap-common.js
+		 * getPropertyValue(): the CSS lays the sidebar out, and fs-chrome.js
 		 * (fitShell()) subtracts that cut from the viewport to decide whether what is LEFT
 		 * is still readable. The JS used to keep its own copies (SIDEBAR_W = 224, RAIL_W =
 		 * 68, CONTENT_MIN = 500) against bare literals in the CSS: narrow the rail here and

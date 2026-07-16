@@ -101,7 +101,7 @@
 
 	/* the menu on its own full-width row beneath the brand. The DESKTOP bar lifts it back
 	 * onto the brand's row whenever it fits — MEASURED, not a breakpoint
-	 * (menu-footstrap-common.js fitChrome adds .fs-bar-stack when it does NOT fit). */
+	 * (fs-chrome.js fitChrome adds .fs-bar-stack when it does NOT fit). */
 	.fs-sidebar ul.nav {
 		order: 3; flex: 1 1 100%;
 		flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px;
@@ -193,7 +193,7 @@
 	 * WHEN it applies is NOT "viewport >= 768px": what matters is how much room is left for
 	 * the CONTENT once the sidebar takes its cut, and that cut is not constant — 224px
 	 * expanded, 68px as a rail — so the two must give way at DIFFERENT widths, which one
-	 * breakpoint cannot express. `data-narrow` is set by menu-footstrap-common.js when the
+	 * breakpoint cannot express. `data-narrow` is set by fs-chrome.js (fitShell) when the
 	 * content column would fall below --fs-content-min (02-tokens.css), measured from the
 	 * sidebar's ACTUAL cut, so the rail keeps its column ~156px further down than the
 	 * expanded sidebar does — exactly the room it gave back.
@@ -331,7 +331,7 @@
 
 	/* Appearance popover (Mode, Palette, Tint, Accent, Rounding, Layout). The trigger is
 	 * .fs-themerow in every layout; the popover itself is parented to <body> and positioned
-	 * by menu-footstrap-common.js, because the vertical .fs-sidebar sets `overflow: auto`,
+	 * by fs-appearance.js (widgets.placePopover), because the vertical .fs-sidebar sets `overflow: auto`,
 	 * which would clip an absolutely-positioned child. */
 	.fs-appearance-pop {
 		position: fixed; z-index: var(--fs-z-popover); left: 0; top: 0;
@@ -391,7 +391,7 @@
 	.fs-ap-badge:hover { filter: var(--fs-hover-lift); }
 
 	/* update indicator: a green dot on the Appearance trigger, added by
-	 * menu-footstrap-common.js when a newer release is found. The panel-coloured ring lifts
+	 * fs-appearance.js (.fs-has-update) when fs-update finds a newer release. The panel-coloured ring lifts
 	 * it off the icon. */
 	#fs-appearance { position: relative; overflow: visible; }
 	#fs-appearance.fs-has-update::after {

@@ -55,12 +55,59 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **The segmented Appearance controls are one tab stop each and answer the arrow keys.** They carried
+  `role="radiogroup"`/`role="radio"` — a promise of W3C-APG behaviour — while every button stayed
+  natively tabbable and the arrows did nothing, so a keyboard user tabbed through N stops in a control
+  a screen reader had announced as one radio group. They now use a roving tabindex, arrows move *and*
+  select with wrap-around, and Home/End jump to the ends. `npm run a11y` was green over this
+  throughout: axe checks names and roles, not key handling. The popover also declares `aria-modal`,
+  matching the Tab trap it already had.
+- **The released `.apk` is built from the newest 25.12.x release SDK, not from `snapshots`.** The ipk
+  leg already resolved the newest 24.10.x point release, while the toolchain and `apk mkpkg` behind
+  the package users install drifted daily against a release that does not — the same argument, applied
+  to both legs.
+- **`install.sh` and the self-updater no longer overstate what survives a redirect.** The comment
+  claimed the scheme was pinned on the redirect, but `--proto-redir` exists only on the curl branch,
+  and `uclient-fetch` — tried first, and the only downloader on a stock router — has none; the host
+  pin likewise covers the initial request only. Nothing is less safe than it was (the ed25519
+  signature is what vouches for the package and it fails closed), but the docs now say which single
+  layer actually reaches across the hop to `objects.githubusercontent.com`, instead of inviting a
+  reader to budget three.
 - **The Appearance "Reset" button is now labelled "Reset to default".** "Reset" alone did not say
   reset to *what*; the button drops this browser's overrides onto the router-wide default saved with
   "Save as default", so the label now names that destination.
 
 ### Fixed
 
+- **The menu no longer closes itself once a second on a phone.** Tapping a section open and having it
+  snap shut a second later was the poll doing it: `fitShell()` wrote `data-narrow` with
+  `setAttribute` on every measure, and a same-value `setAttribute` still **queues a MutationObserver
+  record** (measured in Chromium: 5 identical writes → 5 records; `toggleAttribute` on an
+  already-present attribute → 0). Since `fs-fit` re-measures on every mutation inside `#view`, and
+  LuCI's poll rewrites that once a second, the menu's `data-narrow` observer read each no-op write as
+  a mode *change* and ran `closeFlyouts()`. It bit only the narrow sidebar (390 − 224 − 56 = 110 px of
+  content, so the attribute is permanently set) — the wide and top layouts take the `removeAttribute`
+  branch, which is silent when the attribute is absent, which is exactly why it survived: it is
+  invisible on a desktop.
+- **Saved Appearance defaults survive a theme upgrade.** `/etc/config/footstrap` is shipped as an
+  empty stub and written at runtime by Appearance → "Save as default", but was never declared a
+  conffile — so the package manager owned it as an ordinary file and replaced it on upgrade, and the
+  theme's own one-click Update silently wiped every saved option while reporting success (the dev
+  router held eight). One `conffiles` define covers both managers; `npm run conffiles` now fails if a
+  shipped `/etc/config/*` is left undeclared, because nothing about this failure is observable — it
+  lands on someone else's router, months later, at the moment they upgrade.
+- **A broken stylesheet can no longer be left in place by the build.** `build-css.sh`'s floor check —
+  the guard against a truncated write or a squeeze that ate the tail — ran *after* `mv` and after the
+  cleanup trap was disarmed, so its own failure path left the mangled sheet at the output path.
+  `dev-sync.sh` writes straight into `htdocs/`, so that file stayed in the working tree for the next
+  `scp` to ship. The floor is now measured before the move, with the trap still armed.
+- **`dev-sync.sh` deploys `root/` as a tree, so a new file reaches the dev router for free.** It
+  tarred `usr` literally — a hand-written list of one, the very thing its own comment forbids — and
+  `root/etc/` was the counterexample already in the tree: `root/etc/config/footstrap` shipped in the
+  package and never reached the router. It now globs the top-level dirs, excluding only the two
+  subtrees with real semantics: `uci-defaults` (deliberately run from `/tmp`) and `config`, which is
+  installed only when **absent**, mirroring what the package manager does with a conffile — deploying
+  over a live one would be the very wipe the fix above prevents.
 - **The playground's top-bar menu no longer sticks a clicked dropdown open forever.** It click-toggled
   `.open` and never cleared it, so a tapped panel stayed on screen when the pointer left — the one way
   the demo diverged from a live router. It now mirrors `menu-footstrap.js`: in flyout mode (top bar /

@@ -82,7 +82,7 @@
 	 * unconditional copy here was a second definition they had to re-state anyway. */
 
 	/* Density steps for the main menu once it is a horizontal row —
-	 * menu-footstrap-common.js adds .fs-dense1/2 when the row would wrap (and strips them
+	 * fs-chrome.js (fitTabStrips) adds .fs-dense1/2 when the row would wrap (and strips them
 	 * in the vertical sidebar, so no media guard is needed). Padding is trimmed hard
 	 * first, the font only at the d2 floor. */
 	.fs-sidebar ul.nav.fs-dense1 > li > a { padding: 4px 8px; }

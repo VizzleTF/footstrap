@@ -92,7 +92,7 @@
 		font-weight: 700;
 	}
 
-	/* Density steps for a crowded strip: menu-footstrap-common.js MEASURES whether the tabs
+	/* Density steps for a crowded strip: fs-chrome.js (fitTabStrips) MEASURES whether the tabs
 	 * wrap to a second row and, if so, adds .fs-dense1 then .fs-dense2. Padding is trimmed
 	 * hard first (9/14 -> 5/9 -> 3/7), the font only at the d2 floor (13 -> 12) and the gap
 	 * only there (4 -> 3), so a pill never gets tighter than its label; past the floor the
