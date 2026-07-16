@@ -50,7 +50,7 @@ reached across — that is what keeps it acyclic.
 | `fs-prefs.js` | the Appearance axes and their `localStorage` (the live half of the `axes` gate) |
 | `fs-widgets.js` | disclosure primitives (`setOpen`/`wireSpaceKey`/`wireDismiss`), the seg/slider controls, `EDGE_GAP` + `placePopover` |
 | `fs-chrome.js` | mode menu, section tabs, the rail toggle, `fitShell`/`fitChrome` |
-| `fs-sheets.js` | the guard against a view's injected CSS repainting every later page |
+| `fs-sheets.js` | third-party CSS: keeping it out of the chrome, and off every later page |
 | `fs-router.js` | the SPA client router (docs/14) |
 | `fs-update.js` | **`FS_VERSION`**, the update check, the one-click self-update |
 | `fs-appearance.js` | the popover DOM |
@@ -90,6 +90,68 @@ Three rules it exists to enforce, each of them a bug that was actually hit:
 
 **The card contract is ONE contract, and it was once split in half — do not split it again.** The stack is *measured*, so it fires at any viewport width; but the table's own `display: block`, the `.hide-xs`/`.hide-sm` columns stock LuCI drops, and the `.col-N` weights all used to live only inside `@media (max-width: 767px)`. In the sidebar layout the content column is `viewport − 224 − 56`, so between roughly **768 and 860 px** it is already below the "too cramped" floor while the media query has switched off: measured on the router at 790/820/850 px, the leases table carded while still `display: table`, and the wireless list rendered **all five** of its `.hide-xs` cells. Those now key off `.fs-stacked`.
 The `.col-N` weights need **no guard at all** and are unguarded in `theme/30-tables.css`: `flex` applies only to a *flex item*, and a `.td` becomes one exactly when its table cards — by **either** mechanism, at any width. So one copy serves the phone tier, the measured stack and the config table's `@container` alike, and the config table (which cards at a **960 px container**, i.e. possibly on a 1200 px desktop) got its weights for the first time. **Do not "fix" this by copying them under a guard.**
+
+## Sharing ONE document with third-party apps — three zones, three defences
+
+Every `luci-app-*` drops its CSS and its JS into the **same document** as this theme. That is the
+root of a whole bug class, and it cuts three ways. Measured across the real, shipped stylesheets of
+ten packages (openclash, podkop, mosdns, filemanager, banip, adblock, ssclash, temp-status, passwall,
+justclash) — take the numbers below from `tools/chrome-fence.mjs` and the changelog, not from memory.
+
+**Zone 1 — OURS: the chrome.** `.fs-sidebar` (the ONE root, both layouts) · `fs-*` · `--fs-*` ·
+`fs-*` localStorage · the Appearance axes. **Nobody outside may write here**, and three things
+enforce it, each closing a door the others cannot:
+- **The fence** (`fs-sheets.js`) — an invasive sheet's unpinned selectors get
+  `:where(:not(.fs-sidebar, .fs-sidebar *))` appended to their SUBJECT, so they can no longer *match*
+  a menu element. This is the only thing that beats a third party's `!important`: there is nothing
+  left to out-rank. `:where()` is load-bearing — zero specificity, so the app's rules keep their exact
+  weight everywhere else. Openclash's `*{padding:0!important}` took the menu from 47 damaged elements
+  to 0; mosdns's `span{cursor:unset!important}` from 1 to 0.
+- **The pin** (`theme/10-chrome.css`) — the fence cannot close **inheritance**: a rule on `html`/`body`
+  needs no match at all. The pin states the inherited properties on the chrome **ROOT ALONE**, which
+  breaks the chain from `html` once while the chrome's own inheritance flows on. **Never pin
+  descendants** — a direct declaration beats an inherited one *even when the inherited one is ours*:
+  measured, it cost `.fs-label` its `nowrap` and forced `text-align` from `start` to `left` on 302
+  elements, breaking every RTL language LuCI ships. No `!important` is needed or wanted: inheritance
+  is not a cascade competitor.
+- **The `:root` guard** (`fs-prefs.js`) — not a cascade problem at all. `luci-app-openclash` writes
+  `data-darkmode` onto `:root` from **seven** templates, gated on a check that consults
+  `matchMedia('(prefers-color-scheme: dark)')` before the page's real background — so an explicit
+  Light choice was lost to the user's OS setting. Only the **published** trio
+  (`data-darkmode`/`data-theme`/`data-bs-theme`) is guarded: publishing them to apps is exactly what
+  puts them in an app's vocabulary. The guard compares before it writes, so when the page really is
+  dark the app's write agrees and it never fires — that is also what stops it looping.
+
+**Zone 2 — SHARED: stock LuCI.** `.cbi-*` · `#view`/`#maincontent`/`#indicators` (core contracts —
+`luci.js`, `ui.js`; the names cannot be renamed) · the `--*-color-*` export tier · the `data-darkmode`
+convention. **Here the app is entitled to win on specificity**, exactly as on a theme with no layers.
+That is what re-hosting an invasive sheet into the **existing `theme` layer** buys (`fs-sheets.js`):
+same-layer arbitration. Do NOT give app CSS a layer of its own *below* `theme` — measured, it fixes
+the chrome but repaints the app author's own widgets.
+
+**Zone 3 — THEIRS: the app.** Its own namespaced names. **We do not write here.** Before "fixing"
+an apparent outbound collision, check who OWNS the name: `.left`/`.right`/`.center` look like ours
+but are LuCI's own utilities — stock emits them on non-cells **59 times** (`form.js:3018` is literally
+`class="cbi-button drag-handle center"`), and `luci-theme-bootstrap`'s cascade carries byte-identical
+rules. Scoping them to cells would have broken stock. Likewise `ul.nav`: stock bootstrap styles `.nav`
+*more* broadly than we style `ul.nav`, and zero of ten packages emit it.
+
+`pinnedToApp()` in `fs-sheets.js` **is** the zone test, and both the fence and `invasiveSheet()` share
+it on purpose: a selector held by a name the theme does not know is Zone 3 and is left alone; an
+unpinned one is Zone 1/2. Two copies of that judgement would drift into disagreeing.
+
+**`npm run chrome-fence` is what stops all of this rotting**, and it exists because the failure is
+silent: breaking the fence constant to `.fs-sidebarTYPO` left the menu completely unprotected while
+`check`, `jsmin-verify` and `eslint` all exited **0**. The chrome root is named in three places
+(markup, pin, fence); the gate **derives** it from `header.ut` and holds the other two to it, plus the
+shapes (`:where()` in both, subtree in the fence, root-only in the pin, inherited-only properties) and
+the guard's `attributeFilter` against `stampDark`.
+
+**What is deliberately NOT covered** — these are accepted trades, not oversights: the `base` layer
+still loses to a foreign `*` in the content area (the app must outrank `theme` for its own page, so it
+sits above `base`; that was already true); a `<style>` carrying `@import`/`@charset` cannot be wrapped
+and is skipped; the observer watches `<head>` only (the initial pass covers server-rendered markup);
+and the fence is JS, so a wrong frame can paint before the modules land.
 
 ## CSS architecture (critical)
 
@@ -278,6 +340,7 @@ npm run css-orphans  # dead fs-* selectors (SAFE: scoped to our own namespace)
 npm run css-dup      # the same declaration body under two different guards
 npm run mirror       # @mirror-pinned copies (CSS *and* shell) are still byte-identical
 npm run axes         # head.ut's pre-paint agrees with the live Appearance appliers
+npm run chrome-fence # the fence, the pin and the dark-mode guard still match the chrome
 ```
 
 **`tools/jsmin-verify.mjs` is the one gate `check` cannot run**, and it is the one that catches the

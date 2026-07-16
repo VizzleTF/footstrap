@@ -14,9 +14,10 @@
     "css-dup": "node tools/css-dup.mjs",
     "css-orphans": "node tools/fs-orphans.mjs",
     "css-metrics": "node tools/css-metrics.mjs",
-    "check": "npm run lint && npm run audit && npm run conffiles && npm run css-metrics && npm run css-orphans && npm run css-dup && npm run css-i18n && npm run mirror && npm run axes && npm run export-tier && npm run i18n && npm run a11y",
+    "check": "npm run lint && npm run audit && npm run conffiles && npm run css-metrics && npm run css-orphans && npm run css-dup && npm run css-i18n && npm run mirror && npm run axes && npm run chrome-fence && npm run export-tier && npm run i18n && npm run a11y",
     "mirror": "node tools/mirror.mjs",
     "axes": "node tools/axes.mjs",
+    "chrome-fence": "node tools/chrome-fence.mjs",
     "css-i18n": "node tools/css-i18n.mjs",
     "devkit": "node tools/devkit-build.mjs"
   },

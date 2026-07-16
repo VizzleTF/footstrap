@@ -243,6 +243,18 @@ jobs:
       - name: "Appearance axes (the pre-paint template agrees with the live appliers)"
         run: node tools/axes.mjs
 
+      # The chrome is defended from third-party CSS in three places that must name the same element:
+      # header.ut's markup, fs-sheets.js's fence (what keeps an app's !important out of the menu) and
+      # 10-chrome.css's pin (what closes inheritance, which a fence cannot). Same shape as the axes
+      # gate, and proven: breaking the fence constant to `.fs-sidebarTYPO` left the menu completely
+      # unprotected while check, jsmin-verify and eslint all exited 0. A stale copy just stops
+      # defending — no error, no symptom, until the menu breaks on a user's router next to an app we
+      # have never seen. Also holds the dark-mode guard to stampDark: luci-app-openclash writes
+      # data-darkmode onto :root from seven templates, and an unguarded dialect loses the user's
+      # explicit Light choice to their OS setting.
+      - name: "chrome fence (the menu's defences still match the menu)"
+        run: node tools/chrome-fence.mjs
+
       # /etc/config/footstrap ships as a stub and is WRITTEN AT RUNTIME by Appearance -> "Save as
       # default". Undeclared, the package manager replaces it on upgrade — so the theme's own
       # one-click Update wiped the admin's saved defaults, silently, reporting success. Nothing
