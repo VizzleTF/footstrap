@@ -8,7 +8,9 @@
 set -e
 
 REL="${OPENWRT_RELEASE:-25.12.2}"
-SDK_URL="https://downloads.openwrt.org/releases/${REL}/targets/mediatek/filogic/openwrt-sdk-${REL}-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
+SDK_BASE="https://downloads.openwrt.org/releases/${REL}/targets/mediatek/filogic"
+SDK_FILE="openwrt-sdk-${REL}-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
+SDK_URL="$SDK_BASE/$SDK_FILE"
 # MUST be a case-sensitive fs (ext4/…), NOT an NTFS/9p Windows mount.
 BUILD_DIR="${BUILD_DIR:-/tmp/ow-footstrap-build}"
 # FORCE=1 overrides buildroot's host-prereq bail-outs (see step 4).
@@ -22,7 +24,24 @@ cd "$BUILD_DIR"
 # 1. SDK
 if [ ! -d "$SDK_DIR" ]; then
 	echo ">> downloading SDK $REL ..."
-	wget -q -O sdk.tar.zst "$SDK_URL"
+	# --https-only: GNU wget follows https -> http redirects, and this tarball is a toolchain
+	# that will build a package a maintainer may hand to someone.
+	wget -q --https-only -O sdk.tar.zst "$SDK_URL"
+
+	# The SDK is the least verified input in this repo and the only one that ends up in the built
+	# package: jsmin.c and i18n-scan.pl — two LINTERS — are pinned by commit AND sha256, while the
+	# toolchain that builds the artifact arrived on trust alone. OpenWrt publishes sha256sums next
+	# to the tarball. Fails CLOSED: a missing or unmatched line refuses, it does not warn and carry
+	# on. Mirrors the same check in .github/workflows/build.yml.
+	echo ">> verifying SDK sha256 ..."
+	wget -q --https-only -O sha256sums "$SDK_BASE/sha256sums"
+	WANT="$(grep -F " *$SDK_FILE" sha256sums | cut -d' ' -f1)"
+	[ -n "$WANT" ] || { echo "no sha256 published for $SDK_FILE" >&2; exit 1; }
+	GOT="$(sha256sum sdk.tar.zst | cut -d' ' -f1)"
+	[ "$WANT" = "$GOT" ] || { echo "SDK checksum mismatch: want $WANT, got $GOT" >&2; exit 1; }
+	rm -f sha256sums
+	echo ">> SDK sha256 verified."
+
 	echo ">> extracting ..."
 	mkdir -p "$SDK_DIR"
 	tar --zstd -xf sdk.tar.zst -C "$SDK_DIR" --strip-components=1

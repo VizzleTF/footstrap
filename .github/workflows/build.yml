@@ -2,7 +2,7 @@ name: Build LuCI theme packages
 
 # luci-theme-footstrap is noarch (LUCI_PKGARCH:=all), so one build per package
 # format covers every target. Two formats are produced:
-#   apk  — OpenWrt 25.12+ (built with the snapshot SDK)
+#   apk  — OpenWrt 25.12+ (built with the latest 25.12.x SDK)
 #   ipk  — OpenWrt 24.10  (built with the latest 24.10.x SDK)
 on:
   push:
@@ -189,10 +189,12 @@ jobs:
       - name: "Export tier (third-party contract: AA + the ramp is not flat)"
         run: node tools/export-tier.mjs
 
-      # A ratchet on the sheet's SHAPE, in the same spirit as build-css.sh's byte budgets.
-      # `!important` is 33 by design (16 in theme+pages, each fighting an inline or unlayered
-      # declaration that no cascade layer can outrank, + 17 in base) — stylelint stops a NEW
-      # file adding one, this stops the allowlisted files quietly growing more.
+      # A ratchet on the sheet's SHAPE. Every `!important` fights an inline or unlayered
+      # declaration that no cascade layer can outrank — stylelint stops a NEW file adding one,
+      # this stops the allowlisted files quietly growing more.
+      # The COUNT lives in tools/css-metrics.mjs and is deliberately not restated here: this
+      # comment said "33 by design" long after three flags in base were removed and the tool
+      # ratcheted to 30, i.e. it named a budget a reader would have used to justify adding one.
       - name: "CSS metrics ratchet (!important, specificity, empty rules)"
         run: node tools/css-metrics.mjs
 
@@ -240,6 +242,13 @@ jobs:
       # the previous hue). Its only symptom is a single wrong frame, which nobody reports.
       - name: "Appearance axes (the pre-paint template agrees with the live appliers)"
         run: node tools/axes.mjs
+
+      # /etc/config/footstrap ships as a stub and is WRITTEN AT RUNTIME by Appearance -> "Save as
+      # default". Undeclared, the package manager replaces it on upgrade — so the theme's own
+      # one-click Update wiped the admin's saved defaults, silently, reporting success. Nothing
+      # observable fails: the wipe lands on someone else's router, months later.
+      - name: "conffiles (a shipped /etc/config/* survives an upgrade)"
+        run: node tools/conffiles.mjs
 
       # THE GATE THAT MAKES SHIPPING MINIFIED JS SAFE.
       #
@@ -302,11 +311,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Both legs build from a RELEASE SDK, resolved to the newest point release of their
+          # branch. The apk leg used to build from `snapshots`, i.e. a toolchain and an `apk
+          # mkpkg` from main that drift daily, while the release users install does not — the
+          # same argument this workflow already accepted for 24.10. `fallback` is what the
+          # resolver pins to if downloads.openwrt.org cannot be listed; it must stay a version
+          # that exists.
           - fmt: apk
-            channel: snapshot
+            channel: '25.12'
+            fallback: '25.12.5'
             use_apk: 'y'
           - fmt: ipk
             channel: '24.10'
+            fallback: '24.10.4'
             use_apk: 'n'
     steps:
       - name: Checkout
@@ -326,16 +343,13 @@ jobs:
       - name: Download OpenWrt SDK
         run: |
           set -euo pipefail
-          if [ "${{ matrix.channel }}" = "snapshot" ]; then
-            BASE="https://downloads.openwrt.org/snapshots/targets/x86/64"
-          else
-            # newest 24.10.x point release
-            LATEST="$(curl -sfL 'https://downloads.openwrt.org/releases/' \
-              | grep -oE '24\.10\.[0-9]+' | sort -V | uniq | tail -n1)"
-            [ -n "$LATEST" ] || LATEST="24.10.4"
-            echo "Using OpenWrt release: $LATEST"
-            BASE="https://downloads.openwrt.org/releases/$LATEST/targets/x86/64"
-          fi
+          # newest point release of this leg's branch (25.12.x / 24.10.x)
+          CH_RE="$(printf '%s' '${{ matrix.channel }}' | sed 's/\./\\./g')"
+          LATEST="$(curl -sfL 'https://downloads.openwrt.org/releases/' \
+            | grep -oE "${CH_RE}\.[0-9]+" | sort -V | uniq | tail -n1)"
+          [ -n "$LATEST" ] || LATEST='${{ matrix.fallback }}'
+          echo "Using OpenWrt release: $LATEST"
+          BASE="https://downloads.openwrt.org/releases/$LATEST/targets/x86/64"
 
           SDK_FILE="$(curl -sfL "$BASE/" | grep -oE 'openwrt-sdk-[^"<]+\.tar\.(zst|xz)' | head -n1)"
           [ -n "$SDK_FILE" ] || { echo "SDK filename not found at $BASE"; exit 1; }
@@ -500,13 +514,31 @@ jobs:
 
           # The .sig assets must not disturb the asset pick of a self-updater ALREADY IN THE
           # FIELD: it takes the first asset matching /luci-theme-footstrap[-_][^/]*\.apk$ (older
-          # ones: `\.apk$`). A name ending in `.sig` matches neither. Assert it, because the cost
-          # of being wrong is every router in the field installing a 150-byte signature file as
-          # its theme — which is issue #6, exactly.
-          ls dist | grep -E '\.(apk|ipk)$' | grep -q '\.sig' && {
-            echo "a .sig asset matches the package glob — fielded self-updaters would install it"
-            exit 1
-          } || true
+          # ones: `\.apk$`). A router's installed updater cannot be fixed remotely, so the RELEASE
+          # has to stay pickable by the script that is already there — the cost of being wrong is
+          # every router installing a 150-byte signature file as its theme, which is issue #6.
+          #
+          # Assert the COUNT each fielded regex resolves to, not "does a .sig match the package
+          # glob". The latter is what stood here and it could never fail: `grep -E '\.(apk|ipk)$'`
+          # emits only lines ENDING in .apk/.ipk, so the piped `grep -q '\.sig'` had no line left
+          # that could contain .sig — a gate whose comment claimed the field's safety while
+          # asserting nothing. Counting is also strictly stronger: it re-checks the one-package-per-
+          # format invariant on the FINAL asset set (the build job's check runs before signing).
+          # BOTH regexes are asserted, because both are in the field and neither can be fixed
+          # remotely: current updaters take luci-theme-footstrap[-_][^/]*\.EXT$, but the ones
+          # shipped up to v0.8.4 take the looser `\.EXT$ | head -1` — and since the API returns
+          # assets sorted BY NAME, a stray luci-i18n-… sorts first and IS issue #6. The strict
+          # regex alone would wave that through.
+          for ext in apk ipk; do
+            for re in "^luci-theme-footstrap[-_][^/]*\.$ext$" "\.$ext$"; do
+              n=$(ls dist | grep -cE "$re") || true
+              [ "$n" = 1 ] || {
+                echo "a fielded self-updater matching /$re/ would pick $n assets, want exactly 1:"
+                ls dist | grep -E "$re" || true
+                exit 1
+              }
+            done
+          done
           ls -l dist
 
       # Turn the tag's CHANGELOG section into a short release body: one line per
