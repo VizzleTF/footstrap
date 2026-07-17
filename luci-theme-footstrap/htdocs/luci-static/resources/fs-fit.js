@@ -119,5 +119,35 @@ return baseclass.extend({
 	/* Does `el` need more width than it has been given? */
 	overflows(el) {
 		return el.scrollWidth > this.roomFor(el) + 1;	/* +1: sub-pixel rounding */
+	},
+
+	/* How many LINE BOXES of text does `el` render? The fact behind "this column has been
+	 * squeezed into a tower" — a cell that has to break its own words is a column that has run
+	 * out of width, which is a thing no viewport query can ask.
+	 *
+	 * NOT height / line-height: the assoclist's first cell is an `.ifacebadge`, a flex COLUMN
+	 * with a 32px icon over the text, so a third of that height is not text at all. Ranges over
+	 * the TEXT NODES only, so an <img> cannot be counted as a line.
+	 *
+	 * Cluster by the rect's TOP, not by vertical overlap: consecutive lines OVERLAP. Measured on
+	 * the router — tops 15-16px apart while each rect is 17-18px tall (the font's box is taller
+	 * than the line advance), so an overlap test merged an 8-line tower into ONE line and the
+	 * whole check silently never fired. Half a line of tolerance also merges what belongs on one
+	 * line: a `<small>` shares the baseline but sits a few px lower, and is not a new line. */
+	textLines(el) {
+		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+		const range = document.createRange();
+		const rects = [];
+		for (let n; (n = walker.nextNode());) {
+			if (!n.nodeValue.trim()) continue;
+			range.selectNodeContents(n);
+			for (const r of range.getClientRects())
+				if (r.width > 0.5 && r.height > 0.5) rects.push(r);
+		}
+		rects.sort((a, b) => a.top - b.top);
+		let lines = 0, top = -Infinity;
+		for (const r of rects)
+			if (r.top - top > r.height * 0.5) { lines++; top = r.top; }
+		return lines;
 	}
 });

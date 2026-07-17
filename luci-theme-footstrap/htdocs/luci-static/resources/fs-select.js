@@ -158,14 +158,49 @@ function tagDataTables() {
  * it is the one that gets measured. */
 const STACKABLE = '#view .table.fs-dt';
 
-/* "Too cramped to be a table any more" — a DESIGN judgement, and the only number left here. It
- * has to be a number: these tables do NOT overflow when the room runs out (their cells break
- * anywhere), they compress into an unreadable ribbon, so there is no fact to read. Do NOT give
- * the cells a min-width so that "cramped" MANUFACTURES an overflow: tried, and it carded the
- * firewall's zone table at 1420px and still overflowed by 39px once carded — a floor big enough
- * to force the overflow is big enough to break the card. */
+/* "Too cramped to be a table any more" — a DESIGN judgement. It has to be one: these tables do
+ * NOT overflow when the room runs out (their cells break anywhere), they compress into an
+ * unreadable ribbon. Do NOT give the cells a min-width so that "cramped" MANUFACTURES an
+ * overflow: tried, and it carded the firewall's zone table at 1420px and still overflowed by
+ * 39px once carded — a floor big enough to force the overflow is big enough to break the card. */
 const CRAMPED = 568;	/* stock LuCI cards its tables at a 600px viewport; below the 767px
 						 * tier .fs-content pads 16px a side, so 600 -> 568 of room */
+
+/* The ribbon has one more shape, and CRAMPED cannot see it: the table has room by the number
+ * above and still shreds its FIRST column, because auto table layout hands width out by what
+ * each column DEMANDS. The leftmost column is the row's identity and usually the least greedy —
+ * a wide neighbour (a hostname plus an IPv6, a modulation string) simply takes the width, and
+ * `overflow-wrap: anywhere` (theme/30-tables.css) lets the identity be squeezed with no floor:
+ * it breaks mid-word rather than overflow, so there is no overflow for fit.overflows() to read.
+ *
+ * Measured on the router (Wireless, one station, `Access Point "vaka_devices" (phy6-ap0)`):
+ * viewport 900 -> the column is 101px and 5 lines, 850 -> 80px and 7, 800 -> 76px and 8, and at
+ * NO width did the table card — a nine-line tower of half-words next to columns with room to
+ * spare (issue #7). Below 767 the MAC column drops out (the stock phone contract) and the
+ * column springs back to 167px, which is why this only ever bit between roughly 780 and 900.
+ *
+ * So: past this many lines the identity has stopped being readable and the card view — which
+ * gives every field its own labelled row — is simply better. A DESIGN judgement like CRAMPED,
+ * and it has to be one: any number of lines is legible in isolation. 5 is what the reporter
+ * asked for and what the measurements above bracket. Only the first column, and deliberately:
+ * a value column wrapping to a few lines is a value being shown, not a table falling apart. */
+const MAX_ID_LINES = 5;
+
+/* Is any row's leftmost cell a tower? Text lines, not height — fs-fit.textLines() explains why.
+ * The height gate in front of it is not premature: this runs on every poll tick (once a second,
+ * every mutation), and Processes/Connections render hundreds of rows whose first cell is a PID
+ * that cannot be a tower — one cheap read each keeps the Range walk for the cells that could. */
+function idTower(t) {
+	const cells = t.querySelectorAll('.tr > .td:first-child');
+	if (!cells.length) return false;
+	const cs = getComputedStyle(cells[0]);
+	const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2 || 16;
+	for (const cell of cells) {
+		if (cell.clientHeight < MAX_ID_LINES * lh) continue;
+		if (fit.textLines(cell) > MAX_ID_LINES) return true;
+	}
+	return false;
+}
 
 function fitTables() {
 	document.querySelectorAll(STACKABLE).forEach((t) => {
@@ -177,7 +212,8 @@ function fitTables() {
 		const room = fit.roomFor(t);
 		if (!(room > 0)) { if (was) t.classList.add('fs-stacked'); return; }
 
-		const stack = room < CRAMPED || fit.overflows(t);
+		/* idTower last: it is the only one that walks the rows */
+		const stack = room < CRAMPED || fit.overflows(t) || idTower(t);
 		/* write only on a real change: the poll re-renders these tables once a second, and
 		 * toggling the class off and on each tick would invalidate style for every row of
 		 * Processes/Leases for nothing */

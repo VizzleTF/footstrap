@@ -30,6 +30,32 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   prose the doc actually cares about — the effect, the measurement, what the rule protects — is
   deliberately not checked, because no scanner can judge it.
 
+### Fixed
+
+- **A data table whose leftmost column has been shredded into a tower of half-words now cards,
+  instead of staying a table nobody can read** (issue #7). Auto table layout hands width out by
+  what each column *demands*, and `overflow-wrap: anywhere` gives the row's identity column no
+  floor at all — so a wide neighbour (a hostname plus an IPv6, a modulation string) simply takes
+  the width and the identity breaks mid-word rather than overflow. No overflow means nothing for
+  the measured stacking to read, and the `room < 568` rule cannot see it either: measured on the
+  router with one associated station, at a 900px viewport the Network column was 101px and 5
+  lines, at 850px 80px and 7, at 800px 76px and 8 — and the table carded at *no* width. (Below
+  767px the MAC column drops out and the column springs back to 167px, which is why this only
+  ever bit between roughly 780 and 900.) `fs-fit.js` now measures the fact — text line boxes, via
+  ranges over the text nodes, because the cell's height is a third icon — and `fs-select.js` cards
+  a table whose first column passes 5 lines. Note the cards drop the `.hide-xs` columns (the stock
+  phone contract), so the MAC moves out of view when this fires. Counting had to cluster line
+  rects by their TOP: consecutive lines *overlap* (tops 15-16px apart, rects 17-18px tall), so an
+  overlap test merged an 8-line tower into one line and the check would have silently never fired.
+- **The Wireless "Associated Stations" table no longer crushes the Network column to fit the
+  modulation string** (issue #7, reported against 0.9.1). 0.9.1 nowrapped Signal/Noise and RX/TX
+  Rate to stop `overflow-wrap: anywhere` splitting "-54/-90 dBm" mid-character; nowrap made
+  "229 Mbit/s, 20 MHz, HE-MCS 9, HE-NSS 2" a single unbreakable ~300px block, which took its share
+  of the row from every other column — the network name was squeezed to a few characters — and
+  raised the table's floor enough to card it on desktops that had room for the real table. Both
+  columns wrap again: a wide cell that can break is the lesser evil, because the columns keep their
+  share. The MAC keeps its nowrap (issue #5) — it is short, and stock LuCI keeps it on one line too.
+
 ## [0.9.2] — 2026-07-17
 
 ### Added
