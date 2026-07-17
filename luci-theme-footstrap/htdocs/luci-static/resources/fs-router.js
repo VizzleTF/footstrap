@@ -97,6 +97,54 @@ function repairStaleRender(className) {
 		window.location.reload();
 }
 
+/* ---- the generation must be checked at the PAINT, not at the dispatch ----
+ *
+ * _navGen is checked once, in the require() callback, i.e. BEFORE `new view.constructor()`. But a
+ * view's __init__ is async — `ready.then(this.load).then(this.render).then(nodes =>
+ * dom.content(document.getElementById('view'), nodes))` — so the DOM write happens two awaits later,
+ * and every await is a point at which the whole event loop runs, another navigation included. The
+ * dispatch-time check has expired by the time it matters.
+ *
+ * Measured on the router: leave the (cached) package manager for System after 150 ms, and the paints
+ * into #view land 16010 System, 16490 package-manager — the view we walked away from paints LAST and
+ * wins, permanently. URL, <title>, data-page and the menu highlight all say System; #view shows
+ * Software. Only a reload clears it. The cached path is the COMMON one — after warm-up every
+ * navigation takes it — and it had no guard at all: repairStaleRender() is called only when !cached.
+ *
+ * The fix has to be a paint-time check, and there are two constraints on where it can live.
+ * ClassConstructor DISCARDS __init__'s return value (`this.__init__.apply(this, arguments)`, no
+ * return), so the construction promise is unreachable — nothing to await. But __init__ resolves
+ * `this.render` while it builds its chain, i.e. during `new`, so a wrapper installed on the
+ * prototype BEFORE the construct is the one that gets bound. `new` then returns synchronously (the
+ * first load() is already a microtask), which is what makes stamping the generation on the INSTANCE
+ * right after it safe — and it must be the instance, not a map keyed by class name, or A → B → A
+ * with everything cached would have the second construct's generation overwrite the first's.
+ *
+ * A superseded render resolves to a promise that never settles: the chain simply stops before
+ * dom.content(), so nothing paints and addFooter() never runs. Returning empty nodes instead would
+ * paint the emptiness over the live page, and throwing would hand LuCI's own .catch an error box to
+ * render into the page we just opened.
+ *
+ * A view instance we did not construct (the singleton require() builds on a FIRST visit — the render
+ * IS the require, so there is no window in which to arm anything) carries no stamp and is left alone:
+ * that path is repairStaleRender()'s, and stays its. */
+const _guarded = new WeakSet();
+function armRenderGuard(cls) {
+	if (_guarded.has(cls)) return;
+	_guarded.add(cls);
+	const orig = cls.prototype.render;
+	cls.prototype.render = function () {
+		/* unstamped: not ours to judge (see above) */
+		const stale = () => this.__fsGen !== undefined && this.__fsGen !== _navGen;
+		if (stale())
+			return new Promise(() => {});
+		return Promise.resolve(orig.apply(this, arguments)).then((nodes) => {
+			/* re-check: render() itself awaits (an RPC, usually), which re-opens the window */
+			return stale() ? new Promise(() => {}) : nodes;
+		});
+	};
+}
+
 /* The exact URL LuCI.require() will fetch for a class name, cache-bust and all. Matching it
  * byte-for-byte is what makes a hover prefetch a warm cache hit for the later require(). */
 function moduleUrl(className) {
@@ -348,8 +396,16 @@ function navigate(pathname, push) {
 				repairStaleRender(className);
 			return;
 		}
-		if (cached)
-			new view.constructor();	/* singleton: its __init__ already ran, re-run it */
+		if (cached) {
+			/* singleton: its __init__ already ran, re-run it. Arm the paint-time guard BEFORE the
+			 * construct (__init__ binds this.render as it builds its chain) and stamp the
+			 * generation right after it (the first load() is a microtask, so this lands first) —
+			 * this navigation can still be superseded while that render awaits its RPC. */
+			const cls = view.constructor;
+			armRenderGuard(cls);
+			const inst = new cls();
+			inst.__fsGen = gen;
+		}
 	}).catch((e) => {
 		/* the full reload is a correct fallback, but swallowing the reason made every SPA-router
 		 * regression look like "the page is just slow to load". Log, then fall back. */

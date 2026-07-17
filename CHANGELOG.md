@@ -24,6 +24,21 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **Clicking a second menu item while a page was still loading could leave the previous page's
+  content under the new page's URL, permanently.** Measured on the router: leave the package manager
+  for System after 150 ms and the paints into `#view` land System at 16010 ms, package-manager at
+  16490 — the view you walked away from paints *last* and wins. URL, `<title>`, `data-page` and the
+  menu highlight all said System while the Software list sat in the page, and only a reload cleared
+  it. The router checked its navigation generation before constructing the view, but `LuCI.view`'s
+  `__init__` writes to the DOM two `await`s later — and every `await` is a point at which a whole
+  other navigation can run, so the check had expired by the time it mattered. The generation is now
+  stamped on the view instance and re-checked inside `render()`, i.e. adjacent to the paint: a
+  superseded render resolves to a promise that never settles, so the chain simply stops before
+  `dom.content()`. This closed the *common* path, not an exotic one — the existing repair only ever
+  covered a view's first visit, and after warm-up every navigation is a revisit. Verified by walking
+  all 51 clickable menu nodes in both layouts against a real full load of the same URL (46 SPA-OK, 0
+  mismatches, 4 intended fallbacks), with the heap flat at 35.1 MB across 20 consecutive races.
+
 - **The label column and its gap follow the writing direction instead of being pinned to the
   left.** LuCI ships four RTL languages (ar/fa/he/ur), so `.cbi-value-title`'s alignment towards its
   field and `.cbi-value-field`'s gap after the label are logical intents, now written as

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-`luci-theme-footstrap` — LuCI theme for **OpenWrt 24.10 and newer**. Deep design/architecture research lives in `docs/01`–`docs/21` (Russian; 10 and 12 do not exist) — read the relevant doc before non-trivial changes; `docs/17` covers the CSS build and cascade layers, `docs/18` the best-practice baseline and the audit, `docs/21` the changelog contract. Communicate in Russian.
+`luci-theme-footstrap` — LuCI theme for **OpenWrt 24.10 and newer**. Deep design/architecture research lives in `docs/01`–`docs/22` (Russian; 10 and 12 do not exist) — read the relevant doc before non-trivial changes; `docs/17` covers the CSS build and cascade layers, `docs/18` the best-practice baseline and the audit, `docs/21` the changelog contract, `docs/22` the SPA best-practice baseline + the router's measured audit (`docs/14` is how the router works; `docs/22` is how a router *should* work and where ours does not). Communicate in Russian.
 
 **Both releases are supported, and the API surface is genuinely the same** — verified against `openwrt-24.10` of `openwrt/luci`, not assumed:
 - LuCI on 24.10 is already **ucode**, not Lua (`modules/luci-base/ucode/` exists there), and every template API this theme uses is present: `ctx.path`, `ctx.request_path`, `entityencode`, `striptags`, `dispatcher.build_url/lookup/lang`, `ubus.call`, `pkgs_update_time` (whose 24.10 definition already falls back from `/lib/apk/db/installed` to `/usr/lib/opkg/status`).
