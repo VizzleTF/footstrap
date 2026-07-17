@@ -29,6 +29,18 @@
  * invasive: fail to the slow path, never the broken one. */
 let _themeNames = null;
 
+/* What counts as a NAME — a class or an id — in a selector. This is the vocabulary the whole zone
+ * test is written in: themeNames() harvests the theme's names with it, pinnedToApp() looks for the
+ * app's own name with it, and judgeSheet() asks whether a part names anything of ours with it. Three
+ * copies of the pattern sat under a comment explaining that two copies of the JUDGEMENT would drift
+ * into disagreeing — and a vocabulary that disagrees with itself is the same bug one level down: widen
+ * it in the harvester alone and names enter `names` that the other two can never match, so a selector
+ * that does reach the chrome reads as pinned and is left unfenced.
+ *
+ * Shared safely BECAUSE every use is String.match(): a /g regex is stateful under .test(), but
+ * [Symbol.match] resets lastIndex first. Do not call .test() on this one. */
+const NAME_RE = /[.#][A-Za-z_][\w-]*/g;
+
 /* a re-hosted <style>'s text is no longer what its app wrote — dedupeViewSheets keys on the
  * original, or the app's next identical copy stops looking like a duplicate (see there) */
 const origText = new WeakMap();
@@ -40,7 +52,7 @@ function themeNames() {
 	const walk = (rules) => {
 		for (const r of rules) {
 			if (r.selectorText)
-				(r.selectorText.match(/[.#][A-Za-z_][\w-]*/g) || []).forEach((n) => names.add(n));
+				(r.selectorText.match(NAME_RE) || []).forEach((n) => names.add(n));
 			if (r.cssText)
 				(r.cssText.match(/--[A-Za-z_][\w-]*/g) || []).forEach((p) => props.add(p));
 			if (r.cssRules) walk(r.cssRules);
@@ -67,7 +79,7 @@ function themeNames() {
  * they must agree by construction: a part judged able to reach another page is exactly a part able
  * to reach the chrome. Two copies of this test would drift into disagreeing. */
 function pinnedToApp(part, names) {
-	return (part.replace(/:[a-z-]+\([^)]*\)/gi, ' ').match(/[.#][A-Za-z_][\w-]*/g) || [])
+	return (part.replace(/:[a-z-]+\([^)]*\)/gi, ' ').match(NAME_RE) || [])
 		.some((n) => !names.has(n));
 }
 
@@ -152,7 +164,7 @@ function judgeSheet(el, universe) {
 					 * and that is the whole difference between podkop and the file manager:
 					 * `.cbi-button-save:not(.custom-save-button)` names an app class too, but
 					 * inside a NEGATION — it does not require the app's markup, it excludes it. */
-					const themeHit = (p.match(/[.#][A-Za-z_][\w-]*/g) || []).some((n) => names.has(n));
+					const themeHit = (p.match(NAME_RE) || []).some((n) => names.has(n));
 					if (!themeHit) continue;
 					if (!pinnedToApp(p, names)) { invasive = true; return; }
 				}

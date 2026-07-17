@@ -19,6 +19,21 @@ function wireAppearance() {
 	 * below, before any of these fire (all are user events). */
 	const bump = fn => v => { fn(v); refreshSave(); };
 
+	/* One captioned row: `<div class=fs-ap-group>` + its label + the control. `make` is handed the
+	 * SAME label string the caption renders, because every control in here needs it a second time as
+	 * its aria-label (segControl/sliderControl take it as their last argument) — and stating it twice
+	 * is how the visible caption and what a screen reader announces drift apart. One literal per axis,
+	 * used by both, with nothing to keep in sync. `extra` is for the rows that carry more than a
+	 * control (the Save row's action pair and its error line), `opts.cls` for the one row CSS has to
+	 * be able to single out. */
+	const group = (label, make, opts) => {
+		const o = opts || {};
+		return E('div', { 'class': 'fs-ap-group' + (o.cls ? ' ' + o.cls : '') }, [
+			E('div', { 'class': 'fs-ap-label' }, [ label ]),
+			make(label)
+		].concat(o.extra || []));
+	};
+
 	/* Axes in order: Layout, Theme, Palette, Wallpaper, Tint, Accent, Rounding, Submenus (sidebar
 	 * only), Updates.
 	 *
@@ -33,61 +48,49 @@ function wireAppearance() {
 	 * catalogue for), as are System/Memory/Storage in 05_footstrap_overview_layout.js, which MATCH
 	 * the stock headings. */
 	const groups = [
-		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Layout', 'footstrap') ]),
-			widgets.segControl(prefs.currentLayout(), [
-				{ val: 'sidebar', label: _('Sidebar', 'footstrap') },
-				{ val: 'top',     label: _('Top', 'footstrap') }
-			], bump(prefs.applyLayout), _('Layout', 'footstrap'))
-		]),
-		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Theme', 'footstrap') ]),
-			widgets.segControl(prefs.currentMode(), [
-				{ val: 'auto',  label: _('Auto', 'footstrap') },
-				{ val: 'light', label: _('Light', 'footstrap') },
-				{ val: 'dark',  label: _('Dark', 'footstrap') }
-			], bump(prefs.applyMode), _('Theme', 'footstrap'))
-		]),
-		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Palette', 'footstrap') ]),
-			widgets.segControl(prefs.currentPalette(), [
-				{ val: 'footstrap',  label: 'Footstrap' },
-				{ val: 'hicontrast', label: 'Hi-Contrast' }
-			], bump(prefs.applyPalette), _('Palette', 'footstrap'))
-		]),
-		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Wallpaper', 'footstrap') ]),
-			widgets.segControl(prefs.currentWallpaper(), [
-				{ val: 'off',  label: _('Off', 'footstrap') },
-				{ val: 'cats', label: _('Cats', 'footstrap') }
-			], bump(prefs.applyWallpaper), _('Wallpaper', 'footstrap'))
-		]),
-		E('div', { 'class': 'fs-ap-group' }, [
-			/* the caption says what the axis is FOR: "Tint" alone reads as decoration and
-			 * nobody would look for the router-identity cue under it */
-			E('div', { 'class': 'fs-ap-label' }, [ _('Tint (router identification)', 'footstrap') ]),
-			/* step 5 = 72 hues, which is finer than anyone can name and coarse enough
-			 * that the same router lands on the same colour when it is set again. */
-			widgets.sliderControl(prefs.currentTint(), 0, 360, bump(prefs.applyTint), _('Tint (router identification)', 'footstrap'), {
+		group(_('Layout', 'footstrap'), (label) => widgets.segControl(prefs.currentLayout(), [
+			{ val: 'sidebar', label: _('Sidebar', 'footstrap') },
+			{ val: 'top',     label: _('Top', 'footstrap') }
+		], bump(prefs.applyLayout), label)),
+
+		group(_('Theme', 'footstrap'), (label) => widgets.segControl(prefs.currentMode(), [
+			{ val: 'auto',  label: _('Auto', 'footstrap') },
+			{ val: 'light', label: _('Light', 'footstrap') },
+			{ val: 'dark',  label: _('Dark', 'footstrap') }
+		], bump(prefs.applyMode), label)),
+
+		group(_('Palette', 'footstrap'), (label) => widgets.segControl(prefs.currentPalette(), [
+			{ val: 'footstrap',  label: 'Footstrap' },
+			{ val: 'hicontrast', label: 'Hi-Contrast' }
+		], bump(prefs.applyPalette), label)),
+
+		group(_('Wallpaper', 'footstrap'), (label) => widgets.segControl(prefs.currentWallpaper(), [
+			{ val: 'off',  label: _('Off', 'footstrap') },
+			{ val: 'cats', label: _('Cats', 'footstrap') }
+		], bump(prefs.applyWallpaper), label)),
+
+		/* the caption says what the axis is FOR: "Tint" alone reads as decoration and nobody would
+		 * look for the router-identity cue under it.
+		 * step 5 = 72 hues, which is finer than anyone can name and coarse enough that the same
+		 * router lands on the same colour when it is set again. */
+		group(_('Tint (router identification)', 'footstrap'),
+			(label) => widgets.sliderControl(prefs.currentTint(), 0, 360, bump(prefs.applyTint), label, {
 				step: 5,
 				cls: 'fs-range-hue',
 				fmt: v => (v ? v + '°' : _('Off', 'footstrap'))
-			})
-		]),
-		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Accent', 'footstrap') ]),
-			/* recolours the accented CONTROLS (buttons/toggles/sliders/focus rings), not
-			 * the canvas the way Tint does — same hue slider, off at 0 = palette default */
-			widgets.sliderControl(prefs.currentAccent(), 0, 360, bump(prefs.applyAccent), _('Accent', 'footstrap'), {
+			})),
+
+		/* recolours the accented CONTROLS (buttons/toggles/sliders/focus rings), not the canvas
+		 * the way Tint does — same hue slider, off at 0 = palette default */
+		group(_('Accent', 'footstrap'),
+			(label) => widgets.sliderControl(prefs.currentAccent(), 0, 360, bump(prefs.applyAccent), label, {
 				step: 5,
 				cls: 'fs-range-hue fs-range-accent',
 				fmt: v => (v ? v + '°' : _('Off', 'footstrap'))
-			})
-		]),
-		E('div', { 'class': 'fs-ap-group' }, [
-			E('div', { 'class': 'fs-ap-label' }, [ _('Rounding', 'footstrap') ]),
-			widgets.sliderControl(prefs.currentRadius(), 0, 20, bump(prefs.applyRadius), _('Rounding', 'footstrap'))
-		])
+			})),
+
+		group(_('Rounding', 'footstrap'),
+			(label) => widgets.sliderControl(prefs.currentRadius(), 0, 20, bump(prefs.applyRadius), label))
 	];
 
 	/* The top layout has no accordion (its sections are hover dropdowns, already exclusive), so this
@@ -96,13 +99,13 @@ function wireAppearance() {
 	 * push: the popover is built ONCE, in init(), so the branch froze the control to the layout the
 	 * PAGE LOADED in — it stayed on screen after a switch to the bar, and never appeared after a
 	 * switch away from it. Toggling the layout re-renders nothing; CSS morphs the chrome. */
-	groups.push(E('div', { 'class': 'fs-ap-group fs-ap-submenus' }, [
-		E('div', { 'class': 'fs-ap-label' }, [ _('Submenus', 'footstrap') ]),
-		widgets.segControl(prefs.currentAutoCollapse() ? 'on' : 'off', [
+	groups.push(group(
+		_('Submenus', 'footstrap'),
+		(label) => widgets.segControl(prefs.currentAutoCollapse() ? 'on' : 'off', [
 			{ val: 'off', label: _('Keep open', 'footstrap') },
 			{ val: 'on',  label: _('Auto-collapse', 'footstrap') }
-		], bump(prefs.applyAutoCollapse), _('Submenus', 'footstrap'))
-	]));
+		], bump(prefs.applyAutoCollapse), label),
+		{ cls: 'fs-ap-submenus' }));
 
 	/* version line + "new version" badge + one-click Update button (the last two
 	 * are revealed by the update check below when a newer release exists). */
@@ -113,14 +116,13 @@ function wireAppearance() {
 	}, [ _('New version available') ]);
 	const updateBtn = E('button', { 'class': 'fs-ap-update', 'type': 'button', 'hidden': '' }, [ _('Update now') ]);
 
-	/* opt-out toggle for the update check */
-	groups.push(E('div', { 'class': 'fs-ap-group' }, [
-		E('div', { 'class': 'fs-ap-label' }, [ _('Updates', 'footstrap') ]),
+	/* opt-out toggle for the update check. NOT bump()-ed: it is not one of the saved axes, so it
+	 * cannot move this browser toward or away from the router default. */
+	groups.push(group(_('Updates', 'footstrap'), (label) =>
 		widgets.segControl(update.currentUpdateCheck() ? 'on' : 'off', [
 			{ val: 'on',  label: _('Check', 'footstrap') },
 			{ val: 'off', label: _('Off', 'footstrap') }
-		], update.applyUpdateCheck, _('Updates', 'footstrap'))
-	]));
+		], update.applyUpdateCheck, label)));
 
 	/* Save the current look as the ROUTER-WIDE default (fs-prefs writes it to /etc/config/footstrap
 	 * via the scoped uci ACL). It does NOT change this browser — localStorage keeps overriding, so
@@ -140,11 +142,12 @@ function wireAppearance() {
 	 * without writing the file, returning success — measured on the router. The package owns that
 	 * file and the read side falls back to built-in defaults, so that edge is left to the package.) */
 	const saveErr = E('div', { 'class': 'fs-ap-err', 'role': 'alert', 'hidden': '' });
-	groups.push(E('div', { 'class': 'fs-ap-group' }, [
-		E('div', { 'class': 'fs-ap-label' }, [ _('Router default', 'footstrap') ]),
-		E('div', { 'class': 'fs-ap-actrow' }, [ saveBtn, resetBtn ]),
-		saveErr
-	]));
+	/* the one row whose "control" is a pair of buttons, each already named by its own text — so the
+	 * caption is not re-used as an aria-label here and `make` ignores it */
+	groups.push(group(
+		_('Router default', 'footstrap'),
+		() => E('div', { 'class': 'fs-ap-actrow' }, [ saveBtn, resetBtn ]),
+		{ extra: saveErr }));
 
 	groups.push(E('div', { 'class': 'fs-ap-footer' }, [
 		E('div', { 'class': 'fs-ap-verrow' }, [

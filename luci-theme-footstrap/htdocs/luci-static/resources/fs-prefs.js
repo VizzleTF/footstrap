@@ -32,37 +32,24 @@ function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
  * the page is actually painted as, not a phantom "auto". */
 function sd(k) { try { return (window.__fsSD || {})[k]; } catch (e) { return undefined; } }
 
+/* ---- every axis owns its ROUTER DEFAULT, and nothing else may restate it ----
+ * `def()` is the sd() branch of current() alone — what the effective value would be with no
+ * localStorage. It is exposed because _resolvedDefault() needs exactly that branch and used to
+ * spell each one out a second time: two copies of the SAME validation, and the drift has no
+ * symptom. Disagree, and matchesSavedDefault() lies about the one thing the Save button IS —
+ * its own status (see there): it greys when there is something to save, or never greys at all,
+ * and nothing else in the UI would contradict it. */
+function modeDefault() {
+	const d = sd('darkmode');
+	return (d === 'dark' || d === 'light') ? d : 'auto';
+}
 function currentMode() {
 	const s = lsGet('fs-darkmode');
 	if (s === 'true') return 'dark';
 	if (s === 'false') return 'light';
 	if (s === 'auto') return 'auto';
-	if (s === null) { const d = sd('darkmode'); if (d === 'dark' || d === 'light') return d; }
+	if (s === null) return modeDefault();
 	return 'auto';
-}
-function currentPalette() {
-	const s = lsGet('fs-palette');
-	/* legacy 'rvht'/'roman'/'github' are migrated to explicit values by head.ut before paint, so
-	 * they do not reach here on a loaded page; the fallthrough returns the default for any stray. */
-	if (s === 'hicontrast') return 'hicontrast';
-	if (s === 'footstrap') return 'footstrap';
-	if (s === null && sd('palette') === 'hicontrast') return 'hicontrast';
-	return 'footstrap';	/* default = GitHub colors */
-}
-/* Wallpaper is a separate axis from the palette: the cats pattern composes with
- * either palette. data-wallpaper="cats" on :root drives styles/theme/15-wallpaper.css. */
-function currentWallpaper() {
-	const s = lsGet('fs-wallpaper');
-	if (s === 'cats') return 'cats';
-	if (s === 'off') return 'off';
-	if (s === null && sd('wallpaper') === 'cats') return 'cats';
-	return 'off';
-}
-function applyWallpaper(val) {
-	const root = document.documentElement;
-	lsSet('fs-wallpaper', val === 'cats' ? 'cats' : 'off');
-	if (val === 'cats') root.setAttribute('data-wallpaper', 'cats');
-	else root.removeAttribute('data-wallpaper');
 }
 /* ---- dark mode is announced in three dialects, because apps SNIFF for it ----
  *
@@ -155,24 +142,18 @@ _mqDark.addEventListener('change', () => {
 		stampDark(root, intendedDark());
 	}
 });
-function applyPalette(val) {
-	const root = document.documentElement;
-	/* footstrap (GitHub colours) is the default = bare :root, no attr; hicontrast is the
-	 * opt-in variant. Colourway blocks live in styles/03-palettes.css. Stored explicitly. */
-	lsSet('fs-palette', val === 'hicontrast' ? 'hicontrast' : 'footstrap');
-	if (val === 'hicontrast') root.setAttribute('data-palette', 'hicontrast');
-	else root.removeAttribute('data-palette');
-}
-
 /* Corner-radius axis: one base value (the card radius, 0–20px) as an inline --fs-radius-base on
  * :root; 02-tokens derives the control/chip radii from it so every surface rounds in step. head.ut
  * pre-paints it. Stored explicitly (including the default 12), so it can override a router default. */
 const FS_RADIUS_DEFAULT = 12;
+function radiusDefault() {
+	const d = sd('rounding');
+	return (typeof d === 'number' && d >= 0 && d <= 20) ? d : FS_RADIUS_DEFAULT;
+}
 function currentRadius() {
 	const raw = lsGet('fs-radius');
 	if (raw !== null) { const s = parseInt(raw, 10); return (s >= 0 && s <= 20) ? s : FS_RADIUS_DEFAULT; }
-	const d = sd('rounding');
-	return (typeof d === 'number' && d >= 0 && d <= 20) ? d : FS_RADIUS_DEFAULT;
+	return radiusDefault();
 }
 function applyRadius(px) {
 	const root = document.documentElement;
@@ -182,34 +163,67 @@ function applyRadius(px) {
 	else root.style.setProperty('--fs-radius-base', v + 'px');
 }
 
-/* Background-tint axis: ONE hue (0–360°) washed into the CANVAS the cards float on (--fs-bg), so a
- * whole install reads as green/violet/amber and you can tell which router a tab — or a screenshot
- * in a ticket — belongs to. Cards, chrome and the status colours keep the palette's values: the cue
- * colours the paper, not the UI. Mixed in CSS (:root[data-tint] + an inline --fs-tint-h; the TINT
- * block in 03-palettes.css explains why it stays contrast-safe on every hue). 0 IS "OFF", not
- * "red": a hue wheel wraps, so one end of the slider is free for the off state a hue axis otherwise
- * has no room for. head.ut pre-paints it.
+/* ---- the two axis SHAPES, each written once ------------------------------------------------
  *
- * ---- the HUE axis, written once ----
- * Tint and Accent are one axis pointed at two things: same 1–360 validation, same "0 is off", same
- * off path, same load-bearing ORDERING rule — set the custom property BEFORE the attribute, or a
- * fresh load paints one frame with the previous hue. That rule is exactly what gets fixed in one
- * copy and not the other, so it lives here once. The router-default fallback keys off the axis name
- * (`fs-tint` -> window.__fsSD.tint), so the helper keeps its THREE-argument signature — tools/axes.mjs
- * matches hueAxis() as exactly three string args.
+ * Four of the nine axes are two shapes with two instances each, so the shape lives in a factory and
+ * the instance is one line. Both keep the same contract: `current()` is localStorage ?? def(),
+ * `def()` is the router default alone, `apply()` stores the choice EXPLICITLY (see the header —
+ * lsDel would mean "inherit the router default", which is not what picking the built-in means).
+ * Neither uses `this`: every export below is a DETACHED method reference (`const currentTint =
+ * TINT.current`), and a `this` in here would throw the moment one was called.
  *
- * The other seven axes stay separate; each has a quirk a shared table would need an option for.
+ * The router-default fallback keys off the axis name (`fs-tint` -> window.__fsSD.tint), so both
+ * helpers take their key as the FIRST argument and tools/axes.mjs matches each call by its literal
+ * args — that scan is how a key reaches the gate at all, since an axis built by a factory has no
+ * lsGet('fs-…') call site to find.
+ *
+ * The other FIVE axes stay separate; each has a quirk a shared table would need an option for.
  * `mode` stores a value it does not apply (tri-state → matchMedia) and owns an MQL listener;
  * `radius` sets an inline property with no attribute; `layout` reads the ATTRIBUTE (the
  * server-migrated default); `autoCollapse`/`updateCheck` have no :root attribute at all. */
+
+/* A two-value axis: `on` is stamped as the attribute's VALUE, `off` is a bare :root (no attribute).
+ * Palette and wallpaper were this shape twice over — current() and apply() agreed line for line
+ * down to the stray-value fallthrough, and the two halves of `palette` had already drifted APART in
+ * the file (current() at the top, apply() 100 lines below). */
+function enumAxis(key, attr, on, off) {
+	const sdKey = key.slice(3);	/* 'fs-palette' -> 'palette', the window.__fsSD field */
+	const def = () => (sd(sdKey) === on ? on : off);
+	return {
+		def,
+		current() {
+			const s = lsGet(key);
+			if (s === on) return on;
+			if (s === off) return off;
+			if (s === null) return def();
+			return off;		/* a stray value reads as the built-in default */
+		},
+		apply(val) {
+			const root = document.documentElement;
+			const isOn = (val === on);
+			lsSet(key, isOn ? on : off);
+			if (isOn) root.setAttribute(attr, on);
+			else root.removeAttribute(attr);
+		}
+	};
+}
+
+/* A hue axis: 1–360°, 0 = off. Tint and Accent are one axis pointed at two things — same
+ * validation, same "0 is off", same off path, same load-bearing ORDERING rule (set the custom
+ * property BEFORE the attribute, or a fresh load paints one frame with the previous hue). That rule
+ * is exactly what gets fixed in one copy and not the other, so it lives here once. */
 function hueAxis(key, attr, prop) {
 	const sdKey = key.slice(3);	/* 'fs-tint' -> 'tint', the window.__fsSD field */
+	const def = () => {
+		const d = sd(sdKey);
+		return (typeof d === 'number' && d >= 1 && d <= 360) ? d : 0;
+	};
 	return {
+		def,
 		current() {
 			const raw = lsGet(key);
 			if (raw !== null) { const h = parseInt(raw, 10); return (h >= 1 && h <= 360) ? h : 0; }
-			const d = sd(sdKey);
-			return (typeof d === 'number' && d >= 1 && d <= 360) ? d : 0;
+			return def();
 		},
 		apply(deg) {
 			const root = document.documentElement;
@@ -230,6 +244,25 @@ function hueAxis(key, attr, prop) {
 	};
 }
 
+/* Palette: footstrap (GitHub colours) is the default = bare :root; hicontrast is the opt-in
+ * variant. Colourway blocks live in styles/03-palettes.css. Legacy 'rvht'/'roman'/'github' are
+ * migrated to explicit values by head.ut before paint, so they never reach current() on a loaded
+ * page; the stray fallthrough covers them anyway. */
+const PALETTE = enumAxis('fs-palette', 'data-palette', 'hicontrast', 'footstrap');
+const currentPalette = PALETTE.current, applyPalette = PALETTE.apply;
+
+/* Wallpaper is a separate axis from the palette: the cats pattern composes with
+ * either palette. data-wallpaper="cats" on :root drives styles/theme/15-wallpaper.css. */
+const WALLPAPER = enumAxis('fs-wallpaper', 'data-wallpaper', 'cats', 'off');
+const currentWallpaper = WALLPAPER.current, applyWallpaper = WALLPAPER.apply;
+
+/* Background-tint axis: ONE hue washed into the CANVAS the cards float on (--fs-bg), so a whole
+ * install reads as green/violet/amber and you can tell which router a tab — or a screenshot in a
+ * ticket — belongs to. Cards, chrome and the status colours keep the palette's values: the cue
+ * colours the paper, not the UI. Mixed in CSS (:root[data-tint] + an inline --fs-tint-h; the TINT
+ * block in 03-palettes.css explains why it stays contrast-safe on every hue). 0 IS "OFF", not
+ * "red": a hue wheel wraps, so one end of the slider is free for the off state a hue axis otherwise
+ * has no room for. head.ut pre-paints it. */
 const TINT = hueAxis('fs-tint', 'data-tint', '--fs-tint-h');
 const currentTint = TINT.current, applyTint = TINT.apply;
 
@@ -272,11 +305,14 @@ function applyLayout(val) {
 /* Sidebar accordion: auto-collapse on = one section open at a time; off (default) they stack.
  * Only meaningful for the expanded sidebar — rail flyouts and the mobile bar are always
  * exclusive. Read by menu-footstrap.js. */
+function autoCollapseDefault() {
+	return sd('autocollapse') === 'on';
+}
 function currentAutoCollapse() {
 	const s = lsGet('fs-menu-autocollapse');
 	if (s === 'true') return true;
 	if (s === 'false') return false;
-	if (s === null && sd('autocollapse') === 'on') return true;
+	if (s === null) return autoCollapseDefault();
 	return false;
 }
 function applyAutoCollapse(val) {
@@ -340,18 +376,23 @@ function snapshotAxes() {
 /* The RESOLVED router default (UCI value if set, else the built-in), in snapshotAxes() string form,
  * so the popover can grey the Save button out when this browser already shows exactly it. Seeded
  * from window.__fsSD at load and replaced with the just-saved snapshot after saveAsDefault(), so a
- * save flips the match to true without a reload. */
+ * save flips the match to true without a reload.
+ *
+ * Every field is the axis's OWN def() — this used to restate each one instead (the 1..360 clamp
+ * twice, 0..20 once, and a bare `sd('palette') || 'footstrap'` where current() whitelists), i.e. a
+ * second copy of a validation with no symptom when the two disagree: `matchesSavedDefault()` simply
+ * lies, and the Save button IS that answer. `layout` is the one exception and cannot be otherwise —
+ * currentLayout() reads the ATTRIBUTE, so this is the only place stating the layout router default. */
 function _resolvedDefault() {
-	const t = sd('tint'), a = sd('accent'), r = sd('rounding');
 	return {
 		layout: sd('layout') || 'sidebar',
-		darkmode: sd('darkmode') || 'auto',
-		palette: sd('palette') || 'footstrap',
-		wallpaper: sd('wallpaper') || 'off',
-		tint: String((typeof t === 'number' && t >= 1 && t <= 360) ? t : 0),
-		accent: String((typeof a === 'number' && a >= 1 && a <= 360) ? a : 0),
-		rounding: String((typeof r === 'number' && r >= 0 && r <= 20) ? r : FS_RADIUS_DEFAULT),
-		autocollapse: sd('autocollapse') || 'off'
+		darkmode: modeDefault(),
+		palette: PALETTE.def(),
+		wallpaper: WALLPAPER.def(),
+		tint: String(TINT.def()),
+		accent: String(ACCENT.def()),
+		rounding: String(radiusDefault()),
+		autocollapse: autoCollapseDefault() ? 'on' : 'off'
 	};
 }
 let _savedDefault = _resolvedDefault();
@@ -374,8 +415,6 @@ function resetToDefault() {
 return baseclass.extend({
 	/* the storage helpers, shared with fs-update.js's own axis */
 	lsGet, lsSet, lsDel,
-
-	FS_RADIUS_DEFAULT,
 
 	currentMode, applyMode, guardDarkStamp,
 	currentPalette, applyPalette,

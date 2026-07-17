@@ -65,12 +65,16 @@ const keysIn = (src) => {
 	for (const m of src.matchAll(/^const\s+\w*KEY\w*\s*=\s*'(fs-[a-z-]+)'/gm)) out.add(m[1]);
 	return out;
 };
-/* ...plus the hue axes, which pass their key INTO hueAxis(key, attr, prop): an lsGet('fs-…')
- * scan misses those entirely. */
+/* ...plus the axes built by a FACTORY, which pass their key in as an argument — hueAxis(key, attr,
+ * prop) and enumAxis(key, attr, on, off). Those have no lsGet('fs-…') call site at all (the factory
+ * body reads a variable), so the scan above misses them entirely and every check below would go
+ * quiet on exactly the axes it is meant to hold. Match each factory call by its literal args. */
 const hueAxes = [...JS.matchAll(/hueAxis\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*'([^']+)'\s*\)/g)]
 	.map(([, key, attr, prop]) => ({ key, attr, prop }));
+const enumAxes = [...JS.matchAll(/enumAxis\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*'([^']+)'\s*\)/g)]
+	.map(([, key, attr, on, off]) => ({ key, attr, on, off }));
 
-const jsKeys = new Set([...keysIn(JS), ...hueAxes.map(a => a.key)]);
+const jsKeys = new Set([...keysIn(JS), ...hueAxes.map(a => a.key), ...enumAxes.map(a => a.key)]);
 const headKeys = keysIn(HEAD);
 
 if (!jsKeys.size) errors.push('found no fs-* localStorage keys in the theme JS — this tool is broken, not the theme');
@@ -108,6 +112,32 @@ for (const { key, attr, prop } of hueAxes) {
 			+ `export-tier sweeps would go on reporting this axis in their combination count while every `
 			+ `point of it measured the UNSTAMPED page, which is a pass by not looking`);
 	ok.push(`hue axis ${key.padEnd(10)} -> ${attr}, ${prop}   (key, attr, property, order and range agree; swept by lib/gallery.mjs)`);
+}
+
+/* ---- 2b. the enum axes: key, attribute and the ON value ------------------------------
+ *
+ * A two-value axis (palette, wallpaper) stamps the ON value as the attribute's value and removes
+ * the attribute for OFF — a bare :root IS the default. Both halves matter: pre-paint the attribute
+ * and forget the removal and a browser that has switched the axis back off keeps the old look for
+ * one frame; stamp the wrong VALUE ('dark' for 'hicontrast') and the palette block never matches at
+ * all, silently, until the popover is touched. */
+if (!enumAxes.length) errors.push('no enumAxis() calls found in the theme JS — did the axis helper get renamed?');
+
+for (const { key, attr, on } of enumAxes) {
+	const where = `enum axis '${key}'`;
+	if (!headKeys.has(key)) { errors.push(`${where}: head.ut never reads localStorage '${key}' — it will flash on reload`); continue; }
+	if (!HEAD.includes(`setAttribute('${attr}', '${on}')`)) {
+		errors.push(`${where}: head.ut never stamps ${attr}='${on}' — the pre-paint and the live applier `
+			+ `disagree about this axis's ON value, so a fresh load paints the default and the popover `
+			+ `paints the choice`);
+		continue;
+	}
+	if (!HEAD.includes(`removeAttribute('${attr}')`)) {
+		errors.push(`${where}: head.ut never removes ${attr} — OFF is a bare :root, so without the `
+			+ `removal the pre-paint can only ever turn this axis on`);
+		continue;
+	}
+	ok.push(`enum axis ${key.padEnd(10)} -> ${attr}='${on}'   (key, attr and both directions agree)`);
 }
 
 /* ...and the converse: an axis lib/gallery.mjs stamps that the JS no longer has is a sweep of a

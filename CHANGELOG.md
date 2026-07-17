@@ -105,6 +105,35 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **Every Appearance axis owns its router default, instead of a second copy restating it.**
+  `_resolvedDefault()` spelled each validation out again — the 1–360 hue clamp twice, the 0–20
+  rounding clamp once, and a bare `sd('palette') || 'footstrap'` where `current()` whitelists — and
+  nothing observable fails when the two disagree: `matchesSavedDefault()` simply lies, and the Save
+  button IS that answer (it reads "Saved as default" and greys, or never greys at all), with nothing
+  else in the UI to contradict it. Each axis exposes its `def()` now and `_resolvedDefault()` calls
+  it. In the same pass, palette and wallpaper stopped being one shape written twice — `current()`
+  and `apply()` agreed line for line, and `palette`'s two halves had already drifted 100 lines apart
+  in the file — and join tint/accent on a factory (`enumAxis`, beside `hueAxis`). Verified on the
+  router against a real saved default (`layout=top`, `darkmode=dark`, `wallpaper=cats`): a clean
+  browser resolves every axis to it, the Save button greys, and diverging on one axis un-greys it.
+- **`npm run axes` gates the palette and wallpaper axes, which it had never seen.** It finds an
+  axis's localStorage key by scanning for `lsGet('fs-…')` call sites, and an axis built by a factory
+  has none — the key is an argument. It already special-cased `hueAxis()` for exactly this reason;
+  `enumAxis()` would have walked into the same blind spot and dropped both keys out of the contract
+  silently. It reads both factories now and holds each enum axis to head.ut's pre-paint in both
+  directions (the ON value it stamps and the removal that turns it off, since OFF is a bare `:root`).
+  Proven by mutation: renaming the factory, drifting palette's ON value and drifting wallpaper's
+  attribute each fail the gate.
+- **The zone test's "what is a CSS name" pattern is written once.** `fs-sheets.js` carried three
+  copies of `/[.#][A-Za-z_][\w-]*/g` — the vocabulary `themeNames()`, `pinnedToApp()` and
+  `judgeSheet()` all judge in — under a comment explaining that two copies of the *judgement* would
+  drift into disagreeing. A vocabulary that disagrees with itself is the same bug one level down:
+  widen it in the harvester alone and names enter the theme's set that the other two can never
+  match, so a selector that does reach the chrome reads as pinned and is left unfenced.
+- **Each Appearance caption is stated once, not once per reader.** Every axis wrote its label twice
+  — the visible caption and the control's `aria-label` — 18 `_()` calls for 9 axes, which is exactly
+  how what a sighted user reads and what a screen reader announces come apart. One `group()` helper
+  hands the same string to both.
 - **Animations follow the motion scale, like transitions already did.** `02-tokens.css` claims one
   scale of four durations; only the *transitions* had been converted, so `fs-fade` — one keyframe,
   one gesture — was ridden at `.14s`, `.16s` and `.3s`, and `.flash`/`.fade-out` at `.35s`/`.4s`.
