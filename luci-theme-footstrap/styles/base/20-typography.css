@@ -40,6 +40,12 @@
 		font-weight: normal;
 		line-height: 18px;
 		margin-bottom: 9px;
+		/* prose, so no orphans: LuCI's descriptions are one or two sentences of help text and a
+		 * single trailing word on its own line reads as a rendering fault. `pretty`, not
+		 * `balance` — balance is capped at a few lines and re-flows the WHOLE block, which is for
+		 * headings; pretty only reworks the tail. Unsupported browsers ignore it and wrap as
+		 * before, so there is nothing to guard. */
+		text-wrap: pretty;
 	}
 
 	p small {

@@ -95,7 +95,9 @@
 		 * `#view .cbi-value` rule left every DIALOG in the desktop side-by-side layout and on a
 		 * phone the Edit-interface form pushed its inputs past the dialog's right edge, where
 		 * they were cut off. A .cbi-value only ever appears in a form, page or dialog alike. */
-		.cbi-value > .cbi-value-title { flex: 1 1 100%; text-align: left; padding-top: 0; }
+		/* `start` undoes base's `text-align: end` (the label hugs its field when the two share a
+		 * row); stacked, it goes back to the reading edge. Logical for the same reason base's is. */
+		.cbi-value > .cbi-value-title { flex: 1 1 100%; text-align: start; padding-top: 0; }
 		.cbi-value > .cbi-value-field { flex: 1 1 100%; min-width: 0; }
 
 		/* ==============================================================

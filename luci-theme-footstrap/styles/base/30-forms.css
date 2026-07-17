@@ -32,7 +32,11 @@
 	}
 
 	.cbi-value-field {
-		margin-left: 20px;
+		/* logical, not margin-left: this is the gap AFTER the label column, and LuCI ships four
+		 * RTL languages (ar/fa/he/ur). Identical to margin-left while :root carries no dir=rtl —
+		 * which nothing in openwrt/luci sets today — so this buys nothing yet and costs nothing;
+		 * it is here so the geometry is already correct if dir is ever stamped. */
+		margin-inline-start: 20px;
 		flex: 1;
 		/* a flex item won't shrink below min-content by default, so a nested table or one
 		 * long unbreakable value pushed the whole row out of the card */
@@ -45,7 +49,11 @@
 		padding-top: 6px;
 		line-height: 18px;
 		flex: 0 0 180px;
-		text-align: right;
+		/* `end`, not `right`: the label is aligned TOWARDS its field, which is a logical intent.
+		 * NOT the same as base/95-luci.css's `.left/.right/.center` — those are LuCI's forcing
+		 * utilities, emitted 59 times by form.js, and a class named `right` means right in any
+		 * direction. Never sweep those onto start/end. */
+		text-align: end;
 	}
 
 	.cbi-value > .cbi-section,

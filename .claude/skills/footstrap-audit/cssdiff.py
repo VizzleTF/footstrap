@@ -31,7 +31,14 @@ PROPS = ["display","position","top","right","bottom","left","z-index",
          # failure CLAUDE.md names: a clean diff is only as honest as the property list behind it.
          "animation-duration","animation-timing-function","animation-name",
          "transition-duration","transition-property",
-         "mask-size","mask-image","-webkit-mask-size","-webkit-mask-image"]
+         "mask-size","mask-image","-webkit-mask-size","-webkit-mask-image",
+         # Wrapping, and `direction` — which is here to be BORING. text-align: right -> end is a
+         # value-string change the tool reports as a diff while rendering is untouched, but that
+         # equivalence holds only while direction is ltr, and nothing in openwrt/luci sets dir=rtl
+         # (checked: zero hits repo-wide). Snapshotting it turns "end == right here" from an
+         # assumption into a reading. text-wrap likewise: its absence made a `pretty` change
+         # invisible, which is this list's documented failure mode one line up.
+         "direction","text-wrap","overflow-wrap","word-break"]
 
 SNAP = """(props) => {
   const path = (el) => {

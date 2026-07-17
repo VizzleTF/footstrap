@@ -33,7 +33,10 @@
 	 * changed nothing, all 227 still drew bold mono. */
 	.cbi-value-field,
 	.cbi-value-field *:where(:not(.btn, .cbi-button, .cbi-value-description)) { font-family: var(--fs-font-mono); }
-	.cbi-value-description { font-family: var(--fs-font-sans); }
+	/* text-wrap: the help sentence is a <div>, so base's prose rule (which reaches `p` and the
+	 * section/map descriptions) never covered it — and this is the one that wraps most, since it
+	 * sits in the field column. Same reasoning as there. */
+	.cbi-value-description { font-family: var(--fs-font-sans); text-wrap: pretty; }
 
 	/* A text field in a CBI form was a fixed 210px — base's width, straight out of bootstrap's
 	 * cascade. The same 210px holds far LESS here: the field is monospaced (the rule above) and

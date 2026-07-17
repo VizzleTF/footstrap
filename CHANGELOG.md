@@ -13,8 +13,26 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [Unreleased]
 
+### Changed
+
+- **Help text no longer strands a single word on its own last line.** LuCI writes its guidance as
+  one or two sentences (`.cbi-value-description` sits in the field column, where it wraps most), and
+  a lone trailing word reads as a rendering fault rather than prose. `text-wrap: pretty` reflows only
+  the tail, unlike `balance`, which re-runs the whole block and is meant for headings; a browser
+  without it wraps exactly as before, so there is nothing to guard. Measured over four pages: 12
+  elements changed, no other property moved.
+
 ### Fixed
 
+- **The label column and its gap follow the writing direction instead of being pinned to the
+  left.** LuCI ships four RTL languages (ar/fa/he/ur), so `.cbi-value-title`'s alignment towards its
+  field and `.cbi-value-field`'s gap after the label are logical intents, now written as
+  `text-align: end` / `margin-inline-start`. This changes nothing today — nothing in `openwrt/luci`
+  sets `dir="rtl"` (zero hits repo-wide) and the theme does not stamp it either — so it is
+  groundwork, not a fix a user can see: measured on the router at `direction: ltr`, all 22 labels'
+  rendered text moved by 0.00px. Deliberately **not** swept across `.left`/`.right`/`.center` in
+  `base/95-luci.css`: those are LuCI's forcing utilities, emitted 59 times by `form.js`, and a class
+  named `right` means right in any direction.
 - **The chrome-fence gate now fails when a chrome root loses its mark, instead of reporting the
   loss and passing.** It derived the set of `data-fs-chrome` roots from `header.ut`, printed the
   count and then gated only the one in `fs-appearance.js`. Deleting the mark from the skip link
