@@ -51,11 +51,17 @@ RUN set -eu; \
 		for p in luci $APPS; do opkg install "$p" 2>/dev/null || echo "skip (not in this feed): $p"; done; \
 	fi
 
-# The two apps the fence was measured against that do NOT live in OpenWrt's feed. They are
+# The three apps the fence was measured against that do NOT live in OpenWrt's feed. They are
 # here because this theme's hardest problem is SHARING ONE DOCUMENT with apps like these
 # (see CLAUDE.md, "three zones, three defences") — `tools/chrome-fence.mjs` reasons about
 # openclash's `*{padding:0!important}` from a text file, while this puts the real sheet in
 # the real document.
+#
+# justclash is the one whose sheet a text file CANNOT reason about at all: its package ships
+# no .css — every rule is built from its view JS at runtime, which is exactly the
+# `textIsSheet()` shape (a <style> whose textContent is not its sheet). It is also the app
+# behind the theme's `data-theme="dark"` publication (21 rules key off it) and the
+# `--*-color-*` export tier, so its pages are where both of those get looked at for real.
 #
 # ADD, not a download inside the container: buildkit fetches it host-side, and it is pinned
 # by the tag in compose.yml. These are dev fixtures and are NOT part of the release trust
@@ -66,22 +72,38 @@ ARG NIKKI_VERSION=v1.26.1
 # ADD cannot run a shell to strip it.
 ARG OPENCLASH_TAG=v0.47.116
 ARG OPENCLASH_VER=0.47.116
+# justclash's assets carry a package release suffix the tag does not (`-r1`), and they are
+# arch/branch independent — one pair of files serves both releases. Its two halves are
+# installed as SEPARATE commands on purpose: upstream supports 25.12+ only and the core
+# drags in nftables/tproxy/jq-full deps, while `luci-app-justclash` depends on nothing but
+# libc — so on 24.10 the core may refuse and the half this theme is here to render must
+# survive that. One `install a b` would take both down with it.
+ARG JUSTCLASH_TAG=v0.73.0
+ARG JUSTCLASH_VER=0.73.0-r1
 ARG OPENWRT_BRANCH=25.12
 ADD https://github.com/nikkinikki-org/OpenWrt-nikki/releases/download/${NIKKI_VERSION}/nikki_x86_64-openwrt-${OPENWRT_BRANCH}.tar.gz /tmp/nikki.tar.gz
 ADD https://github.com/vernesong/OpenClash/releases/download/${OPENCLASH_TAG}/luci-app-openclash-${OPENCLASH_VER}.apk /tmp/openclash.apk
 ADD https://github.com/vernesong/OpenClash/releases/download/${OPENCLASH_TAG}/luci-app-openclash_${OPENCLASH_VER}_all.ipk /tmp/openclash.ipk
+ADD https://github.com/SaltyMonkey/justclash/releases/download/${JUSTCLASH_TAG}/justclash-${JUSTCLASH_VER}.apk /tmp/justclash.apk
+ADD https://github.com/SaltyMonkey/justclash/releases/download/${JUSTCLASH_TAG}/luci-app-justclash-${JUSTCLASH_VER}.apk /tmp/luci-justclash.apk
+ADD https://github.com/SaltyMonkey/justclash/releases/download/${JUSTCLASH_TAG}/justclash-${JUSTCLASH_VER}-all.ipk /tmp/justclash.ipk
+ADD https://github.com/SaltyMonkey/justclash/releases/download/${JUSTCLASH_TAG}/luci-app-justclash-${JUSTCLASH_VER}-all.ipk /tmp/luci-justclash.ipk
 RUN set -eu; \
 	mkdir -p /tmp/nikki && tar -xzf /tmp/nikki.tar.gz -C /tmp/nikki; \
 	if command -v apk >/dev/null; then \
 		apk add --allow-untrusted /tmp/nikki/nikki-*.apk /tmp/nikki/luci-app-nikki-*.apk \
 			/tmp/nikki/mihomo-meta-*.apk || echo "skip: nikki"; \
 		apk add --allow-untrusted /tmp/openclash.apk || echo "skip: openclash"; \
+		apk add --allow-untrusted /tmp/justclash.apk || echo "skip: justclash core"; \
+		apk add --allow-untrusted /tmp/luci-justclash.apk || echo "skip: luci-app-justclash"; \
 	else \
 		opkg install /tmp/nikki/nikki_*.ipk /tmp/nikki/luci-app-nikki_*.ipk \
 			/tmp/nikki/mihomo-meta_*.ipk || echo "skip: nikki"; \
 		opkg install /tmp/openclash.ipk || echo "skip: openclash"; \
+		opkg install /tmp/justclash.ipk || echo "skip: justclash core"; \
+		opkg install /tmp/luci-justclash.ipk || echo "skip: luci-app-justclash"; \
 	fi; \
-	rm -rf /tmp/nikki* /tmp/openclash.*
+	rm -rf /tmp/nikki* /tmp/openclash.* /tmp/justclash.* /tmp/luci-justclash.*
 
 # LuCI refuses nothing on an empty root password, but the tooling authenticates for real
 # (LUCI_PW, and ssh's own PasswordAuthentication), so there has to be one.

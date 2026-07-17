@@ -40,6 +40,19 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   rows there, none on the other, and which box won changed between runs. The script also gives the
   station a lease and a v4/v6 neighbour entry, because LuCI resolves the Host column through
   hosthints and "?" is precisely the short cell that hides a column crush.
+- **The dev routers now carry `luci-app-justclash`, the one fence adversary whose sheet a text
+  file cannot reason about.** openclash and nikki ship real `.css`; justclash ships none — it
+  builds every rule from its view JS at runtime, which is exactly the `textIsSheet()` shape
+  (`fs-sheets.js`) where a `<style>`'s `textContent` is not its sheet, and it is also the app the
+  `data-theme="dark"` publication (21 rules) and the `--*-color-*` export tier exist for. Pinned to
+  `v0.73.0` in the `Dockerfile` beside the other two, and installed as a dev fixture only — no
+  signature, nothing shipped. Its two halves install as **separate** commands on purpose: upstream
+  supports 25.12+ only and the core drags in nftables/tproxy/jq-full, while `luci-app-justclash`
+  depends on nothing but libc — so on 24.10 the core refuses and the LuCI pages this theme is here
+  to render survive it (verified: core installed on 2512, refused on 2410, pages render under
+  footstrap on both). Its tproxy core service is disabled in `99_footstrap-dev` alongside
+  firewall/mwan3/watchcat — it rewrites nftables and policy routing, and its kmod cannot load on
+  WSL's kernel anyway; the config and pages need no running core.
 
 ### Changed
 

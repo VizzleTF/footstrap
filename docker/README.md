@@ -44,12 +44,17 @@ widget surface.
 * **~25 `luci-app-*`** from OpenWrt's own feed (firewall, package-manager, statistics,
   banip, adblock, ddns, upnp, sqm, mwan3, nlbwmon, vnstat, samba4, wireguard, dashboard, …)
   — that is where Dashboard, Services, VPN and Statistics come from.
-* **openclash and nikki**, which are not in that feed and are fetched from their releases
-  (pinned in `compose.yml`). They are here because this theme's hardest problem is sharing
-  one document with apps like these — `tools/chrome-fence.mjs` reasons about openclash's
-  `*{padding:0!important}` from a text file; this puts the real sheet in the real document.
-  Note they are dev fixtures: nothing about them is signed or verified, unlike the release
-  trust chain in `install.sh`.
+* **openclash, nikki and justclash**, which are not in that feed and are fetched from their
+  releases (pinned in the `Dockerfile`'s ARGs). They are here because this theme's hardest
+  problem is sharing one document with apps like these — `tools/chrome-fence.mjs` reasons
+  about openclash's `*{padding:0!important}` from a text file; this puts the real sheet in
+  the real document. justclash goes further: it ships **no `.css` at all**, building every
+  rule from its view JS, which is the one shape a text file cannot reason about
+  (`textIsSheet()` in `fs-sheets.js`) — and it is also what the `data-theme="dark"`
+  publication and the `--*-color-*` export tier exist for. Its **core service is disabled**
+  (`99_footstrap-dev`, a tproxy orchestrator); the LuCI pages need no running core. Note
+  they are dev fixtures: nothing about them is signed or verified, unlike the release trust
+  chain in `install.sh`.
 * **Invented networks** (`files/etc/uci-defaults/98_footstrap-dev-fixtures`): a WAN, guest
   and IoT and mgmt on VLANs, a WireGuard tunnel with two peers, five firewall zones, port
   forwards, static leases, mounts, cron jobs — plus a disabled interface, because LuCI

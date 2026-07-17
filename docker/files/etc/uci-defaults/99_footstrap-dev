@@ -46,7 +46,12 @@ EOF
 #   watchcat — it ships a ping_reboot mode and runs it: a service whose failure action is
 #     `reboot` has no business on a box whose "hardware" is a container that would come
 #     back with a fresh filesystem.
-for s in firewall mwan3 watchcat; do
+#   justclash — a tproxy orchestrator: it writes its own nft table and policy routing to
+#     steer every connection into mihomo. Its kmod-nft-tproxy is built for OpenWrt's kernel
+#     and cannot load on WSL's anyway, so the service would only half-apply a ruleset over
+#     the one path in. Its config and its LuCI pages — the reason it is installed — need no
+#     running core.
+for s in firewall mwan3 watchcat justclash; do
 	[ -x "/etc/init.d/$s" ] || continue
 	"/etc/init.d/$s" stop 2>/dev/null || true
 	"/etc/init.d/$s" disable 2>/dev/null || true
