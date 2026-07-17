@@ -167,9 +167,22 @@
 	 *
 	 * Hence ANY [data-tab-title], not just .cbi-section ones (DNS renders each tab as a bare <div>).
 	 * Tab-menu <li>s carry data-tab but never data-tab-title, so the bar is untouched; the :not() also
-	 * covers first render, where LuCI has set active="true" on the shown tab only. */
+	 * covers first render, where LuCI has set active="true" on the shown tab only.
+	 *
+	 * `position: relative` is what makes the overflow above actually hold, and it is not cosmetic:
+	 * an ABSOLUTELY positioned descendant is clipped by an overflow ancestor only if that ancestor
+	 * is in its containing-block chain, and a collapsed pane full of ordinary markup contains no
+	 * positioned ancestor at all — so those escape to the initial containing block, keep the static
+	 * position they were laid out at deep inside the hidden pane, and grow the DOCUMENT scroll box
+	 * that .fs-main's own scroller cannot even reach. The theme supplies them itself: the toggle
+	 * switch parks the real checkbox at `position: absolute` (theme/60-inputs.css), so every hidden
+	 * pane holding a flag leaked one. Measured on the router: DHCP and DNS scrolled 1841px against
+	 * 1110px of content on 24.10 and 1925 vs 1439 on 25.12 — ~500-700px of empty page under the
+	 * footer (issue #10); with this, the document is exactly the viewport and .fs-main's scroll is
+	 * untouched. Nothing paints differently — the pane is `visibility: hidden`. */
 	[data-tab-title]:not([data-tab-active="true"]) {
 		visibility: hidden;
+		position: relative;
 		height: 0;
 		overflow: hidden;
 		padding: 0;
@@ -184,7 +197,14 @@
 
 	/* denser data tables (dhcp static leases, section-tables) */
 	.cbi-section-table .th, .cbi-section-table .td,
-	.table.cbi-section-table .th, .table.cbi-section-table .td { padding: 8px 12px 8px 0; }
+	/* The `::before` is the GridSection name CELL on 24.10, where form.js renders none and base
+	 * generates the column from `data-title` (styles/base/95-luci.css). It is not a `.th`/`.td`, so
+	 * every cell rule below has to name it too, or the column it draws lines up with nothing. Listing
+	 * `.tr::before` unqualified is safe and deliberate: base names exactly the rows that get one, and
+	 * a pseudo-element whose content is `none` generates NO BOX — so on 25.12, which renders a real
+	 * cell instead, these declarations have nothing to apply to. */
+	.table.cbi-section-table .th, .table.cbi-section-table .td,
+	.table.cbi-section-table .tr::before { padding: 8px 12px 8px 0; }
 	/* The zero padding-LEFT above is right only INSIDE a card: the .cbi-section supplies that gutter
 	 * itself, so the first column lines up with the card's own 16px. Outside one it is wrong —
 	 * Status → Firewall renders `.table.cbi-section-table` in a bare <div>, so the table draws its
@@ -217,17 +237,32 @@
 	 * `:not(:last-child)` lives IN the body-row selector: a trailing bottom border draws a straight
 	 * line the full width and pokes past the frame's rounded bottom corners (overflow: visible). */
 	.table .tr.table-titles > .th,
-	.table .tr.cbi-section-table-titles > .th { border-bottom: 1px solid var(--fs-border); }
-	.table .tr:not(.table-titles):not(.cbi-section-table-titles):not(:last-child) > .td { border-bottom: 1px solid var(--fs-border); }
+	.table .tr.cbi-section-table-titles > .th,
+	.table .tr.cbi-section-table-titles::before { border-bottom: 1px solid var(--fs-border); }
+	.table .tr:not(.table-titles):not(.cbi-section-table-titles):not(:last-child) > .td,
+	.table .tr.cbi-section-table-row:not(:last-child)::before { border-bottom: 1px solid var(--fs-border); }
 	/* descendant combinator (not >) so a real <table>'s browser-inserted <tbody> is covered
 	 * too — one rule themes every data table, div- or table-based. */
 	.table .tr.table-titles, .table .tr.cbi-section-table-titles {
 		background: transparent;	/* drop the base panel2 header bar — match the dashboard's faint-label + underline look */
 	}
-	.table .tr.table-titles .th, .table .tr.cbi-section-table-titles .th {
+	.table .tr.table-titles .th, .table .tr.cbi-section-table-titles .th,
+	.table .tr.cbi-section-table-titles::before {
 		color: var(--fs-faint); font-size: 10px; font-weight: 700;
 		letter-spacing: .06em; text-transform: uppercase;
 		background: transparent;
+	}
+	/* The row's NAME, and it must read the same on both releases: 25.12 renders a real
+	 * `.td.cbi-section-table-titles`, 24.10 base's `::before`. Both are a LABEL, not a value, so both
+	 * take the UI face — the surrounding value cells are mono, and `.cbi-value-field`
+	 * (theme/60-inputs.css) hands the 25.12 cell that mono while base's
+	 * `.cbi-section-table-titles { font-weight: bold }` makes it bold: no 700 mono face ships, so
+	 * every port-forward and NAT rule name was drawn in SYNTHETIC bold mono, smearing the grid on the
+	 * one string in the row that is a name. Specificity (0,3,0), not source order, is what beats the
+	 * (0,1,0) mono rule. */
+	.table.cbi-section-table .td.cbi-section-table-titles,
+	.table.cbi-section-table .tr.cbi-section-table-row::before {
+		font-family: var(--fs-font-sans); font-weight: 700; color: var(--fs-text);
 	}
 	.table .tr:not(.table-titles):not(.cbi-section-table-titles) {
 		transition: background var(--fs-dur);

@@ -28,15 +28,36 @@
 		font-weight: bold;
 	}
 
-	.cbi-section-table-descr.named::before,
-	.cbi-section-table-row[data-title]::before {
-		content: none;
-	}
-
-	.cbi-section-table-titles.named::before,
-	.cbi-section-table-descr.named::before,
-	.cbi-section-table-row[data-title]::before {
-		border-top: 1px solid var(--fs-border);
+	/* The GridSection name column, and on 24.10 the THEME draws the whole of it — this is the one
+	 * place the two releases' markup genuinely differs, and one stylesheet serves both.
+	 * 25.12's form.js renders the name as a real `th` + `td.cbi-section-table-titles` and keeps
+	 * `data-title` on the row only for the touch-sort drag handle; 24.10 renders no cell at all and
+	 * expects `::before` to generate the column from `data-title`. Upstream ships a different
+	 * cascade.css per branch (25.12's says `content: none`, 24.10's `content: attr(data-title) " "`),
+	 * so taking 25.12's copy verbatim deleted the Name column on every 24.10 router — the header and
+	 * every rule's name, on Firewall -> Port forwards / NAT rules (issue #9, reproduced on the 24.10
+	 * container, unchanged on 25.12).
+	 *
+	 * Each row type therefore asks the MARKUP, never the release:
+	 *   header — carries `data-title` on 24.10 only; 25.12 appends a real `th` instead.
+	 *   row    — BOTH set `data-title`, so the discriminator is the name cell 25.12 adds.
+	 *   descr  — has neither, so it follows the header that already proved the branch. It needs the
+	 *            empty spacer (`data-title` is absent, so the content is just " ") or its column
+	 *            labels sit one cell left of the values they describe. A descr row with no header
+	 *            row above it (every column carrying a description but no title) therefore keeps no
+	 *            spacer — no shipped page renders that, so it is untested rather than handled.
+	 * Never key on the VALUE: the header's data-title is _('Name'), i.e. translated.
+	 *
+	 * This rule states only that the column EXISTS — its padding, type and separator are the cell
+	 * rules' job in theme/30-tables.css, next to the real cells it has to line up with. (Upstream
+	 * declares the border-top here; ours would draw the stray line above the header that issue #7
+	 * removed from every other cell.) */
+	.cbi-section-table-titles.named[data-title]::before,
+	.cbi-section-table-titles.named[data-title] ~ .cbi-section-table-descr.named::before,
+	.cbi-section-table-row[data-title]:not(:has(> .cbi-section-table-titles))::before {
+		content: attr(data-title) " ";
+		display: table-cell;
+		vertical-align: middle;
 	}
 
 	.left { text-align: left !important; }

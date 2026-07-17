@@ -127,6 +127,34 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **On OpenWrt 24.10 the Name column of every rule table was missing — Firewall → Port forwards and
+  NAT rules showed no rule names at all (issue #9).** The two supported releases render that column
+  differently and the theme ships one stylesheet for both: 25.12's `form.js` builds the name as a
+  real cell, while 24.10 builds none and expects the theme to generate the whole column from the
+  row's `data-title` with `::before` — upstream ships a different `cascade.css` per branch, and this
+  theme had absorbed 25.12's copy, whose rule is `content: none`. Each row type now asks the markup
+  rather than the release (the header carries `data-title` on 24.10 only; a row carries it on both,
+  so its discriminator is the real cell 25.12 adds), never the *value* of `data-title` — the
+  header's is translated. Reproduced on the 24.10 container and verified unchanged on 25.12.
+
+- **The name of a port-forward or NAT rule was drawn in synthetic bold monospace on 25.12,
+  smearing the grid.** The cell carries `.cbi-value-field`, which puts it on the mono face, and
+  base makes it bold — but no 700 mono face ships, so the browser synthesised one for the single
+  string in the row that is a name rather than a value. A name is a label, so it takes the UI face
+  on both releases, which also makes 24.10's generated column and 25.12's real cell read alike.
+
+- **Pages with tabs scrolled hundreds of pixels past the footer into empty space — Network →
+  Interfaces and DHCP and DNS were the reported ones (issue #10).** Measured on the router: the
+  document scrolled 1841px against 1110px of content on 24.10 and 1925 vs 1439 on 25.12. A hidden
+  tab pane is collapsed with `height: 0; overflow: hidden`, but an absolutely positioned descendant
+  is only clipped by an ancestor that is in its containing-block chain — and a pane of ordinary
+  markup contains no positioned ancestor, so those escaped to the document, kept the position they
+  were laid out at deep inside the hidden pane, and inflated a scroll box the theme's own scroller
+  cannot even reach. The theme supplied them itself: the toggle switch parks the real checkbox at
+  `position: absolute`, so every hidden pane holding a flag leaked one. The collapsed pane is now a
+  containing block, so its `overflow` clips what it lays out; nothing paints differently, since the
+  pane is `visibility: hidden`.
+
 - **Clicking a second menu item while a page was still loading could leave the previous page's
   content under the new page's URL, permanently.** Measured on the router: leave the package manager
   for System after 150 ms and the paints into `#view` land System at 16010 ms, package-manager at
