@@ -29,9 +29,10 @@ const PKG = join(ROOT, 'luci-theme-footstrap');
 /* Names that look like fs-* classes to a regex but are not. Without this the reverse check
  * drowns in custom properties and localStorage keys. */
 const IGNORE_EXACT = new Set([
-	/* localStorage keys */
+	/* localStorage keys (fs-update-check lives in the optional luci-app-footstrap-updater package,
+	 * not scanned here) */
 	'fs-darkmode', 'fs-palette', 'fs-wallpaper', 'fs-radius', 'fs-tint', 'fs-accent',
-	'fs-rail', 'fs-layout', 'fs-menu-open', 'fs-menu-autocollapse', 'fs-update-check',
+	'fs-rail', 'fs-layout', 'fs-menu-open', 'fs-menu-autocollapse',
 	/* custom events / id prefixes */
 	'fs-autocollapse', 'fs-sub-', 'fs-topsub-',
 	/* a console log PREFIX (`console.error('fs-fit: a fitter threw')`), not markup. This is the one

@@ -32,15 +32,16 @@ scp -q  "$D"/htdocs/luci-static/resources/*.js "$R":/www/luci-static/resources/
 scp -q  "$D"/htdocs/luci-static/resources/view/status/include/*.js \
 	"$R":/www/luci-static/resources/view/status/include/
 
-# stamp the git-derived version into the deployed fs-update.js (the package does the same in
-# Build/Prepare) so the popover shows a real version and the update check works here. The FILE NAME
-# is part of the contract: FS_VERSION lives in fs-update.js and moving it means changing both seds.
+# stamp the git-derived version into the deployed fs-version.js (the package does the same in
+# Build/Prepare) so the popover shows a real version and the updater's check compares against it. The
+# FILE NAME is part of the contract: FS_VERSION lives in fs-version.js and moving it means changing
+# both seds.
 FS_V="$(git -C "$D" describe --tags --always 2>/dev/null | sed 's/^v//')"
 # if-form, not `[ -n ] && ssh`: under set -e a failed &&-list aborts the whole sync when git
 # describe yields nothing (a copied tree without .git). expr refuses a tag with
 # sed/shell-special characters rather than interpolating it.
 if [ -n "$FS_V" ] && expr "$FS_V" : '[0-9A-Za-z._-]*$' >/dev/null; then
-	ssh "$R" "sed -i \"s#const FS_VERSION = '[^']*'#const FS_VERSION = '$FS_V'#\" /www/luci-static/resources/fs-update.js"
+	ssh "$R" "sed -i \"s#const FS_VERSION = '[^']*'#const FS_VERSION = '$FS_V'#\" /www/luci-static/resources/fs-version.js"
 fi
 
 # The catalogue, which the PACKAGE compiles in Build/Prepare. po2lmo is a luci-base host tool,
@@ -86,7 +87,11 @@ for _f in "$D"/root/etc/config/*; do
 	scp -q "$_f" "$R":"/tmp/.fs-conf-$_b"
 	ssh "$R" "[ -f /etc/config/$_b ] || { mv /tmp/.fs-conf-$_b /etc/config/$_b; echo '  installed /etc/config/$_b (was absent)'; }; rm -f /tmp/.fs-conf-$_b"
 done
-ssh "$R" "chmod +x /usr/libexec/footstrap-selfupdate.sh; /etc/init.d/rpcd reload 2>/dev/null; rm -f /tmp/luci-indexcache*"
+# The self-update backend, its ACL and the release key now ship in the SEPARATE
+# luci-app-footstrap-updater package — deploy them with that package's own dev-sync.sh. This theme
+# sync intentionally leaves the router in the "updater not installed" state (version shows, no update
+# controls), which is exactly the state to test here.
+ssh "$R" "/etc/init.d/rpcd reload 2>/dev/null; rm -f /tmp/luci-indexcache*"
 
 ssh "$R" "
 # Sweep every pre-consolidation name, INCLUDING $N-top: the top bar is not a theme any more,

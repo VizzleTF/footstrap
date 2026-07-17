@@ -32,16 +32,19 @@ dest() {
 
 # Discover by GLOB/directory, NEVER by a hand-written list of names — root/ was missing
 # here: dest() always knew how to map root/* to /*, but nothing ever handed it one (both
-# branches searched htdocs/ and ucode/template only). Editing footstrap-selfupdate.sh or
-# its rpcd ACL and deploying therefore did NOTHING, silently, and the router kept running
-# the old backend. The package ships root/ (luci.mk installs it to /), so this must too.
+# branches searched htdocs/ and ucode/template only). Editing a file under root/ (the rpcd
+# ACL, the uci-defaults registrar) and deploying therefore did NOTHING, silently. The package
+# ships root/ (luci.mk installs it to /), so this must too.
+#
+# NOTE: this skill deploys the THEME package only. The self-update backend, its file.exec ACL
+# and the release key live in the separate luci-app-footstrap-updater package — deploy that with
+# its own dev-sync.sh.
 collect() {
 	if [ "$1" = "--all" ]; then
 		# root/ is taken WHOLE — an extension allowlist is a hand-written list wearing a
-		# different hat, and it had already dropped a file: the release public key
-		# (root/usr/share/luci-theme-footstrap/release.pub) is neither .sh nor .json, so a
-		# theme deployed here would have verified updates against a key that never arrived.
-		# luci.mk copies root/ wholesale; so does this.
+		# different hat, and it would drop a file: root/etc/config/footstrap (the runtime-written
+		# Appearance defaults stub) is neither .sh nor .json, so a theme deployed by allowlist
+		# would silently never ship it. luci.mk copies root/ wholesale; so does this.
 		find htdocs/luci-static ucode/template -type f \
 			\( -name '*.css' -o -name '*.js' -o -name '*.ut' -o -name '*.woff2' \
 			   -o -name '*.svg' -o -name '*.png' \)

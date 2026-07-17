@@ -53,18 +53,29 @@ reached across — that is what keeps it acyclic.
 | `fs-select.js` | **two concerns, and the name only says one**: `<select>` → `ui.Dropdown` + typeahead, *and* the data tables' card stacking (`fitTables`). Loaded by `partials/footer.ut`, not required by any module |
 | `fs-sheets.js` | third-party CSS: keeping it out of the chrome, and off every later page |
 | `fs-router.js` | the SPA client router (docs/14) |
-| `fs-update.js` | **`FS_VERSION`**, the update check, the one-click self-update |
+| `fs-version.js` | **`FS_VERSION`** + the shipped version string/repo link the popover shows (no network) |
 | `fs-appearance.js` | the popover DOM |
 | `menu-footstrap-common.js` | the BOOTSTRAP: load the tree once, hand it out, wire the rest in order |
 | `menu-footstrap.js` | the ONE menu renderer; injects `renderMainMenu` into `common.init` |
 
-Dependencies: `prefs→fit`, `widgets→prefs`, `chrome→{fit,prefs,menutree}`, `appearance→{prefs,widgets,update}`,
-`update→prefs`, `select→fit`, `router→{menutree,chrome,sheets,update}`, `common→` all.
+Dependencies: `prefs→fit`, `widgets→prefs`, `chrome→{fit,prefs,menutree}`, `appearance→{prefs,widgets,version}`,
+`select→fit`, `router→{menutree,chrome,sheets}`, `common→` all.
 
-- **`FS_VERSION` lives in `fs-update.js`, and the FILE NAME is part of the contract**: the package
-  `Makefile` (`Build/Prepare`) and `dev-sync.sh` both stamp the git version by `sed`-ing that literal
-  **by path**. Moving the constant means changing both, and nothing else would notice — the popover
-  would just show "(dev)" and the update check would go quiet.
+- **The update CHECK and the one-click self-update are a SEPARATE, OPTIONAL package** —
+  `luci-app-footstrap-updater` (its own dir, own `Makefile`, own `dev-sync.sh`). It ships
+  `htdocs/.../fs-update.js` (the GitHub check + installer), the `footstrap-selfupdate.sh` backend, the
+  `file.exec` rpcd ACL, and `release.pub`. **No theme module statically requires `fs-update`** — a
+  missing updater would then be a `DependencyError` that takes out the whole chrome. `fs-appearance.js`
+  loads it at runtime (`L.require('fs-update')`, resolved to `null` on failure) and lights up the
+  Updates toggle + badge + Update button only when it resolves; the version line (from `fs-version.js`)
+  always shows. The router↔updater seam is INVERTED for the same reason: `fs-router.js` exports
+  `onNavigate(fn)` and `fs-update.js` registers its poll `cancel` there, so the router never names the
+  optional module. See the updater package's own notes.
+- **`FS_VERSION` lives in `fs-version.js` (the THEME), and the FILE NAME is part of the contract**: the
+  theme `Makefile` (`Build/Prepare`) and `dev-sync.sh` both stamp the git version by `sed`-ing that
+  literal **by path**. Moving the constant means changing both, and nothing else would notice — the
+  popover would just show "(dev)". The updater reads `ver.VERSION` back to compare against the latest
+  release, so the theme's installed version is what the check measures against.
 - **Splitting cost 2 500 B of minified JS** (46 621 → 49 121 B, +5.4%). Each module adds its pragmas
   and a `return baseclass.extend({…})`, and each call across a seam grows an alias prefix; uhttpd does
   not compress, so those are wire bytes. It buys no file over ~600 lines and gates that can no longer
@@ -254,7 +265,7 @@ Rules when editing CSS:
 
 ## Getting the package onto a router — the trust chain is the whole thing
 
-`install.sh` (piped from the internet into `sh` **as root**) and `root/usr/libexec/footstrap-selfupdate.sh` (the ACL-gated backend behind Appearance → Update) both hand a downloaded package to the package manager with `--allow-untrusted` — that flag means **apk/opkg holds no key of ours**, not that the bytes are unverified. Verifying them is these scripts' own job, and the chain is three things:
+`install.sh` (piped from the internet into `sh` **as root**, and it installs **both** packages — the theme and `luci-app-footstrap-updater`) and `luci-app-footstrap-updater/root/usr/libexec/footstrap-selfupdate.sh` (the ACL-gated backend behind Appearance → Update, which installs both the theme AND the updater so the updater never lags) both hand a downloaded package to the package manager with `--allow-untrusted` — that flag means **apk/opkg holds no key of ours**, not that the bytes are unverified. Verifying them is these scripts' own job, and the chain is three things:
 
 1. **A verified TLS channel.** Never `curl -k`, never `--no-check-certificate`, and never as a "retry" after the verified attempt fails — a failure *is* the MITM case, and `ca-bundle` is in OpenWrt's `DEFAULT_PACKAGES` so the insecure path buys nothing. Pin the redirect scheme where the backend can (`--proto-redir '=https'` on curl) and pin the host — the URL comes out of a JSON answer and ends up as an argument to root. **But be exact about the reach of both, because the release asset hops to `objects.githubusercontent.com` and `-L` must follow it:** the scheme pin exists only on the *curl* branch, while `uclient-fetch` — tried first, and the only downloader on a stock router — has no such flag and re-parses an absolute `Location:` from scratch; and the host pin covers the *initial request only*, since no backend pins a host across a redirect. On the path a stock router actually takes, **the signature is the only layer that survives a redirect**. That is by design, not a hole (it is what vouches for the package), but do not budget the other two as if they covered it.
 2. **An ed25519 signature over the package** (`usign`), and this is the link that actually holds. **The sha256 cannot stand alone, and the reason is exact: GitHub COMPUTES `@.assets[*].digest` from the bytes that were uploaded.** Anyone who can replace a release asset — a leaked write-scoped PAT, no CI run involved — gets the digest recomputed for them, and the checksum then verifies the *attacker's* package. The signing key is a GitHub Actions secret, is in no branch, and cannot be read back out, so the same swap fails the signature. Demonstrated end-to-end on the router with the real script: asset replaced + digest recomputed → sha256 passes, `ERR: BAD SIGNATURE`.
@@ -264,7 +275,7 @@ Everything fails **closed**. A missing digest, a missing `.sig` asset, no `usign
 
 **Why usign and not the package manager's own signature.** `apk verify` checks against `/etc/apk/keys`, so trusting footstrap's key there would make this theme a trust anchor for **everything the router installs** — far more authority than a theme has any business holding. opkg (24.10) cannot verify a standalone `.ipk` at all. `usign` is on **every** OpenWrt image (`base-files` depends on it — so this costs the theme no new runtime dep; see the `curl` lesson in the Makefile), it covers **both** formats with one mechanism, and the key it uses authorises nothing but this one package.
 
-**The key exists in two places and neither copy can go.** `root/usr/share/luci-theme-footstrap/release.pub` is shipped by the package and is what the self-updater reads; `install.sh` must **embed** a copy, because `curl | sh` runs before any package exists. A divergence cannot be caught by any test — the installer would just reject every release with `BAD SIGNATURE`, i.e. the failure looks exactly like the attack — so CI compares the two on every run. Rotating the key means changing both, and the release that ships the new `release.pub` is the one that starts trusting it.
+**The key exists in two places and neither copy can go.** `luci-app-footstrap-updater/root/usr/share/luci-app-footstrap-updater/release.pub` is shipped by the updater package and is what the self-updater reads; `install.sh` must **embed** a copy, because `curl | sh` runs before any package exists. One key signs both the theme and the updater assets. A divergence cannot be caught by any test — the installer would just reject every release with `BAD SIGNATURE`, i.e. the failure looks exactly like the attack — so CI compares the two on every run. Rotating the key means changing both, and the release that ships the new `release.pub` is the one that starts trusting it.
 
 `curl` is **not** in OpenWrt's default package set — the base image ships `uclient-fetch` — so the self-updater must fall back to it rather than take a runtime dependency. `jsonfilter`, `sha256sum` and `usign` *are* in the base image.
 
@@ -285,7 +296,7 @@ Everything fails **closed**. A missing digest, a missing `.sig` asset, no `usign
 - **A service that rewrites routing or netfilter has to be off** (config stays, so its pages still render): firewall, mwan3, watchcat. mwan3 is the instructive one — it decided the fake WAN on dummy0 was the uplink and installed `from all fwmark 0x100/0x3f00 unreachable`, killing DNS and the package manager while `ip route get 1.1.1.1` still answered correctly.
 - The physical router lives on as `ssh router` for when hardware is genuinely the question (a real radio, a real flash, a real reboot).
 
-Deploy everything: `luci-theme-footstrap/dev-sync.sh` (rebuilds `cascade.css` from `styles/`, copies the template + partials, fonts, **every** resource JS by glob, the overview-layout include, and the self-update backend + its ACL; sweeps the legacy variant dirs INCLUDING `footstrap-top`; registers the one theme idempotently; **does not** change the active theme).
+Deploy everything: `luci-theme-footstrap/dev-sync.sh` (rebuilds `cascade.css` from `styles/`, copies the template + partials, fonts, **every** resource JS by glob, the overview-layout include, and the theme's `uci footstrap` ACL; sweeps the legacy variant dirs INCLUDING `footstrap-top`; registers the one theme idempotently; **does not** change the active theme). It deliberately leaves the router in the **updater-not-installed** state (version shows, no update controls) — the self-update backend, its `file.exec` ACL and the release key are a separate package, deployed by **`luci-app-footstrap-updater/dev-sync.sh <router>`**. Run that too when you need the Update button on the dev router.
 
 **Deploy by GLOB or by directory, never by a hand-written list of names.** `dev-sync.sh` used to name its four resource JS files individually, so a fifth would have shipped in the package (`luci.mk` copies `htdocs/` wholesale) and silently never reached the dev router — first tested after a release. The same bug lived in `.claude/skills/footstrap-deploy/deploy.sh`, whose `dest()` knew how to map `root/*` but whose file discovery never handed it one: editing `footstrap-selfupdate.sh` or its ACL and deploying did **nothing**, quietly.
 
@@ -508,8 +519,16 @@ below are gates and not advice.
   GitHub API returns assets sorted **by name**, and `luci-i18n-…` sorts before `luci-theme-…`. So
   Update installed a 6 KB catalogue instead of the theme, said OK, and offered the same update
   forever. **A router's installed self-updater cannot be fixed remotely — the RELEASE has to stay
-  pickable by the script that is already there.** CI therefore fails unless `dist/` holds exactly
-  ONE package per format. Renaming `po/` is what stops luci.mk generating the language packages;
+  pickable by the script that is already there.** The release now carries **two** packages per format
+  (the theme + `luci-app-footstrap-updater`), and CI fails unless each resolves to exactly ONE asset
+  under its OWN **name-anchored** regex (`luci-theme-footstrap[-_]…` / `luci-app-footstrap-updater[-_]…`)
+  — which is why the updater is named `luci-app-…` and not `luci-theme-footstrap-updater` (the latter
+  would match the theme's own pick and re-open #6). The one thing this DID give up: the oldest,
+  pre-name-matching self-updaters (≤ v0.8.5, before signing) picked by a bare `\.EXT$ | head -1`,
+  which now resolves to two and would take the updater first — those routers migrate by re-running
+  `install.sh` once (it installs both by name). Every self-updater from the name-matching era onward is
+  safe. A per-language `luci-i18n-…` package would still break the invariant. Renaming `po/` is what
+  stops luci.mk generating the language packages;
   `Build/Compile` runs the same `po2lmo`. The basename is `footstrap-theme.<lang>.lmo`, **not**
   `footstrap.<lang>.lmo`: `lmo_load_catalog` globs `*.<lang>.lmo` so any basename loads, and a
   router that installed v0.8.4 still *owns* `footstrap.ru.lmo` through the old package — writing

@@ -14,20 +14,32 @@ import { utProcessor } from './tools/lib/ut-scripts.mjs';
  * the lint is worthless.
  */
 
-/* Every theme module, with the alias each one binds via a `'require <mod> as <alias>'` pragma.
- * `'require ui'` with no alias binds the bare name and is already a global below; only the
- * aliased form needs deriving. See the config entry at the bottom for why this is read from the
- * source rather than written out. */
-const RESOURCES = 'luci-theme-footstrap/htdocs/luci-static/resources';
+/* Every resource module, with the alias each one binds via a `'require <mod> as <alias>'` pragma.
+ * `'require ui'` with no alias binds the bare name and is already a global below; only the aliased
+ * form needs deriving. See the config entry at the bottom for why this is read from the source rather
+ * than written out.
+ *
+ * TWO packages ship browser JS into /www/luci-static/resources: the theme, and the optional updater
+ * (luci-app-footstrap-updater/htdocs/.../fs-update.js, which requires the theme's fs-version/fs-prefs/
+ * fs-router at runtime). Both land in the same directory on the router and both are minified by jsmin,
+ * so both must be linted — a package left out silently drops the wrap-regex/jsmin safety on it. */
+const HTDOCS_GLOBS = [
+	'luci-theme-footstrap/htdocs/**/*.js',
+	'luci-app-footstrap-updater/htdocs/**/*.js',
+];
+const RESOURCE_DIRS = [
+	'luci-theme-footstrap/htdocs/luci-static/resources',
+	'luci-app-footstrap-updater/htdocs/luci-static/resources',
+];
 function resourceFiles() {
-	return readdirSync(RESOURCES, { recursive: true })
+	return RESOURCE_DIRS.flatMap((dir) => readdirSync(dir, { recursive: true })
 		.filter((f) => f.endsWith('.js'))
 		.map((f) => {
-			const file = `${RESOURCES}/${f}`.replace(/\\/g, '/');
+			const file = `${dir}/${f}`.replace(/\\/g, '/');
 			const src = readFileSync(file, 'utf8');
 			const aliases = [...src.matchAll(/^'require\s+\S+\s+as\s+(\w+)'/gm)].map((m) => m[1]);
 			return { file, aliases };
-		})
+		}))
 		.filter((e) => e.aliases.length);
 }
 
@@ -38,9 +50,9 @@ export default [
 	 * bug that compiles, none a style opinion). Turning the set on found ZERO new violations
 	 * here: it costs nothing today and catches the next one for free. The rules below are the
 	 * ones recommended does NOT give you (no-var, eqeqeq, wrap-regex, …). */
-	{ files: ['luci-theme-footstrap/htdocs/**/*.js'], ...js.configs.recommended },
+	{ files: HTDOCS_GLOBS, ...js.configs.recommended },
 	{
-		files: ['luci-theme-footstrap/htdocs/**/*.js'],
+		files: HTDOCS_GLOBS,
 		plugins: { '@stylistic': stylistic },
 		languageOptions: {
 			ecmaVersion: 2023,

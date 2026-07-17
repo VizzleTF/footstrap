@@ -1,0 +1,58 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: htdocs/luci-static/resources/fs-update.js:122
+msgid "Cancel"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:117
+msgid "Close"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:120
+msgid ""
+"Download and install the latest Footstrap release from GitHub? The page "
+"reloads when done."
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:169
+msgid "Downloading and installing…"
+msgstr ""
+
+#: root/usr/share/rpcd/acl.d/luci-app-footstrap-updater.json:3
+msgid "Footstrap theme self-update (install the latest release)"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:140
+msgid "Log in again"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:123
+msgid "Update"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:110
+msgid "Update Footstrap"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:116
+msgid "Update failed"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:136
+msgid ""
+"Update installed. The router restarted its session service, so you have been "
+"logged out — sign in again to load the new theme."
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:153
+msgid "Updated. Reloading…"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:146
+msgid "timed out waiting for the installer"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:116
+msgid "unknown error"
+msgstr ""

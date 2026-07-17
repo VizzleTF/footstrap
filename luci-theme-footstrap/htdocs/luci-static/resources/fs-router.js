@@ -4,7 +4,6 @@
 'require fs-menutree as tree';
 'require fs-chrome as chrome';
 'require fs-sheets as sheets';
-'require fs-update as update';
 
 /* ---- SPA client router ----
  *
@@ -289,9 +288,12 @@ function navigate(pathname, push) {
 	/* kill the outgoing view's plain setInterval pollers too (podkop's log tailer) — a full load
 	 * would have. L.Poll's own tick survives. */
 	clearViewIntervals();
-	/* and kill any self-update poll chain: its setTimeout would otherwise keep firing fs.exec RPCs
-	 * and pop its modal over the page we are about to open (fs-update.js). */
-	update.cancel();
+	/* run every registered navigation callback — today just the optional updater's poll-chain cancel
+	 * (its setTimeout would otherwise keep firing fs.exec RPCs and pop its modal over the page we are
+	 * about to open). The router carries NO static dependency on that optional module — a missing
+	 * updater would be a DependencyError that takes out the whole chrome — so the edge is inverted:
+	 * fs-update.js (when the updater is installed) registers its cancel via onNavigate() below. */
+	for (const fn of _navCbs) { try { fn(); } catch (e) {} }
 	try { if (typeof ui.hideModal === 'function') ui.hideModal(); } catch (e) {}
 
 	/* point the runtime env at the new node so views, tabs and highlighting read the right
@@ -530,8 +532,15 @@ function wireVisibility() {
 	});
 }
 
+/* Callbacks to run on every SPA navigation. The only registrant today is the optional updater's poll
+ * cancel (see navigate()); the registry exists so router keeps no static dependency on that optional
+ * module. */
+const _navCbs = [];
+function onNavigate(fn) { if (typeof fn === 'function') _navCbs.push(fn); }
+
 return baseclass.extend({
 	seed,
 	wire: wireRouter,
-	wireVisibility
+	wireVisibility,
+	onNavigate
 });

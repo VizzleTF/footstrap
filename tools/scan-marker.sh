@@ -13,20 +13,20 @@
 # with an error that pointed at nothing. This is the gate that says so out loud.
 set -eu
 
-mk=luci-theme-footstrap/Makefile
-
-grep -aE 'call (Build/DefaultTargets|BuildPackage|KernelPackage)' "$mk" >/dev/null || {
-	cat >&2 <<EOF
+for mk in luci-theme-footstrap/Makefile luci-app-footstrap-updater/Makefile; do
+	grep -aE 'call (Build/DefaultTargets|BuildPackage|KernelPackage)' "$mk" >/dev/null || {
+		cat >&2 <<EOF
 $mk does not match include/scan.mk's package grep:
 
     grep -aHE 'call (Build/DefaultTargets|BuildPackage|KernelPackage)'
 
 so the OpenWrt SDK will not see this package at all — the build fails with
-"No rule to make target 'package/luci-theme-footstrap/compile'" and names nothing.
+"No rule to make target 'package/$(dirname "$mk")/compile'" and names nothing.
 Restore the trailing line:
 
     # call BuildPackage - OpenWrt buildroot signature
 EOF
-	exit 1
-}
-echo "ok: the SDK's package grep matches $mk"
+		exit 1
+	}
+	echo "ok: the SDK's package grep matches $mk"
+done

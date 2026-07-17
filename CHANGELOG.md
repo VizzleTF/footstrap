@@ -11,10 +11,22 @@ Style and format guide: [docs/21-changelog-stil-i-format.md](docs/21-changelog-s
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
-## [Unreleased]
+## [0.9.3] — 2026-07-17
 
 ### Added
 
+- **The update check and one-click self-update moved into a separate, optional package,
+  `luci-app-footstrap-updater`.** The theme no longer carries any update machinery: the updater
+  package ships the `fs-update.js` module (the GitHub check + installer), the `footstrap-selfupdate.sh`
+  backend, its `file.exec` rpcd ACL and the `release.pub` signing key. `install.sh` now installs both
+  packages, and the one-click Update installs both too, so the updater never lags the theme it drives.
+  A router without the updater is a fully working theme — the Appearance popover shows its version
+  (from the theme's own `fs-version.js`, no network) and simply omits the Updates toggle, the "new
+  version" badge and the Update button. The theme must NOT statically require the updater — a missing
+  optional module would be a `DependencyError` that takes out the whole chrome — so `fs-appearance.js`
+  loads it at runtime and lights the update controls up only when it resolves, and the router→updater
+  seam is inverted (`fs-router.js` exports `onNavigate()`; the updater registers its poll-cancel there)
+  so no theme module ever names the optional one.
 - **`npm run changelog` holds the changelog contract, which had already drifted into the release
   that was about to ship.** `[Unreleased]` had grown a duplicate `### Changed` across several
   commits — each innocent on its own — and `Fixed` had drifted above `Removed`. Nothing failed:
@@ -56,6 +68,15 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **A GitHub release now carries two packages per format instead of one, and the single-asset CI
+  invariant became a two-package, name-anchored one.** Each package (theme, updater) must resolve to
+  exactly one asset under its OWN name regex — which is why the updater is named `luci-app-…` and not
+  `luci-theme-footstrap-updater`, since the latter would match the theme's own name-anchored pick and
+  re-open issue #6. The one thing given up: self-updaters shipped before name-matching existed
+  (≤ v0.8.5, before signing) picked the asset by a bare `\.EXT$ | head -1`, which now resolves to two
+  and would take the updater first; such a router migrates by re-running `install.sh` once (it installs
+  both by name). Every self-updater from the name-matching era onward is safe. The lint, jsmin,
+  shell-syntax, ACL-JSON, i18n and mirror gates were all widened to cover the new package.
 - **The theme's JS and CSS now read as one style, and two formatting gates hold them there.** The
   sources were sound but idiomatically split, each drift invisible to every existing gate: arrow
   functions were 62 parenthesised vs 21 bare (mixed twice within twenty lines of one file), string
@@ -2586,6 +2607,7 @@ line, not one per tag. The individual patch releases are in the git history.
   nested `calc()`, which broke the layout outright. JS minification came back in 0.7.12,
   once jsmin was proven safe by a token-equivalence gate.
 
+[0.9.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.8.9...v0.9.0

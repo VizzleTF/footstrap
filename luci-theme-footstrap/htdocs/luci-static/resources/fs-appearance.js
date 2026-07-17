@@ -2,13 +2,26 @@
 'require baseclass';
 'require fs-prefs as prefs';
 'require fs-widgets as widgets';
-'require fs-update as update';
+'require fs-version as ver';
 
 /* The Appearance popover: the DOM that presents the axes. It owns no preference and no update
- * machinery — fs-prefs.js holds the axes, fs-update.js the version check and the installer; this
- * file is the dialog they are shown in. */
+ * machinery — fs-prefs.js holds the axes, fs-version.js the version string; this file is the dialog
+ * they are shown in.
+ *
+ * The update CHECK and the one-click self-update live in the OPTIONAL luci-app-footstrap-updater
+ * package (fs-update.js). This file does not statically require it — a missing updater would then be
+ * a DependencyError that takes out the whole chrome. Instead wire() loads it at runtime and hands it
+ * to wireAppearance() as `update` (null when the updater is not installed): with it, the popover
+ * grows the Updates toggle, the "new version" badge and the Update button; without it, the popover
+ * looks the same minus those three, and the version still shows. */
 
-function wireAppearance() {
+function wire() {
+	/* fs-update ships in the optional updater package; resolve it to null when absent so the popover
+	 * degrades to version-only instead of failing to build. */
+	return window.L.require('fs-update').then((m) => m, () => null).then(wireAppearance);
+}
+
+function wireAppearance(update) {
 	const btn = document.getElementById('fs-appearance');
 	if (!btn) return;
 
@@ -107,22 +120,27 @@ function wireAppearance() {
 		], bump(prefs.applyAutoCollapse), label),
 		{ cls: 'fs-ap-submenus' }));
 
-	/* version line + "new version" badge + one-click Update button (the last two
-	 * are revealed by the update check below when a newer release exists). */
-	const badge = E('a', {
+	/* version line + "new version" badge + one-click Update button. The badge and button exist only
+	 * when the updater is installed (`update` non-null); they are revealed by the update check below
+	 * when a newer release exists. */
+	const badge = update ? E('a', {
 		'class': 'fs-ap-badge', 'hidden': '',
 		'href': update.LATEST_URL,
 		'target': '_blank', 'rel': 'noopener'
-	}, [ _('New version available') ]);
-	const updateBtn = E('button', { 'class': 'fs-ap-update', 'type': 'button', 'hidden': '' }, [ _('Update now') ]);
+	}, [ _('New version available') ]) : null;
+	const updateBtn = update
+		? E('button', { 'class': 'fs-ap-update', 'type': 'button', 'hidden': '' }, [ _('Update now') ])
+		: null;
 
-	/* opt-out toggle for the update check. NOT bump()-ed: it is not one of the saved axes, so it
-	 * cannot move this browser toward or away from the router default. */
-	groups.push(group(_('Updates', 'footstrap'), (label) =>
-		widgets.segControl(update.currentUpdateCheck() ? 'on' : 'off', [
-			{ val: 'on',  label: _('Check', 'footstrap') },
-			{ val: 'off', label: _('Off', 'footstrap') }
-		], update.applyUpdateCheck, label)));
+	/* opt-out toggle for the update check — ONLY when the updater is installed. NOT bump()-ed: it is
+	 * not one of the saved axes, so it cannot move this browser toward or away from the router default.
+	 * Without the updater there is nothing to check, so the row is omitted entirely. */
+	if (update)
+		groups.push(group(_('Updates', 'footstrap'), (label) =>
+			widgets.segControl(update.currentUpdateCheck() ? 'on' : 'off', [
+				{ val: 'on',  label: _('Check', 'footstrap') },
+				{ val: 'off', label: _('Off', 'footstrap') }
+			], update.applyUpdateCheck, label)));
 
 	/* Save the current look as the ROUTER-WIDE default (fs-prefs writes it to /etc/config/footstrap
 	 * via the scoped uci ACL). It does NOT change this browser — localStorage keeps overriding, so
@@ -149,18 +167,17 @@ function wireAppearance() {
 		() => E('div', { 'class': 'fs-ap-actrow' }, [ saveBtn, resetBtn ]),
 		{ extra: saveErr }));
 
+	/* the version row is always present (it reads fs-version.js, the theme's own); the badge sits
+	 * beside it and the Update button below it only when the updater is installed. */
+	const versionLink = E('a', {
+		'class': 'fs-ap-version',
+		'href': ver.REPO_URL,
+		'target': '_blank',
+		'rel': 'noopener noreferrer'
+	}, [ ver.label() ]);
 	groups.push(E('div', { 'class': 'fs-ap-footer' }, [
-		E('div', { 'class': 'fs-ap-verrow' }, [
-			E('a', {
-				'class': 'fs-ap-version',
-				'href': update.REPO_URL,
-				'target': '_blank',
-				'rel': 'noopener noreferrer'
-			}, [ update.versionLabel() ]),
-			badge
-		]),
-		updateBtn
-	]));
+		E('div', { 'class': 'fs-ap-verrow' }, [ versionLink ].concat(badge ? [ badge ] : [])),
+	].concat(updateBtn ? [ updateBtn ] : [])));
 
 	/* aria-modal matches what the popover already DOES: keydown() traps Tab inside it and Escape
 	 * closes it, so without the attribute it announced as a non-modal dialog while behaving as a
@@ -174,29 +191,32 @@ function wireAppearance() {
 	const pop = E('div', { 'class': 'fs-appearance-pop', 'data-fs-chrome': '', 'role': 'dialog', 'aria-modal': 'true', 'aria-label': _('Appearance'), 'hidden': '' }, groups);
 	document.body.appendChild(pop);
 
-	/* reveal the badge + Update button and mark the trigger (green dot) when a newer release
-	 * exists. Runs once per page load, and again when the Updates toggle flips — fs-update.js
-	 * calls back into this through onUI(). */
-	function applyUpdateUI() {
-		if (!update.currentUpdateCheck()) {
-			btn.classList.remove('fs-has-update');
-			badge.hidden = true; updateBtn.hidden = true;
-			return;
-		}
-		update.check().then((u) => {
-			btn.classList.toggle('fs-has-update', !!u.hasUpdate);
-			badge.hidden = !u.hasUpdate; updateBtn.hidden = !u.hasUpdate;
-			if (u.hasUpdate)
-				badge.textContent = _('New version available') + (u.latest ? ' (' + u.latest + ')' : '');
+	/* reveal the badge + Update button and mark the trigger (green dot) when a newer release exists.
+	 * Runs once per page load, and again when the Updates toggle flips — fs-update.js calls back into
+	 * this through onUI(). All of it is skipped when the updater is not installed (no badge, no button,
+	 * no check). */
+	if (update) {
+		const applyUpdateUI = () => {
+			if (!update.currentUpdateCheck()) {
+				btn.classList.remove('fs-has-update');
+				badge.hidden = true; updateBtn.hidden = true;
+				return;
+			}
+			update.check().then((u) => {
+				btn.classList.toggle('fs-has-update', !!u.hasUpdate);
+				badge.hidden = !u.hasUpdate; updateBtn.hidden = !u.hasUpdate;
+				if (u.hasUpdate)
+					badge.textContent = _('New version available') + (u.latest ? ' (' + u.latest + ')' : '');
+			});
+		};
+		update.onUI(applyUpdateUI);
+		applyUpdateUI();
+
+		updateBtn.addEventListener('click', () => {
+			close(false);	/* the modal takes focus from here */
+			update.run();
 		});
 	}
-	update.onUI(applyUpdateUI);
-	applyUpdateUI();
-
-	updateBtn.addEventListener('click', () => {
-		close(false);	/* the modal takes focus from here */
-		update.run();
-	});
 
 	/* the Save button IS the status: match -> disabled "Saved as default", diverged -> enabled
 	 * "Save as default". Called after every axis change (via bump) and on open. */
@@ -303,5 +323,5 @@ function wireAppearance() {
 }
 
 return baseclass.extend({
-	wire: wireAppearance
+	wire
 });

@@ -34,12 +34,17 @@ i18n/                             каталог перевода (НЕ po/ — 
 ucode/template/themes/footstrap/  header.ut, footer.ut, sysauth.ut, partials/
 htdocs/luci-static/footstrap/     cascade.css (генерируется), fonts/, cats.svg
 htdocs/luci-static/resources/     menu-footstrap.js (рендерер), menu-footstrap-common.js (bootstrap),
-                                  fs-{menutree,prefs,widgets,chrome,router,sheets,update,appearance}.js,
+                                  fs-{menutree,prefs,widgets,chrome,router,sheets,version,appearance}.js,
                                   fs-fit.js, fs-select.js
   …/view/status/include/          05_footstrap_overview_layout.js
 root/etc/uci-defaults/            регистрация темы и миграция легаси-имён
-root/usr/libexec/                 footstrap-selfupdate.sh (+ ACL в root/usr/share/rpcd/acl.d/)
+root/usr/share/rpcd/acl.d/        luci-theme-footstrap.json (ACL: uci footstrap — Save-as-default)
 ```
+
+Проверка обновлений и самообновление — в ОТДЕЛЬНОМ необязательном пакете
+`luci-app-footstrap-updater` (свой `fs-update.js`, backend `footstrap-selfupdate.sh`,
+ACL `file.exec` и ключ `release.pub`). Без него тема полностью работает — поповер
+показывает версию (из `fs-version.js`) без контролов обновления.
 
 **`cascade.css` не редактируется** — он генерируется `build-css.sh` из `styles/`
 и лежит в `.gitignore`. Цвета правятся в `styles/03-palettes.css`, шкалы и

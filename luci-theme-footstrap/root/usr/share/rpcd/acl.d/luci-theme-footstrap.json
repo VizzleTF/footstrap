@@ -1,10 +1,7 @@
 {
 	"luci-theme-footstrap": {
-		"description": "Footstrap theme self-update (install the latest release) and Appearance router-wide defaults",
+		"description": "Footstrap Appearance router-wide defaults (Save as default)",
 		"write": {
-			"file": {
-				"/usr/libexec/footstrap-selfupdate.sh": [ "exec" ]
-			},
 			"uci": [ "footstrap" ]
 		}
 	}

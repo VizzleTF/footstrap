@@ -7,13 +7,12 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: htdocs/luci-static/resources/fs-appearance.js:78
-#: htdocs/luci-static/resources/fs-appearance.js:81
+#: htdocs/luci-static/resources/fs-appearance.js:98
 msgctxt "footstrap"
 msgid "Accent"
 msgstr "Акцент"
 
-#: htdocs/luci-static/resources/fs-appearance.js:162
+#: htdocs/luci-static/resources/fs-appearance.js:191
 #: ucode/template/themes/footstrap/partials/appearance.ut:16
 #: ucode/template/themes/footstrap/partials/appearance.ut:18
 msgid "Appearance"
@@ -23,77 +22,54 @@ msgstr "Оформление"
 msgid "Authorization Required"
 msgstr "Требуется авторизация"
 
-#: htdocs/luci-static/resources/fs-appearance.js:46
+#: htdocs/luci-static/resources/fs-appearance.js:70
 msgctxt "footstrap"
 msgid "Auto"
 msgstr "Авто"
 
-#: htdocs/luci-static/resources/fs-appearance.js:103
+#: htdocs/luci-static/resources/fs-appearance.js:119
 msgctxt "footstrap"
 msgid "Auto-collapse"
 msgstr "Сворачивать"
 
-#: htdocs/luci-static/resources/fs-update.js:118
-msgid "Cancel"
-msgstr "Отмена"
-
-#: htdocs/luci-static/resources/fs-appearance.js:62
+#: htdocs/luci-static/resources/fs-appearance.js:82
 msgctxt "footstrap"
 msgid "Cats"
 msgstr "Коты"
 
-#: htdocs/luci-static/resources/fs-appearance.js:120
+#: htdocs/luci-static/resources/fs-appearance.js:141
 msgctxt "footstrap"
 msgid "Check"
 msgstr "Проверить"
 
-#: htdocs/luci-static/resources/fs-update.js:113
-msgid "Close"
-msgstr "Закрыть"
-
-#: htdocs/luci-static/resources/fs-chrome.js:262
-#: ucode/template/themes/footstrap/header.ut:64
+#: htdocs/luci-static/resources/fs-chrome.js:255
+#: ucode/template/themes/footstrap/header.ut:84
 msgid "Collapse menu"
 msgstr "Свернуть меню"
 
-#: htdocs/luci-static/resources/fs-appearance.js:217
+#: htdocs/luci-static/resources/fs-appearance.js:249
 msgctxt "footstrap"
 msgid "Confirm reset"
 msgstr "Подтвердить сброс"
 
-#: htdocs/luci-static/resources/fs-appearance.js:205
+#: htdocs/luci-static/resources/fs-appearance.js:237
 msgctxt "footstrap"
 msgid "Could not save the default. Reload the page and try again."
 msgstr "Не удалось сохранить умолчание. Обновите страницу и повторите."
 
-#: htdocs/luci-static/resources/fs-appearance.js:48
+#: htdocs/luci-static/resources/fs-appearance.js:72
 msgctxt "footstrap"
 msgid "Dark"
 msgstr "Тёмная"
 
-#: htdocs/luci-static/resources/fs-update.js:116
-msgid ""
-"Download and install the latest Footstrap release from GitHub? The page "
-"reloads when done."
-msgstr ""
-"Скачать и установить последний выпуск Footstrap с GitHub? По завершении "
-"страница перезагрузится."
-
-#: htdocs/luci-static/resources/fs-update.js:165
-msgid "Downloading and installing…"
-msgstr "Загрузка и установка…"
-
-#: htdocs/luci-static/resources/fs-chrome.js:262
+#: htdocs/luci-static/resources/fs-chrome.js:255
 msgid "Expand menu"
 msgstr "Развернуть меню"
 
 #: root/usr/share/rpcd/acl.d/luci-theme-footstrap.json:3
-msgid ""
-"Footstrap theme self-update (install the latest release) and Appearance "
-"router-wide defaults"
+msgid "Footstrap Appearance router-wide defaults (Save as default)"
 msgstr ""
-"Самообновление темы Footstrap (установка последнего выпуска) и настройки "
-"внешнего вида по умолчанию для роутера"
+"Общие настройки внешнего вида Footstrap для роутера (Сохранить как умолчание)"
 
 #: ucode/template/themes/footstrap/partials/notices.ut:24
 msgid "Go to firmware upgrade..."
@@ -111,18 +87,17 @@ msgstr "Неверное имя пользователя и/или пароль!
 msgid "JavaScript required!"
 msgstr "Требуется JavaScript!"
 
-#: htdocs/luci-static/resources/fs-appearance.js:102
+#: htdocs/luci-static/resources/fs-appearance.js:118
 msgctxt "footstrap"
 msgid "Keep open"
 msgstr "Не сворачивать"
 
-#: htdocs/luci-static/resources/fs-appearance.js:37
-#: htdocs/luci-static/resources/fs-appearance.js:41
+#: htdocs/luci-static/resources/fs-appearance.js:64
 msgctxt "footstrap"
 msgid "Layout"
 msgstr "Раскладка"
 
-#: htdocs/luci-static/resources/fs-appearance.js:47
+#: htdocs/luci-static/resources/fs-appearance.js:71
 msgctxt "footstrap"
 msgid "Light"
 msgstr "Светлая"
@@ -130,10 +105,6 @@ msgstr "Светлая"
 #: ucode/template/themes/footstrap/sysauth.ut:58
 msgid "Log in"
 msgstr "Войти"
-
-#: htdocs/luci-static/resources/fs-update.js:136
-msgid "Log in again"
-msgstr "Войти снова"
 
 #: ucode/template/themes/footstrap/partials/logout.ut:10
 #: ucode/template/themes/footstrap/partials/logout.ut:12
@@ -148,13 +119,13 @@ msgstr "Включён режим совместимости с Lua"
 msgid "Memory"
 msgstr "Память"
 
-#: ucode/template/themes/footstrap/header.ut:61
-#: ucode/template/themes/footstrap/header.ut:72
+#: ucode/template/themes/footstrap/header.ut:81
+#: ucode/template/themes/footstrap/header.ut:92
 msgid "Menu"
 msgstr "Меню"
 
-#: htdocs/luci-static/resources/fs-appearance.js:113
-#: htdocs/luci-static/resources/fs-appearance.js:178
+#: htdocs/luci-static/resources/fs-appearance.js:130
+#: htdocs/luci-static/resources/fs-appearance.js:209
 msgid "New version available"
 msgstr "Доступна новая версия"
 
@@ -170,16 +141,15 @@ msgstr ""
 msgid "No password set!"
 msgstr "Пароль не установлен!"
 
-#: htdocs/luci-static/resources/fs-appearance.js:61
-#: htdocs/luci-static/resources/fs-appearance.js:74
-#: htdocs/luci-static/resources/fs-appearance.js:84
-#: htdocs/luci-static/resources/fs-appearance.js:121
+#: htdocs/luci-static/resources/fs-appearance.js:81
+#: htdocs/luci-static/resources/fs-appearance.js:93
+#: htdocs/luci-static/resources/fs-appearance.js:102
+#: htdocs/luci-static/resources/fs-appearance.js:142
 msgctxt "footstrap"
 msgid "Off"
 msgstr "Выкл."
 
-#: htdocs/luci-static/resources/fs-appearance.js:52
-#: htdocs/luci-static/resources/fs-appearance.js:56
+#: htdocs/luci-static/resources/fs-appearance.js:75
 msgctxt "footstrap"
 msgid "Palette"
 msgstr "Палитра"
@@ -192,40 +162,39 @@ msgstr "Пароль"
 msgid "Please enter your username and password."
 msgstr "Введите имя пользователя и пароль."
 
-#: htdocs/luci-static/resources/fs-appearance.js:135
-#: htdocs/luci-static/resources/fs-appearance.js:263
+#: htdocs/luci-static/resources/fs-appearance.js:155
+#: htdocs/luci-static/resources/fs-appearance.js:304
 msgctxt "footstrap"
 msgid "Reset to default"
 msgstr "Сбросить к умолчанию"
 
-#: htdocs/luci-static/resources/fs-appearance.js:88
-#: htdocs/luci-static/resources/fs-appearance.js:89
+#: htdocs/luci-static/resources/fs-appearance.js:105
 msgctxt "footstrap"
 msgid "Rounding"
 msgstr "Скругление"
 
-#: htdocs/luci-static/resources/fs-appearance.js:144
+#: htdocs/luci-static/resources/fs-appearance.js:166
 msgctxt "footstrap"
 msgid "Router default"
 msgstr "По умолчанию для роутера"
 
-#: htdocs/luci-static/resources/fs-appearance.js:134
-#: htdocs/luci-static/resources/fs-appearance.js:194
+#: htdocs/luci-static/resources/fs-appearance.js:154
+#: htdocs/luci-static/resources/fs-appearance.js:226
 msgctxt "footstrap"
 msgid "Save as default"
 msgstr "Сохранить по умолчанию"
 
-#: htdocs/luci-static/resources/fs-appearance.js:194
+#: htdocs/luci-static/resources/fs-appearance.js:226
 msgctxt "footstrap"
 msgid "Saved as default"
 msgstr "Сохранено по умолчанию"
 
-#: htdocs/luci-static/resources/fs-appearance.js:39
+#: htdocs/luci-static/resources/fs-appearance.js:65
 msgctxt "footstrap"
 msgid "Sidebar"
 msgstr "Сбоку"
 
-#: ucode/template/themes/footstrap/header.ut:54
+#: ucode/template/themes/footstrap/header.ut:60
 msgid "Skip to content"
 msgstr "Перейти к содержимому"
 
@@ -233,8 +202,7 @@ msgstr "Перейти к содержимому"
 msgid "Storage"
 msgstr "Накопитель"
 
-#: htdocs/luci-static/resources/fs-appearance.js:100
-#: htdocs/luci-static/resources/fs-appearance.js:104
+#: htdocs/luci-static/resources/fs-appearance.js:116
 msgctxt "footstrap"
 msgid "Submenus"
 msgstr "Подменю"
@@ -247,8 +215,7 @@ msgstr "Система"
 msgid "System running in recovery (initramfs) mode."
 msgstr "Система работает в режиме восстановления (initramfs)."
 
-#: htdocs/luci-static/resources/fs-appearance.js:44
-#: htdocs/luci-static/resources/fs-appearance.js:49
+#: htdocs/luci-static/resources/fs-appearance.js:69
 msgctxt "footstrap"
 msgid "Theme"
 msgstr "Тема"
@@ -261,47 +228,21 @@ msgstr ""
 "На этом роутере не задан пароль. Установите пароль root, чтобы защитить веб-"
 "интерфейс."
 
-#: htdocs/luci-static/resources/fs-appearance.js:68
-#: htdocs/luci-static/resources/fs-appearance.js:71
+#: htdocs/luci-static/resources/fs-appearance.js:89
 msgctxt "footstrap"
 msgid "Tint (router identification)"
 msgstr "Оттенок (опознание роутера)"
 
-#: htdocs/luci-static/resources/fs-appearance.js:40
+#: htdocs/luci-static/resources/fs-appearance.js:66
 msgctxt "footstrap"
 msgid "Top"
 msgstr "Сверху"
 
-#: htdocs/luci-static/resources/fs-update.js:119
-msgid "Update"
-msgstr "Обновить"
-
-#: htdocs/luci-static/resources/fs-update.js:105
-msgid "Update Footstrap"
-msgstr "Обновление Footstrap"
-
-#: htdocs/luci-static/resources/fs-update.js:112
-msgid "Update failed"
-msgstr "Не удалось обновить"
-
-#: htdocs/luci-static/resources/fs-update.js:132
-msgid ""
-"Update installed. The router restarted its session service, so you have been "
-"logged out — sign in again to load the new theme."
-msgstr ""
-"Обновление установлено. Роутер перезапустил службу сессий, поэтому сеанс "
-"завершён — войдите снова, чтобы загрузить новую тему."
-
-#: htdocs/luci-static/resources/fs-appearance.js:114
+#: htdocs/luci-static/resources/fs-appearance.js:132
 msgid "Update now"
 msgstr "Обновить сейчас"
 
-#: htdocs/luci-static/resources/fs-update.js:149
-msgid "Updated. Reloading…"
-msgstr "Обновлено. Перезагрузка…"
-
-#: htdocs/luci-static/resources/fs-appearance.js:118
-#: htdocs/luci-static/resources/fs-appearance.js:122
+#: htdocs/luci-static/resources/fs-appearance.js:139
 msgctxt "footstrap"
 msgid "Updates"
 msgstr "Обновления"
@@ -310,8 +251,7 @@ msgstr "Обновления"
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: htdocs/luci-static/resources/fs-appearance.js:59
-#: htdocs/luci-static/resources/fs-appearance.js:63
+#: htdocs/luci-static/resources/fs-appearance.js:80
 msgctxt "footstrap"
 msgid "Wallpaper"
 msgstr "Обои"
@@ -321,30 +261,3 @@ msgid ""
 "You must enable JavaScript in your browser or LuCI will not work properly."
 msgstr ""
 "Включите JavaScript в браузере, иначе LuCI не будет работать корректно."
-
-#: htdocs/luci-static/resources/fs-update.js:142
-msgid "timed out waiting for the installer"
-msgstr "истекло время ожидания установщика"
-
-#: htdocs/luci-static/resources/fs-update.js:112
-msgid "unknown error"
-msgstr "неизвестная ошибка"
-
-#~ msgctxt "footstrap"
-#~ msgid ""
-#~ "Could not save. The router config may be missing or damaged — reinstall "
-#~ "the theme."
-#~ msgstr ""
-#~ "Не удалось сохранить. Конфиг роутера отсутствует или повреждён — "
-#~ "переустановите тему."
-
-#~ msgctxt "footstrap"
-#~ msgid "Reset"
-#~ msgstr "Сбросить"
-
-#~ msgctxt "footstrap"
-#~ msgid "Saved as the router-wide default."
-#~ msgstr "Сохранено как значение по умолчанию для роутера."
-
-#~ msgid "Tint"
-#~ msgstr "Оттенок"

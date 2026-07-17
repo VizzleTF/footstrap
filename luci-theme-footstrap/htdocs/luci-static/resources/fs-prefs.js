@@ -3,11 +3,13 @@
 'require rpc';
 'require fs-fit as fit';
 
-/* The nine Appearance axes (the popover that presents them is fs-appearance.js; the ninth, the
- * update check, lives with the updater it switches off — fs-update.js). All client-side, instant,
- * persisted in localStorage — no server, no reload — and head.ut's inline script re-applies them
- * before paint, so a reload never flashes the wrong one; tools/axes.mjs holds those two copies to
- * one contract, and it derives that contract from THIS file.
+/* The eight Appearance axes THIS file owns (the popover that presents them is fs-appearance.js). A
+ * ninth control, the update check, is not here and not always present: it lives in the OPTIONAL
+ * luci-app-footstrap-updater package (fs-update.js) with the updater it switches off, and the popover
+ * shows it only when that package is installed. All client-side, instant, persisted in localStorage —
+ * no server, no reload — and head.ut's inline script re-applies them before paint, so a reload never
+ * flashes the wrong one; tools/axes.mjs holds those two copies to one contract, and it derives that
+ * contract from THIS file.
  *
  * ---- three layers, and the browser always wins ----
  * The effective value of every axis is  localStorage ?? router-default ?? built-in.  The router

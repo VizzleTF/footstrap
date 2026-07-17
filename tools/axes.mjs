@@ -5,8 +5,9 @@
  *   1. `partials/head.ut` — inline <script>s that read localStorage and stamp :root BEFORE THE
  *      FIRST PAINT, or the page flashes the wrong theme on every reload. They cannot `require` a
  *      LuCI module: the module loader does not exist yet.
- *   2. `fs-prefs.js` (+ `fs-update.js` for the update-check axis) — the live appliers behind the
- *      Appearance popover.
+ *   2. `fs-prefs.js` — the live appliers behind the Appearance popover. (The update-check control is
+ *      NOT one of these: it is not pre-painted, and it lives in the optional updater package, not the
+ *      theme tree this gate scans.)
  *
  * Forced duplication, like the @mirror cases — but these two can never be byte-identical (inline
  * script vs module), so mirror.mjs cannot hold them. What CAN be held is the CONTRACT: key names,
@@ -39,7 +40,7 @@ const readJs = (p) => readdirSync(join(ROOT, p), { recursive: true })
 	.map((f) => read(join(p, f)))
 	.join('\n');
 
-/* every module the theme ships — the axes live across fs-prefs.js, fs-update.js and menu-footstrap.js */
+/* every module the theme ships — the axes live across fs-prefs.js and menu-footstrap.js */
 const JS = readJs('luci-theme-footstrap/htdocs/luci-static/resources');
 const HEAD = read('luci-theme-footstrap/ucode/template/themes/footstrap/partials/head.ut');
 const TOKENS = read('luci-theme-footstrap/styles/02-tokens.css');
@@ -212,8 +213,8 @@ console.log(`  ok   ${jsKeys.size} localStorage keys, all known to css-orphans`)
 if (errors.length) {
 	console.error('\nFAIL: the Appearance axes have drifted between their two implementations.');
 	for (const e of errors) console.error('  - ' + e);
-	console.error('\nhead.ut pre-paints every axis before the first frame and fs-prefs.js/fs-update.js');
-	console.error('apply it live; the two cannot share code (the template runs before the module');
+	console.error('\nhead.ut pre-paints every axis before the first frame and fs-prefs.js');
+	console.error('applies it live; the two cannot share code (the template runs before the module');
 	console.error('loader exists), so this is what keeps them saying the same thing.');
 	process.exit(1);
 }

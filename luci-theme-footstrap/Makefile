@@ -134,8 +134,8 @@ endef
 # 1. cascade.css is generated, not committed — and styles/ is not in luci.mk's copy list, so
 #    build-css.sh reads it from $(CURDIR) and writes into the build tree. cat/awk only, no host
 #    toolchain: that is why it runs on an OpenWrt buildbot.
-# 2. Stamp the git-derived version into the theme JS (popover + update check). Skipped when
-#    PKG_VERSION is empty, leaving the '0.0.0-dev' literal.
+# 2. Stamp the git-derived version into the theme JS (fs-version.js — the string the popover shows and
+#    the optional updater compares against). Skipped when PKG_VERSION is empty, leaving '0.0.0-dev'.
 # 3. Compile the translation catalogue INTO this package.
 #
 # THE CATALOGUE SHIPS INSIDE THIS PACKAGE — not how a luci-app does it. Undoing that re-opens
@@ -169,7 +169,7 @@ define Build/Prepare/luci-theme-footstrap
 	$(CP) $(CURDIR)/LICENSE $(PKG_BUILD_DIR)/
 	$(SHELL) $(CURDIR)/build-css.sh $(PKG_BUILD_DIR)/htdocs/luci-static/footstrap/cascade.css
 	$(if $(PKG_VERSION),$(SED) "s#const FS_VERSION = '[^']*'#const FS_VERSION = '$(PKG_VERSION)'#" \
-		$(PKG_BUILD_DIR)/htdocs/luci-static/resources/fs-update.js)
+		$(PKG_BUILD_DIR)/htdocs/luci-static/resources/fs-version.js)
 	$(INSTALL_DIR) $(PKG_BUILD_DIR)/root/usr/lib/lua/luci/i18n
 	$(foreach po,$(wildcard $(CURDIR)/i18n/*/*.po), \
 		po2lmo $(po) \

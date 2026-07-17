@@ -8,9 +8,11 @@
 #
 # Optional: pin a release tag ->  ... | sh -s v0.3.1
 #
-# Detects the OpenWrt release and its package manager, then installs the matching asset
-# from the latest (or given) GitHub release: .apk on 25.12+, .ipk on 24.10. ONE package —
-# the theme carries its own .lmo catalogue. Licensed Apache-2.0.
+# Detects the OpenWrt release and its package manager, then installs the matching assets
+# from the latest (or given) GitHub release: .apk on 25.12+, .ipk on 24.10. TWO packages —
+# the theme (luci-theme-footstrap, carries its own .lmo catalogue) and the optional updater
+# (luci-app-footstrap-updater, the self-update backend + the Appearance Update button).
+# Licensed Apache-2.0.
 
 set -e
 
@@ -164,10 +166,11 @@ verify_sig() {		# <file> <sigfile> <pubkey-file> -> 0 iff the signature is ours 
 }
 # @endmirror
 
-# THE ONLY COPY of the release public key outside the package, and it has to exist: this script is
-# fetched with `curl | sh` and runs BEFORE the package that ships the key. The package's copy is
-# root/usr/share/luci-theme-footstrap/release.pub, the self-updater reads THAT one, and CI fails
-# the build if the two ever say different things.
+# THE ONLY COPY of the release public key outside the packages, and it has to exist: this script is
+# fetched with `curl | sh` and runs BEFORE any package is installed. The package copy is
+# luci-app-footstrap-updater/root/usr/share/luci-app-footstrap-updater/release.pub — the self-updater
+# reads THAT one — and CI fails the build if the two ever say different things. One key signs both the
+# theme and the updater assets.
 #
 # A public key is public — pinning it here is the point, not a leak. It is what makes a tampered
 # release asset unusable even though the API answer that names the asset comes from the same host
@@ -210,6 +213,13 @@ if [ -z "$THEME_URL" ]; then
 	err "Check releases: https://github.com/$REPO/releases"
 	exit 1
 fi
+
+# The updater is a SEPARATE package (the self-update backend + the Appearance Update button). It is
+# optional: a release older than the theme/updater split has no updater asset, and the theme alone is
+# a complete install, so a missing updater asset is a warning, not a failure. Named separately, never
+# by a bare `\.$EXT$` glob — a self-updater in the field picks the theme by name, so the second asset
+# must not be pickable as if it were the theme (issue #6).
+UPDATER_URL=$(asset_urls "$JSON" luci-app-footstrap-updater | head -n1)
 
 # --- download, verify, install --------------------------------------------
 # TWO checks, answering DIFFERENT attackers, and both fail CLOSED.
@@ -316,6 +326,13 @@ install_asset() {
 
 install_asset "$THEME_URL"
 
+if [ -n "$UPDATER_URL" ]; then
+	install_asset "$UPDATER_URL"
+else
+	warn "This release publishes no luci-app-footstrap-updater asset — installing the theme only."
+	warn "The Appearance popover will show the version but no update controls."
+fi
+
 # BOTH caches, as postinst/postrm/uci-defaults do: dropping only the index cache left a stale
 # /tmp/luci-modulecache, which bites exactly here — a package that replaces the theme's JS.
 rm -f /tmp/luci-indexcache* 2>/dev/null || true
@@ -330,7 +347,7 @@ if [ -x /etc/init.d/rpcd ]; then
 fi
 
 printf '\n'
-ok "luci-theme-footstrap installed (translations included)."
+ok "luci-theme-footstrap installed (translations included)${UPDATER_URL:+ + luci-app-footstrap-updater}."
 info "Select \"Footstrap\" in System -> System -> Language and Style -> \"Design\"."
 info "Layout (sidebar / top bar), dark mode, palette, tint and accent all live in"
 info "the \"Appearance\" popover in the menu — they are per-browser, not per-router."

@@ -19,7 +19,12 @@
  *   fs-router      the SPA client router (docs/14)
  *   fs-sheets      the guard against a view's injected CSS repainting every later page
  *   fs-appearance  the popover
- *   fs-update      the version check and the one-click self-update
+ *   fs-version     the shipped version string (shown in the popover, no network)
+ *
+ * The version CHECK and the one-click self-update (fs-update.js) ship in the OPTIONAL
+ * luci-app-footstrap-updater package, not here. No theme module statically requires it — that would
+ * make a missing updater a DependencyError that takes out this whole bootstrap. fs-appearance.js
+ * loads it at runtime and lights up the Appearance popover's update rows only when it resolves.
  *
  * They compose by CALLING each other, never by inheriting: LuCI instantiates every required module
  * into a singleton, so `base.extend` across modules throws and a module cannot subclass another
