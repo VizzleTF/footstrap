@@ -9,7 +9,7 @@
 # F5 reloads. Does NOT change the active theme or re-register themes.
 set -e
 
-R="${FOOTSTRAP_SSH:-router}"
+R="${FOOTSTRAP_SSH:-router2512}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)/luci-theme-footstrap"
 cd "$ROOT"
 
@@ -82,5 +82,12 @@ done
 [ "$backend" = 1 ] && ssh "$R" '/etc/init.d/rpcd reload' && echo "rpcd reloaded (ACL/backend changed)"
 # BOTH caches, as postinst does — a stale module cache after replacing theme JS is the case
 # that bites. touch bumps pkgs_update_time, i.e. the ?v= cache-bust, so a plain F5 reloads.
-ssh "$R" 'touch /lib/apk/db/installed; rm -f /tmp/luci-indexcache*; rm -rf /tmp/luci-modulecache'
+#
+# WHICH file carries that timestamp depends on the release, and this is the same fallback
+# luci-base's own pkgs_update_time makes: apk on 25.12+, opkg on 24.10. Hardcoding the apk
+# path meant every deploy to the 24.10 dev box left the ?v= token untouched — the file
+# arrived and the browser kept serving the old one out of cache, which looks exactly like a
+# CSS change that did nothing.
+ssh "$R" 'for db in /lib/apk/db/installed /usr/lib/opkg/status; do [ -f "$db" ] && touch "$db"; done
+rm -f /tmp/luci-indexcache*; rm -rf /tmp/luci-modulecache'
 echo "deployed $n file(s) to $R; cache bumped (F5 reloads). Active theme unchanged."

@@ -4,7 +4,7 @@
 # настройка в поповере Appearance, а не запись темы. Регистрирует, НЕ активирует.
 set -e
 
-R="${1:-router}"
+R="${1:-router2512}"
 N=footstrap
 D="$(cd "$(dirname "$0")" && pwd)"
 
@@ -101,7 +101,7 @@ cd /www/luci-static
 rm -rf $N/$N $N-top $N-dark $N-light $N-top-dark $N-top-light
 cd /usr/share/ucode/luci/template/themes
 rm -rf $N/$N $N-top $N-dark $N-light $N-top-dark $N-top-light
-touch /lib/apk/db/installed
+for db in /lib/apk/db/installed /usr/lib/opkg/status; do [ -f \"\$db\" ] && touch \"\$db\"; done
 rm -f /tmp/luci-indexcache*"
 
 # Register by running the package's own uci-defaults script — the single source of truth

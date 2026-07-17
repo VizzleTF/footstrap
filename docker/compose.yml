@@ -1,0 +1,116 @@
+# Two dev routers, one per supported release — `docker compose up -d --build` from this dir.
+#
+# The theme supports OpenWrt 24.10 AND 25.12+, and the differences that bite are runtime
+# ones a single box cannot show: apk vs opkg, `/lib/apk/db/installed` vs
+# `/usr/lib/opkg/status` as the cache-bust stamp, and the two branches' LuCI. Both are up
+# at once so a change can be checked against both before it ships.
+#
+# Each container is reachable TWO ways, and both are needed:
+#
+#   * A fixed address on their own bridge (172.31.0.2 / .3), for the tooling. deploy.sh,
+#     preview.py and cssdiff.py all derive the HTTP base from `ssh -G <host>` — literally
+#     `http://<hostname>` — so the box has to answer on port 22 AND port 80 at the SAME
+#     address. A published-port mapping (localhost:2222 -> 22) cannot express that; a
+#     routable container IP can. Those tools run inside WSL, where the bridge is routable.
+#     Set up `~/.ssh/config` from `docker/ssh_config.example`.
+#
+#   * A published port on WSL's localhost, for a browser on the WINDOWS side. WSL2's
+#     default NAT does not route the docker bridge to Windows — 172.31.0.2 is unreachable
+#     from a Windows browser — but Windows forwards localhost to WSL, so a published port
+#     is what makes http://localhost:8025 work over there. This is the only reason the
+#     ports: blocks exist; nothing in the tooling uses them.
+name: footstrap-dev
+
+x-router: &router
+  build:
+    context: .
+    dockerfile: Dockerfile
+  # procd is PID 1: it mounts the /tmp tmpfs, runs sysctl, and hands netifd the interface.
+  # That needs more than the default capability set, and a dev box on a private bridge is
+  # not the place to spend an afternoon whittling it down.
+  privileged: true
+  restart: unless-stopped
+  stop_grace_period: 5s
+  init: false
+  environment:
+    # The resolver the container ACTUALLY uses — the entrypoint writes it into
+    # /etc/resolv.conf and into netifd's `option dns`.
+    #
+    # It has to be named here because docker's own DNS does not survive in here and cannot
+    # be asked what it forwards to. On a user-defined network docker always writes
+    # `nameserver 127.0.0.11` into resolv.conf — its embedded resolver — and that resolver
+    # works by NAT rules docker installs in the container's netns, which OpenWrt's boot
+    # flushes. Measured: a plain busybox container on this same bridge resolves fine while
+    # these two get "connection timed out; no servers could be reached". So a compose
+    # `dns:` key would change nothing observable: it only tells the embedded resolver where
+    # to forward, and the embedded resolver is the part that is dead. The cost of going
+    # around it is that container-NAME resolution is gone; nothing here uses it — the
+    # addresses are pinned below.
+    #
+    # Not cosmetic, either: with a dead resolver dropbear blocks on the reverse lookup of
+    # each client address, and every ssh the tooling makes times out during banner
+    # exchange — which reads exactly like a broken container.
+    FOOTSTRAP_DEV_DNS: ${FOOTSTRAP_DEV_DNS:-1.1.1.1 8.8.8.8}
+  volumes:
+    # Key auth, so the deploy/preview tooling never sits at a password prompt. Mounted
+    # rather than baked in: a public key is the user's, not the image's, and an image that
+    # carries one cannot be rebuilt on another machine without editing it. Override the
+    # path with FOOTSTRAP_DEV_PUBKEY in docker/.env. Password auth (root/1234) still works
+    # — LUCI_PW needs a password anyway.
+    #
+    # NOT mounted straight onto /etc/dropbear/authorized_keys: a bind mount keeps the host
+    # file's ownership (uid 1000), and dropbear refuses a key file it does not see as
+    # root's — silently, as "Permission denied (publickey)". The entrypoint installs it.
+    - ${FOOTSTRAP_DEV_PUBKEY:-${HOME}/.ssh/id_rsa.pub}:/etc/footstrap-dev/authorized_keys.host:ro
+
+services:
+  # The primary dev router. `router` in ~/.ssh/config points here, so every tool's default
+  # (--ssh-host router) lands on the release most users are on.
+  owrt2512:
+    <<: *router
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        OPENWRT_TAG: x86-64-25.12.4
+        # Picks the nikki release tarball built for this branch. It is a second statement
+        # of the same fact as OPENWRT_TAG above, and it has to be: the rootfs image tags by
+        # target (x86-64-25.12.4), nikki tags by branch (25.12), and no shell runs between
+        # the two.
+        OPENWRT_BRANCH: "25.12"
+    container_name: footstrap-2512
+    hostname: OpenWrt-25-12
+    # For the Windows-side browser: http://localhost:8025 — the port carries the release.
+    ports:
+      - "8025:80"
+      - "2225:22"
+    networks:
+      footstrap:
+        ipv4_address: 172.31.0.2
+
+  owrt2410:
+    <<: *router
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        OPENWRT_TAG: x86-64-24.10.7
+        OPENWRT_BRANCH: "24.10"
+    container_name: footstrap-2410
+    hostname: OpenWrt-24-10
+    # For the Windows-side browser: http://localhost:8024
+    ports:
+      - "8024:80"
+      - "2224:22"
+    networks:
+      footstrap:
+        ipv4_address: 172.31.0.3
+
+networks:
+  footstrap:
+    name: footstrap-dev
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
+          gateway: 172.31.0.1

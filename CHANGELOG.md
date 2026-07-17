@@ -13,6 +13,30 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [Unreleased]
 
+### Added
+
+- **Both supported releases now run as dev routers in docker (`docker/compose.yml`), replacing the
+  single physical box.** The theme targets 24.10 and 25.12+, and the differences that bite are
+  runtime ones one router cannot show: apk vs opkg, and `/lib/apk/db/installed` vs
+  `/usr/lib/opkg/status` as the cache-bust stamp LuCI's `pkgs_update_time` reads. Each container
+  boots the release's own rootfs tarball — real procd, netifd, ubus, rpcd, uhttpd — so what is
+  tested is the userland the package ships against. They carry no volumes: a rebuild is a factory
+  reset, which is the point, since it exercises the install path on both package managers instead of
+  drifting on a box that has been hand-patched for months. `curl` is deliberately absent from them,
+  as on a stock router, so the self-updater's `uclient-fetch` fallback cannot quietly stop being
+  tested.
+
+- **The dev routers are furnished like a real one — ~25 apps, invented networks, fake clients and
+  working wifi — instead of showing three menus and an empty page.** LuCI renders nothing from the
+  theme's side: the sections, tabs, tables and badges this theme exists to style only appear when
+  there is config behind them, so a bare `luci` leaves about four fifths of the widget surface
+  invisible on the box where it is supposed to be checked. The containers now carry OpenWrt's own
+  apps plus **openclash and nikki** — the packages `tools/chrome-fence.mjs` only reasons about from
+  a text file are now real sheets in the real document — VLANs, a WireGuard tunnel, five firewall
+  zones, port forwards, and fake DHCP leases so the data tables have rows to card. Wifi is real
+  (`docker/hwsim-up.sh`): two virtual radios per box, hostapd, scans, Channel Analysis; 2.4 GHz
+  only, because cfg80211 in the WSL kernel never loads regulatory.db and refuses to beacon on 5 GHz.
+
 ### Changed
 
 - **Help text no longer strands a single word on its own last line.** LuCI writes its guidance as
@@ -38,6 +62,12 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   covered a view's first visit, and after warm-up every navigation is a revisit. Verified by walking
   all 51 clickable menu nodes in both layouts against a real full load of the same URL (46 SPA-OK, 0
   mismatches, 4 intended fallbacks), with the heap flat at 35.1 MB across 20 consecutive races.
+
+- **A deploy to a 24.10 router left the CSS cache-bust token untouched, so the browser kept serving
+  the old stylesheet.** `dev-sync.sh` and the deploy skill both touched apk's
+  `/lib/apk/db/installed` and nothing else; on opkg that file does not exist, `?v=` never moved, and
+  the change looked like a CSS edit that did nothing. Both now touch whichever database the release
+  has — the same fallback `luci-base`'s own `pkgs_update_time` makes.
 
 - **The label column and its gap follow the writing direction instead of being pinned to the
   left.** LuCI ships four RTL languages (ar/fa/he/ur), so `.cbi-value-title`'s alignment towards its

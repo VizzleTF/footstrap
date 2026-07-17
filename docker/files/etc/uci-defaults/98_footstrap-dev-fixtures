@@ -1,0 +1,315 @@
+#!/bin/sh
+# Invent a router that looks LIVED-IN: extra networks, VLANs, a WAN, a WireGuard tunnel,
+# zones, port forwards, static leases, mounts, cron jobs.
+#
+# Why a dev box needs this at all: LuCI renders almost nothing from the theme's side — the
+# sections, tabs, tables, badges and forms this theme exists to style only appear when there
+# is CONFIG behind them. A container with one interface and no clients shows about a fifth
+# of the widget surface, so a whole class of styling bugs simply cannot be seen here. The
+# shapes below are chosen for what they make LuCI RENDER (a zone badge, a bridge with
+# ports, a table with rows, a disabled section, a section with a validation-worthy field),
+# not because a router would be configured this way.
+#
+# Runtime state that is not config — fake DHCP leases, fake ARP neighbours — cannot live
+# here: it belongs to /tmp, which procd mounts after this runs. See /etc/rc.local.
+#
+# THE ONE RULE: nothing here may touch `lan`, and no address here may be reachable. `lan`
+# is eth0 with docker's own address (entrypoint.sh) and it is the only way in — there is no
+# console to recover from. Every network below sits on a dummy device or a VLAN that
+# carries no traffic, and the WAN default route is metric 100 so the real one keeps winning.
+
+# --- devices and networks ---------------------------------------------------------------
+# dummy0/dummy1 are created by entrypoint.sh before procd starts: netifd does not know how
+# to make a dummy device, it only configures one that exists.
+uci -q batch <<'EOF'
+set network.wan=interface
+set network.wan.device='dummy0'
+set network.wan.proto='static'
+set network.wan.ipaddr='203.0.113.42'
+set network.wan.netmask='255.255.255.0'
+set network.wan.gateway='203.0.113.1'
+set network.wan.dns='9.9.9.9 149.112.112.112'
+set network.wan.peerdns='0'
+# metric 100: this default route must LOSE to lan's. dummy0 discards everything, so a wan
+# route that won would black-hole DNS and the package manager on the dev box itself.
+set network.wan.metric='100'
+
+# NO ip6gw, and the metric trick that saves the IPv4 side cannot save this one. The bridge
+# is IPv4-only, so an ip6gw here would install the ONLY IPv6 default route — pointed at a
+# dummy, which discards in silence. Measured: `apk add` then hung in poll() for minutes,
+# because downloads.openwrt.org has an AAAA, happy-eyeballs tried it first, and the packets
+# went nowhere instead of failing fast. Without a v6 default, connect() gets an instant
+# "network unreachable" and falls back to IPv4 — which is what the box did before this
+# fixture existed. The address alone is enough to render the interface with IPv6 on it.
+set network.wan6=interface
+set network.wan6.device='dummy0'
+set network.wan6.proto='static'
+set network.wan6.ip6addr='2001:db8:1:1::42/64'
+set network.wan6.ip6prefix='2001:db8:1:2::/64'
+
+set network.br_guest=device
+set network.br_guest.name='br-guest'
+set network.br_guest.type='bridge'
+set network.br_guest.ports='dummy1'
+
+set network.guest=interface
+set network.guest.device='br-guest'
+set network.guest.proto='static'
+set network.guest.ipaddr='192.168.3.1'
+set network.guest.netmask='255.255.255.0'
+
+set network.vlan_iot=device
+set network.vlan_iot.name='eth0.20'
+set network.vlan_iot.type='8021q'
+set network.vlan_iot.ifname='eth0'
+set network.vlan_iot.vid='20'
+
+set network.iot=interface
+set network.iot.device='eth0.20'
+set network.iot.proto='static'
+set network.iot.ipaddr='192.168.4.1'
+set network.iot.netmask='255.255.255.0'
+
+set network.vlan_mgmt=device
+set network.vlan_mgmt.name='eth0.30'
+set network.vlan_mgmt.type='8021q'
+set network.vlan_mgmt.ifname='eth0'
+set network.vlan_mgmt.vid='30'
+
+set network.mgmt=interface
+set network.mgmt.device='eth0.30'
+set network.mgmt.proto='static'
+set network.mgmt.ipaddr='192.168.9.1'
+set network.mgmt.netmask='255.255.255.0'
+
+# A DISABLED interface, because LuCI renders one differently and that state needs styling.
+set network.backup=interface
+set network.backup.device='dummy1'
+set network.backup.proto='dhcp'
+set network.backup.disabled='1'
+
+set network.wg0=interface
+set network.wg0.proto='wireguard'
+set network.wg0.private_key='eIm2XlHrQyPmqmA2wLb6kkFrDzhE3hnA9OuqHIRtR2Q='
+set network.wg0.listen_port='51820'
+add_list network.wg0.addresses='10.10.0.1/24'
+
+add network wireguard_wg0
+set network.@wireguard_wg0[-1].description='phone'
+set network.@wireguard_wg0[-1].public_key='xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg='
+set network.@wireguard_wg0[-1].allowed_ips='10.10.0.2/32'
+set network.@wireguard_wg0[-1].persistent_keepalive='25'
+
+add network wireguard_wg0
+set network.@wireguard_wg0[-1].description='laptop'
+set network.@wireguard_wg0[-1].public_key='qHMcYlLbLIhkFB1QeS4v7f8SD6L2ktScFSyVw+wr6Uw='
+set network.@wireguard_wg0[-1].allowed_ips='10.10.0.3/32'
+set network.@wireguard_wg0[-1].route_allowed_ips='1'
+
+add network route
+set network.@route[-1].interface='lan'
+set network.@route[-1].target='10.20.0.0'
+set network.@route[-1].netmask='255.255.0.0'
+set network.@route[-1].gateway='172.31.0.1'
+
+add network route
+set network.@route[-1].interface='wan'
+set network.@route[-1].target='198.51.100.0'
+set network.@route[-1].netmask='255.255.255.0'
+set network.@route[-1].gateway='203.0.113.1'
+commit network
+EOF
+
+# --- dhcp: pools, static leases, hostnames ----------------------------------------------
+# guest/iot/mgmt serve DHCP for real, and that is safe: each sits on a dummy device or a
+# VLAN nobody is on. `lan` keeps ignore=1 (99_footstrap-dev) because IT is on the bridge
+# shared with the other container.
+uci -q batch <<'EOF'
+set dhcp.guest=dhcp
+set dhcp.guest.interface='guest'
+set dhcp.guest.start='100'
+set dhcp.guest.limit='150'
+set dhcp.guest.leasetime='2h'
+
+set dhcp.iot=dhcp
+set dhcp.iot.interface='iot'
+set dhcp.iot.start='50'
+set dhcp.iot.limit='100'
+set dhcp.iot.leasetime='12h'
+
+set dhcp.mgmt=dhcp
+set dhcp.mgmt.interface='mgmt'
+set dhcp.mgmt.start='10'
+set dhcp.mgmt.limit='40'
+set dhcp.mgmt.leasetime='1h'
+set dhcp.mgmt.ignore='1'
+
+add dhcp host
+set dhcp.@host[-1].name='nas'
+set dhcp.@host[-1].mac='b8:27:eb:1a:2b:3c'
+set dhcp.@host[-1].ip='172.31.0.20'
+add dhcp host
+set dhcp.@host[-1].name='printer'
+set dhcp.@host[-1].mac='00:1b:a9:4f:11:22'
+set dhcp.@host[-1].ip='172.31.0.21'
+add dhcp host
+set dhcp.@host[-1].name='tv-lg'
+set dhcp.@host[-1].mac='cc:2d:8c:77:88:99'
+set dhcp.@host[-1].ip='172.31.0.22'
+set dhcp.@host[-1].leasetime='infinite'
+add dhcp host
+set dhcp.@host[-1].name='vacuum'
+set dhcp.@host[-1].mac='54:ef:44:0a:bb:cd'
+set dhcp.@host[-1].ip='192.168.4.60'
+add dhcp host
+set dhcp.@host[-1].name='esp-sensor-hall'
+set dhcp.@host[-1].mac='a4:cf:12:9e:34:56'
+set dhcp.@host[-1].ip='192.168.4.61'
+
+add dhcp domain
+set dhcp.@domain[-1].name='nas.lan'
+set dhcp.@domain[-1].ip='172.31.0.20'
+add dhcp domain
+set dhcp.@domain[-1].name='grafana.lan'
+set dhcp.@domain[-1].ip='172.31.0.20'
+commit dhcp
+EOF
+
+# --- firewall: zones, forwardings, port forwards, rules ---------------------------------
+uci -q batch <<'EOF'
+add firewall zone
+set firewall.@zone[-1].name='guest'
+set firewall.@zone[-1].input='REJECT'
+set firewall.@zone[-1].output='ACCEPT'
+set firewall.@zone[-1].forward='REJECT'
+add_list firewall.@zone[-1].network='guest'
+
+add firewall zone
+set firewall.@zone[-1].name='iot'
+set firewall.@zone[-1].input='REJECT'
+set firewall.@zone[-1].output='ACCEPT'
+set firewall.@zone[-1].forward='REJECT'
+add_list firewall.@zone[-1].network='iot'
+
+add firewall zone
+set firewall.@zone[-1].name='vpn'
+set firewall.@zone[-1].input='ACCEPT'
+set firewall.@zone[-1].output='ACCEPT'
+set firewall.@zone[-1].forward='ACCEPT'
+set firewall.@zone[-1].masq='1'
+add_list firewall.@zone[-1].network='wg0'
+
+add firewall forwarding
+set firewall.@forwarding[-1].src='guest'
+set firewall.@forwarding[-1].dest='wan'
+add firewall forwarding
+set firewall.@forwarding[-1].src='iot'
+set firewall.@forwarding[-1].dest='wan'
+add firewall forwarding
+set firewall.@forwarding[-1].src='vpn'
+set firewall.@forwarding[-1].dest='lan'
+
+add firewall redirect
+set firewall.@redirect[-1].name='HTTPS to reverse proxy'
+set firewall.@redirect[-1].src='wan'
+set firewall.@redirect[-1].src_dport='443'
+set firewall.@redirect[-1].dest='lan'
+set firewall.@redirect[-1].dest_ip='172.31.0.20'
+set firewall.@redirect[-1].dest_port='443'
+set firewall.@redirect[-1].target='DNAT'
+set firewall.@redirect[-1].proto='tcp'
+
+add firewall redirect
+set firewall.@redirect[-1].name='Torrent'
+set firewall.@redirect[-1].src='wan'
+set firewall.@redirect[-1].src_dport='51413'
+set firewall.@redirect[-1].dest='lan'
+set firewall.@redirect[-1].dest_ip='172.31.0.20'
+set firewall.@redirect[-1].target='DNAT'
+set firewall.@redirect[-1].proto='tcp udp'
+
+add firewall redirect
+set firewall.@redirect[-1].name='Console (disabled)'
+set firewall.@redirect[-1].src='wan'
+set firewall.@redirect[-1].src_dport='9000'
+set firewall.@redirect[-1].dest='lan'
+set firewall.@redirect[-1].dest_ip='172.31.0.22'
+set firewall.@redirect[-1].target='DNAT'
+set firewall.@redirect[-1].proto='tcp'
+set firewall.@redirect[-1].enabled='0'
+
+add firewall rule
+set firewall.@rule[-1].name='Allow WireGuard'
+set firewall.@rule[-1].src='wan'
+set firewall.@rule[-1].dest_port='51820'
+set firewall.@rule[-1].proto='udp'
+set firewall.@rule[-1].target='ACCEPT'
+
+add firewall rule
+set firewall.@rule[-1].name='IoT to DNS only'
+set firewall.@rule[-1].src='iot'
+set firewall.@rule[-1].dest_port='53'
+set firewall.@rule[-1].proto='tcp udp'
+set firewall.@rule[-1].target='ACCEPT'
+
+add firewall rule
+set firewall.@rule[-1].name='Block guest to LAN'
+set firewall.@rule[-1].src='guest'
+set firewall.@rule[-1].dest='lan'
+set firewall.@rule[-1].target='REJECT'
+commit firewall
+EOF
+
+# --- system: leds, mounts, cron ---------------------------------------------------------
+# The LED sysfs paths do not exist here, so the service does nothing — but the SECTION
+# renders, which is the point: it is a form nobody would otherwise see on this box.
+uci -q batch <<'EOF'
+set system.@system[0].log_size='128'
+set system.@system[0].zonename='Europe/Moscow'
+set system.@system[0].timezone='MSK-3'
+
+add system led
+set system.@led[-1].name='WAN link'
+set system.@led[-1].sysfs='green:wan'
+set system.@led[-1].trigger='netdev'
+set system.@led[-1].dev='dummy0'
+set system.@led[-1].mode='link tx rx'
+
+add system led
+set system.@led[-1].name='WLAN 5GHz'
+set system.@led[-1].sysfs='green:wlan5'
+set system.@led[-1].trigger='phy0radio'
+commit system
+EOF
+
+uci -q batch <<'EOF'
+set fstab.@global[0]=global
+set fstab.@global[0].anon_swap='0'
+set fstab.@global[0].anon_mount='0'
+set fstab.@global[0].auto_swap='1'
+set fstab.@global[0].auto_mount='1'
+set fstab.@global[0].delay_root='5'
+set fstab.@global[0].check_fs='0'
+
+add fstab mount
+set fstab.@mount[-1].target='/mnt/usb-storage'
+set fstab.@mount[-1].uuid='7f9a1c2e-4b8d-4a1f-9c3e-2d5a6b7c8d9e'
+set fstab.@mount[-1].fstype='ext4'
+set fstab.@mount[-1].options='rw,noatime'
+set fstab.@mount[-1].enabled='1'
+
+add fstab swap
+set fstab.@swap[-1].uuid='1a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9'
+set fstab.@swap[-1].enabled='0'
+commit fstab
+EOF
+
+cat > /etc/crontabs/root <<'EOF'
+# Scheduled Tasks (System -> Scheduled Tasks) renders this file verbatim.
+0 4 * * * /usr/libexec/adblock-update.sh >/dev/null 2>&1
+*/15 * * * * /usr/bin/vnstat -u >/dev/null 2>&1
+30 3 * * 0 /sbin/sysupgrade -b /root/backup-$(date +\%Y\%m\%d).tar.gz
+EOF
+chmod 600 /etc/crontabs/root
+
+exit 0

@@ -74,7 +74,7 @@ def main():
     # a media dir the rest of the repo deletes, so the sweep measured LuCI's theme fallback.
     ap.add_argument("--layout", choices=["sidebar", "top"], default="sidebar")
     ap.add_argument("--mode", choices=["dark", "light"], default="dark")
-    ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router"))
+    ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router2512"))
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 

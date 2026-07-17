@@ -71,6 +71,12 @@ deleting a rule the backlog list is protecting.
 ## Also compile-check templates (printed as a tip by the script)
 
 ```sh
-ssh router 'for f in /usr/share/ucode/luci/template/themes/footstrap*/*.ut; do
+ssh router2512 'for f in /usr/share/ucode/luci/template/themes/footstrap*/*.ut; do
   ucode -T -c -o /dev/null "$f" && echo OK $f || echo FAIL $f; done'
 ```
+
+`router2512` (25.12) and `router2410` (24.10) are the two dev containers from
+`docker/compose.yml`; `cssdiff.py --ssh-host` takes either. Run it against both when a
+change could land differently per release — the ucode compiler and LuCI itself differ by
+branch. `cssdiff.py` needs playwright, so run it with the preview venv's python
+(`.claude/tooling/preview-venv/bin/python`), not the system one.

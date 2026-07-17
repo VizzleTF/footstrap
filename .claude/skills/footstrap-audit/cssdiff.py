@@ -88,7 +88,7 @@ def main():
     ap.add_argument("--b", default="cascade-b.css", help="candidate css filename")
     ap.add_argument("--layout", default="/luci-static/footstrap")
     ap.add_argument("--mode", default="dark")
-    ap.add_argument("--ssh-host", default="router")
+    ap.add_argument("--ssh-host", default="router2512")
     # Behaviour is a FUNCTION of width, and a diff taken only at 1440 never enters the
     # narrow states: the overview grid (@container fs-view 800), the config table's card
     # (@container fs-content 960 — which in the sidebar layout can fire on a 1200px DESKTOP,

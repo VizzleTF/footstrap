@@ -35,7 +35,7 @@ def main():
     ap.add_argument("--pages-file", help="file with one LuCI path per line")
     ap.add_argument("--layout", choices=["sidebar", "top", "both"], default="both")
     ap.add_argument("--mode", choices=["dark", "light", "both"], default="both")
-    ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router"))
+    ap.add_argument("--ssh-host", default=os.environ.get("FOOTSTRAP_SSH", "router2512"))
     ap.add_argument("--out", default=os.environ.get("FOOTSTRAP_OUT",
                     "/tmp/claude-1000/footstrap-preview"))
     ap.add_argument("--width", type=int, default=1440)

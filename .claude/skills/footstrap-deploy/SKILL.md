@@ -5,11 +5,17 @@ description: Push edited luci-theme-footstrap files to the dev router and bump t
 
 # footstrap-deploy
 
-Incremental deploy to the dev router (`ssh router`). Maps repo paths to router
+Incremental deploy to a dev router (`ssh router2512`). Maps repo paths to router
 paths automatically (`htdocs/luci-static/*` → `/www/luci-static/*`, `ucode/*` →
 `/usr/share/ucode/luci/*`, `root/*` → `/`), scps them, then bumps the cache-bust
-token (`touch /lib/apk/db/installed`) and clears the dispatch cache
+token (touching whichever package database the release has — apk's
+`/lib/apk/db/installed` or opkg's `/usr/lib/opkg/status`, the same fallback
+`luci-base`'s own `pkgs_update_time` makes) and clears the dispatch cache
 (`rm /tmp/luci-indexcache*`). **Does not** switch or register themes.
+
+There are TWO dev routers, one per supported release — containers from
+`docker/compose.yml`: `router2512` (25.12, apk) and `router2410` (24.10,
+opkg). Deploy to both when the change could land differently per release.
 
 ## Run
 
@@ -25,6 +31,8 @@ Example: `.claude/skills/footstrap-deploy/deploy.sh htdocs/luci-static/footstrap
 
 - First-time setup (new theme dirs / symlinks / theme registration) still needs
   `luci-theme-footstrap/dev-sync.sh`; this skill is for the fast edit→see loop.
+  **A container rebuild is a factory reset** (no volumes), so it needs `dev-sync.sh`
+  again too — see `docker/README.md`.
 - The screenshot reflects the router, so deploy **before** running
   `footstrap-preview`.
 - Override the SSH host with `FOOTSTRAP_SSH=<host>`.

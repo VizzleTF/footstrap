@@ -1,0 +1,32 @@
+# Append to ~/.ssh/config, ABOVE the `Host *` block — ssh takes the FIRST value it sees for
+# each keyword, so a global `StrictHostKeyChecking ask` further up wins and turns an image
+# rebuild into a prompt in the middle of a deploy.
+#
+# The tooling (deploy.sh, preview.py, device-sweep.py, cssdiff.py) reaches the dev box by
+# ssh AND by http at the SAME address: it derives the browser's base URL from
+# `ssh -G <host>` (`http://<hostname>`). That is why these point at the container's bridge
+# address and not at a published localhost port — a port mapping cannot carry the http
+# side of that. Windows-side browsing is what the published ports are for
+# (http://localhost:8025 and :8024); see docker/compose.yml.
+#
+# `router2512` is the DEFAULT every tool falls back to. `router` is deliberately NOT one of
+# these — it names the physical box, which is a different question (real radio, real flash,
+# real reboot).
+
+Host router2512
+    HostName 172.31.0.2
+    User root
+    # A dev container is recreated often. Its host key is baked into the image (see the
+    # Dockerfile) so it survives a `compose up`, but it does change on every rebuild —
+    # and the global `Host *` block here sets StrictHostKeyChecking ask, which turns that
+    # into a prompt in the middle of a deploy.
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel ERROR
+
+Host router2410
+    HostName 172.31.0.3
+    User root
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel ERROR

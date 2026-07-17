@@ -1,0 +1,50 @@
+#!/bin/sh
+# Runtime state that makes the box look INHABITED — fake DHCP leases and fake neighbours.
+#
+# This is not config, so it cannot be a uci-default: both live under /tmp (a tmpfs procd
+# mounts during boot) and both are gone every start. rc.local is run by /etc/init.d/done at
+# S95, i.e. after dnsmasq (S19) has already written its own empty lease file — write
+# earlier and dnsmasq truncates it back.
+#
+# It STAYS written because `lan` has dhcp ignore=1 (99_footstrap-dev): dnsmasq never serves
+# a lease here, so it never rewrites the file it would otherwise own.
+#
+# What this buys: the Overview's "Active DHCP Leases", the DHCP pages and the ARP table on
+# Status -> Routes are the only DATA TABLES stock LuCI renders on a quiet router, and they
+# are exactly what `fs-select.js`'s measured card-stacking is aimed at (`.fs-stacked`). With
+# no rows they collapse to "There are no active leases" and that whole path goes untested.
+
+LEASEFILE="$(uci -q get dhcp.@dnsmasq[0].leasefile)"
+LEASEFILE="${LEASEFILE:-/tmp/dhcp.leases}"
+
+# expiry, mac, ip, hostname, client-id — dnsmasq's own format. 4102444800 = 2100-01-01: a
+# relative time would tick down to "expired" and the rows would start disappearing during a
+# long session, which looks like a bug in whatever is being tested.
+cat > "$LEASEFILE" <<'EOF'
+4102444800 b8:27:eb:1a:2b:3c 172.31.0.20 nas 01:b8:27:eb:1a:2b:3c
+4102444800 00:1b:a9:4f:11:22 172.31.0.21 printer *
+4102444800 cc:2d:8c:77:88:99 172.31.0.22 tv-lg 01:cc:2d:8c:77:88:99
+4102444800 3c:22:fb:8a:1d:44 172.31.0.30 macbook-pro 01:3c:22:fb:8a:1d:44
+4102444800 f0:18:98:2c:5e:71 172.31.0.31 iphone-ivan 01:f0:18:98:2c:5e:71
+4102444800 dc:a6:32:77:0b:19 172.31.0.32 rpi-hass 01:dc:a6:32:77:0b:19
+4102444800 54:ef:44:0a:bb:cd 192.168.4.60 vacuum 01:54:ef:44:0a:bb:cd
+4102444800 a4:cf:12:9e:34:56 192.168.4.61 esp-sensor-hall 01:a4:cf:12:9e:34:56
+4102444800 2c:f0:5d:11:73:8e 192.168.3.101 guest-android *
+EOF
+
+# `nud stale`, never `permanent`: a permanent entry would make the kernel answer for an
+# address nothing owns on a bridge SHARED with the other container. A stale entry is a
+# cache line — it is what the ARP table is made of, and it influences nothing.
+for e in \
+	"172.31.0.20 b8:27:eb:1a:2b:3c" \
+	"172.31.0.21 00:1b:a9:4f:11:22" \
+	"172.31.0.22 cc:2d:8c:77:88:99" \
+	"172.31.0.30 3c:22:fb:8a:1d:44" \
+	"172.31.0.31 f0:18:98:2c:5e:71" \
+	"172.31.0.32 dc:a6:32:77:0b:19"
+do
+	set -- $e
+	ip neigh replace "$1" lladdr "$2" dev eth0 nud stale 2>/dev/null
+done
+
+exit 0

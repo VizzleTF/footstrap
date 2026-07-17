@@ -23,7 +23,10 @@ LUCI_PW=<router-root-password> \
 - `--layout sidebar|top|both` (default `both`). The layout is a CLIENT preference
   (`localStorage.fs-layout`), not a theme entry — there is one theme, `Footstrap`.
 - `--mode dark|light|both` (default `both`).
-- `--ssh-host` (default `router`, or env `FOOTSTRAP_SSH`).
+- `--ssh-host` (default `router2512`, or env `FOOTSTRAP_SSH`). The dev routers are the two
+  containers from `docker/compose.yml`: `router2512` (25.12) and `router2410`
+  (24.10). **Shoot both when a change could land differently per release**; the theme
+  supports both branches.
 - Output dir: `--out` or env `FOOTSTRAP_OUT` (default `/tmp/claude-1000/footstrap-preview`).
 
 After it prints `saved <path>` lines, **Read each PNG** (the Read tool renders
@@ -31,9 +34,13 @@ images) to inspect the result. Files are named `<layout>__<mode>__<page>.png`.
 
 ## Requirements / notes
 
-- `LUCI_PW` env is required (router root password). Do not hardcode it in files.
-- Router HTTP base is derived from `ssh -G <host>` hostname; the router must be
-  HTTP-reachable from here (it is at 10.11.12.1 in this setup).
+- `LUCI_PW` env is required (router root password — `1234` on the dev containers). Do not
+  hardcode it in files.
+- Router HTTP base is derived from `ssh -G <host>` hostname, so the box must answer on ssh
+  AND http at the SAME address — which is why `~/.ssh/config` points these hosts at the
+  containers' bridge addresses (172.31.0.2 / .3) and not at their published localhost
+  ports. Those ports are for a Windows-side browser; playwright runs in WSL, where the
+  bridge is routable. See `docker/README.md`.
 - **It flips the live active theme for a few seconds per layout and reverts.** If
   someone is using the router UI they'll see a brief switch. Fine for dev.
 - The venv + Chromium live in `.claude/tooling/preview-venv` (gitignored). If the

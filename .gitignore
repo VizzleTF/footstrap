@@ -29,3 +29,7 @@ node_modules/
 
 # python bytecode from the audit tooling
 __pycache__/
+# local overrides for the dev-router containers (public key path, DNS) — machine-specific
+/docker/.env
+# built by docker/hwsim-up.sh for the WSL host kernel; not portable, not source
+/docker/hwsim/*.ko

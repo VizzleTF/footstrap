@@ -8,6 +8,32 @@
    docs/17). Основной режим при разработке.
 2. **Пакет .apk через SDK** — для распространения и чистой установки.
 
+## Дев-роутеры: два контейнера, по одному на релиз
+
+Живой роутер здесь — это контейнер из `docker/compose.yml` (подробности и грабли —
+`docker/README.md`). Их **два**, потому что тема поддерживает и 24.10, и 25.12+, а
+различия, которые кусаются, — рантаймовые, и одна коробка их не покажет:
+
+| ssh-хост | релиз | пакетник | адрес моста | из Windows |
+|---|---|---|---|---|
+| `router2512` | 25.12 | apk | 172.31.0.2 | http://localhost:8025 |
+| `router2410` | 24.10 | opkg | 172.31.0.3 | http://localhost:8024 |
+
+Логин `root`/`1234` (он же `LUCI_PW`). Внутри — настоящий userland релиза (procd как PID 1,
+netifd, ubus, rpcd, uhttpd) из его же rootfs-тарбола, а не самосборная имитация.
+
+- **Пересборка образа = сброс к заводским**: томов нет, `docker compose up -d --build`
+  сносит залитую тему — гоняем `dev-sync.sh` заново. Это и нужно: путь установки
+  проверяется по-настоящему, на обоих пакетниках, вместо коробки, которую полгода правили
+  руками. Бекап (ниже) при этом теряет смысл — сломал, пересобрал.
+- **Адрес моста обязателен, published-порт его не заменит**: тулинг берёт базовый URL из
+  `ssh -G <host>` (`http://<hostname>`), то есть ssh и http должны отвечать на **одном**
+  адресе. Порты `localhost:8025`/`:8024` — только для браузера со стороны **Windows**: NAT
+  WSL2 не маршрутизирует docker-мост в Windows.
+- **`curl` на них нет** — как и на стоковом роутере (см. `+luci-base` в CLAUDE.md), поэтому
+  сниппет с curl запускаем с хоста по адресу контейнера, а не `ssh router2512 'curl …'`.
+- Железный роутер остался как `ssh router` — когда вопрос именно в железе.
+
 ## Быстрый цикл разработки на живом роутере
 
 Целевые пути (см. док 01):
@@ -18,29 +44,29 @@
 /www/luci-static/resources/menu-mytheme.js
 ```
 
-### Первичная заливка (роутер `ssh router`)
+### Первичная заливка (роутер `ssh router2512`)
 
 ```sh
 # 1. БЕКАП затрагиваемого (одноразово, до любых изменений)
-ssh router 'mkdir -p /root/theme-backup && \
+ssh router2512 'mkdir -p /root/theme-backup && \
   cp -a /etc/config/luci /root/theme-backup/luci.config && \
   tar -C / -czf /root/theme-backup/luci-theme-orig.tar.gz \
     usr/share/ucode/luci/template/themes www/luci-static'
 
 # 2. Каталоги + файлы
-ssh router 'mkdir -p /usr/share/ucode/luci/template/themes/mytheme /www/luci-static/mytheme'
-scp ucode/template/themes/mytheme/*.ut router:/usr/share/ucode/luci/template/themes/mytheme/
-scp htdocs/luci-static/mytheme/*       router:/www/luci-static/mytheme/
-scp htdocs/luci-static/resources/menu-mytheme.js router:/www/luci-static/resources/
+ssh router2512 'mkdir -p /usr/share/ucode/luci/template/themes/mytheme /www/luci-static/mytheme'
+scp ucode/template/themes/mytheme/*.ut router2512:/usr/share/ucode/luci/template/themes/mytheme/
+scp htdocs/luci-static/mytheme/*       router2512:/www/luci-static/mytheme/
+scp htdocs/luci-static/resources/menu-mytheme.js router2512:/www/luci-static/resources/
 
 # 3. Регистрация (НЕ переключая активную тему — безопасно)
-ssh router 'uci set luci.themes.MyTheme=/luci-static/mytheme && uci commit luci'
+ssh router2512 'uci set luci.themes.MyTheme=/luci-static/mytheme && uci commit luci'
 ```
 
 Дальше тема выбирается в LuCI: System → System → Language and Style, или:
 
 ```sh
-ssh router 'uci set luci.main.mediaurlbase=/luci-static/mytheme && uci commit luci'
+ssh router2512 'uci set luci.main.mediaurlbase=/luci-static/mytheme && uci commit luci'
 ```
 
 ### Страховка от поломки
@@ -50,21 +76,27 @@ ssh router 'uci set luci.main.mediaurlbase=/luci-static/mytheme && uci commit lu
   индикатор "Theme fallback" с текстом ошибки. Т.е. кривой шаблон **не окирпичит
   веб-интерфейс**.
 - Ручной откат в любой момент:
-  `ssh router 'uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci'`
+  `ssh router2512 'uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci'`
 - Совсем всё сломалось: `uci` доступен по ssh, LuCI для восстановления не нужен.
 
 ### Кэши при итерации
 
 - Меню/диспетчер кэшируются: `/tmp/luci-indexcache.<hash>.json`. Хэш считается от
   mtime файлов меню — при добавлении/удалении файлов обновляется сам, но при
-  странностях: `ssh router 'rm -f /tmp/luci-indexcache*'`.
+  странностях: `ssh router2512 'rm -f /tmp/luci-indexcache*'`.
 - Шаблоны `.ut` НЕ кэшируются между запросами (ucode компилирует на лету) —
   правка header.ut видна по F5.
 - CSS/JS кэширует браузер: жёсткий reload (Ctrl+Shift+R). `luci.js` грузится с
   `?v=<версия>-<mtime базы пакетов>`; в footstrap с тем же ключом грузится и
   `cascade.css` (`?v={{ pkgs_update_time }}` в `partials/head.ut`), поэтому после
-  заливки CSS достаточно `ssh router 'touch /lib/apk/db/installed'` — ключ
-  меняется, и файл подхватывается обычным F5, без Disable cache.
+  заливки CSS достаточно тронуть базу пакетов — ключ меняется, и файл подхватывается
+  обычным F5, без Disable cache. **Какой это файл — зависит от релиза**, и фоллбэк ниже
+  повторяет тот, что делает сам `pkgs_update_time` в luci-base: указать только apk-путь =
+  на 24.10 ключ не меняется, файл доезжает, а браузер отдаёт старый из кэша — выглядит
+  ровно как правка, которая ничего не сделала.
+  ```sh
+  ssh router2512 'for db in /lib/apk/db/installed /usr/lib/opkg/status; do [ -f "$db" ] && touch "$db"; done'
+  ```
 
 ### Синхронизация одним скриптом
 
@@ -103,7 +135,7 @@ luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — r
 ### Проверка изменения
 
 - **Шаблон** — тем же `trycompile`, что делает LuCI:
-  `ssh router 'ucode -T -c -o /dev/null /usr/share/ucode/luci/template/themes/footstrap/header.ut'`.
+  `ssh router2512 'ucode -T -c -o /dev/null /usr/share/ucode/luci/template/themes/footstrap/header.ut'`.
   То же гоняет CI.
 - **CSS** — скриншотами проверять нельзя: живые счётчики (uptime, DHCP-лизы, сигнал wifi)
   двигают 0.5–1.3% пикселей между двумя прогонами ОДНОГО И ТОГО ЖЕ стиля, а реальная
@@ -111,8 +143,8 @@ luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — r
   один раз, `<link>` подменяется на второй файл, снимок `getComputedStyle` по всем элементам —
   DOM и данные те же, значит любая разница вызвана CSS.
   ```sh
-  scp -q old.css router:/www/luci-static/footstrap/cascade-a.css
-  scp -q new.css router:/www/luci-static/footstrap/cascade-b.css
+  scp -q old.css router2512:/www/luci-static/footstrap/cascade-a.css
+  scp -q new.css router2512:/www/luci-static/footstrap/cascade-b.css
   LUCI_PW=<pw> python3 .claude/skills/footstrap-audit/cssdiff.py \
     admin/network/firewall admin/system/system admin/status/overview admin/system/opkg
   ```
@@ -184,10 +216,10 @@ ls bin/packages/*/luci/luci-theme-footstrap*.apk
 ### Установка на роутер
 
 ```sh
-scp bin/packages/*/luci/luci-theme-footstrap*.apk router:/tmp/
-ssh router 'apk add --allow-untrusted /tmp/luci-theme-footstrap*.apk'
+scp bin/packages/*/luci/luci-theme-footstrap*.apk router2512:/tmp/
+ssh router2512 'apk add --allow-untrusted /tmp/luci-theme-footstrap*.apk'
 # удаление
-ssh router 'apk del luci-theme-footstrap'
+ssh router2512 'apk del luci-theme-footstrap'
 ```
 
 `--allow-untrusted` нужен, т.к. локальная сборка не подписана ключом фида.

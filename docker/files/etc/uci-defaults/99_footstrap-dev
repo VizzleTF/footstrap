@@ -1,0 +1,55 @@
+#!/bin/sh
+# First-boot settings that do not depend on boot timing. The network config does — it is
+# written by /usr/lib/footstrap-dev/entrypoint.sh before procd starts; see the note there.
+
+# The bridge is SHARED with the other release's container. A DHCP server here would answer
+# for addresses it does not own, on somebody else's network — dnsmasq stays up (it is what
+# the Overview's DNS status and the leases page read), it just never hands out a lease.
+uci -q batch <<EOF
+set dhcp.lan=dhcp
+set dhcp.lan.interface='lan'
+set dhcp.lan.ignore='1'
+commit dhcp
+EOF
+
+# Plain HTTP on every address: the tooling reaches uhttpd on the container's docker IP and
+# a published port forwards it to the Windows-side browser. HTTPS would only add a
+# self-signed certificate for both to click through.
+uci -q batch <<EOF
+delete uhttpd.main.listen_https
+set uhttpd.main.listen_http='0.0.0.0:80'
+commit uhttpd
+EOF
+
+# luci-app-attendedsysupgrade's overview include ("Check online for firmware upgrades")
+# opens a MODAL over the Overview on every load until a preference is recorded — and the
+# Overview is the page every screenshot and every cssdiff run starts on, so the dialog
+# lands on top of the thing being measured. Recording the "no" here is exactly what
+# clicking the dialog's own button would write (11_upgrades.js:
+# check_setting=['attendedsysupgrade','client','login_check_for_upgrades']).
+uci -q batch <<EOF
+set attendedsysupgrade.client.login_check_for_upgrades='0'
+commit attendedsysupgrade
+EOF
+
+# Services that REWRITE ROUTING OR NETFILTER have to be off, and their CONFIG has to stay:
+# the config is what the pages render (this theme cares about the markup, not about packets
+# being dropped), while the ruleset itself is meaningless in a container and takes the box
+# off its own network.
+#
+#   firewall (fw4) — its zone ruleset would drop the ssh the tooling comes in on.
+#   mwan3 — measured, not assumed: it installs `from all fwmark 0x100/0x3f00 unreachable`
+#     plus mangle marks, decides the fake WAN on dummy0 is the uplink, and blackholes
+#     everything. DNS and the package manager both died on the dev box; `ip route get
+#     1.1.1.1` still answered "via 172.31.0.1 dev eth0", because the route was never the
+#     problem — the fwmark rule above it was.
+#   watchcat — it ships a ping_reboot mode and runs it: a service whose failure action is
+#     `reboot` has no business on a box whose "hardware" is a container that would come
+#     back with a fresh filesystem.
+for s in firewall mwan3 watchcat; do
+	[ -x "/etc/init.d/$s" ] || continue
+	"/etc/init.d/$s" stop 2>/dev/null || true
+	"/etc/init.d/$s" disable 2>/dev/null || true
+done
+
+exit 0
