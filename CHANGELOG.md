@@ -11,6 +11,49 @@ Style and format guide: [docs/21-changelog-style-and-format.md](docs/21-changelo
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Added
+
+- **The one-click Update no longer installs blind — the confirm dialog now shows the version step,
+  the release notes and a breaking-change warning before you commit.** The button used to pop a bare
+  "Download and install?" with nothing about *what* it would install; now the dialog heads with
+  `vCUR → vLAT` (installed vs latest), renders the GitHub release body (the notes
+  `tools/release-notes.sh` generates from the changelog) in a scrollable box, and shows a coloured
+  banner when the release looks like it needs care. The notes are the one string in this flow shown
+  **before** the signature is verified, so they are rendered as a text node only, never as markup, and
+  capped in length — a compromised release could put anything in the body, and it must not reach the
+  DOM. The notes ride the same cached API answer the badge's check already fetched (`check` now saves
+  the full `releases/latest` JSON, and a new `notes` backend command reads `@.body` from it), so the
+  common path adds no extra API call. The breaking-change signal is the notes text — a `### Removed`
+  or `### Security` heading, or the word "breaking" — set by the maintainer through the changelog
+  wording; it is advisory and does not block the update. There is deliberately no version-jump
+  heuristic: this is 0.x software, where by SemVer a minor bump may break, so "major bump = breaking"
+  would either never fire or fire on nearly every release.
+- **A free-space preflight refuses an update that would not fit, before the first byte is
+  downloaded.** An install that runs out of room mid-`apk add` leaves `/www/luci-static/footstrap`
+  half-written — the worst failure on an 8–16 MB device — and the admin only saw apk's own error after
+  the download. The worker now sums the sizes the release API publishes for the assets it will fetch
+  (`@.assets[*].size`) and checks two filesystems with `df`: the tmpfs the download lands in (RAM) and
+  the root overlay the package unpacks into (flash, ~2× the compressed size). Too little on either →
+  a clear `ERR: not enough …` up front. Unlike the trust chain, this check **fails open** on purpose:
+  a missing asset size or an unreadable `df` skips it rather than blocking a legitimate, correctly
+  signed update — space is not a security property, and the worst case without it is the pre-existing
+  apk error.
+
+### Fixed
+
+- **A failing updater refresh no longer reports the whole update as failed after the theme has
+  already installed.** The self-update installs two packages — the theme (essential) then the updater
+  (optional) — and a `|| return 1` on the second meant that if the updater asset was present but its
+  install or signature check failed, `do_update` aborted with `status=ERR` *after* the new theme was
+  already on disk: the LuCI caches went undropped, the client refused to reload, and the update looked
+  failed while the new theme sat there never visibly applied. Since `fetch_verify_install` installs
+  nothing on a verify failure, the old already-verified updater stays intact and retries next time, so
+  a present-but-failing updater is now non-fatal — the run finalises (drops caches, writes `OK`, the
+  client reloads) once the theme is in. This makes the code match the "updater is optional" contract
+  it always claimed, in both directions.
+
 ## [0.9.3] — 2026-07-17
 
 ### Added

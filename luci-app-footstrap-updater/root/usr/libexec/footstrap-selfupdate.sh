@@ -40,7 +40,8 @@ unset LD_PRELOAD LD_LIBRARY_PATH LD_AUDIT IFS http_proxy https_proxy HTTP_PROXY 
 WD=/var/run/footstrap-update
 STATUS="$WD/status"
 WORKER="$WD/run.sh"
-CACHE="$WD/latest"
+CACHE="$WD/latest"		# the "ts tag" meta line
+APIJSON="$WD/api.json"		# the full releases/latest answer; feeds both `check` (tag) and `notes` (body)
 LOCK="$WD/lock"		# a DIRECTORY: mkdir is the atomic test-and-set (see the "" branch)
 
 mkdir -p "$WD" 2>/dev/null && chmod 700 "$WD" 2>/dev/null || {
@@ -158,6 +159,12 @@ sig_url() {		# <json> <package-url> -> the detached signature published for THAT
 }
 # @endmirror
 
+# NOT @mirror'd: install.sh installs one known release and never sums asset sizes, so this has no
+# twin. Used only by the free-space preflight below.
+asset_size() {		# <json> <url> -> the byte size GitHub publishes for THAT asset (empty if none)
+	jsonfilter -i "$1" -e "@.assets[@.browser_download_url=\"$2\"].size" 2>/dev/null | head -n1
+}
+
 # usign is on EVERY OpenWrt image — base-files depends on it — so verifying the release signature costs
 # no new runtime dependency (see LUCI_DEPENDS in the Makefile: the curl lesson). The key is the
 # package's own; it is not added to /etc/apk/keys, so nothing this package does makes footstrap a trust
@@ -251,6 +258,44 @@ fetch_verify_install() {
 	}
 }
 
+# Free-space preflight — a UX safety net, NOT a security gate, and it FAILS OPEN. An install that runs
+# out of room mid-`apk add` leaves /www/luci-static/footstrap half-written (the worst failure on an
+# 8-16 MB device). Sum the sizes the API publishes for the assets we will fetch and check both
+# filesystems the update touches BEFORE the first byte is downloaded.
+#
+# Fails OPEN on purpose: a missing @.size or an unreadable df must NOT block a legitimate,
+# correctly-signed update — space is not a security property (contrast the fail-CLOSED trust chain
+# below, where a missing digest or signature refuses). Worst case without this check is the
+# pre-existing behaviour: apk fails and the client shows its error.
+# check_space <json> <url>...  -> 0 = enough (or unknown); 1 = short (writes ERR to $STATUS)
+check_space() {
+	_j="$1"; shift
+	_need=0; _max=0
+	for _u in "$@"; do
+		_s="$(asset_size "$_j" "$_u")"
+		case "$_s" in ''|*[!0-9]*) return 0 ;; esac	# size unknown -> skip the check (fail open)
+		_need=$((_need + _s))
+		[ "$_s" -gt "$_max" ] && _max="$_s"
+	done
+	_need_kb=$((_need / 1024 + 1))
+	_max_kb=$((_max / 1024 + 1))
+	# download lands in $WD (tmpfs = RAM), one package at a time (each rm'd after its install);
+	# install unpacks into the root overlay (flash), ~2x the compressed size. 512 KB margin each.
+	_tmp="$(df -k "$WD" 2>/dev/null | awk 'NR==2{print $4}')"
+	_root="$(df -k / 2>/dev/null | awk 'NR==2{print $4}')"
+	case "$_tmp" in ''|*[!0-9]*) _tmp=0 ;; esac
+	case "$_root" in ''|*[!0-9]*) _root=0 ;; esac
+	if [ "$_tmp" -gt 0 ] && [ "$_tmp" -lt $((_max_kb + 512)) ]; then
+		echo "ERR: not enough RAM to download the update (~${_max_kb} KB needed, ${_tmp} KB free in /var/run)" > "$STATUS"
+		return 1
+	fi
+	if [ "$_root" -gt 0 ] && [ "$_root" -lt $((_need_kb * 2 + 512)) ]; then
+		echo "ERR: not enough free space to install the update (~$((_need_kb * 2)) KB needed, ${_root} KB free)" > "$STATUS"
+		return 1
+	fi
+	return 0
+}
+
 do_update() {
 	if command -v apk >/dev/null 2>&1; then
 		EXT="apk"
@@ -270,9 +315,10 @@ do_update() {
 	# self-updater that picks by extension (issue #6), so each package is resolved by its own name.
 	#
 	# The theme is required — its absence is a broken release and a hard failure. The updater is
-	# OPTIONAL here: a release older than this split has no updater asset, and installing the theme
-	# alone is still a correct update, so a missing updater asset is skipped, not fatal. When the
-	# updater asset IS present it is installed too, so this updater never lags the theme it drives.
+	# OPTIONAL, and the word means what it says in BOTH directions: a release older than this split has
+	# no updater asset (skipped), AND a present updater whose install fails is NON-FATAL once the theme
+	# is in (see the refresh below). When the updater asset installs cleanly it is installed too, so
+	# this updater never lags the theme it drives.
 	#
 	# ORDER: theme first, updater second. The updater package overwrites THIS running script — which is
 	# why the worker runs from a staged copy ($WORKER, see the "" branch) that nobody replaces.
@@ -281,11 +327,25 @@ do_update() {
 		echo "ERR: no luci-theme-footstrap .${EXT} asset in latest release" > "$STATUS"
 		rm -f "$json"; return 1
 	}
+	updater_url="$(asset_urls "$json" luci-app-footstrap-updater | head -1)"
+
+	# Both URLs resolved: check free space ONCE, before any download, so a short device fails with a
+	# clear cause instead of a half-written tree. The updater arg is omitted when the release carries
+	# no updater asset (pre-split releases).
+	check_space "$json" "$theme_url" ${updater_url:+"$updater_url"} || { rm -f "$json"; return 1; }
+
 	fetch_verify_install "$theme_url" "$json" || { rm -f "$json"; return 1; }
 
-	updater_url="$(asset_urls "$json" luci-app-footstrap-updater | head -1)"
+	# The theme (the essential package) is now on disk. A failing updater refresh must NOT strand it
+	# behind stale caches: fetch_verify_install installs NOTHING on a verify failure — the old,
+	# already-verified updater stays intact and retries next time — so a present-but-failing updater is
+	# a success for the update as a whole, not a failure that reports ERR and skips the reload. It once
+	# did `|| { return 1; }`, which left the new theme on disk while status=ERR, the LuCI caches
+	# undropped and the client refusing to reload: the update looked failed and the new theme never
+	# visibly applied. Re-assert RUNNING so a poll landing between the transient ERR fetch_verify_install
+	# wrote and the OK below never sees it.
 	if [ -n "$updater_url" ]; then
-		fetch_verify_install "$updater_url" "$json" || { rm -f "$json"; return 1; }
+		fetch_verify_install "$updater_url" "$json" || echo "RUNNING" > "$STATUS"
 	fi
 	rm -f "$json"
 
@@ -300,9 +360,10 @@ case "$1" in
 check)
 	# The router asks GitHub, not the browser: a LAN client often has no route to the internet, and a
 	# browser fetch is subject to CORS and to the user's own rate limit. Cached in /var/run (root-owned
-	# tmpfs — see the CWE-377 note above), so a reboot re-checks.
+	# tmpfs — see the CWE-377 note above), so a reboot re-checks. The full API answer is saved to
+	# $APIJSON so `notes` can read the release body from the SAME fetch — one API call feeds both.
 	now=$(date +%s)
-	if [ -f "$CACHE" ]; then
+	if [ -f "$CACHE" ] && [ -f "$APIJSON" ]; then
 		read -r ts tag < "$CACHE"
 		# A truncated cache (full tmpfs) leaves ts empty or non-numeric, and an arithmetic error is
 		# FATAL in ash: the script would die here and `check` would answer with an empty string instead
@@ -313,10 +374,23 @@ check)
 		fi
 	fi
 
-	tag="$(fetch "$API" 10 | jsonfilter -e '@.tag_name' 2>/dev/null)"
+	fetch "$API" 10 "$APIJSON" || { echo "ERR: cannot reach the GitHub release API"; exit 1; }
+	tag="$(jsonfilter -i "$APIJSON" -e '@.tag_name' 2>/dev/null)"
 	[ -n "$tag" ] || { echo "ERR: cannot reach the GitHub release API"; exit 1; }
 	echo "$now $tag" > "$CACHE"
 	echo "$tag"
+	exit 0
+	;;
+notes)
+	# The GitHub release body, for the confirm dialog (versions + notes + breaking-change banner). It
+	# rides the cached $APIJSON that `check` already saved — no extra API call in the common path,
+	# where the badge (a `check`) has just been shown. Only if the cache is absent does it fetch once.
+	#
+	# The OUTPUT IS THE PAYLOAD, not a keyword: the client reads the whole stdout as untrusted display
+	# text and renders it as a text node (never markup) — it is shown BEFORE the signature is verified.
+	# Best-effort: any failure yields an empty body, and the dialog simply omits the notes.
+	[ -f "$APIJSON" ] || fetch "$API" 10 "$APIJSON" >/dev/null 2>&1
+	[ -f "$APIJSON" ] && jsonfilter -i "$APIJSON" -e '@.body' 2>/dev/null
 	exit 0
 	;;
 status)

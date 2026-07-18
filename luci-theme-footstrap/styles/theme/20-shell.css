@@ -390,6 +390,20 @@
 	.fs-ap-badge[hidden] { display: none; }
 	.fs-ap-badge:hover { filter: var(--fs-hover-lift); }
 
+	/* the one-click Update confirm dialog (a ui.showModal, not this popover): the version step, an
+	 * optional breaking-change banner (.alert-message.warning, already styled), and the release notes
+	 * as scrollable preformatted text. The notes are untrusted (rendered as a text node) — see
+	 * fs-update.js fetchNotes; the box only frames them. */
+	.fs-ap-upd-head { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 0 0 8px; }
+	.fs-ap-upd-warn { margin-bottom: 10px; }
+	.fs-ap-upd-noteshead { font-size: 11px; font-weight: 600; color: var(--fs-dim); margin: 10px 0 4px; }
+	.fs-ap-upd-notes {
+		max-height: 40vh; overflow: auto; margin: 0;
+		padding: 10px 12px; border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
+		background: var(--fs-panel2); color: var(--fs-text);
+		font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+	}
+
 	/* update indicator: a green dot on the Appearance trigger, added by
 	 * fs-appearance.js (.fs-has-update) when fs-update finds a newer release. The panel-coloured ring lifts
 	 * it off the icon. */

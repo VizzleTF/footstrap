@@ -45,8 +45,10 @@ it against the installed version (`ver.VERSION`) and lights the dot/badge when t
 release is newer. Failure is silent: no answer from the API means no badge, and the
 version still shows.
 
-The backend caches the result in `/var/run/footstrap-update/latest` for **5
-minutes** (`CACHE_TTL=300`). It is a trade: the TTL is exactly how long a fresh
+The backend caches two files in `/var/run/footstrap-update/` for **5 minutes**
+(`CACHE_TTL=300`): `latest` (the `ts tag` meta line) and `api.json` (the full
+`releases/latest` answer, so `notes` can read the release body without a second API
+call). It is a trade: the TTL is exactly how long a fresh
 release stays invisible. An hour (the first version) lagged the badge by most of a
 release; 5 minutes is at worst 12 calls an hour even with the admin hammering F5,
 well inside the budget of 60. The JS memoises the result on top of that, once per
@@ -76,10 +78,12 @@ The protocol is one line on stdout:
 ```
 <no args>  -> STARTED | RUNNING        spawn worker / already running
 status     -> RUNNING | OK | ERR: … | IDLE
-check      -> v<tag> | ERR: …          latest release, cached
+check      -> v<tag> | ERR: …          latest release tag, cached
+notes      -> <release body> | ""      the release notes, cached (multi-line)
 ```
 
-The client reads the **keyword, not the exit code**.
+The client reads the **keyword, not the exit code** — except `notes`, whose whole
+stdout is the payload (see below).
 
 **The lock is `mkdir`.** Two RPCs arriving together must not both start an install.
 Read-then-write is not atomic: a status check followed by a spawn both read "not
@@ -109,14 +113,80 @@ are free. Any session holding the ACL could call `__run` directly — which woul
 What it installs: **the theme AND the updater itself**, each by package name
 (`luci-theme-footstrap`, `luci-app-footstrap-updater`), never by a bare
 `\.$EXT$`. The theme is required — its absence in a release is a hard fail. The
-updater is optional (a release older than the split does not carry it), but when it
-is present it is installed too, so the updater never lags the theme it drives. The
-order is theme first, updater second — the updater package overwrites the running
+updater is **optional in both directions**: a release older than the split does not
+carry it (skipped), *and* a present updater whose install fails is **non-fatal once
+the theme is in**. `fetch_verify_install` installs nothing on a verify failure, so a
+bad/tampered/short updater asset leaves the old, already-verified updater intact to
+retry next time — the theme is the point of the update, and it succeeded, so the run
+still finalises (drops caches, writes `OK`, the client reloads) instead of reporting
+a failure that would strand the freshly-installed theme behind stale caches. (It once
+did `|| return 1` here, which left the new theme on disk while `status=ERR` and the
+caches undropped: the update looked failed and the new theme never visibly applied.)
+The order is theme first, updater second — the updater package overwrites the running
 script, which is why the worker runs from a copy.
 
 Once done, the script drops the LuCI caches (`/tmp/luci-indexcache*`,
 `/tmp/luci-modulecache`) and writes `OK`. The client sees `OK`, waits 1.2 s, and
 calls `location.reload()`.
+
+## What the confirm dialog shows before you commit
+
+The button no longer installs blind. Between the click and the download, the confirm
+dialog carries three things, so the admin decides with the same information a manual
+`opkg`/`apk` upgrade would give: **which versions**, **what changed**, and **whether
+the release flags a breaking change**.
+
+**Versions (`current → latest`).** The dialog heads with `vX → vY`, read from
+`ver.VERSION` (installed, the theme's own) and the `latest` the check already
+resolved. No extra call — the check memo is reused.
+
+**Release notes.** `fs-update.js` asks the backend for `notes`, which returns the
+GitHub release body (the text `tools/release-notes.sh` generated from
+`CHANGELOG.md`). It rides the **same cached API answer** the check fetched: `check`
+now saves the full `releases/latest` JSON to `$WD/api.json`, and both `check`
+(tag) and `notes` (`@.body`) read from it — one API call feeds both. If the JSON is
+absent (notes asked before any check), `notes` fetches once.
+
+The notes are **untrusted display text and rendered as a text node only** — never as
+markup. This is the one string in this flow that is shown *before* the signature is
+verified: it arrives over TLS from the API but carries no `usign` proof, so treating
+it as data (a `<pre>`, capped in length, `textContent`) is deliberate, not
+incidental. A compromised release could put anything in the body; it must not be able
+to put anything in the DOM.
+
+**Breaking-change warning.** A coloured banner appears above the notes when the
+release looks like it needs care before updating. The signal is the notes text, and
+the maintainer controls it through the changelog wording (docs/21): the banner fires
+when the body carries a `### Removed` or `### Security` heading, or the word
+`breaking` (case-insensitive). It is **advisory** — it does not block the update, it
+tells the admin to read the notes first. There is deliberately no version-jump
+heuristic: this is 0.x software, where by semver a minor bump may break, so a
+"major bump = breaking" rule would either never fire (major stays 0) or, inverted to
+minor, fire on nearly every release. An explicit signal the changelog author sets is
+the only one that carries real meaning.
+
+## Free-space preflight
+
+An install that runs out of room mid-`apk add` leaves `/www/luci-static/footstrap`
+half-written — the worst failure mode on an 8–16 MB device. Before the first
+download, the worker sums the sizes the API publishes for the assets it will fetch
+(`@.assets[*].size`) and checks two filesystems with `df -k`:
+
+- the **download** lands in `$WD` (`/var/run`, a tmpfs → RAM): require the largest
+  single asset plus a margin;
+- the **install** unpacks into the root overlay (flash): require roughly twice the
+  compressed size plus a margin.
+
+Too little on either → `ERR: not enough …`, reported before a single byte is
+downloaded, so the admin sees a clear cause instead of a truncated tree.
+
+This preflight is a **UX safety net, and it fails OPEN**: if the API omits an asset
+size, or `df` cannot read a filesystem, the check is skipped and the install
+proceeds. That is the opposite of the trust chain's fail-closed rule, and on
+purpose — space is not a security property. The signature and the checksum are the
+gates that must fail closed; a missing size must not be able to stop a legitimate,
+correctly-signed update. Worst case, without the preflight, is the pre-existing
+behaviour: `apk` fails and the client shows its error.
 
 ## Why the install no longer logs you out
 
@@ -210,17 +280,26 @@ Check:
 
 ```
 fs-update.js  --fs.exec-->  selfupdate.sh check  --cache <5m?-->  cat latest
-                                                 --else-------->  GET api.github.com → tag_name → latest
+                                                 --else-------->  GET api.github.com → api.json → tag_name → latest
               <--v0.9.3 | ERR:--
 compare with ver.VERSION → badge
+```
+
+Confirm (on button press, before install):
+
+```
+fs-update.js  --fs.exec notes-->  selfupdate.sh notes  --cached api.json?-->  jsonfilter @.body
+              <--release body (text)--
+dialog: "vCUR → vLAT"  +  [breaking? warning banner]  +  <pre> notes </pre>  +  Cancel / Update
 ```
 
 Install:
 
 ```
-Update button
+Update button → Update (in dialog)
   --fs.exec (no args)-->  mkdir lock → cp $0 $WORKER → spawn $WORKER __run → "STARTED"
                           worker: GET release.json
+                                  preflight: sum asset sizes vs df (tmpfs + overlay) → ERR if short
                                   theme:   fetch → sha256 → usign → apk/opkg add
                                   updater: same (optional)
                                   drop LuCI caches → "OK"

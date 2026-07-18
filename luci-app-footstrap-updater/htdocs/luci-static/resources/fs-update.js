@@ -100,6 +100,27 @@ function checkFootstrapUpdate() {
  * returns STARTED; we poll `status` until it flips to OK or ERR. */
 const FS_UPDATE_POLL_MS = 2000;
 const FS_UPDATE_LIMIT_MS = 300000;
+const FS_NOTES_MAX = 4000;	/* cap on the untrusted release body we render */
+
+/* The release notes for the confirm dialog. This is UNTRUSTED display text and the only string in
+ * this flow shown BEFORE the signature is verified: it comes over TLS from the API but carries no
+ * usign proof. It is rendered as a text node only (never markup) and capped in length. Best-effort —
+ * any failure yields an empty body and the dialog simply omits the notes. */
+function fetchNotes() {
+	return window.L.require('fs')
+		.then((fs) => fs.exec(FS_UPDATE_SCRIPT, [ 'notes' ]))
+		.then((res) => String((res && res.stdout) || '').trim().slice(0, FS_NOTES_MAX))
+		.catch(() => '');
+}
+
+/* Advisory breaking-change signal, set by the maintainer through the changelog wording (docs/21): a
+ * `### Removed`/`### Security` heading, or the word "breaking". No version-jump heuristic — this is
+ * 0.x software where a minor bump may break, so a semver "major = breaking" rule would either never
+ * fire (major stays 0) or, inverted to minor, fire on nearly every release. The parentheses around
+ * each regex are the jsmin regex-vs-division guard (fs-version.js explains it). */
+function isBreaking(notesText) {
+	return (/(^|\n)#{1,6}\s*(removed|security)\b/i).test(notesText) || (/breaking/i).test(notesText);
+}
 
 function runSelfUpdate() {
 	/* Everything below belongs to THIS run. navigation bumps _updGen via cancel(), so a resolved RPC
@@ -116,13 +137,40 @@ function runSelfUpdate() {
 		E('p', {}, [ _('Update failed') + ': ' + String(msg || _('unknown error')).replace(/^ERR:\s*/, '').trim() ]),
 		E('div', { 'class': 'right' }, E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Close')))
 	]);
-	modal([
-		E('p', {}, _('Download and install the latest Footstrap release from GitHub? The page reloads when done.')),
-		E('div', { 'class': 'right' }, [
+	/* The confirm dialog, built once the versions and the release notes are known. It carries three
+	 * things so the admin decides informed: the version step (current -> latest), the release notes
+	 * (a text node, never markup — see fetchNotes), and a breaking-change banner when isBreaking().
+	 * doUpdate is hoisted (function declaration below), so referencing it here is fine. */
+	function showConfirm(cur, lat, notesText) {
+		if (stale()) return;
+		/* both sides get exactly one leading "v": ver.VERSION carries none ("0.9.0"), the release tag
+		 * carries one ("v0.9.3"), and prepending unconditionally printed "vv0.9.3". */
+		const vtag = (s) => 'v' + String(s).replace(/^v/, '');
+		const body = [];
+		if (cur && lat)
+			body.push(E('p', { 'class': 'fs-ap-upd-head' }, [ vtag(cur) + ' → ' + vtag(lat) ]));
+		if (isBreaking(notesText))
+			body.push(E('div', { 'class': 'alert-message warning fs-ap-upd-warn' },
+				[ _('This release may contain breaking changes — read the notes below before updating.') ]));
+		body.push(E('p', {}, _('Download and install the latest Footstrap release from GitHub? The page reloads when done.')));
+		if (notesText) {
+			body.push(E('div', { 'class': 'fs-ap-upd-noteshead' }, [ _('Release notes:') ]));
+			body.push(E('pre', { 'class': 'fs-ap-upd-notes' }, [ notesText ]));
+		}
+		body.push(E('div', { 'class': 'right' }, [
 			E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Cancel')), ' ',
 			E('button', { 'class': 'btn cbi-button-action', 'click': doUpdate }, _('Update'))
-		])
-	]);
+		]));
+		modal(body);
+	}
+
+	/* Show a loading state while the notes are fetched, then the confirm. check() is memoised, so the
+	 * versions are already resolved; fetchNotes() rides the cache the badge's check just warmed. */
+	modal([ E('p', { 'class': 'spinning' }, _('Loading release notes…')) ]);
+	Promise.all([ checkFootstrapUpdate(), fetchNotes() ]).then((r) => {
+		const u = r[0] || {};
+		showConfirm(u.current, u.latest, r[1]);
+	});
 
 	/* The update no longer logs you out — postinst does `rpcd reload` (SIGHUP; re-reads the ACL dir,
 	 * all these packages need) instead of `rpcd restart`, which destroys every in-memory session.

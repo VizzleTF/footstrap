@@ -1,21 +1,21 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
-#: htdocs/luci-static/resources/fs-update.js:122
+#: htdocs/luci-static/resources/fs-update.js:158
 msgid "Cancel"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:117
+#: htdocs/luci-static/resources/fs-update.js:138
 msgid "Close"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:120
+#: htdocs/luci-static/resources/fs-update.js:152
 msgid ""
 "Download and install the latest Footstrap release from GitHub? The page "
 "reloads when done."
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:169
+#: htdocs/luci-static/resources/fs-update.js:214
 msgid "Downloading and installing…"
 msgstr ""
 
@@ -23,36 +23,50 @@ msgstr ""
 msgid "Footstrap theme self-update (install the latest release)"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:140
+#: htdocs/luci-static/resources/fs-update.js:166
+msgid "Loading release notes…"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:185
 msgid "Log in again"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:123
+#: htdocs/luci-static/resources/fs-update.js:154
+msgid "Release notes:"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:151
+msgid ""
+"This release may contain breaking changes — read the notes below before "
+"updating."
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:159
 msgid "Update"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:110
+#: htdocs/luci-static/resources/fs-update.js:131
 msgid "Update Footstrap"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:116
+#: htdocs/luci-static/resources/fs-update.js:137
 msgid "Update failed"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:136
+#: htdocs/luci-static/resources/fs-update.js:181
 msgid ""
 "Update installed. The router restarted its session service, so you have been "
 "logged out — sign in again to load the new theme."
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:153
+#: htdocs/luci-static/resources/fs-update.js:198
 msgid "Updated. Reloading…"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:146
+#: htdocs/luci-static/resources/fs-update.js:191
 msgid "timed out waiting for the installer"
 msgstr ""
 
-#: htdocs/luci-static/resources/fs-update.js:116
+#: htdocs/luci-static/resources/fs-update.js:137
 msgid "unknown error"
 msgstr ""
