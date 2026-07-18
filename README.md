@@ -55,7 +55,7 @@ A set you like can be saved as the router-wide default, so a fresh browser start
 **Faster than the stock theme.** Pages switch without a full reload. Measured over 38 pages against
 luci-theme-bootstrap: the median page opens 3.4× faster and the whole run takes 2.3× less time.
 Network requests per page drop from 15–48 to 0–8 — a page already in the cache fetches nothing. To
-run the benchmark yourself, see [docs/15](docs/15-benchmark-navigatsiya.md) (Russian).
+run the benchmark yourself, see [docs/15](docs/15-benchmark-navigation.md) (Russian).
 
 **It can update itself.** The router asks GitHub about new releases, not your browser, and
 Appearance → *Update now* installs one. Turn the check off in the same popover if you would rather

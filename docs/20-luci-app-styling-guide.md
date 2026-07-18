@@ -10,7 +10,7 @@ specific, it is called out.
 The survey behind it: 20 apps read line by line (OpenClash, passwall/passwall2, ssr-plus, mosdns,
 vssr, ssclash, podkop, justclash, homeproxy, nikki, alist, dockerman, diskman, istore, AdGuardHome,
 netspeedtest, partexp, taskplan, plus stock `openwrt/luci`), and the top-starred apps rendered on a
-live router. Evidence lives in [19](19-tretya-storona-luci-app.md).
+live router. Evidence lives in [19](19-third-party-luci-app.md).
 
 ---
 

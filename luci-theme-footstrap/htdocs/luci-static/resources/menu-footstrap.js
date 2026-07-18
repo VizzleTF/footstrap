@@ -12,7 +12,7 @@
  * chrome (mode menu, tabs, rail, router, popover) is bootstrapped by menu-footstrap-common, which
  * this file composes with by injecting renderMainMenu into common.init — a callback, not an
  * override, because a required LuCI module is a singleton and cannot be subclassed (docs/11).
- * Spec: docs/09-realizatsiya-sidebar.md */
+ * Spec: docs/09-sidebar-implementation.md */
 
 const ICONS = {
 	status:   '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',

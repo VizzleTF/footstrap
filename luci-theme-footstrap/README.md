@@ -1,7 +1,7 @@
 # luci-theme-footstrap (пакет)
 
 Тема LuCI для OpenWrt **24.10 и новее** (ucode-шаблоны). Дизайн — макет «OpenWrt
-Status Redesign» (`../docs/08-design-sistema.md`).
+Status Redesign» (`../docs/08-design-system.md`).
 
 Внутреннее имя: `footstrap`. Media-путь: `/luci-static/footstrap`.
 
@@ -22,7 +22,7 @@ Appearance: `localStorage` + атрибуты на `:root`, ничего не п
 **Граница темы:** тема даёт хром и дизайн-язык; контент страниц рисует view-JS
 `luci-mod-*`. Единственное исключение — `05_footstrap_overview_layout.js`: он
 не рисует своего контента, а только переставляет штатные секции overview.
-Подробно — `../docs/08-design-sistema.md`, раздел «Границы», и `../CLAUDE.md`.
+Подробно — `../docs/08-design-system.md`, раздел «Границы», и `../CLAUDE.md`.
 
 ## Структура
 
@@ -62,4 +62,4 @@ ssh router 'uci set luci.main.mediaurlbase=/luci-static/bootstrap; uci commit lu
 
 Перед пушем — `npm run check` (eslint, stylelint, axe, экспорт-ярус, i18n,
 `@mirror`, оси Appearance и остальные гейты). Правила и ловушки — в `../CLAUDE.md`;
-сборка пакета — `../docs/05-sborka-deploy-razrabotka.md`.
+сборка пакета — `../docs/05-build-deploy-development.md`.

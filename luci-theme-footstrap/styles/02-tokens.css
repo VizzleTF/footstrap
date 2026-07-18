@@ -14,7 +14,7 @@
 	 * docs/gallery.html with a hostile :root, 0 after the split. The bridge is OUTWARD-only;
 	 * audit.py fails on any read of an export name inside styles/.
 	 *
-	 * docs/08-design-sistema.md. Light = :root; dark = :root[data-darkmode="true"].
+	 * docs/08-design-system.md. Light = :root; dark = :root[data-darkmode="true"].
 	 * ============================================================ */
 	:root {
 		/* Palette COLOURS are in 03-palettes.css (one swappable block per colourway × mode);

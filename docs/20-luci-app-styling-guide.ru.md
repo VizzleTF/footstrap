@@ -10,7 +10,7 @@
 Что за этим стоит: 20 приложений, прочитанных построчно (OpenClash, passwall/passwall2, ssr-plus,
 mosdns, vssr, ssclash, podkop, justclash, homeproxy, nikki, alist, dockerman, diskman, istore,
 AdGuardHome, netspeedtest, partexp, taskplan и сток `openwrt/luci`), плюс самые звёздные
-приложения, отрисованные на живом роутере. Фактура — в [19](19-tretya-storona-luci-app.md).
+приложения, отрисованные на живом роутере. Фактура — в [19](19-third-party-luci-app.md).
 
 ---
 

@@ -172,7 +172,7 @@ console.log(`changelog: ${vcount} version(s), mirror in lockstep, sections canon
 if (fails.length) {
 	console.error('\nchangelog: FAILED\n');
 	for (const f of fails) console.error(`  ${f}`);
-	console.error('\nThe contract is docs/21-changelog-stil-i-format.md. Both files are edited in one commit.');
+	console.error('\nThe contract is docs/21-changelog-style-and-format.md. Both files are edited in one commit.');
 	process.exit(1);
 }
 

@@ -6,7 +6,7 @@
 [SemVer](https://semver.org/). Разделы, в фиксированном порядке: Добавлено,
 Изменено, Устарело, Удалено, Исправлено, Безопасность, Производительность —
 по одному каждого типа на релиз. Руководство по стилю и формату:
-[docs/21-changelog-stil-i-format.md](docs/21-changelog-stil-i-format.md).
+[docs/21-changelog-style-and-format.md](docs/21-changelog-style-and-format.md).
 
 [CHANGELOG.md](CHANGELOG.md) — зеркало этого файла. Оба правятся одним коммитом.
 

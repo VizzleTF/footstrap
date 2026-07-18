@@ -5,7 +5,7 @@ Notable changes to `luci-theme-footstrap`, newest first. Format is
 [Conventional Commits](https://www.conventionalcommits.org/), versions are
 [SemVer](https://semver.org/). Sections, in fixed order: Added, Changed,
 Deprecated, Removed, Fixed, Security, Performance — one of each per release.
-Style and format guide: [docs/21-changelog-stil-i-format.md](docs/21-changelog-stil-i-format.md).
+Style and format guide: [docs/21-changelog-style-and-format.md](docs/21-changelog-style-and-format.md).
 
 [CHANGELOG_ru.md](CHANGELOG_ru.md) mirrors this file. Edit both in one commit.
 

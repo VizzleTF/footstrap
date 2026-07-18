@@ -570,7 +570,7 @@ to both as well, when a tag is asked for.
 
 ## CHANGELOG — every commit writes into `## [Unreleased]`, and a tag renames it
 
-**Full style + format guide: `docs/21-changelog-stil-i-format.md`** (research-backed against Keep
+**Full style + format guide: `docs/21-changelog-style-and-format.md`** (research-backed against Keep
 a Changelog 1.1.0, Common Changelog and Conventional Commits) — the single source of truth for
 category set, fixed section order, entry structure and the release workflow. Always follow it; the
 summary below is the pointer, the doc is the contract.
