@@ -4,7 +4,8 @@
 	 * Hover text is ACCENT to match the open cbi-dropdown list: this is a form control's menu. */
 	.dropdown-menu { background-color: var(--fs-panel); border-color: var(--fs-border); }
 	.dropdown-menu a { color: var(--fs-text); text-shadow: none; }
-	.dropdown-menu a:hover { background: var(--fs-panel2); background-image: none; color: var(--fs-accent); }
+	.dropdown-menu a:hover,
+	.dropdown-menu a:focus-visible { background: var(--fs-panel2); background-image: none; color: var(--fs-accent); }
 
 	/* Split "Save & Apply": a plain dropdown in the action bar carries no frame of its own. */
 	.cbi-page-actions .cbi-dropdown {
@@ -301,7 +302,9 @@
 	 * eats its own contrast. axe never saw it because no gallery case rendered an OPEN dropdown
 	 * with a chosen value; the widget shipped that way on every dark router. */
 	.cbi-dropdown[open] > ul.dropdown > li[selected] {
+		/* @mirror selected-row/paint */
 		background: var(--fs-panel2); color: var(--fs-accent); box-shadow: inset 2px 0 0 var(--fs-accent);
+		/* @endmirror */
 	}
 	.cbi-dropdown[open] > ul.dropdown > li.create-item { border-top: 1px solid var(--fs-border); margin-top: 4px; }
 	/* The dropdown's "add item" field is a text input and takes the same radius as every other
@@ -346,8 +349,10 @@
 		.table.cbi-section-table .thead,
 		.table.cbi-section-table .tr.cbi-section-table-titles,
 		.table.cbi-section-table .tr.cbi-section-table-descr { display: none; }
+		/* no align-items: flex-start — stretch keeps a pair's cells (and their separators) the
+		 * same height when one wraps; see the data card's .tr in theme/30-tables.css. */
 		.table.cbi-section-table .tr {
-			display: flex; flex-wrap: wrap; align-items: flex-start; width: auto;
+			display: flex; flex-wrap: wrap; width: auto;
 			border: 1px solid var(--fs-border);
 			border-radius: var(--fs-radius-lg);
 			background: var(--fs-panel2);
@@ -366,6 +371,12 @@
 		.table.cbi-section-table .td {
 			flex: 1 1 100%; min-width: 0; margin: 0;
 			padding: 6px 10px 6px 0; border: 0; text-align: left;
+			/* same as the data card's cells (theme/30-tables.css): a carded cell holds opaque
+			 * tokens (a real-length IPv6 GUA is 39 chars with no break point — colons are not
+			 * break opportunities), and without `anywhere` one ran 156px past a 360px viewport
+			 * on the Interfaces page. overflow-wrap inherits, so the inner spans get it too;
+			 * white-space beats the `.nowrap` class LuCI puts on some cells. */
+			overflow-wrap: anywhere; white-space: normal;
 		}
 		/* A cell that only READS a value (dummy text, a flag, one button) is short, so two fit on a
 		 * line; anything with a real widget keeps the full width (the 100% basis above) — a dropdown
@@ -398,7 +409,10 @@
 			/* @endmirror */
 		}
 		.table.cbi-section-table .td.cbi-section-actions::before { content: none; }
-		.table.cbi-section-table .td.cbi-section-actions > * { flex: 1 1 auto; display: flex; gap: 8px; }
+		/* flex-wrap: LuCI groups the row's buttons in ONE inner <div>, so the td's own wrap
+		 * (above) never fires — the div is a single flex item. Four buttons are ~330px; on a
+		 * 320px phone the carded interfaces row overflowed its section by 17px. */
+		.table.cbi-section-table .td.cbi-section-actions > * { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; }
 		.table.cbi-section-table .td .cbi-dropdown,
 		.table.cbi-section-table .td select,
 		.table.cbi-section-table .td input[type="text"] { width: 100%; min-width: 0; }

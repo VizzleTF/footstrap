@@ -32,12 +32,14 @@
 		height: 100%;
 	}
 
-	a:focus {
-		outline: thin dotted;
-	}
-
-	a:hover, a:active {
-		outline: 0;
+	/* :focus-visible, not :focus — the ring is for the keyboard; a mouse click focuses too and
+	 * the UA heuristic keeps the ring off it. Replaces the 2001-era `thin dotted` (plus its
+	 * `a:hover, a:active { outline: 0 }` companion, needless once the ring is keyboard-only):
+	 * dotted 1px was the only focus indicator generic links had, and it is near-invisible on
+	 * a dark panel. */
+	a:focus-visible {
+		outline: 2px solid var(--fs-accent);
+		outline-offset: 2px;
 	}
 
 	sub, sup {

@@ -39,9 +39,12 @@
 	 * backdrop-sampling layer over cats.svg — costly on weak GPUs, and invisible anyway
 	 * since every button is already opaque. Blur dropped from buttons entirely; closed
 	 * dropdowns keep the frost (few of them, and their body can show the cats through). */
+	/* var(--fs-blur), not a literal: one radius for every frosted surface (02-tokens.css), and
+	 * the literal 6px was also invisible to prefers-reduced-transparency, which nulls the token
+	 * (95-a11y-media.css) — the one frost that kept blurring for users who asked for opaque. */
 	:root[data-wallpaper="cats"] .cbi-dropdown:not([open]) {
-		backdrop-filter: blur(6px);
-		-webkit-backdrop-filter: blur(6px);
+		backdrop-filter: var(--fs-blur);
+		-webkit-backdrop-filter: var(--fs-blur);
 	}
 
 	/* No wash layer behind #view: the wallpaper shows through the gaps between the cards at

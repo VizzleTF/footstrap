@@ -338,7 +338,12 @@
 	.table.fs-stacked .thead,
 	.table.fs-stacked .tr.cbi-section-table-titles,
 	.table.fs-stacked .tr.cbi-section-table-descr { display: none; }
-	.table.fs-stacked .tr { display: flex; flex-wrap: wrap; align-items: flex-start; }
+	/* align-items: stretch (the default), NOT flex-start: the cells carry a per-cell
+	 * border-bottom, so when one cell of a pair wraps (a 2-line hostname beside a 1-line MAC)
+	 * a flex-start neighbour stays short and its separator paints 52px higher — a broken line
+	 * mid-card (measured). Stretched, both cells take the flex line's height and the
+	 * separators meet; content still sits at the top (the cells are blocks). */
+	.table.fs-stacked .tr { display: flex; flex-wrap: wrap; }
 	.table.fs-stacked .td {
 		display: block; min-width: 0; width: auto;
 		padding: 6px 10px 6px 0; border: 0; text-align: left;

@@ -137,6 +137,14 @@
 		background: var(--fs-track); border: 1px solid var(--fs-border);
 		cursor: pointer; transition: background var(--fs-dur), border-color var(--fs-dur); vertical-align: middle;
 	}
+	/* The input is opacity:0/0x0, so this label IS the whole hit box of LuCI's most common
+	 * control — and at 22px tall it sits under the 24px floor of WCAG 2.5.8. The floor is about
+	 * the CLICKABLE area, not the drawing: an invisible overlay stretches the target to 44x30
+	 * without fattening the pill (the visual 44x24 version was tried and looked bloated).
+	 * position:absolute, so it adds nothing to layout; the knob keeps ::after. */
+	.cbi-checkbox > label::before {
+		content: ""; position: absolute; inset: -4px -2px;
+	}
 	.cbi-checkbox > label::after {
 		content: ""; position: absolute; top: 2px; left: 2px;
 		width: 16px; height: 16px; border-radius: 50%;
@@ -345,7 +353,14 @@
 		}
 		.cbi-value-field select option::checkmark { display: none; }
 		.cbi-value-field select option:hover, .cbi-value-field select option:focus-visible { background: var(--fs-panel2); }
-		.cbi-value-field select option:checked { color: var(--fs-accent); background: var(--fs-accent-soft); }
+		/* Opaque surface + inset rail, same shape as the open .cbi-dropdown's selected row
+		 * (theme/65-dropdown.css): accent text on --fs-accent-soft measured 4.21:1 in dark,
+		 * under AA — the tint of the accent eats its own contrast. */
+		.cbi-value-field select option:checked {
+			/* @mirror selected-row/paint */
+			background: var(--fs-panel2); color: var(--fs-accent); box-shadow: inset 2px 0 0 var(--fs-accent);
+			/* @endmirror */
+		}
 	}
 
 	/* .cbi-select — the legacy luci-compat shell (a div around a native <select>). Absorbed from
@@ -647,6 +662,8 @@
 	input[type="range"]::-moz-range-thumb {
 		width: 16px; height: 16px; border-radius: 50%;
 		background: var(--fs-accent); border: 2px solid var(--fs-panel); cursor: pointer;
+		/* same shadow the -webkit thumb carries — Firefox had silently drifted flat */
+		box-shadow: var(--fs-shadow);
 	}
 	input[type="range"]::-moz-range-track { background: var(--fs-track); height: 6px; border-radius: var(--fs-radius-pill); }
 	input[type="range"]:focus { box-shadow: var(--fs-focus-ring); }

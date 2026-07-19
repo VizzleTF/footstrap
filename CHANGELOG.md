@@ -37,6 +37,13 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **The mode strip's empty/single-mode hiding is one rule per layout instead of a byte-identical
+  hide pair in two files, and the poll glyph's mask recipe is `@mirror`-pinned.** The
+  `.fs-modemenu:empty/.single { display: none }` pair existed identically in the sidebar and the
+  top-layout files, unpinned — the exact drift shape `@mirror` exists for. Each layout's SHOW rule
+  now opts in via `:not(:empty):not(.single)` and the bar's base rule keeps the strip hidden
+  otherwise. The rail's and the compact top-bar's refresh glyph shared their mask declarations the
+  same unpinned way; those two copies are now held byte-identical by `npm run mirror`.
 - **The self-update package `luci-app-footstrap-updater` moved to its own repository, with its own
   tags and release stream.** It now lives at
   [VizzleTF/luci-app-footstrap-updater](https://github.com/VizzleTF/luci-app-footstrap-updater); this
@@ -81,6 +88,49 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **The toggle switch is a 44×30 click target — it shipped at 40×22, under the WCAG 2.5.8
+  floor.** The real checkbox inside `.cbi-checkbox` is `opacity: 0` at 0×0, so the label IS the
+  whole hit box of LuCI's most common control, and 22px sat under the same 24px minimum the
+  row-action buttons were already bumped to 32px for. The floor is about the clickable area, not
+  the drawing: an invisible `::before` overlay stretches the target while the pill keeps its
+  40×22 look (a visually fattened 44×24 was tried and rejected).
+- **Two spots still painted accent text on the accent's own translucent tint — the measured AA
+  failure (4.21:1) the open dropdown was cured of.** The section-title notice pill and the
+  base-select `option:checked` both wore `--fs-accent` on `--fs-accent-soft`; the tint drags the
+  surface toward the text and eats its own contrast. Both now sit on opaque `--fs-panel2` — the
+  pill's border carries the accent, the option takes the same inset rail as the open
+  `.cbi-dropdown`'s selected row (now `@mirror`-pinned so the two shapes cannot drift).
+- **Keyboard focus is visible on everything clickable that used to hide it.** Generic links had
+  only the 2001-era `outline: thin dotted` (near-invisible on a dark panel) — now a 2px accent
+  ring on `:focus-visible`. Tab links replaced their ring with `text-decoration: underline`,
+  indistinguishable from the hover state — now an inset accent ring. The `.dropdown-menu` items
+  (split Save & Apply) and the section-title show/hide pills showed nothing at all — both now
+  light up like their hover.
+- **The popover's Rounding/Tint slider thumb matches the form slider's: 16px, not 15.** Same
+  accent circle, same 2px panel border, four hand-written copies, one off-by-1 nobody chose; the
+  Firefox thumb of the generic slider had also silently drifted flat (no shadow) while the WebKit
+  one carried `--fs-shadow`.
+- **The cats-wallpaper dropdown frost obeys `prefers-reduced-transparency` now.** It was a literal
+  `blur(6px)` — the one frosted surface outside the `--fs-blur` token, so the a11y block that
+  nulls the token left it blurring for exactly the users who asked for opaque. It reads the token
+  (one radius for every frosted surface, per 02-tokens.css).
+- **A long opaque value in a carded config-table cell wraps instead of running off the card.**
+  The data card's cells already carried `overflow-wrap: anywhere; white-space: normal`; the
+  config card's copy had neither, and a value with no break point — a real-length IPv6 GUA is
+  39 characters and colons are not break opportunities — ran 156px past a 360px viewport on the
+  Interfaces page (measured). The two card contracts now state the same thing.
+- **Adjacent cells in a carded row keep one height, so the separators meet.** The card rows were
+  `align-items: flex-start`, and each cell paints its own hairline — the moment one cell of a
+  pair wrapped (a two-line hostname beside a one-line MAC) the neighbour stayed short and its
+  separator painted 52px higher, a broken line mid-card (measured). Stretch — the flex default —
+  gives both cells the line's height; content still sits at the top.
+- **A carded config-table row's buttons wrap instead of overflowing the section on a narrow
+  phone.** LuCI groups a row's actions in ONE inner `<div>`, so the carded cell's own
+  `flex-wrap` never fired — the div is a single flex item, and its four buttons (~330px) ran
+  17px past the section edge at a 320px viewport (Interfaces page, measured). The inner div now
+  wraps too.
+- **The uci-change legend swatches follow the Rounding axis.** Their `border-radius: 4px` literal
+  sat outside the radius scale while the sibling diff blocks were already on `--fs-radius-sm`.
 - **The legacy `.cbi-select` shell renders as designed again: one ▾ plate, an invisible inner
   select.** The theme's own select rules (chevron image, 8/34px padding, 38px min-height) sat in
   a later layer than base's "inner select is transparent and fills the shell" rules, so a

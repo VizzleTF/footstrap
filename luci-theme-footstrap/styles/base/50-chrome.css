@@ -35,8 +35,12 @@
 		outline: none;
 	}
 
+	/* A ring, not `text-decoration: underline` — hover underlines links too (20-typography.css),
+	 * so underline-only keyboard focus was indistinguishable from hover. Offset is NEGATIVE:
+	 * the tab row's container clips, so an outside ring loses its top or bottom edge. */
 	.tabs > li > a:focus-visible, .cbi-tabmenu > li > a:focus-visible {
-		text-decoration: underline;
+		outline: 2px solid var(--fs-accent);
+		outline-offset: -2px;
 	}
 
 	.cbi-tab-disabled[data-errors]::after {

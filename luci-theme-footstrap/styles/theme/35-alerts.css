@@ -104,5 +104,12 @@
 		margin: 0; min-width: 0; box-shadow: none;
 	}
 	.cbi-title .label:hover { color: var(--fs-text); border-color: var(--fs-dim); opacity: 1; }
-	.cbi-title .label.notice { opacity: 1; color: var(--fs-accent); border-color: var(--fs-accent); background: var(--fs-accent-soft); }
+	/* These pills toggle section visibility — interactive, so keyboard focus must show. */
+	.cbi-title .label:focus-visible {
+		outline: none; border-color: var(--fs-accent); box-shadow: var(--fs-focus-ring);
+	}
+	/* Surface stays OPAQUE (--fs-panel2 inherited from the base pill): accent text on
+	 * --fs-accent-soft is the accent-on-its-own-tint AA failure measured at 4.21:1 in the open
+	 * dropdown (theme/65-dropdown.css) — the border carries the accent instead. */
+	.cbi-title .label.notice { opacity: 1; color: var(--fs-accent); border-color: var(--fs-accent); }
 }

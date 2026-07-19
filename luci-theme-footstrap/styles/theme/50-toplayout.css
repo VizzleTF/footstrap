@@ -64,11 +64,11 @@
 
 	/* the mode strip (only rendered when a router has more than one top-level mode) takes
 	 * its own full-width row under the bar */
-	:root[data-layout="top"] .fs-modemenu {
+	/* :not(:empty):not(.single) instead of a hide pair — the bar's base rule (20-shell.css)
+	 * already hides the strip; see the sidebar twin there for why the pair was folded. */
+	:root[data-layout="top"] .fs-modemenu:not(:empty):not(.single) {
 		display: flex; order: 4; flex: 1 1 100%; margin: 0; gap: 4px;
 	}
-	:root[data-layout="top"] .fs-modemenu:empty,
-	:root[data-layout="top"] .fs-modemenu.single { display: none; }
 
 	/* the bar replaces the sidebar's 22px top padding with the top-nav's 26px */
 	:root[data-layout="top"] .fs-content { padding-top: 26px; }
@@ -114,8 +114,10 @@
 	:root[data-layout="top"] .fs-sidebar.fs-ind-compact #indicators [data-indicator="poll-status"]::before {
 		content: ""; width: var(--fs-icon-refresh-sz); height: var(--fs-icon-refresh-sz);
 		background: var(--fs-good);
+		/* @mirror poll-glyph/mask */
 		-webkit-mask: var(--fs-icon-refresh) center / var(--fs-icon-refresh-sz) no-repeat;
-		        mask: var(--fs-icon-refresh) center / var(--fs-icon-refresh-sz) no-repeat;
+		mask: var(--fs-icon-refresh) center / var(--fs-icon-refresh-sz) no-repeat;
+		/* @endmirror */
 	}
 	:root[data-layout="top"] .fs-sidebar.fs-ind-compact #indicators [data-indicator="poll-status"]:not([data-style="active"])::before {
 		background: var(--fs-dim);

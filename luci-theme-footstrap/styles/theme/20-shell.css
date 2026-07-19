@@ -252,9 +252,11 @@
 		}
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-spacer { display: block; flex: 1 1 auto; min-height: 12px; }
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-railtoggle { display: inline-flex; }
-		:root[data-layout="sidebar"]:not([data-narrow]) .fs-modemenu { display: flex; margin-top: 4px; }
-		:root[data-layout="sidebar"]:not([data-narrow]) .fs-modemenu:empty,
-		:root[data-layout="sidebar"]:not([data-narrow]) .fs-modemenu.single { display: none; }
+		/* :not(:empty):not(.single) in the SHOW rule, not a separate hide pair: the bar's base
+		 * rule (top of this file) already hides .fs-modemenu, so an empty/single-mode strip
+		 * simply never opts in. The hide pair existed twice (here and 50-toplayout.css),
+		 * byte-identical and unpinned — the drift shape @mirror exists for, folded instead. */
+		:root[data-layout="sidebar"]:not([data-narrow]) .fs-modemenu:not(:empty):not(.single) { display: flex; margin-top: 4px; }
 
 		/* vertical main nav */
 		:root[data-layout="sidebar"]:not([data-narrow]) .fs-sidebar ul.nav,
@@ -437,13 +439,16 @@
 		-webkit-appearance: none; appearance: none;
 		background: var(--fs-track); border-radius: var(--fs-radius-pill); cursor: pointer;
 	}
+	/* Thumb is 16px like the generic slider's (theme/60-inputs.css) — same accent circle,
+	 * same 2px panel border; only the TRACK is slimmer here (4px, popover density). It said
+	 * 15px, an off-by-1 nobody chose. */
 	input[type="range"].fs-range::-webkit-slider-thumb {
 		-webkit-appearance: none; appearance: none;
-		width: 15px; height: 15px; border-radius: 50%;
+		width: 16px; height: 16px; border-radius: 50%;
 		background: var(--fs-accent); border: 2px solid var(--fs-panel); box-shadow: var(--fs-shadow);
 	}
 	input[type="range"].fs-range::-moz-range-thumb {
-		width: 15px; height: 15px; border-radius: 50%;
+		width: 16px; height: 16px; border-radius: 50%;
 		background: var(--fs-accent); border: 2px solid var(--fs-panel); box-shadow: var(--fs-shadow);
 	}
 	input[type="range"].fs-range::-moz-range-track {
@@ -600,8 +605,10 @@
 		:root[data-layout="sidebar"]:not([data-narrow])[data-rail="true"] .fs-sidebar #indicators [data-indicator="poll-status"] {
 			font-size: 0; width: 30px; height: 30px; padding: 0;
 			border: 0; box-shadow: none; background: var(--fs-good);
+			/* @mirror poll-glyph/mask */
 			-webkit-mask: var(--fs-icon-refresh) center / var(--fs-icon-refresh-sz) no-repeat;
 			mask: var(--fs-icon-refresh) center / var(--fs-icon-refresh-sz) no-repeat;
+			/* @endmirror */
 			/* STATIC, deliberately. A spinner promises something you are WAITING for; this is a
 			 * poll running quietly in the background forever, and a permanently spinning glyph
 			 * makes an idle router look busy. The spin also broke the click that pauses the poll —

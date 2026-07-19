@@ -60,5 +60,6 @@
 	#modal_overlay .uci-dialog div > var { border-radius: var(--fs-radius-sm); }
 	#modal_overlay .uci-change-legend-label > ins,
 	#modal_overlay .uci-change-legend-label > del,
-	#modal_overlay .uci-change-legend-label > var { border-radius: 4px; overflow: hidden; }
+	/* same token as the diff blocks above — a literal 4px sat outside the Rounding axis */
+	#modal_overlay .uci-change-legend-label > var { border-radius: var(--fs-radius-sm); overflow: hidden; }
 }
