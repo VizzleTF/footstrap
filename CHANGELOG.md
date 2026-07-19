@@ -34,6 +34,17 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   — the missing updater asset is skipped, non-fatally — and moves onto the new repo's updater by
   re-running `install.sh` once, the same one-time migration the project has used before.
 
+### Fixed
+
+- **Toggle/checkbox rows with no help sentence floated the control ~5px above its label.** A CBI
+  value row aligns on the text baseline so a label lines up with a select/input/dropdown's first
+  line, but a `.cbi-checkbox` toggle is an `inline-flex` box with no line box — its synthesised
+  baseline is the box's bottom edge, so the row hung the toggle from the label's baseline and lifted
+  it above (measured 5px, every toggle/checkbox row across the UI). Rows whose field is a bare
+  checkbox/radio now centre instead — scoped to exclude any row carrying a `.cbi-value-description`,
+  where centring would drop the label to the middle of control+help. Delta is 0 on both 24.10 and
+  25.12.
+
 ## [0.9.3] — 2026-07-17
 
 ### Added

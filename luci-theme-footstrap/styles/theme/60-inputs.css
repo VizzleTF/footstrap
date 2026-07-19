@@ -13,6 +13,15 @@
 		display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center;
 	}
 	.cbi-value:last-child { border-bottom: 0; }
+	/* A toggle/checkbox field has NO text baseline: `.cbi-checkbox` is inline-flex with no line
+	 * box, so its synthesised baseline is the box's BOTTOM edge. Under align-items:baseline the row
+	 * then hangs the toggle from the label's baseline and floats it ~5px ABOVE the label, on every
+	 * toggle row across the UI. Centre those rows instead — but ONLY when no help sentence sits under
+	 * the control: with a `.cbi-value-description` present, centring drops the label to the middle
+	 * of control+description, the exact regression the align-items comment above warns about. */
+	.cbi-value:not(:has(.cbi-value-description)):has(> .cbi-value-field > .cbi-checkbox, > .cbi-value-field > div > .cbi-radio) {
+		align-items: center;
+	}
 	/* keep base's padding-top: 6px — it is tuned for base's align-items: baseline. */
 	.cbi-value-title { color: var(--fs-dim); font-size: 13px; font-weight: 600; }
 	/* Mono is for the *values* a field holds. The exclusions:
