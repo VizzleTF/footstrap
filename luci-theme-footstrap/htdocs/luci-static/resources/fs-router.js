@@ -60,6 +60,55 @@ let _curPath = window.location.pathname;
  * URL/title/chrome. A resolved require whose generation is stale renders nothing. */
 let _navGen = 0;
 
+/* ---- Back must restore the sidebar layout's scroll, and the DOCUMENT is not the scroller there ----
+ * In the top layout the document scrolls and the browser's own scrollRestoration ('auto') restores it
+ * on popstate. In the sidebar layout the scroller is #maincontent (.fs-main owns overflow-y), and a
+ * browser restores INNER scrollable regions only across full loads, never on a same-document
+ * traversal — measured (docs/22 §2): Back opened the incoming page at 0, because the swap empties
+ * #view, scrollHeight collapses and the browser clamps scrollTop. So the router records the offset
+ * itself. NOT by replaceState on scroll: Safari rate-limits history writes (100 per 30 s) and a
+ * scroll listener trips it. Each SPA entry instead carries a session-unique id (fsid) in
+ * history.state, and the offsets live in this in-memory Map — lost on a full load, which is exactly
+ * when the browser's own scrollable-region restoration takes over. The id is session-prefixed
+ * because a bare counter restarts with every document: an entry stamped by a PREVIOUS document of
+ * this tab would collide with a fresh one and restore another page's offset. */
+const _scrollMem = new Map();
+const _scrollSess = Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+let _histN = 0;
+let _curId = null;
+function newEntryId() { return _scrollSess + ':' + (++_histN); }
+
+/* adopt the entry we are standing on: reuse its fsid if it has one, stamp one otherwise (entries
+ * created by a full load carry state === null). replaceState keeps the entry's own scroll record. */
+function adoptEntry() {
+	const st = history.state;
+	if (st && st.fsid) { _curId = st.fsid; return; }
+	_curId = newEntryId();
+	try { history.replaceState(Object.assign({}, st, { fsid: _curId }), '', window.location.href); } catch (e) {}
+}
+
+/* the outgoing DOM is still on screen at both call sites (the click, the popstate), so this must
+ * run BEFORE _curId moves on to the incoming entry */
+function saveScroll() {
+	const sc = document.getElementById('maincontent');
+	if (_curId && sc) _scrollMem.set(_curId, sc.scrollTop);
+}
+
+/* Put #maincontent back where the entry left it — but only once the incoming view has grown that
+ * much height (docs/22 §5: restoring before the content exists is clamped to 0 and reads as
+ * "worked"). The view renders behind an RPC, so poll by frame; a newer navigation cancels via the
+ * generation, and a page that never reaches the old height again is simply left at the top. */
+function restoreScroll(top, gen) {
+	if (!top) return;
+	let tries = 300; /* ~5 s at 60 fps — outlasts a slow RPC without polling forever */
+	(function tick() {
+		if (gen !== _navGen || --tries < 0) return;
+		const sc = document.getElementById('maincontent');
+		if (sc && sc.scrollHeight - sc.clientHeight >= top) sc.scrollTop = top;
+		else requestAnimationFrame(tick);
+	})();
+}
+
 /* The view class the page CURRENTLY on screen wants (what _curPath resolves to). Read by the
  * stale-render repair below to tell "the superseded render happened to paint the right view
  * anyway" from "it painted the wrong one". */
@@ -176,6 +225,8 @@ function seed() {
 	const here = tree.viewClassFor(tree.currentNode());
 	if (here)
 		_seen.add(here);
+	/* the served page's entry needs an id too, or the first Back TO it has nothing to look up */
+	adoptEntry();
 }
 
 /* Status→Overview is a `template` node whose server template (admin_status/index.ut) defines 3
@@ -223,8 +274,9 @@ function ensureOverviewHelpers() {
 
 /* Attempt an in-place navigation to `pathname`. Returns true if handled as a
  * SPA nav (caller should preventDefault), false to let the browser do a normal
- * full navigation. `push` adds a history entry (false when replaying popstate). */
-function navigate(pathname, push) {
+ * full navigation. `push` adds a history entry (false when replaying popstate).
+ * `kbd` — the navigation was activated from the keyboard (see the focus block). */
+function navigate(pathname, push, kbd) {
 	const segs = tree.segsFromPath(pathname);
 	if (!segs) return false;
 
@@ -319,8 +371,13 @@ function navigate(pathname, push) {
 	 * second one. Clicking the active menu item is ordinary, and a duplicate entry makes Back do
 	 * nothing: popstate fires, `location.pathname === _curPath`, and the fragment guard below
 	 * correctly returns — one dead Back press per stray click. A full load has no such trap. */
-	if (push)
-		history[pathname === window.location.pathname ? 'replaceState' : 'pushState']({ fsnav: true }, '', pathname);
+	if (push) {
+		const same = pathname === window.location.pathname;
+		if (_curId == null) _curId = newEntryId();
+		/* a NEW entry gets a new id; re-navigating in place keeps the entry and therefore its id */
+		if (!same) _curId = newEntryId();
+		history[same ? 'replaceState' : 'pushState']({ fsnav: true, fsid: _curId }, '', pathname);
+	}
 
 	/* titles: <host> | <page> */
 	const host = (document.title.split('|')[0] || '').trim();
@@ -337,17 +394,11 @@ function navigate(pathname, push) {
 	 * can be static rather than a composited sticky layer (issue #7) — so reset it too; scrollTo on
 	 * whichever of the two is not the scroller is a harmless no-op.
 	 *
-	 * A popstate replay resets NOTHING, and "the browser handles it" is only half true — worth
-	 * knowing before someone reaches for scrollRestoration here. That API restores the DOCUMENT, and
-	 * in the sidebar layout the document is the box that never moved (measured: scrollHeight 800 ==
-	 * innerHeight, while .fs-main sat at 2937). What actually puts the incoming page at the top there
-	 * is the swap itself: #view empties, .fs-main's scrollHeight collapses and the browser CLAMPS
-	 * scrollTop to 0 — the incoming view renders behind an RPC, so a layout always happens while it
-	 * is empty. Measured on the router, both the first-visit and the cached view path: Back after
-	 * scrolling the outgoing page to 134/260 opened the incoming one at 0. So Back does not restore
-	 * scroll in the sidebar layout — nobody can, until something records .fs-main's offset in the
-	 * history entry — but it does not strand the outgoing page's offset either, which is the failure
-	 * this comment used to invite by claiming the browser had it covered. */
+	 * A popstate replay resets nothing on purpose: the DOCUMENT scroller (top layout) is restored by
+	 * the browser itself (scrollRestoration is 'auto'), and #maincontent (sidebar layout) is restored
+	 * by the popstate handler from _scrollMem — see restoreScroll(), and do not reach for
+	 * `history.scrollRestoration = 'manual'` here: it is inert for #maincontent and would take the
+	 * top layout's working document restoration away (docs/22 §2). */
 	if (push) {
 		window.scrollTo(0, 0);
 		const sc = document.getElementById('maincontent');
@@ -358,11 +409,17 @@ function navigate(pathname, push) {
 	 * renderChrome() has just done `#topmenu.innerHTML = ''`, so the very <a> the user activated with
 	 * Enter no longer exists: focus falls back to <body>, the next Tab restarts at the skip link, and
 	 * nothing says the page changed — URL, title and #view all moved in silence. So do what a real
-	 * navigation would: focus <main> (already tabindex="-1" for the skip link, and outline-less on
-	 * :focus) and speak the new title through header.ut's polite live region. preventScroll because
-	 * the scroll position is decided just above — focus() would otherwise drag a popstate replay back
-	 * to the top and undo the browser's own restoration. */
-	const main = document.getElementById('maincontent');
+	 * navigation would, and where matters (Sutton's five-prototype study, docs/22 §3): a KEYBOARD
+	 * activation (ev.detail === 0) moves focus to the skip link — a small target whose :focus overlay
+	 * tells a sighted keyboard user where they are, with Enter jumping straight to the content; its
+	 * text differs from the live region's announcement below, so the double announcement complements
+	 * rather than repeats. A pointer activation (and a popstate replay, whose modality is unknowable)
+	 * keeps the wrapper focus: focusing the skip link there would flash its overlay on every mouse
+	 * click. <main> keeps tabindex="-1" and its outline-less :focus for exactly that path.
+	 * preventScroll because the scroll position is decided just above — focus() would otherwise drag
+	 * a popstate replay back to the top and undo the restoration. */
+	const skip = kbd ? document.querySelector('.fs-skip') : null;
+	const main = skip || document.getElementById('maincontent');
 	if (main) main.focus({ preventScroll: true });
 	const live = document.getElementById('fs-nav-status');
 	if (live) live.textContent = node.title ? _(node.title) : '';
@@ -449,7 +506,10 @@ function wireRouter() {
 		 * reads location.search. Let those links full-load. */
 		if (url.search || url.hash) return;
 
-		if (navigate(url.pathname, true))
+		/* record the outgoing page's offset under the entry we are still ON; harmless when
+		 * navigate() declines (a full load throws the whole Map away anyway) */
+		saveScroll();
+		if (navigate(url.pathname, true, ev.detail === 0))
 			ev.preventDefault();
 	}, false);
 
@@ -485,8 +545,15 @@ function wireRouter() {
 		if (window.location.pathname === _curPath)
 			return;
 
+		/* the outgoing DOM is still up: record its offset under the entry we are LEAVING, then
+		 * adopt the entry we arrived on and look up what IT recorded when it was left */
+		saveScroll();
+		adoptEntry();
+		const target = _scrollMem.get(_curId);
 		if (!navigate(window.location.pathname, false))
 			window.location.reload();
+		else
+			restoreScroll(target, _navGen);
 	});
 }
 

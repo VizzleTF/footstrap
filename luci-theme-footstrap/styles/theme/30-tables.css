@@ -7,8 +7,11 @@
 		box-shadow: var(--fs-shadow);
 	}
 	.cbi-section { padding: var(--fs-card-pad); margin-bottom: 16px; }
-	/* a bare <legend>; the ones inside a .cbi-section are covered below */
-	legend { font-size: 14px; font-weight: 700; }
+	/* a bare <legend>; the ones inside a .cbi-section are covered below. The ink is the heading
+	 * ramp's (45-misc.css) — legend is kept out of that group so this rule stays its one owner;
+	 * no line-height here: base's `fieldset legend` sets 1 and every real legend sits in a
+	 * fieldset, so stating leading here would silently repaint them all through the layer. */
+	legend { font-size: 14px; font-weight: 700; color: var(--fs-text); }
 
 	/* overview (luci-mod-status) DOM:
 	 * .cbi-section > .cbi-title>h3 + div > table.table (.tr/.td) */
@@ -36,6 +39,19 @@
 	/* A data table straight in #view (no section: package-manager, Startup) misses the width
 	 * above, so it sized to preferred width and overflowed the content column. */
 	#view .table[id], table.fs-dt { width: 100%; }
+	/* Config-table fields fill their cell — moved from base with the generic field box in
+	 * theme/60-inputs.css (in base these beat its 210px in-layer; left behind they would lose
+	 * to it by layer), together with the numeric-cell refinement below them. */
+	.table.cbi-section-table input[type="password"],
+	.table.cbi-section-table input[type="text"],
+	.table.cbi-section-table textarea,
+	.table.cbi-section-table select,
+	.table.cbi-section-table .cbi-select {
+		width: 100%;
+		min-width: auto;
+	}
+	.table.cbi-section-table .td.cbi-section-table-cell select,
+	.table.cbi-section-table .td.cbi-section-table-cell .cbi-select { width: inherit; }
 	/* width:100% cannot shrink a table below min-content — one long unbreakable value holds the
 	 * floor. Breaking values reflows it into the ~984px column instead of scrolling. DHCP leases
 	 * need finer control (only DUID/IPv6 may break, not IPv4/MAC): pages/50-leases.css. */
@@ -132,6 +148,8 @@
 
 	/* generic links/labels inside cards */
 	.cbi-section .ifacebox, .cbi-section .zonebadge { border-radius: var(--fs-radius); }
+	/* moved from base with the generic field box (same layer arithmetic as the cell rules above) */
+	.zonebadge input { width: 6em; }
 	/* The device/MAC badge inside the Network status box kept base's flat 4px, reading as square
 	 * against the card's --fs-radius corners (issue #5.4). Scoped to the status box: the small
 	 * firewall zone .ifacebadge chips want to stay tight. Follows the Rounding axis via the token. */

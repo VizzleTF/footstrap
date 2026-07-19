@@ -72,23 +72,12 @@
 		border: none;
 	}
 
-	.table.cbi-section-table input[type="password"],
-	.table.cbi-section-table input[type="text"],
-	.table.cbi-section-table textarea,
-	.table.cbi-section-table select,
-	.table.cbi-section-table .cbi-select {
-		width: 100%;
-		min-width: auto;
-	}
+	/* cell-filling field widths (+ the numeric-cell refinement): theme/30-tables.css —
+	 * absorbed with the generic field box, which would out-layer them here */
 
 	.table.cbi-section-table .td.cbi-section-table-cell {
 		white-space: nowrap;
 		text-align: right;
-	}
-
-	.table.cbi-section-table .td.cbi-section-table-cell select,
-	.table.cbi-section-table .td.cbi-section-table-cell .cbi-select {
-		width: inherit;
 	}
 
 	.td.cbi-section-actions {
@@ -331,9 +320,7 @@
 		display: inline-block;
 	}
 
-	.zonebadge input {
-		width: 6em;
-	}
+	/* .zonebadge input width: theme/30-tables.css — absorbed with the generic box */
 
 	.zonebadge > .ifacebadge {
 		margin-left: 2px;
@@ -615,9 +602,7 @@
 		min-width: 150px;
 	}
 
-	.cbi-filebrowser .upload > div > input {
-		width: 100%;
-	}
+	/* the upload input's width: theme/60-inputs.css — absorbed with the generic box */
 
 	@keyframes fade-in {
 		0% { opacity: 0; }

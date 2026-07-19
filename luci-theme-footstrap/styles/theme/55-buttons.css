@@ -14,6 +14,9 @@
 	.cbi-button, .btn,
 	input[type="button"], input[type="submit"], input[type="reset"] {
 		display: inline-flex; align-items: center; justify-content: center;
+		/* auto, stated: theme/60-inputs.css's generic `input` box says 210px x 32px, and a base
+		 * reset would lose to it by layer — a button sizes to its label */
+		width: auto; height: auto;
 		min-height: 36px;
 		padding: 7px 14px;
 		font-family: var(--fs-font-sans); font-weight: 600; line-height: 1.1;
@@ -22,14 +25,22 @@
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius);
 		box-shadow: none; text-shadow: none;
+		/* border-COLOR, not `border`: the shorthand animates border-width too — a layout
+		 * animation on every hover instead of a paint one (absorbed from base with the ring) */
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
-	.cbi-button:hover, .btn:hover,
+	/* bare `button` rides along: a third-party app's unclassed <button> hovered the same border
+	 * cue in base's old glow rule, and border-color is a no-op on its border: 0 box — harmless
+	 * there, meaningful the moment the app gives it a border */
+	.cbi-button:hover, .btn:hover, button:hover,
 	input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover { border-color: var(--fs-dim); }
 
 	/* Keyboard focus — not decoration: without this a button shows NOTHING on focus. The
-	 * `box-shadow: none` above kills base/30-forms.css's focus ring (theme beats base
-	 * regardless of specificity) and base's `outline: 0` has already removed the UA one, so
-	 * Save, Save & Apply, Reset, every row action and the login submit all looked untabbable.
+	 * `box-shadow: none` above kills any stray focus glow (theme beats base regardless of
+	 * specificity), and the UA outline only ever shows on :focus-visible, which this rule
+	 * restyles — so Save, Save & Apply, Reset, every row action and the login submit would
+	 * otherwise look untabbable. A plain mouse :focus deliberately shows nothing: base's old
+	 * glow rang every clicked button, and the pressed cue below already answers the click.
 	 * Same --fs-focus-ring as every field, so focus looks like one thing. */
 	.cbi-button:focus-visible, .btn:focus-visible,
 	input[type="button"]:focus-visible, input[type="submit"]:focus-visible, input[type="reset"]:focus-visible {

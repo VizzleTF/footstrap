@@ -121,6 +121,27 @@
 	.pager.center { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 10px; padding: 14px 0; }
 	.pager .text { flex: 0 0 auto; font-size: 12px; color: var(--fs-dim); }
 
+	/* The heading ramp — absorbed from base wholesale (docs/17, the "native elements and
+	 * typography" category). Stock LuCI hands h2 to a page title and h3/legend to a section
+	 * title, and the heading-card rule below + theme/30-tables.css repaint exactly those two —
+	 * so most of the ramp is only ever rendered by a third-party luci-app-*; it is styled
+	 * anyway, coverage is a contract. Every step is a scale token and the ramp is monotonic.
+	 * `legend` is deliberately NOT in the group: theme/30-tables.css owns legend (and carries
+	 * the ramp's ink), and a member here would fight it at equal specificity, i.e. on source
+	 * order — the one thing a cascade must not rest on. */
+	h1, h2, h3, h4, h5, h6 {
+		font-weight: bold;
+		color: var(--fs-text);
+		/* 1.5 is prose leading; a heading is a label and looks slack at it. */
+		line-height: var(--fs-leading-tight);
+	}
+	h1 { margin-bottom: var(--fs-space-4); font-size: var(--fs-type-2xl); }
+	h2 { font-size: var(--fs-type-xl); }
+	h3 { font-size: var(--fs-type-lg); }
+	h4 { font-size: var(--fs-type); }
+	h5 { font-size: var(--fs-type-sm); }
+	h6 { font-size: var(--fs-type-xs); color: var(--fs-dim); text-transform: uppercase; }
+
 	/* Heading card (h2 + .cbi-map-descr): everything sitting directly on the page background
 	 * gets a .cbi-section card's frame, so a page reads as a stack of panels instead of loose
 	 * text floating over the (possibly patterned) background. */

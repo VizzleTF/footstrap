@@ -25,6 +25,23 @@
 	}
 
 	/* ==================================================================
+	 * prefers-reduced-transparency — the user asked the OS for opaque surfaces (visual clutter,
+	 * low vision, or plain preference). Every frosted surface in this theme is a translucent
+	 * fill + backdrop-filter blur; both go: the fill becomes the opaque panel, and the blur —
+	 * the single most expensive paint on a phone GPU (docs/18 §1: the sticky bar's backdrop is
+	 * resampled on every scrolled frame) — has nothing left to show through anyway. This also
+	 * gives a measured escape hatch on devices where the bar blur is too costly, without
+	 * taking the frosted design away from everyone else.
+	 * ================================================================== */
+	@media (prefers-reduced-transparency: reduce) {
+		:root {
+			--fs-bar-bg: var(--fs-panel);
+			--fs-glass: var(--fs-panel);
+			--fs-blur: none;
+		}
+	}
+
+	/* ==================================================================
 	 * forced-colors (Windows High Contrast) — the OS replaces every colour the theme picked, and
 	 * background-color on most elements is forced to the system canvas. Any state carried by
 	 * BACKGROUND ALONE therefore vanishes: the active tab pill, the checked toggle and the

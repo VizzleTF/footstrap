@@ -22,8 +22,24 @@
 	.cbi-value:not(:has(.cbi-value-description)):has(> .cbi-value-field > .cbi-checkbox, > .cbi-value-field > div > .cbi-radio) {
 		align-items: center;
 	}
+	/* The generic control transition — absorbed from base's transition group. ONLY the
+	 * transition: control typography stays in base on purpose (see the note there — as a
+	 * bare-element theme rule it out-layered `.zonebadge-empty`'s smaller font, measured
+	 * 10.8 -> 13px on the firewall). border-COLOR, not `border`: the shorthand animates
+	 * border-width too — a layout animation on every hover instead of a paint one. */
+	input, button {
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
+	}
+
 	/* keep base's padding-top: 6px — it is tuned for base's align-items: baseline. */
-	.cbi-value-title { color: var(--fs-dim); font-size: 13px; font-weight: 600; }
+	.cbi-value-title {
+		color: var(--fs-dim); font-size: 13px; font-weight: 600;
+		/* stated, not inherited: the control rule above hands every label `line-height: normal`,
+		 * and this one is TEXT — dropping it silently hands the label the font's own default
+		 * (measured: 18px -> normal, off the scale entirely). Absorbed from base with the rule
+		 * that made it necessary. */
+		line-height: var(--fs-leading);
+	}
 	/* Mono is for the *values* a field holds. The exclusions:
 	 *   BUTTONS (Sync with browser, Start/Restart/Stop) are chrome, not data — excluded here
 	 *     rather than relying on theme/55-buttons.css being concatenated later. :where() keeps
@@ -57,11 +73,16 @@
 	.cbi-value-field input[type="text"],
 	.cbi-value-field input[type="url"],
 	.cbi-value-field input[type="search"] { width: 100%; max-width: 440px; }
+	/* fields inside a table cell fill it — moved from base with the generic 210px box below:
+	 * in base these beat the box in-layer, left behind they would lose to it by layer */
+	.td > input[type="text"],
+	.td > input[type="password"],
+	.td > select,
+	.td > .cbi-dropdown:not(.btn):not(.cbi-button),
+	.cbi-dynlist > .add-item > .cbi-dropdown { width: 100%; }
+	.cbi-section-create > * > input { width: 100%; }
 
 	/* --- live components that bypassed the theme --- */
-	/* A SURFACE token, not an ink one. This once read --fs-on-accent (the ink meant to go ON an
-	 * accent fill), which resolves to plain white and painted a white listbox in dark mode. */
-	select[multiple] { background-color: var(--fs-panel2); color: var(--fs-text); }
 	/* A CBI row is a <div class="cbi-value"> on a form and a <td class="cbi-value-field"> in a
 	 * section table — same <var>, and the theme had claimed only the table half. */
 	div.cbi-value var, .td.cbi-value-field var { color: var(--fs-accent); }
@@ -95,6 +116,8 @@
 		display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
 	}
 	.cbi-filebrowser > ul > li > div:last-child > button { margin: 0; }
+	/* moved from base with the generic 210px box (same layer arithmetic as the .td rules) */
+	.cbi-filebrowser .upload > div > input { width: 100%; }
 
 	/* Form widgets — toggles, file input. Applies to every CBI form. */
 
@@ -134,8 +157,134 @@
 	}
 	.cbi-checkbox > input[type="checkbox"]:disabled + label { opacity: .5; cursor: not-allowed; }
 
-	/* native file input */
-	input[type="file"] { color: var(--fs-dim); font-size: 13px; }
+	/* RAW checkbox/radio — the drawing, absorbed from base whole: it undoes the generic `input`
+	 * box below (width/height/padding/background/border), and left behind in base every one of
+	 * those overrides would lose to that rule by layer. The box is 16px on the grid; the
+	 * tick/dot is inset FROM it rather than restating its own number — the three used to be
+	 * 14/2/10 by hand, so resizing the box left the mark off-centre. LuCI's own forms wrap
+	 * checkboxes in the .cbi-checkbox toggle above; the raw drawing is what a third-party
+	 * app's bare markup gets. */
+	input[type="checkbox"],
+	input[type="radio"] {
+		--bd-color: var(--fs-border);
+		--fg-color: var(--fs-text);
+		--box: var(--fs-space-4);
+		--mark-inset: 3px;
+		appearance: none;
+		width: var(--box);
+		height: var(--box);
+		color: var(--fg-color);
+		position: relative;
+		display: inline-block;
+		cursor: pointer;
+		background: none;
+		border: none;
+		/* padding/border-radius are NOT reset: the generic input box's values land on an
+		 * appearance-none 16px box whose pseudo-elements are absolute — invisible, and what the
+		 * widget has always computed */
+	}
+	input[type="checkbox"]::before,
+	input[type="checkbox"]::after,
+	input[type="radio"]::before,
+	input[type="radio"]::after {
+		position: absolute;
+		content: "";
+	}
+	input[type="checkbox"]::before,
+	input[type="radio"]::before {
+		top: 0;
+		left: 0;
+		width: var(--box);
+		height: var(--box);
+		background: linear-gradient(var(--fs-panel), var(--fs-panel2));
+		border: 1px solid var(--bd-color);
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
+	}
+	/* each box states its own radius — one shared 2px re-declared to 50% for the radio would
+	 * be a same-selector shadow inside this layer */
+	input[type="checkbox"]::before { border-radius: 2px; }
+	input[type="radio"],
+	input[type="radio"]::before {
+		border-radius: 50%;
+	}
+	/* keyboard/click focus rings on the DRAWN box — the theme's one ring token, replacing
+	 * base's old generic glow; :focus (not :focus-visible) keeps the pre-absorption behaviour
+	 * of ringing a clicked box */
+	input[type="checkbox"]:focus::before,
+	input[type="radio"]:focus::before {
+		border-color: var(--fs-accent);
+		box-shadow: var(--fs-focus-ring);
+	}
+	input[type="checkbox"].cbi-input-invalid:focus::before,
+	input[type="radio"].cbi-input-invalid:focus::before {
+		border-color: var(--fs-danger);
+		box-shadow: var(--fs-focus-ring-invalid);
+	}
+	input[type="checkbox"]::after,
+	input[type="radio"]::after {
+		top: var(--mark-inset);
+		left: var(--mark-inset);
+		width: calc(var(--box) - var(--mark-inset) * 2);
+		height: calc(var(--box) - var(--mark-inset) * 2);
+	}
+	input[type="checkbox"]:checked::after,
+	input[type="radio"]:checked::after {
+		/* OURS. Drawn as a STROKE, which is this theme's icon language (see --spinner-icon in
+		 * base/95-luci.css and --fs-icon-refresh in 02-tokens.css: fill:none, round caps, a 24 grid).
+		 * It replaces a solid filled path that was byte-identical to luci-theme-bootstrap's — and to
+		 * luci-theme-openwrt-2020's, which is the same project's artwork, not evidence the drawing is
+		 * generic. A mask keys on ALPHA, so a stroked path masks exactly as a filled one did. */
+		--checkmark-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M4.5 12.5 9.5 17.5 19.5 6.5'/></svg>");
+		-webkit-mask: var(--checkmark-icon) center/cover no-repeat;
+		mask: var(--checkmark-icon) center/cover no-repeat;
+		background: var(--fg-color);
+	}
+	input[type="radio"]:checked:after {
+		/* the radio's dot — filled, because a ring would read as "not selected". OURS: our grid,
+		 * our radius (the fill is the one shape a stroke cannot express). */
+		--checkmark-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='6.5' fill='%23000'/></svg>");
+	}
+	input[type="checkbox"].cbi-input-invalid,
+	input[type="radio"].cbi-input-invalid {
+		--bd-color: var(--fs-danger);
+		--fg-color: var(--fs-danger);
+	}
+
+	/* The generic field box — absorbed from base's `input, textarea, select, …` group; each other
+	 * member lives with its component rule now (select/.cbi-select above, textarea/dropdown in
+	 * theirs). Bare `input` keeps the historical 210px box as the fallback for every type the
+	 * exhaustive text-input list below does not name — and for a typeless <input>, which IS a
+	 * text input. The widget types that must NOT wear this box (checkbox/radio, file,
+	 * button/submit/reset, range) carry their own theme rules: a base override would lose to
+	 * this rule by layer no matter its specificity, which is why they were absorbed together. */
+	input {
+		display: inline-block;
+		width: 210px;
+		height: var(--fs-control-h);
+		padding: var(--fs-space-1) var(--fs-space-2);
+		background: var(--fs-panel);
+		color: var(--fs-text);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
+	}
+	/* base's old `#localtime { width: 300px }` media rule was NOT moved here: the elastic
+	 * .cbi-value-field width above already out-layered it (measured on the live router: the
+	 * field rendered 440px, not 300) — the rule was dead, and a dead rule is deleted, not
+	 * relocated */
+
+	/* native file input — the `initial`/auto resets are absorbed from base: the generic box
+	 * above would otherwise dress the native chooser in a 210px bordered field */
+	input[type="file"] {
+		color: var(--fs-dim); font-size: 13px;
+		padding: initial;
+		border: initial;
+		line-height: initial;
+		box-shadow: none;
+		/* no !important: this out-specifies the generic `input { width: 210px }` on its own.
+		 * height/background are NOT reset: the chooser keeps the generic box's control height
+		 * and panel tint, as it always has. */
+		width: auto;
+	}
 
 	/* native <select> — custom chevron + theme (matching the text inputs). The chevron data-URI
 	 * lives in 03-palettes.css per palette/mode block, because a URI cannot read var(); it
@@ -150,8 +299,24 @@
 		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
 		color: var(--fs-text); font-family: var(--fs-font-sans); font-size: 13px;
 		line-height: 1.3; min-height: 38px; cursor: pointer;
+		/* width/display absorbed from base's generic field box: a select's natural width is its
+		 * longest option, so without the fixed box two selects in one form column ragged-edge;
+		 * display stated because Chromium's base-select UA default is inline-flex, not the
+		 * inline-block the widget has always computed */
+		width: 210px;
+		display: inline-block;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
+	/* group-then-refine, directly under its group: the listbox variant must NOT take the closed
+	 * control's one-line height. A SURFACE token, not an ink one: this once read --fs-on-accent
+	 * (the ink meant to go ON an accent fill), which resolves to plain white and painted a white
+	 * listbox in dark mode. `height: inherit` absorbed from base with the width above — without
+	 * it the fixed box would cap a multi-row listbox at one line. */
+	select[multiple] { background-color: var(--fs-panel2); color: var(--fs-text); height: inherit; }
 	select:focus { border-color: var(--fs-accent); box-shadow: var(--fs-focus-ring); outline: none; }
+	/* absorbed from base's reset: 100% (= inherit) keeps the option on its select's size, and
+	 * only <option> needs the 2em leading — the other controls carry line-height: normal above */
+	option { font-size: 100%; line-height: 2em; }
 	select option { background: var(--fs-panel); color: var(--fs-text); }
 
 	/* Native <select> drop list: the OS renders it, so the `select option` colours above are
@@ -183,6 +348,70 @@
 		.cbi-value-field select option:checked { color: var(--fs-accent); background: var(--fs-accent-soft); }
 	}
 
+	/* .cbi-select — the legacy luci-compat shell (a div around a native <select>). Absorbed from
+	 * base whole: the generic field box, the shell's own paint (padding 0 + the two-stop gradient
+	 * + the ▾ plate) and a focus ring on the theme's one token. The shell is a DIV, so
+	 * display/width must be stated — they do not fall out of any UA default.
+	 * :not(select) because the class also appears ON a bare <select> (docs/gallery.html renders
+	 * that shape): a replaced element cannot draw the ::before ▾, so shell paint there means a
+	 * gradient with no glyph — that shape keeps the themed-select rules above instead. */
+	.cbi-select:not(select) {
+		display: inline-block;
+		width: 210px;
+		height: var(--fs-control-h);
+		color: var(--fs-text);
+		font-size: var(--fs-type);
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
+		padding: 0;
+		position: relative;
+		background: linear-gradient(var(--fs-panel), var(--fs-border));
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
+	}
+	.cbi-select.focus {
+		border-color: var(--fs-accent);
+		box-shadow: var(--fs-focus-ring);
+	}
+	/* the alarm must survive focus: .focus above would repaint an invalid shell accent */
+	.cbi-select.cbi-input-invalid.focus {
+		border-color: var(--fs-danger);
+		box-shadow: var(--fs-focus-ring-invalid);
+	}
+	/* the native <select> inside the shell: invisible, filling it, clearing the ▾ plate on the
+	 * right. The inset is a scale step; the right margin is the plate's width, so it stays
+	 * em-relative to the glyph it clears. Every themed-select declaration above (chevron,
+	 * padding, min-height) must be answered here, or the inner select paints like a free-standing
+	 * one inside the 32px shell. */
+	.cbi-select select,
+	.cbi-select select:focus {
+		appearance: none; -webkit-appearance: none;
+		outline: none;
+		border: none;
+		background: transparent;
+		background-image: none;
+		box-shadow: none;
+		height: 100%;
+		min-height: 0;
+		width: 100%;
+		padding: 0 var(--fs-space-1);
+		font-size: var(--fs-type);
+		line-height: normal;
+		cursor: pointer;
+		margin-right: .6em;
+	}
+	.cbi-select::before {
+		position: absolute;
+		top: 0; right: 0; bottom: 0;
+		content: "▾";
+		padding: 0 var(--fs-space-1);
+		background: linear-gradient(var(--fs-panel), var(--fs-border));
+		pointer-events: none;
+		border-radius: var(--fs-radius);
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
 	/* spinner / loading */
 	.spinning, .cbi-value em, em.spinning { color: var(--fs-dim); }
 
@@ -210,7 +439,9 @@
 		box-shadow: none;
 		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
-	textarea { min-height: 84px; line-height: 1.5; }
+	/* width/font-size absorbed from base's generic field box, same numbers — a textarea has
+	 * always sat at the fixed 210px (the elastic rule above names only text/url/search) */
+	textarea { min-height: 84px; line-height: 1.5; width: 210px; font-size: var(--fs-type); }
 	/* A textarea's native scrollbar is a square strip and a rounded corner does not clip it, so
 	 * on a scrolling config field the grey bar poked past the radius — a square notch out of the
 	 * frame. Fix: a slim self-rounded thumb floated off the edges (transparent border +
@@ -253,8 +484,13 @@
 	input[type="email"]:hover, input[type="url"]:hover, input[type="search"]:hover,
 	textarea:hover { border-color: var(--fs-dim); }
 
+	/* bare `input:focus` absorbed from base's generic glow onto the same ring: it is the fallback
+	 * for the types the list does not name and for a typeless <input>; on checkbox/radio it lands
+	 * on the invisible element box UNDER the drawn ::before ring above — coincident boxes, one
+	 * visible ring, as the old glow behaved */
 	.cbi-input-text:focus, .cbi-input-password:focus, .cbi-input-textarea:focus,
 	.cbi-section-create-name:focus,
+	input:focus,
 	input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus,
 	input[type="email"]:focus, input[type="url"]:focus, input[type="search"]:focus,
 	input[type="tel"]:focus, input[type="date"]:focus, input[type="time"]:focus,
@@ -281,6 +517,24 @@
 	 * the input, so half of one state lived in a layer the theme cannot reach. */
 	.cbi-input-invalid.cbi-dropdown:not(.btn):not(.cbi-button),
 	.cbi-input-invalid.cbi-dropdown:not([open]) > ul > li { border-color: var(--fs-danger); }
+	/* the alarm must survive focus: the generic `input:focus` above is (0,1,1) and would repaint
+	 * a focused invalid field accent; (0,2,0) outranks it. The TYPED :focus rules (0,2,1) still
+	 * outrank this — a typed invalid field focuses accent, exactly as before the absorption. */
+	.cbi-input-invalid:focus {
+		border-color: var(--fs-danger);
+		box-shadow: var(--fs-focus-ring-invalid);
+	}
+
+	/* readonly keeps its faded border — moved from base with the generic box (its border-color
+	 * longhand would lose to the box's `border` shorthand by layer). The doubled [readonly] is
+	 * a deliberate specificity step: at (0,1,1) this ties the typed input rules above and the
+	 * cascade would rest on file order — in base the same tie made the fade silently LOSE to
+	 * the typed border, so a readonly text field never faded at all; (0,2,1) states the intent. */
+	:is(input, select, textarea)[readonly][readonly] {
+		border-color: color-mix(in srgb, var(--fs-border) calc(var(--fs-disabled-opacity) * 100%), transparent);
+		pointer-events: auto;
+		cursor: auto;
+	}
 
 	/* dynamic list: keep base's layout (inline-flex column of chips + one add-item row) — do NOT
 	 * set display/flex-wrap here or the add row breaks. Only colours, rounding, a compact +
@@ -299,9 +553,36 @@
 		color: var(--fs-text);
 		box-shadow: none;
 		margin: 0;
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
 	}
+	/* a chip is keyboard-removable (ui.js gives it a tabindex), so it needs the ring */
+	.cbi-dynlist > .item:focus {
+		border-color: var(--fs-accent);
+		box-shadow: var(--fs-focus-ring);
+		outline: none;
+	}
+	/* The chip's × plate is a BUTTON in base's paint group (`.item::after, .btn, .cbi-button`) —
+	 * absorbed with it, bare as base had it (coverage: an .item outside a dynlist keeps its
+	 * plate). The machinery — content/position/edges/align — stays in base with the widget. */
+	.item::after {
+		display: inline-block;
+		cursor: pointer;
+		background: linear-gradient(var(--fs-panel), var(--fs-panel) 25%, var(--fs-panel2));
+		padding: 0 var(--fs-space-3);
+		color: var(--fs-text);
+		line-height: 2em;
+		border: 1px solid var(--fs-border);
+		border-radius: var(--fs-radius);
+		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
+	}
+	/* the hover cue is the lift, not a colour: the plate's fill is a gradient (see
+	 * --fs-hover-lift in 02-tokens.css) — replaces base's old focus-glow-on-hover */
+	.item:hover::after { filter: var(--fs-hover-lift); }
 	.cbi-dynlist > .item::after {
-		border-color: var(--fs-border);
+		/* display/padding absorbed from base's machinery rule: the bare plate above says
+		 * inline-block / space-3, and by layer it would beat base's refinement */
+		display: inline-flex;
+		padding: 0 var(--fs-space-2);
 		color: var(--fs-danger);
 		border-radius: 0 var(--fs-radius-sm) var(--fs-radius-sm) 0;
 	}

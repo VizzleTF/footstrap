@@ -1,26 +1,16 @@
 @layer base {
 	/* `.btn` and `.cbi-button` are interchangeable in LuCI markup; a row action carries
-	 * both plus a `-<variant>` class (edit, remove, apply, save). Here the variants set
-	 * only --on-color and a border — theme/55-buttons.css paints. */
-	.item::after,
+	 * both plus a `-<variant>` class (edit, remove, apply, save). The paint (box, fill,
+	 * radius) is theme/55-buttons.css's — absorbed, along with the `.item::after` member,
+	 * whose plate now lives with the dynlist in theme/60-inputs.css. Left here: --on-color
+	 * (NOT paint — base/95-luci.css masks the spinner glyph with it, so it must track the
+	 * variant), and what theme does not restate. */
 	.btn,
 	.cbi-button {
-		--default-btn-background: linear-gradient(var(--fs-panel), var(--fs-panel) 25%, var(--fs-panel2));
 		--on-color: var(--fs-text);
 
 		cursor: pointer;
-		display: inline-block;
-		background: var(--default-btn-background);
-		/* the side inset was a bare 14px; a button's inset is a step of the space scale like
-		 * anything else. `line-height: 2em` is what gives the button its HEIGHT (there is no
-		 * `height` here), so it stays em-relative and tracks whatever size the button is set at —
-		 * theme/55-buttons.css repaints the fill but not the box. */
-		padding: 0 var(--fs-space-3);
-		color: var(--on-color);
 		font-size: var(--fs-type);
-		line-height: 2em;
-		border: 1px solid var(--fs-border);
-		border-radius: var(--fs-radius);
 		white-space: pre;
 	}
 

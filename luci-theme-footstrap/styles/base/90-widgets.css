@@ -109,18 +109,8 @@
 		margin-top: 1px;
 	}
 
-	/* color + margin: theme/35-alerts.css — absorbed. */
-	.alert-message h4,
-	.alert-message h5,
-	.alert-message pre,
-	.alert-message ul,
-	.alert-message li,
-	.alert-message p {
-		border: none;
-		line-height: inherit;
-		background: transparent;
-		padding: 0;
-	}
+	/* color + margin + the content reset (border/leading/background/padding):
+	 * theme/35-alerts.css — absorbed; the reset had to move with the heading ramp. */
 
 	.alert-message button {
 		margin: var(--fs-space-1) 0;

@@ -25,7 +25,10 @@
 	 * "лишняя граница, не имеющая скругления"). */
 	.table .th, .table .td {
 		display: table-cell;
-		vertical-align: middle; /* Fixme */
+		/* middle is deliberate: a cell's content is a mix of text, badges and 36px buttons, and
+		 * top-aligning mixed-height rows reads as a layout fault. (The `Fixme` that sat here was
+		 * upstream bootstrap's own stale marker, imported with the rule.) */
+		vertical-align: middle;
 		/* was `10px 10px 9px` — a bottom 1px shy of the top for no reason anyone recorded, which
 		 * is what an inherited number looks like. Symmetric, on the grid. */
 		padding: var(--fs-space-2) var(--fs-space-3);

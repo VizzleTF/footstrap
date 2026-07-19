@@ -58,22 +58,8 @@
 		color: var(--fs-dim);
 	}
 
-	/* The heading ramp. Stock LuCI hands h2 to a page title and h3/legend to a section title, and
-	 * theme/45-misc.css + theme/30-tables.css repaint exactly those two — so most of this ramp is
-	 * only ever rendered by a third-party luci-app-*. It is styled anyway: coverage is a contract
-	 * and only grows (CLAUDE.md). Every step is a scale token, and the ramp is monotonic, which is
-	 * the one property a heading ramp must have. */
-	h1,
-	h2,
-	h3, legend,
-	h4,
-	h5,
-	h6 {
-		font-weight: bold;
-		color: var(--fs-text);
-		/* 1.5 is prose leading; a heading is a label and looks slack at it. */
-		line-height: var(--fs-leading-tight);
-	}
+	/* The heading ramp lives in theme/45-misc.css — absorbed whole (weights, sizes, ink);
+	 * theme/30-tables.css owns `legend`. Only the `<h_ small>` treatment remains here. */
 
 	/* One rule for every `<h_ small>`: relative, so it tracks whatever step its heading sits on
 	 * instead of the four hand-set sizes (18/14/14/12) this used to carry. */
@@ -86,33 +72,6 @@
 		font-size: .7em;
 		font-weight: normal;
 		color: var(--fs-dim);
-	}
-
-	h1 {
-		margin-bottom: var(--fs-space-4);
-		font-size: var(--fs-type-2xl);
-	}
-
-	h2 {
-		font-size: var(--fs-type-xl);
-	}
-
-	h3, legend {
-		font-size: var(--fs-type-lg);
-	}
-
-	h4 {
-		font-size: var(--fs-type);
-	}
-
-	h5 {
-		font-size: var(--fs-type-sm);
-	}
-
-	h6 {
-		font-size: var(--fs-type-xs);
-		color: var(--fs-dim);
-		text-transform: uppercase;
 	}
 
 	ul, ol {

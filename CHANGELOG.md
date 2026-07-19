@@ -13,6 +13,28 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ## [Unreleased]
 
+### Added
+
+- **Back/Forward now restores the scroll position in the sidebar layout.** The sidebar layout
+  scrolls `#maincontent`, not the document, and a browser restores inner scrollable regions only
+  across full loads — so an SPA Back always opened the page at the top (docs/22 §2; the top layout
+  was already restored by the browser). The router now records the offset per history entry and
+  replays it once the incoming view has grown that much height. Not via `history.state` writes on
+  scroll: Safari rate-limits history writes (100 per 30 s), so the entry carries only a
+  session-unique id and the offsets live in memory — which dies on a full load, exactly when the
+  browser's own restoration takes over.
+- **A keyboard-activated navigation now moves focus to the skip link.** The SPA router used to
+  focus the invisible `#maincontent` wrapper for every navigation — WCAG-compliant, but a sighted
+  keyboard user got no visible cue of where focus went (the Sutton five-prototype study's known
+  weakness of the wrapper variant). A navigation activated from the keyboard (`ev.detail === 0`)
+  now focuses `.fs-skip`, whose focus overlay is visible and whose Enter jumps straight to the
+  content; pointer navigations and popstate keep the wrapper focus, so nothing flashes on mouse
+  clicks. The live region still announces the page separately, with a different text.
+- **`prefers-reduced-transparency` is honoured: every frosted surface goes opaque.** The bar's
+  88% fill and the popovers' 96% glass switch to the solid panel colour and the backdrop blur is
+  dropped — both an accommodation and a measured escape hatch on devices where the sticky bar's
+  backdrop blur (resampled every scrolled frame, docs/18 §1) is too expensive for the GPU.
+
 ### Changed
 
 - **The self-update package `luci-app-footstrap-updater` moved to its own repository, with its own
@@ -26,6 +48,29 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   non-fatal updater refresh) are documented in that repo's changelog. `install.sh` here installs both
   packages from their two repos; the fs-update.js runtime module still lands in the same
   `/www/luci-static/resources` and requires the theme's modules exactly as before.
+- **The `.cbi-dropdown` widget lives in one place, and its six state-machine `!important` flags
+  are gone.** `base/80-dropdown.css` was absorbed whole into `theme/65-dropdown.css`. The display
+  state machine ([open]/[multiple]/[empty]/[optional]) is rewritten onto plain specificity —
+  every shower out-specifies its hider, and the one state the old flags actually carried (a
+  closed optional-empty dropdown: ui.js hands the `[display]` attribute to the placeholder row
+  itself, which its hider out-specifies) has its own explicit rule. Three flags remain, moved as
+  they are: the `ul` margins fight the inline `margin` ui.js writes on an open list, and only an
+  author `!important` outranks an inline style. Verified with 0 computed-style diffs across the
+  gallery's dropdown states and a live click-through (open/select/multiple/chips/optional-empty)
+  on both releases. The theme is down from 31 `!important` to 28, and none in base aims at the
+  theme through the importance layer-inversion any more except the documented eight.
+- **The base-absorption backlog is closed: 25 declarations to 0, and focus/hover is now ONE
+  ring.** Everything base still styled alone (the generic 210px field box and its per-widget
+  escapes, checkbox/radio drawing, `.cbi-select`, the heading ramp, control typography) moved
+  into the `theme` layer, verified over the 521-element gallery with one computed-only residue
+  (`transition-property` on labels). The one deliberate redesign inside the move: base's second,
+  unnamed focus style — an `0 0 8px` glow that rang every *clicked* button and every hovered
+  widget — is gone, replaced by the theme's `--fs-focus-ring`/`--fs-focus-ring-invalid` tokens
+  (inputs on `:focus`, buttons on `:focus-visible` only, the dynlist chip's × answering hover
+  with the named `--fs-hover-lift` instead of a glow). An invalid field keeps its red ring
+  through focus via an explicit `.cbi-input-invalid:focus`. A verbatim move was not possible:
+  inside one layer the old ring met the theme's own rules at equal specificity, i.e. the cascade
+  would have rested on file order.
 
 ### Removed
 
@@ -36,6 +81,19 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **The legacy `.cbi-select` shell renders as designed again: one ▾ plate, an invisible inner
+  select.** The theme's own select rules (chevron image, 8/34px padding, 38px min-height) sat in
+  a later layer than base's "inner select is transparent and fills the shell" rules, so a
+  luci-compat `.cbi-select` rendered a fully-dressed select fighting inside its 32px gradient
+  shell — a double chevron and an overflowing box. The whole widget now lives in one place in
+  the theme layer, where the inner-select rule out-specifies the generic select theming; the
+  bare `select.cbi-select` markup shape keeps the themed-select look via a `:not(select)` guard
+  on the shell paint.
+- **A readonly text field shows its faded border again.** The readonly border fade lost a
+  same-specificity tie against the typed input rules — in base it silently resolved by file
+  order the wrong way, so a readonly field (System's Local Time) wore the full-strength border
+  as if editable. The rule moved to the theme layer with a deliberate specificity step
+  (`[readonly][readonly]`), so the tie no longer exists in either direction.
 - **Toggle/checkbox rows with no help sentence floated the control ~5px above its label.** A CBI
   value row aligns on the text baseline so a label lines up with a select/input/dropdown's first
   line, but a `.cbi-checkbox` toggle is an `inline-flex` box with no line box — its synthesised

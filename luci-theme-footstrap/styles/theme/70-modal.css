@@ -9,6 +9,27 @@
 	 * is 3px), plus small rounding on the diff boxes and legend swatches. */
 	#modal_overlay .modal { border-radius: var(--fs-radius-lg); }
 
+	/* moved from base with the heading ramp (45-misc.css): the `line-height: normal` here beat
+	 * the ramp's tight leading in-layer for a dialog's h4 title, and left behind it would lose
+	 * to the ramp by layer (measured: modal headings dropped normal -> 15.6px) */
+	.modal > * {
+		line-height: normal;
+		margin-bottom: .5em;
+		max-width: 100%;
+	}
+	/* an alert dropped into a dialog keeps the alert's own rhythm. In base this resolved by
+	 * FILE ORDER (90-widgets after 60-modal, both 0,1,0) — here it wins on specificity, so the
+	 * cascade no longer rests on position. */
+	.modal > .alert-message { margin-bottom: var(--fs-space-2); }
+	/* moved from base with the generic field box in theme/60-inputs.css: a dialog's log/output
+	 * textarea fills the dialog, and base's width:100% would lose to the 210px box by layer */
+	.modal > pre,
+	.modal > textarea {
+		white-space: pre-wrap;
+		overflow: auto;
+		width: 100%;
+	}
+
 	/* A config-form modal (Bridge device options, firewall rule …) is only 600px wide by
 	 * default — cramped for a form with a table (Bridge VLAN filtering, whose .cbi-map container
 	 * then falls under the 960px card threshold and cards even on a big screen). Fluid via vw:

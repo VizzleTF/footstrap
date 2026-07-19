@@ -23,6 +23,20 @@
 	 * same reason — base styled them and the theme did not, so an alert heading looked like an
 	 * alert heading down to h4 and then fell back to a bootstrap one. */
 	.alert-message :is(h2, h3, h4, h5, h6) { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--fs-text); }
+	/* the alert's own content reset — moved from base with the heading ramp (45-misc.css): its
+	 * `line-height: inherit` beat the ramp's tight leading in-layer, and left behind it would
+	 * lose to the ramp by layer (measured: alert headings dropped 21 -> 16.8px) */
+	.alert-message h4,
+	.alert-message h5,
+	.alert-message pre,
+	.alert-message ul,
+	.alert-message li,
+	.alert-message p {
+		border: none;
+		line-height: inherit;
+		background: transparent;
+		padding: 0;
+	}
 	.alert-message p { margin: 4px 0; color: var(--fs-dim); font-size: 13px; }
 	/* …and the body elements an alert may carry. Absorbed from base/90-widgets.css, same values:
 	 * the theme had claimed only <p> out of that rule's six selectors. */

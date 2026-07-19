@@ -55,20 +55,15 @@
 		bottom: -.25em;
 	}
 
+	/* font-size: theme/60-inputs.css (the control-typography rule + `option`) — absorbed */
 	button,
 	input,
 	select,
 	option,
 	textarea {
-		font-size: 100%;
 		margin: 0;
 		box-sizing: border-box;
 		vertical-align: baseline;
-	}
-
-	/* only <option> needs it: 30-forms re-states line-height on the rest of the group */
-	option {
-		line-height: 2em;
 	}
 
 	button,

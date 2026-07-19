@@ -14,10 +14,15 @@
 		padding-top: var(--fs-space-5);
 	}
 
+	/* Control typography STAYS IN BASE, deliberately — the one absorption that was tried and
+	 * reverted (measured): as a bare-element rule in the theme layer it out-ranked every CLASSED
+	 * base refinement regardless of specificity — `.zonebadge-empty { font-size: smaller }` lost
+	 * to it and the firewall's zone badges grew from 10.8 to 13px. In base, classed rules beat it
+	 * on specificity, which is the contract they were written against. `select` is not a member:
+	 * its face/size/leading live in its own theme rule (60-inputs.css). */
 	label,
 	input,
-	button,
-	select {
+	button {
 		font-family: var(--fs-font-sans);
 		font-size: var(--fs-type);
 		font-weight: normal;
@@ -47,13 +52,10 @@
 	 * column's geometry, which theme does not touch. */
 	.cbi-value label.cbi-value-title {
 		/* the nudge that lands the label's first baseline on the field's. Retuned for the 1.5
-		 * leading in 20-typography.css — it was 6px against a hard 18px line box. */
+		 * leading in 20-typography.css — it was 6px against a hard 18px line box.
+		 * line-height: theme/60-inputs.css (.cbi-value-title) — absorbed with the control rule
+		 * that made it necessary. */
 		padding-top: var(--fs-space-1);
-		/* stated, not inherited: the `label, input, button, select` rule above hands every label
-		 * `line-height: normal` (right for a CONTROL, whose box must not carry prose leading), and
-		 * this one is TEXT. Dropping it here silently handed the label the font's own default —
-		 * measured: 18px -> normal, i.e. off the scale entirely. */
-		line-height: var(--fs-leading);
 		/* 180px is a column WIDTH, not a rhythm: it is what fits LuCI's longest option labels
 		 * beside a field, so it is not on the 4px step scale and does not want to be. */
 		flex: 0 0 180px;
@@ -79,45 +81,11 @@
 		cursor: pointer;
 	}
 
-	/* The shared field box. 210px was upstream's default field width and is kept as a WIDTH —
-	 * it is what a short value needs beside a 180px label, not a step of any rhythm; the elastic
-	 * text fields override it in theme/60-inputs.css anyway. The inset, radius and leading are
-	 * now the theme's own: a 4px inset against a 13px face is tight enough that a descender sits
-	 * on the border. */
-	input,
-	textarea,
-	select,
-	.cbi-select,
-	.cbi-dropdown:not(.btn):not(.cbi-button) {
-		display: inline-block;
-		width: 210px;
-		padding: var(--fs-space-1) var(--fs-space-2);
-		background: var(--fs-panel);
-		color: var(--fs-text);
-		font-size: var(--fs-type);
-		border: 1px solid var(--fs-border);
-		border-radius: var(--fs-radius);
-	}
-
-	@media screen and (min-width: 768px) {
-		#localtime {
-			width: 300px;
-		}
-	}
-
-	/* One control height, DERIVED: text box (13 x 1.5) + the inset above + both borders = 32px.
-	 * It was a bare 30px — upstream's arithmetic over upstream's leading — so a change to the type
-	 * scale silently stopped matching the box it was supposed to fit. */
-	input,
-	select,
-	.cbi-select,
-	.cbi-dropdown:not(.btn):not(.cbi-button) {
-		height: var(--fs-control-h);
-	}
-
-	/* width: theme/65-dropdown.css (the dropdown) and theme/60-inputs.css (the dynlist) — absorbed.
-	 * They shared one rule here while the theme sized only the dynlist, so half of one decision
-	 * stayed behind in a layer the theme cannot see. */
+	/* The shared field box (the 210px x control-height default, #localtime's widening, and the
+	 * per-widget escapes: file, button types, checkbox/radio, .cbi-select, readonly, the
+	 * cell-filling widths): theme/60-inputs.css — absorbed WHOLE. The escapes had to move with
+	 * the box: each beat it here in-layer, and left behind they would lose to a theme rule by
+	 * layer no matter their specificity. */
 
 	.cbi-dynlist {
 		height: auto;
@@ -139,17 +107,15 @@
 		user-select: text; /* text selection in drag-and-drop */
 	}
 
+	/* display/padding/border + radius + × ink: theme/60-inputs.css (the bare `.item::after`
+	 * plate + its dynlist refinement) — absorbed. Left: what pins the plate to the chip. */
 	.cbi-dynlist > .item::after {
 		content: "×";
 		position: absolute;
-		display: inline-flex;
 		align-items: center;
 		top: -1px;
 		right: -1px;
 		bottom: -1px;
-		padding: 0 var(--fs-space-2);
-		border: 1px solid var(--fs-border);
-		/* radius + × ink: theme/60-inputs.css — absorbed */
 		font-weight: bold;
 		pointer-events: auto;
 	}
@@ -204,202 +170,21 @@
 		gap: var(--fs-space-1);
 	}
 
-	.cbi-select {
-		padding: 0;
-		position: relative;
-		background: linear-gradient(var(--fs-panel), var(--fs-border));
-	}
+	/* .cbi-select (the shell, its inner <select>, the ▾ plate): theme/60-inputs.css — absorbed
+	 * whole. Do not re-add an option rule here either: layer beats specificity, so theme's bare
+	 * `option` outranks even `.cbi-select select option:checked`. */
 
-	/* the native <select> inside the .cbi-select shell: it must be invisible and fill it, and
-	 * clear the ▾ plate on the right. The inset is a scale step; the right margin is that plate's
-	 * width, so it stays em-relative to the glyph it clears. */
-	.cbi-select select,
-	.cbi-select select:focus {
-		appearance: none;
-		outline: none;
-		border: none;
-		background: transparent;
-		height: 100%;
-		width: 100%;
-		padding: 0 var(--fs-space-1);
-		cursor: pointer;
-		margin-right: .6em;
-	}
-
-	.cbi-select::before {
-		position: absolute;
-		top: 0;
-		right: 0;
-		bottom: 0;
-		content: "▾";
-		padding: 0 var(--fs-space-1);
-		background: linear-gradient(var(--fs-panel), var(--fs-border));
-		pointer-events: none;
-		border-radius: var(--fs-radius);
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-	}
-
-	/* The option list is theme/60-inputs.css's (`select option` + the ::picker under
-	 * @supports) — absorbed. Do not re-add an option rule here: layer beats specificity,
-	 * so theme's bare `select option` outranks even `.cbi-select select option:checked`. */
-
-	input[type="file"] {
-		padding: initial;
-		border: initial;
-		line-height: initial;
-		box-shadow: none;
-		/* no !important: this out-specifies base's `input { width: 210px }` on its own */
-		width: auto;
-	}
-
-	input[type="button"], input[type="reset"], input[type="submit"] {
-		width: auto;
-		height: auto;
-	}
-
-	select[multiple] {
-		height: inherit;
-		/* surface: theme/60-inputs.css — absorbed (why it must be a SURFACE token and not
-		 * an ink one is recorded there) */
-	}
-
-	/* The box itself: 16px on the grid, where it was a bare 14px. The tick/dot below is inset
-	 * FROM it rather than restating its own number — the three used to be 14/2/10 by hand, so
-	 * resizing the box left the mark off-centre. */
-	input[type="checkbox"],
-	input[type="radio"] {
-		--bd-color: var(--fs-border);
-		--fg-color: var(--fs-text);
-		--box: var(--fs-space-4);
-		--mark-inset: 3px;
-		appearance: none;
-		width: var(--box);
-		height: var(--box);
-		color: var(--fg-color);
-		position: relative;
-		display: inline-block;
-		cursor: pointer;
-		background: none;
-		border: none;
-	}
-
-	input[type="checkbox"]::before,
-	input[type="checkbox"]::after,
-	input[type="radio"]::before,
-	input[type="radio"]::after {
-		position: absolute;
-		content: "";
-	}
-
-	input[type="checkbox"]::before,
-	input[type="radio"]::before {
-		top: 0;
-		left: 0;
-		width: var(--box);
-		height: var(--box);
-		background: linear-gradient(var(--fs-panel), var(--fs-panel2));
-		border: 1px solid var(--bd-color);
-		border-radius: 2px;
-	}
-
-	input[type="radio"],
-	input[type="radio"]::before {
-		border-radius: 50%;
-	}
-
-	input[type="checkbox"]::after,
-	input[type="radio"]::after {
-		top: var(--mark-inset);
-		left: var(--mark-inset);
-		width: calc(var(--box) - var(--mark-inset) * 2);
-		height: calc(var(--box) - var(--mark-inset) * 2);
-	}
-
-	input[type="checkbox"]:checked::after,
-	input[type="radio"]:checked::after {
-		/* OURS. Drawn as a STROKE, which is this theme's icon language (see --spinner-icon in
-		 * base/95-luci.css and --fs-icon-refresh in 02-tokens.css: fill:none, round caps, a 24 grid).
-		 * It replaces a solid filled path that was byte-identical to luci-theme-bootstrap's — and to
-		 * luci-theme-openwrt-2020's, which is the same project's artwork, not evidence the drawing is
-		 * generic. A mask keys on ALPHA, so a stroked path masks exactly as a filled one did. */
-		--checkmark-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M4.5 12.5 9.5 17.5 19.5 6.5'/></svg>");
-		-webkit-mask: var(--checkmark-icon) center/cover no-repeat;
-		mask: var(--checkmark-icon) center/cover no-repeat;
-		background: var(--fg-color);
-	}
-
-	input[type="radio"]:checked:after {
-		/* the radio's dot — filled, because a ring would read as "not selected". OURS: our grid,
-		 * our radius (the fill is the one shape a stroke cannot express). */
-		--checkmark-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='6.5' fill='%23000'/></svg>");
-	}
-
-	input[type="checkbox"].cbi-input-invalid,
-	input[type="radio"].cbi-input-invalid {
-		--bd-color: var(--fs-danger);
-		--fg-color: var(--fs-danger);
-	}
-
-	.td > input[type="text"],
-	.td > input[type="password"],
-	.td > select,
-	.td > .cbi-dropdown:not(.btn):not(.cbi-button),
-	.cbi-dynlist > .add-item > .cbi-dropdown {
-		width: 100%;
-	}
+	/* Checkbox/radio drawing: theme/60-inputs.css — absorbed whole (it undoes the generic input
+	 * box, which lives there now). */
 
 	::placeholder {
 		color: var(--fs-dim);
 	}
 
-	.item::after,
-	.btn,
-	.cbi-button,
-	.cbi-select,
-	.cbi-dropdown,
-	.cbi-dynlist > .item,
-	input[type="checkbox"]::before,
-	input[type="radio"]::before,
-	input, button, textarea, select {
-		/* border-COLOR, not `border`: the shorthand animates border-width too, i.e. every
-		 * hover on any input or button ran a LAYOUT animation instead of a paint one. */
-		transition: border-color var(--fs-dur), box-shadow var(--fs-dur);
-	}
-
-	.item:hover::after,
-	.btn:hover, .btn:focus,
-	.cbi-button:hover, .cbi-button:focus,
-	.cbi-select.focus,
-	.cbi-dropdown:focus, .cbi-dropdown[open],
-	.cbi-dynlist > .item:focus,
-	input[type="checkbox"]:focus::before,
-	/* NEVER flag the border-color below !important: important inverts the layer order, so
-	 * a flagged base declaration paints this ring over theme's own focus/hover colours on
-	 * every button and input. Unflagged, it already loses to theme — which is the point. */
-	input[type="radio"]:focus::before,
-	input:focus, button:hover, textarea:focus, select:focus {
-		/* One custom property, so the invalid state below swaps the whole ring by
-		 * redeclaring it — and a palette TOKEN, never a literal: the old hardcoded blue
-		 * ignored palette and dark mode wherever theme does not repaint focus
-		 * (.cbi-select.focus, raw checkbox/radio ::before, button:focus). No `r, g, b`
-		 * triple either — see the component-bridge rule in CLAUDE.md. */
-		--focus-color: var(--fs-accent);
-
-		outline: 0;
-		border-color: color-mix(in srgb, var(--focus-color) 80%, transparent);
-		/* one shadow: the inset half was alpha .01 — it drew nothing, on every widget */
-		box-shadow: 0 0 8px color-mix(in srgb, var(--focus-color) 60%, transparent);
-		text-decoration: none;
-	}
-
-	.cbi-input-invalid:focus,
-	.cbi-select.cbi-input-invalid,
-	input[type="checkbox"].cbi-input-invalid:focus::before,
-	input[type="radio"].cbi-input-invalid:focus::before {
-		--focus-color: var(--fs-danger);
-	}
+	/* Transitions and the focus/hover ring: absorbed onto the theme's one ring token
+	 * (--fs-focus-ring / --fs-focus-ring-invalid) in theme/55-buttons.css, 60-inputs.css and
+	 * 65-dropdown.css. The old generic glow here rang every clicked button and every hovered
+	 * widget in a second, unnamed focus style — the absorption was a redesign, not a move. */
 
 	input[disabled],
 	button[disabled],
@@ -416,13 +201,7 @@
 		cursor: default;
 	}
 
-	input[readonly],
-	select[readonly],
-	textarea[readonly] {
-		border-color: color-mix(in srgb, var(--fs-border) calc(var(--fs-disabled-opacity) * 100%), transparent);
-		pointer-events: auto;
-		cursor: auto;
-	}
+	/* readonly border fade: theme/60-inputs.css — absorbed with the generic box */
 
 	.cbi-optionals,
 	.cbi-section-create {
@@ -442,9 +221,7 @@
 		flex: 1 1 auto;
 	}
 
-	.cbi-section-create > * > input {
-		width: 100%;
-	}
+	/* the input's cell-filling width: theme/60-inputs.css — absorbed with the generic box */
 
 	/* .cbi-page-actions paint: theme/55-buttons.css — absorbed. The legacy `.actions`
 	 * plate has no theme override, so it stays (coverage: some luci-app-* still emits it). */

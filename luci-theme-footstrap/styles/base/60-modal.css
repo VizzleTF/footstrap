@@ -30,18 +30,11 @@
 		min-width: 270px;
 	}
 
-	.modal > * {
-		line-height: normal;
-		margin-bottom: .5em;
-		max-width: 100%;
-	}
+	/* .modal > * (normal leading, the .5em rhythm, max-width): theme/70-modal.css — absorbed
+	 * with the heading ramp, which would out-layer the leading here */
 
-	.modal > pre,
-	.modal > textarea {
-		white-space: pre-wrap;
-		overflow: auto;
-		width: 100%;
-	}
+	/* .modal > pre/textarea (pre-wrap, fill the dialog): theme/70-modal.css — absorbed with
+	 * the generic field box (its 210px would out-layer the width here) */
 
 	.modal > .button-row {
 		display: flex;
