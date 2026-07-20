@@ -17,6 +17,25 @@
 	 * is (1,1,0) in the PAGE layer — it beat theme/30-tables.css's
 	 * `.table.fs-stacked .tr.cbi-section-table-titles { display: none }` and put the column
 	 * header back on screen in card mode, where every cell already prints its own label. */
+	/* ---- the package NAME is an identifier: do not let the column collapse under it ----
+	 *
+	 * theme/30-tables.css gives every data cell `overflow-wrap: anywhere`, which — unlike
+	 * `break-word` — also lowers the column's MIN-CONTENT width to a single character. Version and
+	 * Size are `white-space: nowrap` and cannot shrink, so auto table layout took the whole
+	 * shortfall out of column 1: measured with the filter on "app", the name column came out
+	 * 81-101px — NARROWER than Size (88px) — and 6 of the first 8 names rendered broken mid-word
+	 * (`apparmor-` / `profiles`), while a hyphen made it worse by offering a legal break point.
+	 * It shows up when a filter is applied because that is when long names reach the top of the
+	 * list; the squeeze itself is always there.
+	 *
+	 * nowrap here does NOT mean "never wrap": it makes the overflow HONEST, which is what
+	 * fs-select.js's measurement needs — where the row genuinely does not fit, the table cards
+	 * (.fs-stacked) and this rule stops applying, so the name wraps freely in card mode. That is
+	 * the same trap idTower() works around in fs-select.js: `anywhere` hides the overflow by
+	 * shredding a cell, so nothing is left for fit.overflows() to read. Verified 560-1440px: 0
+	 * broken names, no table overflow, and the card threshold unchanged. */
+	#packages:not(.fs-stacked) .tr > .td:first-child { white-space: nowrap; }
+
 	#packages.fs-stacked .tr:not(.cbi-section-table-titles):not(.cbi-section-table-descr) {
 		display: block; padding: 12px 16px;
 	}

@@ -111,6 +111,17 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **Package names stop breaking mid-word on the Software page.** `theme/30-tables.css` gives
+  every data cell `overflow-wrap: anywhere`, which — unlike `break-word` — also drops the
+  column's min-content width to a single character. Version and Size are `nowrap` and cannot
+  shrink, so auto table layout took the entire shortfall out of column 1: measured with the
+  filter on "app", the name column came out 81–101px, narrower than Size (88px), and 6 of the
+  first 8 names rendered as `apparmor-` / `profiles`. It surfaces when a filter is applied
+  because that is when long names reach the top of the list; the squeeze was always there. The
+  name column is now `nowrap` in table mode, which also makes the overflow honest for
+  `fs-select.js`'s measurement — where a row genuinely does not fit, the table cards and the
+  name wraps freely again. Verified 560–1440px: no broken names, no overflow, card threshold
+  unchanged.
 - **Startup's action buttons no longer get cut off on a phone — the card's button row wraps.**
   LuCI groups a row's buttons in ONE inner `<div>`, so the card's own `flex-wrap` on the actions
   cell never fired — the div is a single flex item, and `.fs-main`'s `overflow-x: clip` cut the
