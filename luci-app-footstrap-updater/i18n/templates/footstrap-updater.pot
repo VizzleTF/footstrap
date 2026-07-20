@@ -1,0 +1,80 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: htdocs/luci-static/resources/fs-update.js:189
+msgid "Cancel"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:163
+msgid "Close"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:183
+msgid ""
+"Download and install the latest Footstrap release from GitHub? The page "
+"reloads when done."
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:244
+msgid "Downloading and installing…"
+msgstr ""
+
+#: root/usr/share/rpcd/acl.d/luci-app-footstrap-updater.json:3
+msgid "Footstrap theme self-update (install the latest release)"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:197
+msgid "Loading release notes…"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:215
+msgid "Log in again"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:185
+msgid "Release notes:"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:177
+msgid "Theme"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:182
+msgid ""
+"This release may contain breaking changes — read the notes below before "
+"updating."
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:190
+msgid "Update"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:156
+msgid "Update Footstrap"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:162
+msgid "Update failed"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:211
+msgid ""
+"Update installed. The router restarted its session service, so you have been "
+"logged out — sign in again to load the new theme."
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:228
+msgid "Updated. Reloading…"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:179
+msgid "Updater"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:221
+msgid "timed out waiting for the installer"
+msgstr ""
+
+#: htdocs/luci-static/resources/fs-update.js:162
+msgid "unknown error"
+msgstr ""

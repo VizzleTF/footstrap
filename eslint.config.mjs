@@ -19,15 +19,17 @@ import { utProcessor } from './tools/lib/ut-scripts.mjs';
  * form needs deriving. See the config entry at the bottom for why this is read from the source rather
  * than written out.
  *
- * The optional updater (fs-update.js) moved to its own repo (VizzleTF/luci-app-footstrap-updater),
- * which lints and jsmin-checks it there; it still lands in this same /www/luci-static/resources dir on
- * the router and requires the theme's fs-version/fs-prefs/fs-router at runtime, but its source is no
- * longer here to lint. */
+ * TWO packages ship browser JS into /www/luci-static/resources: the theme, and the optional updater
+ * (luci-app-footstrap-updater/htdocs/.../fs-update.js, which requires the theme's fs-version/fs-prefs/
+ * fs-router at runtime). Both land in the same directory on the router and both are minified by jsmin,
+ * so both must be linted — a package left out silently drops the wrap-regex/jsmin safety on it. */
 const HTDOCS_GLOBS = [
 	'luci-theme-footstrap/htdocs/**/*.js',
+	'luci-app-footstrap-updater/htdocs/**/*.js',
 ];
 const RESOURCE_DIRS = [
 	'luci-theme-footstrap/htdocs/luci-static/resources',
+	'luci-app-footstrap-updater/htdocs/luci-static/resources',
 ];
 function resourceFiles() {
 	return RESOURCE_DIRS.flatMap((dir) => readdirSync(dir, { recursive: true })

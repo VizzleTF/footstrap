@@ -11,7 +11,7 @@ Style and format guide: [docs/21-changelog-style-and-format.md](docs/21-changelo
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
-## [Unreleased]
+## [0.9.4] — 2026-07-20
 
 ### Added
 
@@ -72,6 +72,28 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **The self-update package `luci-app-footstrap-updater` moved to its own repository — and this
+  transition release ships it from here ONE last time, already knowing to look for itself in that
+  new repo first.** It now lives at
+  [VizzleTF/luci-app-footstrap-updater](https://github.com/VizzleTF/luci-app-footstrap-updater) with
+  its own tags and release stream; the two are versioned independently (a theme-only release no longer
+  republishes the updater, and vice versa). But every self-updater already on a router looks for the
+  updater asset in THIS repo's release and nowhere else, and a router's installed updater cannot be
+  fixed remotely — so a clean break would have stranded each of them on its current updater forever:
+  the missing asset is skipped non-fatally, the theme keeps updating, and nothing ever reports that
+  the updater stopped moving. So the copy installed here carries `resolve_updater()` — the updater
+  repo FIRST, and it wins whenever it offers an asset, the theme's release only as a fallback while
+  that repo has none — which makes the day it publishes the day every router crosses over, with no
+  second decision anywhere. Both sources are verified against the same ed25519 key, so the fallback
+  changes where the bytes come from and never whether they are checked. The updater repo's first tag
+  must be **higher than this release's version**: opkg refuses a downgrade by default ("Not
+  downgrading package …"), exits 0 and installs nothing, so a lower tag there would strand every 24.10
+  router on the transition build while reporting success. The self-updater is repo-aware and skips the
+  updater leg when it is already current; `install.sh` installs both packages, updater repo first,
+  theme release as fallback; the `fs-update.js` runtime module still lands in the same
+  `/www/luci-static/resources` and requires the theme's modules exactly as before. The updater's own
+  new features (release notes + breaking-change warning + free-space preflight in the confirm dialog,
+  a non-fatal updater refresh) are in that repo's changelog.
 - **The inter-card gap and the top bar's edge shadow are named tokens (`--fs-card-gap`,
   `--fs-shadow-bar`).** The same 16px was hand-written in seven files — `45-misc.css` even
   carried a comment apologising for it — and the bar's shadow was the one bar/card shadow
@@ -84,17 +106,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   now opts in via `:not(:empty):not(.single)` and the bar's base rule keeps the strip hidden
   otherwise. The rail's and the compact top-bar's refresh glyph shared their mask declarations the
   same unpinned way; those two copies are now held byte-identical by `npm run mirror`.
-- **The self-update package `luci-app-footstrap-updater` moved to its own repository, with its own
-  tags and release stream.** It now lives at
-  [VizzleTF/luci-app-footstrap-updater](https://github.com/VizzleTF/luci-app-footstrap-updater); this
-  repo builds and releases the theme alone. The two are versioned independently — a release that only
-  touches the theme no longer republishes the updater, and vice versa — and the self-updater is
-  repo-aware: it resolves the theme from this repo and the updater from its own, verifies both against
-  the one release key, and skips the updater when it is already current. The updater's own new features
-  (release notes + a breaking-change warning + a free-space preflight in the confirm dialog, and a
-  non-fatal updater refresh) are documented in that repo's changelog. `install.sh` here installs both
-  packages from their two repos; the fs-update.js runtime module still lands in the same
-  `/www/luci-static/resources` and requires the theme's modules exactly as before.
 - **The `.cbi-dropdown` widget lives in one place, and its six state-machine `!important` flags
   are gone.** `base/80-dropdown.css` was absorbed whole into `theme/65-dropdown.css`. The display
   state machine ([open]/[multiple]/[empty]/[optional]) is rewritten onto plain specificity —
@@ -118,13 +129,6 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   through focus via an explicit `.cbi-input-invalid:focus`. A verbatim move was not possible:
   inside one layer the old ring met the theme's own rules at equal specificity, i.e. the cascade
   would have rested on file order.
-
-### Removed
-
-- **This repo no longer builds or releases the `luci-app-footstrap-updater` package** (see above). A
-  router already running an older self-updater keeps receiving theme updates from this repo's releases
-  — the missing updater asset is skipped, non-fatally — and moves onto the new repo's updater by
-  re-running `install.sh` once, the same one-time migration the project has used before.
 
 ### Fixed
 
@@ -2853,6 +2857,7 @@ line, not one per tag. The individual patch releases are in the git history.
   nested `calc()`, which broke the layout outright. JS minification came back in 0.7.12,
   once jsmin was proven safe by a token-equivalence gate.
 
+[0.9.4]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/VizzleTF/luci-theme-footstrap/compare/v0.9.0...v0.9.1

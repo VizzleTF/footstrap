@@ -48,9 +48,10 @@ const SEARCH = [
 	'luci-theme-footstrap/root',
 	'luci-theme-footstrap/htdocs/luci-static/resources',
 	'luci-theme-footstrap/Makefile',
-	/* install.sh is still searched (its LICENSE/legacy-names live here), but its gh/* fetch helpers are
-	 * no longer @mirror-pinned: the twin was footstrap-selfupdate.sh, which moved to the updater's own
-	 * repo (VizzleTF/luci-app-footstrap-updater) where the two are pinned against each other. */
+	/* the optional updater package: its footstrap-selfupdate.sh carries the gh/* mirror copies
+	 * install.sh is pinned against (they cannot share a file — install.sh runs before any package
+	 * exists) */
+	'luci-app-footstrap-updater/root',
 	'install.sh',
 ];
 const EXT = /\.(css|js|sh|ut)$|(^|\/)(Makefile|30_luci-theme-footstrap)$/;

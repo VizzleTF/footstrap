@@ -125,6 +125,7 @@ ok "Package manager: $PM (installing .$EXT)"
 # wget is the last resort (non-OpenWrt); GNU wget follows https -> http redirects, hence
 # --https-only where the flag exists.
 #
+# @mirror gh/fetch
 fetch() {
 	_u="$1"; _t="$2"; _o="$3"
 	if command -v uclient-fetch >/dev/null 2>&1; then
@@ -149,16 +150,19 @@ fetch() {
 	fi
 	return 1
 }
+# @endmirror
 
 # The URL comes out of the API answer and the file it names is handed to `apk add
 # --allow-untrusted` as root. Pin the host, so a malformed or tampered response cannot point
 # that install at an arbitrary server.
+# @mirror gh/asset-host
 asset_host_ok() {
 	case "$1" in
 		https://github.com/*|https://objects.githubusercontent.com/*|https://release-assets.githubusercontent.com/*) return 0 ;;
 	esac
 	return 1
 }
+# @endmirror
 
 # Pick the asset by package NAME, not by extension. `grep "\.apk$" | head -n1` — what this did —
 # takes whichever asset GitHub lists first, and the API sorts assets BY NAME: in v0.8.4, when the
@@ -170,6 +174,7 @@ asset_host_ok() {
 # `name-1.2.3-r1.apk`, ipk: `name_1.2.3-r1_all.ipk`); anchoring on `/` in front stops a repo or
 # tag containing the package name from matching.
 #
+# @mirror gh/asset-urls
 asset_urls() {		# <json> <package-name> -> every matching asset URL, one per line
 	jsonfilter -i "$1" -e '@.assets[*].browser_download_url' 2>/dev/null \
 		| grep -E "/$2[-_][^/]*\.$EXT\$" || true
@@ -185,15 +190,18 @@ sig_url() {		# <json> <package-url> -> the detached signature published for THAT
 	# claim to have. -Fx = whole line, literal.
 	jsonfilter -i "$1" -e '@.assets[*].browser_download_url' 2>/dev/null | grep -Fx "$2.sig" || true
 }
+# @endmirror
 
 # usign is on EVERY OpenWrt image — base-files depends on it — so verifying the release signature
 # costs the theme no new runtime dependency (see LUCI_DEPENDS in the Makefile: the curl lesson).
 # The key is the package's own; it is not added to /etc/apk/keys, so nothing this package does
 # makes footstrap a trust anchor for the router's package manager at large.
+# @mirror gh/verify-sig
 verify_sig() {		# <file> <sigfile> <pubkey-file> -> 0 iff the signature is ours and intact
 	command -v usign >/dev/null 2>&1 || return 2
 	usign -V -q -m "$1" -x "$2" -p "$3"
 }
+# @endmirror
 
 # THE ONLY COPY of the release public key outside the packages, and it has to exist: this script is
 # fetched with `curl | sh` and runs BEFORE any package is installed. The package copy is
@@ -243,29 +251,37 @@ if [ -z "$THEME_URL" ]; then
 	exit 1
 fi
 
-# === TEMPORARY: install the updater from the THEME release =====================================
-# The updater's own repo (VizzleTF/luci-app-footstrap-updater) has no SIGNED release yet — its
-# signing secret is not set, so its release job cannot run. Resolving the updater from there finds
-# nothing. Until it publishes, install the updater from the THEME repo's release: its v0.9.3 still
-# bundles the updater asset (the last release cut before the split), so both packages come from
-# THEME_JSON, verified by the same key. This holds only while `latest` on the theme repo is a
-# release that still carries the updater — cut a theme-only release and it stops, which is the cue
-# to switch to the two-repo path below.
+# --- the updater: its own repo first, the theme release as a fallback -------------------------
+# The updater's home is REPO_UPDATER and every future release comes from there — so it is asked
+# first, and it wins whenever it offers an asset. The theme release is a second place to look, and
+# it exists because the split is not instantaneous:
 #
-# TO REVERT (once the updater repo has a signed release): delete this block and re-enable the
-# original two-repo resolution kept commented below; and change the install call further down back
-# to `install_asset "$UPDATER_URL" "$UPDATER_JSON"`.
-info "Installing the updater from the theme release (temporary — the updater repo has no release yet)..."
-UPDATER_JSON="$THEME_JSON"
-UPDATER_URL=$(asset_urls "$THEME_JSON" luci-app-footstrap-updater | head -n1)
-[ -n "$UPDATER_URL" ] || warn "The theme release carries no updater asset — installing the theme only."
-# --- original two-repo resolution (re-enable when the updater repo publishes) ---
-#   info "Resolving the updater release (latest) from $REPO_UPDATER..."
-#   UPDATER_JSON="$TMP/updater.json"; UPDATER_URL=""
-#   if resolve_release "$REPO_UPDATER" "$UPDATER_JSON" latest; then
-#       UPDATER_URL=$(asset_urls "$UPDATER_JSON" luci-app-footstrap-updater | head -n1)
-#   else warn "Could not reach the updater repo — installing the theme only."; fi
-# === end TEMPORARY =============================================================================
+#   - the updater repo has no signed release yet (its signing secret is not set, so its release job
+#     cannot run) — that is the state this fallback was written for;
+#   - the theme repo published the updater up to and including the transition release, so its
+#     `latest` really does carry a signed, installable asset;
+#   - a renamed or unreachable updater repo degrades to "the theme release we already fetched"
+#     instead of to "no update controls at all", at no extra API call.
+#
+# Both sources are verified against the SAME key, so the fallback loosens nothing: it changes where
+# the bytes come from, never whether they are checked. $UPDATER_JSON follows the asset — the digest
+# and the .sig are listed by whichever release publishes it, and install_asset verifies against that
+# json, not against whichever one happened to be fetched last.
+#
+# WHEN THE UPDATER REPO PUBLISHES this whole fallback becomes dead code and should go: delete the
+# `if [ -z "$UPDATER_URL" ]` branch below, leaving the REPO_UPDATER resolution.
+info "Resolving the updater release (latest) from $REPO_UPDATER..."
+UPDATER_JSON="$TMP/updater.json"; UPDATER_URL=""
+if resolve_release "$REPO_UPDATER" "$UPDATER_JSON" latest; then
+	UPDATER_URL=$(asset_urls "$UPDATER_JSON" luci-app-footstrap-updater | head -n1)
+fi
+if [ -z "$UPDATER_URL" ]; then
+	UPDATER_URL=$(asset_urls "$THEME_JSON" luci-app-footstrap-updater | head -n1)
+	if [ -n "$UPDATER_URL" ]; then
+		UPDATER_JSON="$THEME_JSON"
+		info "The updater repo publishes no asset yet — taking the updater from the theme release."
+	fi
+fi
 
 # --- download, verify, install --------------------------------------------
 # TWO checks, answering DIFFERENT attackers, and both fail CLOSED.

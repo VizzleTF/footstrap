@@ -13,7 +13,7 @@
 # with an error that pointed at nothing. This is the gate that says so out loud.
 set -eu
 
-for mk in luci-theme-footstrap/Makefile; do
+for mk in luci-theme-footstrap/Makefile luci-app-footstrap-updater/Makefile; do
 	grep -aE 'call (Build/DefaultTargets|BuildPackage|KernelPackage)' "$mk" >/dev/null || {
 		cat >&2 <<EOF
 $mk does not match include/scan.mk's package grep:
