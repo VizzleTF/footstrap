@@ -39,13 +39,29 @@
 	#packages.fs-stacked .tr:not(.cbi-section-table-titles):not(.cbi-section-table-descr) {
 		display: block; padding: 12px 16px;
 	}
+	/* ---- the value is not ONE flex item, and space-between tore it apart ----
+	 *
+	 * A card row is label-left / value-right, which was `justify-content: space-between` over the
+	 * ::before and the cell's content. But flex makes every ELEMENT its own item, and the filter
+	 * on this page wraps each match in `<ins>`: `<ins>luc</ins>i-app-acl` is TWO items, so
+	 * space-between pushed them to opposite edges and the package name read as `luc` … 85px …
+	 * `i-app-acl` (measured at 390px, filter "luc": gaps of 110/85/77/69px mid-word). The `gap`
+	 * added 14px between them on top.
+	 *
+	 * So do not distribute the free space BETWEEN the items — hand it all to the label: everything
+	 * else then packs flush right in DOM order, however many elements the value happens to be. */
 	#packages.fs-stacked .td {
-		display: flex; align-items: baseline; justify-content: space-between;
-		gap: 14px; padding: 5px 0; border: 0; text-align: right;
+		display: flex; align-items: baseline; justify-content: flex-end;
+		gap: 0; padding: 5px 0; border: 0; text-align: right;
 		min-width: 0; width: auto; flex: none;
 	}
+	/* `margin-right: auto` is what replaces space-between: it eats the whole free line, so the
+	 * value packs flush right as one unbroken run. `padding-right` keeps a gutter when the row is
+	 * full and the auto margin collapses to nothing (the `gap` used to do that, but a gap applies
+	 * between EVERY pair of items — including the two halves of a highlighted name). */
 	#packages.fs-stacked .td[data-title]::before {
 		content: attr(data-title); flex: 0 0 auto; text-align: left; margin-bottom: 0;
+		margin-right: auto; padding-right: 14px;
 		font-size: 10px; font-weight: 700; letter-spacing: .05em;
 		text-transform: uppercase; color: var(--fs-faint); white-space: nowrap;
 	}

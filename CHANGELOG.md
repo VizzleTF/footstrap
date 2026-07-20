@@ -111,6 +111,14 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **A filtered package name is no longer torn in half on a phone.** The Software filter wraps
+  each match in `<ins>`, so `luci-app-acl` is really `<ins>luc</ins>i-app-acl` — two elements.
+  The card row laid its label and value out with `justify-content: space-between`, and flex
+  treats every element as its own item, so the two halves of the name were pushed to opposite
+  edges: measured at 390px with the filter on "luc", gaps of 110/85/77/69px straight through the
+  middle of the word, plus 14px more from the row's `gap`. The free space now goes to the label
+  alone (`margin-right: auto`), so the value packs flush right as one unbroken run however many
+  elements it is made of. Mid-word gap: 0px on every row.
 - **Package names stop breaking mid-word on the Software page.** `theme/30-tables.css` gives
   every data cell `overflow-wrap: anywhere`, which — unlike `break-word` — also drops the
   column's min-content width to a single character. Version and Size are `nowrap` and cannot
