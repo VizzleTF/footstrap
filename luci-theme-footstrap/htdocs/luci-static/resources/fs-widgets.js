@@ -52,6 +52,9 @@ function wireDismiss(opts) {
 	});
 }
 
+/* the radiogroup's key map: arrows move by ±1, Home/End jump to an edge (handled by index) */
+const SEG_KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 0, End: 0 };
+
 /* One segmented control; highlights the active option, calls onPick on change.
  * `label` is not decoration: the visible caption is a sibling <div> nothing associated with the
  * control, and the selection was carried by a CSS class alone — a screen reader got an unnamed
@@ -93,8 +96,7 @@ function segControl(current, opts, onPick, label) {
 	/* In a radiogroup an arrow both MOVES and SELECTS (APG), and the ends wrap. Home/End are the
 	 * same move to the first/last. Space/Enter reach the button as a native click already. */
 	wrap.addEventListener('keydown', (ev) => {
-		const KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 0, End: 0 };
-		if (!(ev.key in KEYS)) return;
+		if (!(ev.key in SEG_KEYS)) return;
 		const list = [ ...wrap.querySelectorAll('button') ];
 		if (!list.length) return;
 		const at = list.indexOf(document.activeElement);
@@ -102,7 +104,7 @@ function segControl(current, opts, onPick, label) {
 		ev.preventDefault();
 		const next = ev.key === 'Home' ? list[0]
 			: ev.key === 'End' ? list[list.length - 1]
-			: list[(at + KEYS[ev.key] + list.length) % list.length];
+			: list[(at + SEG_KEYS[ev.key] + list.length) % list.length];
 		onPick(next.getAttribute('data-val'));
 		select(next, true);
 	});

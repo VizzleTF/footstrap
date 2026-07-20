@@ -127,13 +127,15 @@ function restoreAccordion() {
  * (non-`view` nodes, any F5). */
 const OPEN_KEY = 'fs-menu-open';
 function loadOpenSections() {
+	/* prefs.lsGet/lsSet own the try/catch around localStorage itself; the try here is for
+	 * JSON.parse over a value another tab may have corrupted */
 	try {
-		const a = JSON.parse(localStorage.getItem(OPEN_KEY) || '[]');
+		const a = JSON.parse(prefs.lsGet(OPEN_KEY) || '[]');
 		return new Set(Array.isArray(a) ? a : []);
 	} catch (e) { return new Set(); }
 }
 function saveOpenSections() {
-	try { localStorage.setItem(OPEN_KEY, JSON.stringify(Array.from(_openSections))); } catch (e) {}
+	prefs.lsSet(OPEN_KEY, JSON.stringify(Array.from(_openSections)));
 }
 const _openSections = loadOpenSections();
 

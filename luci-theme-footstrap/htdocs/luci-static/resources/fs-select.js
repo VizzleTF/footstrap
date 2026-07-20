@@ -298,16 +298,17 @@ function wireTypeahead() {
 		 * the search restarts from the top, as a native select does */
 		const from = repeat ? start + 1 : 0;
 
-		const match = (li) => typeaheadLabel(li).startsWith(needle) ||
-			String(li.getAttribute('data-value') || '').toLowerCase().startsWith(needle);
+		/* matches the LABEL first, then the value, so "RU" and "Russia" both find it */
+		const matches = (n) => (li) => typeaheadLabel(li).startsWith(n) ||
+			String(li.getAttribute('data-value') || '').toLowerCase().startsWith(n);
+		const match = matches(needle);
 
 		/* wrap around: the second pass covers what the first skipped */
 		let hit = items.slice(from).find(match) ?? items.find(match);
 		if (!hit && !repeat) {
 			/* the extended buffer matches nothing — treat this keystroke as a fresh search
 			 * instead of swallowing it, so a mistyped letter is recoverable */
-			hit = items.find((li) => typeaheadLabel(li).startsWith(ch) ||
-				String(li.getAttribute('data-value') || '').toLowerCase().startsWith(ch));
+			hit = items.find(matches(ch));
 			if (hit) _taBuf = '';
 		}
 		if (!hit) return;
