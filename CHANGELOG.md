@@ -15,6 +15,24 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Added
 
+- **`prefers-contrast: more` is honoured: hairlines, secondary text and the focus ring all
+  strengthen.** Same token mechanism as the reduced-transparency block: `--fs-border` pulls
+  toward the text colour, the role hairlines (a 40/55% tint of their role) go to the full role
+  colour, `--fs-dim`/`--fs-faint` (the 10–11px eyebrow labels — where AA erodes first) step up,
+  and the focus ring trades its 12% tint for the accent at 60%. One `:root` block; every rule
+  reads the tokens, so the whole page follows.
+- **Printing works: light surfaces, no chrome, and — the real bug — more than one page.** The
+  sidebar layout's shell is `height: 100dvh; overflow: hidden`, so printing a config page cut
+  everything past the first viewport. `@media print` now unwinds the scroll frame, hides the
+  navigation/actions/popover, restates the surface tokens to ink-friendly values (one block in
+  the theme layer outranks every tokens-layer palette), and keeps cards unbroken across page
+  breaks where possible.
+- **Text selection, the input caret and native form controls follow the palette.**
+  `::selection` paints accent-on-accent-ink instead of the UA's opaque blue; `caret-color` and
+  `accent-color` are set once on `:root` — the theme's own checkboxes are `appearance: none`
+  drawings and never see `accent-color`, but a third-party `luci-app-*`'s native
+  checkbox/radio/progress now takes the palette, outbound theming in the spirit of the
+  `--*-color-*` export tier.
 - **Back/Forward now restores the scroll position in the sidebar layout.** The sidebar layout
   scrolls `#maincontent`, not the document, and a browser restores inner scrollable regions only
   across full loads — so an SPA Back always opened the page at the top (docs/22 §2; the top layout
@@ -37,6 +55,11 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Changed
 
+- **The inter-card gap and the top bar's edge shadow are named tokens (`--fs-card-gap`,
+  `--fs-shadow-bar`).** The same 16px was hand-written in seven files — `45-misc.css` even
+  carried a comment apologising for it — and the bar's shadow was the one bar/card shadow
+  written inline (`color-mix` over the border, twice): both were unnamed levels, and an unnamed
+  level drifts in silence (the role-tint ladder exists for exactly this reason).
 - **The mode strip's empty/single-mode hiding is one rule per layout instead of a byte-identical
   hide pair in two files, and the poll glyph's mask recipe is `@mirror`-pinned.** The
   `.fs-modemenu:empty/.single { display: none }` pair existed identically in the sidebar and the
@@ -114,7 +137,13 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   `blur(6px)` — the one frosted surface outside the `--fs-blur` token, so the a11y block that
   nulls the token left it blurring for exactly the users who asked for opaque. It reads the token
   (one radius for every frosted surface, per 02-tokens.css).
-- **A long opaque value in a carded config-table cell wraps instead of running off the card.**
+- **The System/Kernel Log fills the page again instead of rendering as a 210px column.** The log
+  is a `<textarea id="syslog">` in a bare div, not in a `.cbi-value-field` — stock bootstrap
+  pairs its generic `input, textarea { width: 210px }` with `#syslog { width: 100% }` and wins
+  on specificity, but this theme's generic field box lives in the `theme` LAYER and a layer
+  beats specificity, so the same pair in `base` silently lost. The rule is absorbed into the
+  `page` layer (above the generic's), with the mono face at the data tables' size, a 500px
+  floor and a vertical-only resize grip.
   The data card's cells already carried `overflow-wrap: anywhere; white-space: normal`; the
   config card's copy had neither, and a value with no break point — a real-length IPv6 GUA is
   39 characters and colons are not break opportunities — ran 156px past a 360px viewport on the

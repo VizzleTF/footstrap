@@ -27,6 +27,11 @@
 		/* pop surfaces (menus, dropdown lists, Appearance popover, select picker): one value
 		 * for the .28/.30/.32 literals that had drifted apart across them. */
 		--fs-shadow-pop: 0 12px 34px rgba(0,0,0,.30);
+		/* the top bar's edge: a drop below + a 1px inset seam, both a quiet 25% of the border
+		 * colour. The one bar/card shadow that was written inline (50-toplayout.css) — an
+		 * unnamed derived level, the drift shape the ladder exists to prevent. */
+		--fs-shadow-bar: 0 1px 3px color-mix(in srgb, var(--fs-border) 25%, transparent),
+		                 inset 0 -1px 0 color-mix(in srgb, var(--fs-border) 25%, transparent);
 		/* every field's focus ring (input, select, cbi-dropdown, range, dynlist add-item) and
 		 * its invalid twin — which takes -fill (18%), not -soft (12%): a red ring must read
 		 * as an ALARM, not as a hover tint. */
@@ -188,6 +193,11 @@
 		 * both places, narrowing the gutter here would silently re-clip every graph — the same
 		 * trap --fs-sidebar-w exists to close for fitShell(). */
 		--fs-card-pad: 16px;
+		/* The vertical rhythm BETWEEN cards (.cbi-section, tab groups, alerts, action bars).
+		 * It was the same 16px hand-written in seven files — 45-misc.css even carried a comment
+		 * apologising for it ("Same 16px every .cbi-section already uses") — which is an
+		 * unnamed level, and an unnamed level drifts (see the role-tint ladder above). */
+		--fs-card-gap: 16px;
 
 		--fs-font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 		--fs-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;

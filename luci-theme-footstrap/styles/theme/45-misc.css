@@ -151,7 +151,7 @@
 		border: 1px solid var(--fs-border);
 		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
-		margin: 0 0 16px;
+		margin: 0 0 var(--fs-card-gap);
 		padding: 16px;
 		font-size: 18px;
 		font-weight: 700;
@@ -174,7 +174,7 @@
 		border-top: 0;
 		border-radius: 0 0 var(--fs-radius-lg) var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
-		margin: 0 0 16px;
+		margin: 0 0 var(--fs-card-gap);
 		padding: 0 16px 16px;
 		color: var(--fs-dim);
 		font-size: 13px;
@@ -194,5 +194,5 @@
 	 * third-party app may put anything). Nothing gave it a bottom margin, so it sat flush
 	 * against the first .cbi-section below and read as part of that card instead of as a
 	 * page-level action. Same 16px every .cbi-section already uses. */
-	.cbi-title-buttons { margin-bottom: 16px; }
+	.cbi-title-buttons { margin-bottom: var(--fs-card-gap); }
 }

@@ -52,7 +52,7 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 16px;
 		/* no align-items: the default stretch is what levels the two columns' bottom edges */
-		margin-bottom: 16px;			/* match stock .cbi-section spacing below the grid */
+		margin-bottom: var(--fs-card-gap);	/* match stock .cbi-section spacing below the grid */
 	}
 	/* min-width:0 so a grid item shrinks to its TRACK, not to its content's min-width
 	 * (auto): a long System value (model/firmware) blew the single-column track past a

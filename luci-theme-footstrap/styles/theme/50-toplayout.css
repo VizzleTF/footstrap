@@ -37,8 +37,7 @@
 		/* align the bar's contents to the .fs-content column, so the brand and the menu line
 		 * up with the headings and the cards below */
 		padding: 0 max(20px, calc((100% - var(--fs-content-max)) / 2 + var(--fs-content-pad)));
-		box-shadow: 0 1px 3px color-mix(in srgb, var(--fs-border) 25%, transparent),
-		            inset 0 -1px 0 color-mix(in srgb, var(--fs-border) 25%, transparent);
+		box-shadow: var(--fs-shadow-bar);
 	}
 
 	/* the menu rides the brand's row; its flex:1 opens the gap that pushes the right-hand

@@ -1,0 +1,22 @@
+@layer page {
+	/* System Log / Kernel Log (luci-mod-status): the whole log is a readonly
+	 * <textarea id="syslog"> in a bare div, NOT in a .cbi-value-field. Stock bootstrap pairs
+	 * its generic `input, textarea { width: 210px }` with `#syslog { width: 100% }` and wins
+	 * on SPECIFICITY — but this theme's generic field box lives in the `theme` LAYER, and a
+	 * layer beats specificity, so the same pair in `base` lost and the log rendered as a
+	 * 210px column (measured on 25.12). The rule is absorbed HERE, above the generic's layer;
+	 * it is bootstrap's own coverage relocated, not a page hack. Mono at the data tables'
+	 * size, `pre` because log lines are lines, and a vertical-only resize grip — a sideways
+	 * grip would just re-create the squeeze. */
+	#syslog {
+		width: 100%;
+		min-height: 500px;
+		color: var(--fs-text);
+		margin-bottom: var(--fs-space-4);
+		font-family: var(--fs-font-mono);
+		font-size: 12px;
+		line-height: 1.5;
+		white-space: pre;
+		resize: vertical;
+	}
+}

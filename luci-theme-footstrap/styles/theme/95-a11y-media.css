@@ -42,6 +42,32 @@
 	}
 
 	/* ==================================================================
+	 * prefers-contrast — the user asked the OS for MORE contrast, but (unlike forced-colors)
+	 * left the palette to us. Same mechanism as reduced-transparency above: re-state the tokens,
+	 * and every rule that reads them follows. What moves and why:
+	 *   - the hairlines: --fs-border is the most-read line in the theme and sits at ~20% of the
+	 *     text's contrast; pull it toward --fs-text. The role hairlines (-line/-line-hi, a 40/55%
+	 *     tint of their role) go to the FULL role colour — a tint exists to be quiet, which is
+	 *     the opposite of what this user asked for.
+	 *   - secondary text: --fs-dim toward --fs-text, and --fs-faint (10-11px eyebrow labels)
+	 *     up to dim's level — small + faint is where AA erodes first.
+	 *   - the focus ring: the default ring is a 12% tint of the accent (--fs-accent-soft);
+	 *     at "more contrast" it carries the accent at 60%.
+	 * ================================================================== */
+	@media (prefers-contrast: more) {
+		:root {
+			--fs-border: color-mix(in srgb, var(--fs-text) 45%, var(--fs-bg));
+			--fs-dim: color-mix(in srgb, var(--fs-text) 85%, var(--fs-bg));
+			--fs-faint: var(--fs-dim);
+			--fs-focus-ring: 0 0 0 3px color-mix(in srgb, var(--fs-accent) 60%, transparent);
+			--fs-accent-line: var(--fs-accent);	--fs-accent-line-hi: var(--fs-accent);
+			--fs-good-line: var(--fs-good);		--fs-good-line-hi: var(--fs-good);
+			--fs-warn-line: var(--fs-warn);		--fs-warn-line-hi: var(--fs-warn);
+			--fs-danger-line: var(--fs-danger);	--fs-danger-line-hi: var(--fs-danger);
+		}
+	}
+
+	/* ==================================================================
 	 * forced-colors (Windows High Contrast) — the OS replaces every colour the theme picked, and
 	 * background-color on most elements is forced to the system canvas. Any state carried by
 	 * BACKGROUND ALONE therefore vanishes: the active tab pill, the checked toggle and the

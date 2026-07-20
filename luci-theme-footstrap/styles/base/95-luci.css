@@ -7,12 +7,8 @@
 
 	#modemenu li:last-child span.divider { display: none }
 
-	#syslog {
-		width: 100%;
-		color: var(--fs-text);
-		margin-bottom: var(--fs-space-4);
-		font-family: var(--fs-font-mono);
-	}
+	/* #syslog: absorbed into pages/70-syslog.css — in base it LOST to the theme layer's generic
+	 * form-field box (a layer beats specificity), so the log rendered as a 210px column. */
 
 	.cbi-section-table .tr:hover .td,
 	.cbi-section-table .tr:hover .th,

@@ -191,4 +191,13 @@
 		outline: none;
 		box-shadow: var(--fs-focus-ring);
 	}
+
+	/* The page-wide accent signals no widget rule covers. All three follow the palette:
+	 *   ::selection      — the UA default (opaque blue) ignores palette and dark mode;
+	 *   caret-color      — inherits from :root into every field, one declaration;
+	 *   accent-color     — the theme's own checkboxes are appearance:none drawings and never
+	 *                      see it, but a third-party luci-app-*'s NATIVE checkbox/radio/
+	 *                      progress does — outbound theming in the spirit of the export tier. */
+	::selection { background: var(--fs-accent); color: var(--fs-on-accent); }
+	:root { caret-color: var(--fs-accent); accent-color: var(--fs-accent); }
 }

@@ -6,7 +6,7 @@
 		border-radius: var(--fs-radius-lg);
 		box-shadow: var(--fs-shadow);
 	}
-	.cbi-section { padding: var(--fs-card-pad); margin-bottom: 16px; }
+	.cbi-section { padding: var(--fs-card-pad); margin-bottom: var(--fs-card-gap); }
 	/* a bare <legend>; the ones inside a .cbi-section are covered below. The ink is the heading
 	 * ramp's (45-misc.css) — legend is kept out of that group so this rule stays its one owner;
 	 * no line-height here: base's `fieldset legend` sets 1 and every real legend sits in a
