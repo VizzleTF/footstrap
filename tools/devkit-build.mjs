@@ -41,9 +41,12 @@ function parseComponents(html) {
 		let sec = chunk.slice(0, chunk.search(/<\/div>\s*(?:<\/div>\s*<\/body>|$|<div class="g-sec">)/));
 		// the h2 may not be the very first node in the "Data table" section (two h2s) — take the first
 		const title = (sec.match(/<h2>([\s\S]*?)<\/h2>/) || [, ''])[1].replace(/&amp;/g, '&').trim();
-		let markup = sec
-			.replace(/<h2>[\s\S]*?<\/h2>/, '')
-			.replace(/<!--[\s\S]*?-->/g, '')
+		let markup = sec.replace(/<h2>[\s\S]*?<\/h2>/, '');
+		// strip HTML comments to a fixed point — one pass can re-form <!-- from the removal
+		// of a nested/overlapping pair (CodeQL js/incomplete-multi-character-sanitization)
+		let prev;
+		do { prev = markup; markup = markup.replace(/<!--[\s\S]*?-->/g, ''); } while (markup !== prev);
+		markup = markup
 			.replace(/<p class="g-note">[\s\S]*?<\/p>/g, '')
 			.replace(/\n{3,}/g, '\n\n')
 			.trim();

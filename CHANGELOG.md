@@ -39,6 +39,17 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
   source. LuCI modals are `position: fixed` on `<body>`, not inside `.fs-main`, so the new containing
   block does not re-base them. Verified in Firefox and Chrome on both 25.12 and 24.10.
 
+### Security
+
+- **Closed four CodeQL findings in the developer-portal build tooling (not the shipped theme).** The
+  devkit's DOM→`E()` codegen (`docs/devkit.src.html`) escaped `'` for a JS string literal but not the
+  backslash itself, so an attribute or text value ending in `\` could break out of the generated
+  literal (`js/incomplete-sanitization`, three sites) — now escapes `\` before `'`. The gallery
+  comment-stripper (`tools/devkit-build.mjs`) removed `<!-- … -->` in a single pass, which can re-form
+  a `<!--` from an overlapping pair (`js/incomplete-multi-character-sanitization`) — now strips to a
+  fixed point. Both files are build-time/preview only and never reach a router, but the fixes are
+  correct in their own right and clear the code-scanning alerts.
+
 ## [0.9.5] — 2026-07-20
 
 ### Fixed

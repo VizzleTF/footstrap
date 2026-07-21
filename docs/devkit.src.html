@@ -577,16 +577,16 @@ z-index: 2147483647;              /* above the theme's overlays */</pre>
 		var attrs = {};
 		for (var i = 0; i < node.attributes.length; i++) attrs[node.attributes[i].name] = node.attributes[i].value;
 		var attrStr = Object.keys(attrs).length
-			? '{ ' + Object.keys(attrs).map(function (k) { return "'" + k + "': '" + attrs[k].replace(/'/g, "\\'") + "'"; }).join(', ') + ' }'
+			? '{ ' + Object.keys(attrs).map(function (k) { return "'" + k + "': '" + attrs[k].replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"; }).join(', ') + ' }'
 			: '{}';
 		var kids = Array.prototype.filter.call(node.childNodes, function (c) {
 			return c.nodeType === 1 || (c.nodeType === 3 && c.textContent.trim());
 		});
 		if (!kids.length) return pad + "E('" + tag + "', " + attrStr + ')';
 		if (kids.length === 1 && kids[0].nodeType === 3)
-			return pad + "E('" + tag + "', " + attrStr + ", '" + kids[0].textContent.trim().replace(/'/g, "\\'") + "')";
+			return pad + "E('" + tag + "', " + attrStr + ", '" + kids[0].textContent.trim().replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "')";
 		var childCode = kids.map(function (c) {
-			if (c.nodeType === 3) return pad + "    '" + c.textContent.trim().replace(/'/g, "\\'") + "'";
+			if (c.nodeType === 3) return pad + "    '" + c.textContent.trim().replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
 			return domToE(c, indent + 1);
 		}).join(',\n');
 		return pad + "E('" + tag + "', " + attrStr + ', [\n' + childCode + '\n' + pad + '])';
