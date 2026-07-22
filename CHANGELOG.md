@@ -17,6 +17,10 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 - **The self-update package moved out of this repository into its own — [VizzleTF/luci-app-footstrap-updater](https://github.com/VizzleTF/luci-app-footstrap-updater) — with independent tags, version and release stream.** This repo now builds and signs the theme alone (one asset per format, two signatures); the updater's build, rpcd ACL, i18n, jsmin and asset-count steps are gone from CI, and `install.sh` is the two-repo installer — theme from here, updater from its own latest release, both verified against the one release key. The transition builds (up to 0.9.6) re-shipped the updater from here so no fielded router was stranded — a self-updater looks for the updater asset in this repo's release and nowhere else, and a router's installed updater cannot be fixed remotely. The updater repo's first tag is **v1.0.0**, strictly above the transition build's 0.9.6: opkg refuses a downgrade by default (exits 0, installs nothing), so a lower tag would have stranded every 24.10 router while reporting success. From that first published release the updater resolves from its own repo, so it is the day every router crosses over — the theme release stops carrying an updater asset, and a fielded self-updater's now-empty updater leg is skipped non-fatally.
 
+### Fixed
+
+- **The realtime graph legend (Status → Realtime Graphs) no longer overlaps its own labels on a phone.** LuCI renders the UDP/TCP/Other legend as a six-cell-per-row table with an inline `table-layout:fixed`, splitting the row into six equal columns; at 375px each is ~52px and the `Average:`/`Peak:` labels overflowed onto the value beside them (measured). Stock luci-theme-bootstrap folds the six cells into label/value pairs on a narrow screen, so we do the same below 768px (each cell 50%, three stacked rows) — the labels fit on all four graphs (bandwidth, connections, wireless, load), on both 24.10 and 25.12. Keyed on the inline `table-layout` attribute, the one no-id `.table` LuCI marks that way, so System/Memory and DDNS-style status tables are untouched.
+
 ## [0.9.6] — 2026-07-22
 
 ### Fixed

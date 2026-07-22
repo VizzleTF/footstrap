@@ -135,12 +135,36 @@
 	/* --- KEY/VALUE tables: System, Memory ---
 	 * "no id" is NOT enough: form.TableSection/GridSection also render `.table.cbi-section-table`
 	 * with no id (ddns, firewall zones, port forwards), and width:40%/nowrap on their first column
-	 * starved the data columns (dates broke mid-token). So exclude it and .fs-dt explicitly. */
-	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)) .td:first-child {
+	 * starved the data columns (dates broke mid-token). So exclude it and .fs-dt explicitly.
+	 *
+	 * Also exclude the realtime graph legend: `[style*="table-layout"]` is the one no-id `.table`
+	 * LuCI hands an inline `table-layout:fixed` (status/realtime/*, see below), where a 40% first
+	 * column would only starve the other five. A DDNS-style multi-column status table (no id, no
+	 * inline layout) is NOT excluded — it keeps the key/value first column exactly as before. */
+	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)):not([style*="table-layout"]) .td:first-child {
 		color: var(--fs-dim); font-weight: 600; width: 40%; white-space: nowrap;
 	}
-	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)) .td:last-child:not(:first-child) {
+	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.tr.table-titles)):not([style*="table-layout"]) .td:last-child:not(:first-child) {
 		font-family: var(--fs-font-mono); color: var(--fs-text); text-align: right;
+	}
+
+	/* --- The realtime graph legend (status/realtime/{bandwidth,connections,load,wireless}) ---
+	 * The one no-id `.table` LuCI renders with inline `table-layout:fixed;width:100%` and SIX cells
+	 * per row (label/value ×3: UDP/Average/Peak). `fixed` splits the row into six equal columns, so
+	 * on a phone each is ~1/6 of the content width (~52px at 375px) and the `Average:`/`Peak:` labels
+	 * overflow onto the value beside them (measured). Stock luci-theme-bootstrap folds the six cells
+	 * into label/value PAIRS on a narrow screen (each cell 50%, three stacked rows) and the labels
+	 * fit; do the same. `display:flex` on the row takes the cells out of the fixed table layout (no
+	 * !important needed — a class rule in `theme` beats the UA `display:table-row`), so the inline
+	 * `table-layout:fixed` no longer bites. Keyed on that inline attribute so ONLY this legend is
+	 * touched — never System/Memory, never a DDNS-style multi-column status table. */
+	@media (max-width: 767px) {
+		.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt)[style*="table-layout"] .tr {
+			display: flex; flex-wrap: wrap;
+		}
+		.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt)[style*="table-layout"] .td {
+			flex: 1 1 50%; min-width: 0; width: auto;
+		}
 	}
 
 	/* remove double card when a section nests a table-only include */
