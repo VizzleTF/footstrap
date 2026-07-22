@@ -24,6 +24,13 @@
 		font-size: 14px; font-weight: 700; color: var(--fs-text);
 		margin: 0; padding: 0; border: 0;
 	}
+	/* A bare section title (no .cbi-title wrapper) sat flush against the content below it —
+	 * on System → System the "System Properties" h3 touched the tab strip. Give it the same
+	 * 12px the .cbi-title wrapper already carries above. Excludes .cbi-title h3: that variant
+	 * gets its gap from the wrapper's own margin-bottom, so flagging the inner h3 too would
+	 * double it. */
+	.cbi-section > h3:first-child,
+	.cbi-section > legend { margin-bottom: 12px; }
 
 	/* ---- tables in cards ----
 	 * Discriminator: a key/value include (System, Memory) has NO id; a data table has one

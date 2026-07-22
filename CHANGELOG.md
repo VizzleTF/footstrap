@@ -19,6 +19,8 @@ Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
 ### Fixed
 
+- **A section title with no collapse control (e.g. "System Properties" on System → System) no longer sits flush against the content below it.** The collapsible-section title (`.cbi-title`) already carried a 12px gap under it, but a bare `<h3>`/`<legend>` section title was reset to `margin: 0`, so the "System Properties" heading touched the tab strip directly beneath. Gave the bare title the same 12px, excluding the `.cbi-title` inner `h3` so the wrapper's own bottom margin is not doubled.
+
 - **The realtime graph legend (Status → Realtime Graphs) no longer overlaps its own labels on a phone.** LuCI renders the UDP/TCP/Other legend as a six-cell-per-row table with an inline `table-layout:fixed`, splitting the row into six equal columns; at 375px each is ~52px and the `Average:`/`Peak:` labels overflowed onto the value beside them (measured). Stock luci-theme-bootstrap folds the six cells into label/value pairs on a narrow screen, so we do the same below 768px (each cell 50%, three stacked rows) — the labels fit on all four graphs (bandwidth, connections, wireless, load), on both 24.10 and 25.12. Keyed on the inline `table-layout` attribute, the one no-id `.table` LuCI marks that way, so System/Memory and DDNS-style status tables are untouched.
 
 ### Security
