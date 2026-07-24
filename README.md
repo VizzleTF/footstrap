@@ -1,6 +1,7 @@
-# luci-theme-footstrap
+<img src="assets/readme/hero.svg" width="100%" alt="footstrap — a LuCI theme for OpenWrt 24.10 and newer. It styles LuCI's widgets, not its pages, so third-party apps inherit the look.">
 
-**English** · [Русский](README_ru.md)
+**English** · [Русский](README_ru.md) ·
+**[Playground — try the whole thing with no router](https://vizzletf.github.io/luci-theme-footstrap/playground.html)**
 
 > [!IMPORTANT]
 > **Upgrading to 0.9.3 from 0.9.2 or earlier: upgrade from the console with the one-line command
@@ -10,24 +11,18 @@
 > not found" and no further updates are offered. Running the console command once installs both
 > packages and restores updates. One-time step, for the 0.9.3 upgrade only.
 
-![luci-theme-footstrap](docs/screenshots/Example.gif)
+<img src="assets/readme/overview-sidebar-dark.png" width="100%" alt="The overview page in dark with the side menu: System beside Memory and Storage, port status below.">
 
+<img src="assets/readme/overview-top-dark.png" width="100%" alt="The same overview in dark with the top bar: the menu sits on the brand's row and the content runs full width.">
+
+Side menu or top bar — same page, same markup, a browser preference away.
 [More screenshots →](docs/screenshots/)
-
-A theme for LuCI, for OpenWrt 24.10 and newer.
-
-It styles LuCI's standard components rather than individual pages, so third-party packages pick up
-the look on their own — unless they bring their own styles. It adapts to any screen width, phones
-included. Navigation runs as an SPA, which measures about 2.3× faster than luci-theme-bootstrap
-(benchmark and comparison below). There are a few personalization settings. It is light, easy to
-install and easy to update.
-
-You can try the whole thing without installing anything, including changing the look through the
-settings menu: **[the playground](https://vizzletf.github.io/luci-theme-footstrap/playground.html)**.
 
 Feedback is welcome — [issues](https://github.com/VizzleTF/luci-theme-footstrap/issues) are open.
 
-## What it does
+<img src="assets/readme/section-what.svg" width="100%" alt="What it does">
+
+<img align="left" height="286" src="assets/readme/phone-menu-dark.png" alt="The chrome at phone width: the menu is a bar, and tapping a section opens it as a popup over the page.">
 
 **Styles apps, not just the stock pages.** The look hangs off generic rules for LuCI's widgets, so
 third-party `luci-app` packages (podkop, statistics and the rest) come out looking like the system
@@ -36,32 +31,45 @@ screens without doing anything. An app that ships its own stylesheet keeps it.
 **Works on a phone.** Tables — processes, DHCP leases, firewall rules — collapse into cards, forms
 stack into one column, and the menu opens as a popup on tap. Nothing scrolls sideways.
 
-**The look is a browser preference, not a router setting.** There is one theme entry to pick,
-`Footstrap`. Everything else lives in the Appearance popover in the menu, applies instantly with no
-reload, and writes nothing to the router:
+**It can update itself.** The router asks GitHub about new releases, not your browser. Turn the check
+off if you would rather it did not phone home.
 
-- Layout — side menu or top bar
-- Theme — auto (follows your OS), light or dark
-- Palette — Footstrap (GitHub Primer colours) or Hi-Contrast
-- Wallpaper — off, or cats; works with either palette
-- Tint — washes one hue into the background, so you can tell which router a tab (or a screenshot in
-  a ticket) belongs to
-- Accent — re-hues buttons, toggles, sliders and focus rings
-- Rounding — corner radius, 0–20px
-- Submenus — keep several menu sections open, or auto-collapse to one
+<br clear="left">
+
+### One theme entry on the router. Everything else lives in the browser.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/appearance-dark.png">
+  <img align="right" width="279" src="assets/readme/appearance-light.png" alt="The Appearance popover: layout, theme, palette, density, wallpaper, tint, accent, rounding, submenus, updates, and Save/Reset as the router default.">
+</picture>
+
+You pick **Footstrap** once in **System → System → Language and Style**. Every axis on the right is a
+*client* preference: it applies instantly, with no reload, and writes nothing to the router.
+
+- **Layout** — side menu or top bar
+- **Theme** — auto (follows your OS), light or dark
+- **Palette** — Footstrap (GitHub Primer colours) or Hi-Contrast
+- **Density** — compact, normal or large
+- **Wallpaper** — off, cats, or an image you upload
+- **Tint** — washes one hue into the background, so you can tell which router a tab (or a screenshot
+  in a ticket) belongs to
+- **Accent** — re-hues buttons, toggles, sliders and focus rings
+- **Rounding** — corner radius, 0–20px
+- **Submenus** — keep several sections open, or auto-collapse to one
 
 A set you like can be saved as the router-wide default, so a fresh browser starts from it.
 
-**Faster than the stock theme.** Pages switch without a full reload. Measured over 38 pages against
-luci-theme-bootstrap: the median page opens 3.4× faster and the whole run takes 2.3× less time.
-Network requests per page drop from 15–48 to 0–8 — a page already in the cache fetches nothing. To
-run the benchmark yourself, see [docs/15](docs/15-benchmark-navigation.md) (Russian).
+<br clear="right">
 
-**It can update itself.** The router asks GitHub about new releases, not your browser, and
-Appearance → *Update now* installs one. Turn the check off in the same popover if you would rather
-it did not phone home.
+<img src="assets/readme/section-speed.svg" width="100%" alt="Measured, not claimed">
 
-## Install
+<img src="assets/readme/speed.svg" width="100%" alt="Benchmark: Wireless status 288 ms to 16 ms, Interfaces 367 to 63, DNS 328 to 84, Firewall zones 300 to 88. Whole 36-page run 7458 ms to 3196 ms, 2.33 times; median page 3.04 times; requests per page 15–48 down to 0–8.">
+
+Pages switch without a full reload. Measured over 36 pages against `luci-theme-bootstrap` on the same
+router, warmed cache, three runs. To run the benchmark yourself, see
+[docs/15](docs/15-benchmark-navigation.md) (Russian).
+
+<img src="assets/readme/section-install.svg" width="100%" alt="Install">
 
 One line over SSH. The script works out whether you have apk (25.12+) or opkg (24.10), downloads the
 right package, verifies it and installs it:
@@ -70,7 +78,8 @@ right package, verifies it and installs it:
 wget -qO- https://raw.githubusercontent.com/VizzleTF/luci-theme-footstrap/main/install.sh | sh
 ```
 
-For a specific version, pass the tag: `... | sh -s v0.9.0`.
+Then pick **Footstrap** in **System → System → Language and Style**, field "Design". That is the only
+thing you set on the router. For a specific version, pass the tag: `... | sh -s v0.9.0`.
 
 It is one package — nothing else to install, and the translation catalogue travels inside it. The
 theme ships a Russian catalogue; in other locales its own strings read in English, while the shared
@@ -85,10 +94,8 @@ apk add --allow-untrusted luci-theme-footstrap-*.apk   # 25.12+
 opkg install luci-theme-footstrap_*.ipk                # 24.10
 ```
 
-Then pick **Footstrap** in **System → System → Language and Style**, field "Design". That is the only
-thing you set on the router.
-
-### About that `--allow-untrusted`
+<details>
+<summary>About that <code>--allow-untrusted</code></summary>
 
 It means apk and opkg hold no key of this project's — not that the bytes go unchecked. Verifying them
 is the installer's own job, and it refuses rather than guessing:
@@ -105,7 +112,9 @@ Signing started at v0.9.0, so releases up to v0.8.5 have no signature and the in
 them unless you pass `FOOTSTRAP_ALLOW_UNVERIFIED=1`. A signature that is present and *wrong* is never
 overridable.
 
-## Building a `luci-app`?
+</details>
+
+<img src="assets/readme/section-devkit.svg" width="100%" alt="Building a luci-app?">
 
 The [developer devkit](https://vizzletf.github.io/luci-theme-footstrap/) has the colour token grid,
 the component markup and a style checker you can paste into.
@@ -128,4 +137,6 @@ text and notice ship beside the fonts, as that licence requires.
 
 ---
 
-Internals, the build and development notes live in [docs/](docs/) (Russian).
+Internals, the build and development notes live in [docs/](docs/) (Russian). The README's own assets
+live in [assets/readme/](assets/readme/); the screenshots are reproduced by
+[tools/readme-shots.py](tools/readme-shots.py).

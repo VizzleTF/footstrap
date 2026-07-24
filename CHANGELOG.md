@@ -11,6 +11,14 @@ Style and format guide: [docs/21-changelog-style-and-format.md](docs/21-changelo
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Changed
+
+- **The README now opens on the theme itself instead of on an upgrade warning, and every claim in it is shown before it is explained.** The page led with a red *IMPORTANT* callout about a one-time 0.9.3 step, then three paragraphs of prose, and the only proof was a 2.2 MB GIF; the `--allow-untrusted` explanation — six lines of threat model — sat in the middle of the install instructions where a first-time reader has no use for it. The order is now hero → what it looks like → what it does → the benchmark → install, with the signature rationale folded into a `<details>`. Reading order is the change; the words are largely the ones that were already there.
+
+- **The README's screenshots are real, reproducible and no longer show a development container.** `tools/readme-shots.py` drives the dev router and shoots the three proof images (side menu, top bar, phone popup) plus the Appearance popover as an element shot, all in dark with the cats wallpaper. The dev box is a WSL container, so its overview advertised an i5-14600KF, 15.5 GiB of RAM, a 1 TB disk, a `C:\` mount and a 10 GbE port — none of which any router has. The script stops LuCI's poll (which would otherwise overwrite the values a second later, and which flips the indicator to "Paused" — restored, so the frame does not lie about the state) and substitutes what a real OpenWrt router reports: model, arch, kernel, 484 MiB of RAM, an 84 MiB overlay, four ports. The Appearance shot is the live popover rather than a drawing of one, so it cannot describe an axis set the theme no longer has — the hand-drawn version was already missing Density, uploaded wallpapers and the update controls. Light and dark copies are swapped by `<picture media>`, so it follows the reader's GitHub theme.
+
 ## [0.10.1] — 2026-07-24
 
 ### Added

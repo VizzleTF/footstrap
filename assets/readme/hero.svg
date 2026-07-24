@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="hero-t hero-d">
+  <title id="hero-t">footstrap — a LuCI theme for OpenWrt 24.10 and newer</title>
+  <desc id="hero-d">The theme's own chrome drawn in its own tokens: a sidebar, cards, a data table, and the same page on a phone where the table collapses into cards.</desc>
+  <defs>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.5" fill="#adbac7" fill-opacity=".05"/>
+    </pattern>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#569df5"/><stop offset="1" stop-color="#00b5e2"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="1200" height="400" rx="24"/></clipPath>
+    <clipPath id="win"><rect x="636" y="52" width="498" height="296" rx="16"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Manrope,sans-serif">
+    <rect width="1200" height="400" fill="#1c2128"/>
+    <rect width="1200" height="400" fill="url(#dots)"/>
+    <circle cx="1150" cy="30" r="180" fill="#569df5" fill-opacity=".06"/>
+
+    <!-- identity: the OpenWrt mark this theme ships as its favicon -->
+    <g transform="translate(72 54) scale(0.46)">
+      <path d="m40.5 50.8a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2m-40.5-33.9 7 6.8a47.5 47.5 0 0 1 67.2 0l7-6.8a57.2 57.2 0 0 0-81.2 0" fill="#00b5e2"/>
+      <path d="m12.5 29.2 6.8 7a30 30 0 0 1 42.6 0l6.8-7a39.7 39.7 0 0 0-56.3 0" fill="#00b5e2"/>
+      <path d="m24.8 41.6 6.8 6.9a12.6 12.6 0 0 1 18 0l6.8-6.9a22.3 22.3 0 0 0-31.6 0" fill="#00b5e2"/>
+      <path d="m64.9 39.7a30.2 30.2 0 1 1-48.7 0l-6.9-7a39.9 39.9 0 1 0 62.5 0z" fill="url(#mark)"/>
+    </g>
+    <text x="128" y="82" fill="#8f9cab" font-size="18" font-weight="700" letter-spacing="3.4">LUCI THEME · OPENWRT 24.10+</text>
+
+    <text x="72" y="180" fill="#e6edf3" font-size="82" font-weight="800" letter-spacing="-3">footstrap</text>
+    <rect x="74" y="196" width="190" height="7" rx="3.5" fill="url(#mark)"/>
+
+    <text x="72" y="252" fill="#adbac7" font-size="26" font-weight="500">Styles LuCI's widgets, not its pages, so</text>
+    <text x="72" y="288" fill="#adbac7" font-size="26" font-weight="500">third-party apps inherit the look.</text>
+
+    <g font-size="19" font-weight="700">
+      <rect x="72" y="318" width="196" height="38" rx="19" fill="#22272e" stroke="#444c56"/>
+      <text x="94" y="343" fill="#569df5">2.3× faster run</text>
+      <rect x="282" y="318" width="150" height="38" rx="19" fill="#22272e" stroke="#444c56"/>
+      <text x="304" y="343" fill="#5aad5d">phone-ready</text>
+      <rect x="446" y="318" width="152" height="38" rx="19" fill="#22272e" stroke="#444c56"/>
+      <text x="468" y="343" fill="#8f9cab">one package</text>
+    </g>
+
+    <!-- the product itself, drawn in its own tokens -->
+    <g clip-path="url(#win)">
+      <rect x="636" y="52" width="498" height="296" fill="#1c2128"/>
+      <rect x="636" y="52" width="126" height="296" fill="#22272e"/>
+      <g transform="translate(652 68) scale(0.2)">
+        <path d="m40.5 50.8a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2m-40.5-33.9 7 6.8a47.5 47.5 0 0 1 67.2 0l7-6.8a57.2 57.2 0 0 0-81.2 0" fill="#00b5e2"/>
+        <path d="m64.9 39.7a30.2 30.2 0 1 1-48.7 0l-6.9-7a39.9 39.9 0 1 0 62.5 0z" fill="#569df5"/>
+      </g>
+      <rect x="676" y="72" width="58" height="9" rx="4.5" fill="#adbac7" fill-opacity=".7"/>
+      <g fill="#2d333b">
+        <rect x="650" y="104" width="98" height="22" rx="7"/>
+        <rect x="650" y="164" width="98" height="22" rx="7"/>
+        <rect x="650" y="194" width="98" height="22" rx="7"/>
+        <rect x="650" y="224" width="98" height="22" rx="7"/>
+        <rect x="650" y="254" width="98" height="22" rx="7"/>
+      </g>
+      <rect x="650" y="134" width="98" height="22" rx="7" fill="#569df5" fill-opacity=".18"/>
+      <rect x="650" y="134" width="3" height="22" rx="1.5" fill="#569df5"/>
+      <g fill="#8f9cab" fill-opacity=".55">
+        <rect x="660" y="112" width="52" height="6" rx="3"/>
+        <rect x="660" y="172" width="66" height="6" rx="3"/>
+        <rect x="660" y="202" width="44" height="6" rx="3"/>
+        <rect x="660" y="232" width="58" height="6" rx="3"/>
+        <rect x="660" y="262" width="48" height="6" rx="3"/>
+      </g>
+      <rect x="662" y="142" width="60" height="6" rx="3" fill="#569df5" fill-opacity=".85"/>
+
+      <!-- status card -->
+      <rect x="778" y="72" width="336" height="92" rx="10" fill="#22272e" stroke="#444c56"/>
+      <rect x="794" y="88" width="78" height="9" rx="4.5" fill="#adbac7" fill-opacity=".75"/>
+      <rect x="794" y="112" width="180" height="7" rx="3.5" fill="#8f9cab" fill-opacity=".45"/>
+      <rect x="794" y="128" width="126" height="7" rx="3.5" fill="#8f9cab" fill-opacity=".45"/>
+      <rect x="794" y="144" width="152" height="7" rx="3.5" fill="#8f9cab" fill-opacity=".45"/>
+      <rect x="1000" y="84" width="98" height="10" rx="5" fill="#2d333b"/>
+      <rect x="1000" y="84" width="64" height="10" rx="5" fill="#5aad5d"/>
+      <rect x="1000" y="106" width="98" height="10" rx="5" fill="#2d333b"/>
+      <rect x="1000" y="106" width="34" height="10" rx="5" fill="#c79128"/>
+      <rect x="1000" y="128" width="98" height="10" rx="5" fill="#2d333b"/>
+      <rect x="1000" y="128" width="82" height="10" rx="5" fill="#569df5"/>
+
+      <!-- data table -->
+      <rect x="778" y="180" width="336" height="150" rx="10" fill="#22272e" stroke="#444c56"/>
+      <g fill="#8f9cab" fill-opacity=".8">
+        <rect x="794" y="198" width="52" height="7" rx="3.5"/>
+        <rect x="878" y="198" width="52" height="7" rx="3.5"/>
+        <rect x="962" y="198" width="52" height="7" rx="3.5"/>
+        <rect x="1046" y="198" width="52" height="7" rx="3.5"/>
+      </g>
+      <path d="M786 216h320" stroke="#444c56"/>
+      <g fill="#adbac7" fill-opacity=".38">
+        <rect x="794" y="232" width="64" height="7" rx="3.5"/><rect x="878" y="232" width="44" height="7" rx="3.5"/><rect x="962" y="232" width="58" height="7" rx="3.5"/><rect x="1046" y="232" width="38" height="7" rx="3.5"/>
+        <rect x="794" y="258" width="52" height="7" rx="3.5"/><rect x="878" y="258" width="58" height="7" rx="3.5"/><rect x="962" y="258" width="40" height="7" rx="3.5"/><rect x="1046" y="258" width="52" height="7" rx="3.5"/>
+        <rect x="794" y="284" width="70" height="7" rx="3.5"/><rect x="878" y="284" width="38" height="7" rx="3.5"/><rect x="962" y="284" width="62" height="7" rx="3.5"/><rect x="1046" y="284" width="44" height="7" rx="3.5"/>
+        <rect x="794" y="310" width="46" height="7" rx="3.5"/><rect x="878" y="310" width="62" height="7" rx="3.5"/><rect x="962" y="310" width="50" height="7" rx="3.5"/><rect x="1046" y="310" width="36" height="7" rx="3.5"/>
+      </g>
+    </g>
+    <rect x="636" y="52" width="498" height="296" rx="16" fill="none" stroke="#444c56"/>
+
+    <!-- same page on a phone: the table has collapsed into cards -->
+    <g transform="translate(0 -32)">
+    <rect x="1032" y="206" width="126" height="200" rx="18" fill="#0f1319" fill-opacity=".55"/>
+    <rect x="1028" y="200" width="126" height="200" rx="18" fill="#1c2128" stroke="#444c56"/>
+    <rect x="1040" y="212" width="102" height="20" rx="7" fill="#22272e" stroke="#444c56"/>
+    <rect x="1048" y="219" width="8" height="2.5" rx="1.25" fill="#adbac7"/><rect x="1048" y="224" width="8" height="2.5" rx="1.25" fill="#adbac7"/>
+    <rect x="1064" y="219" width="34" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/>
+    <g>
+      <rect x="1040" y="242" width="102" height="44" rx="8" fill="#22272e" stroke="#444c56"/>
+      <rect x="1050" y="252" width="34" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/><rect x="1096" y="252" width="36" height="6" rx="3" fill="#adbac7" fill-opacity=".4"/>
+      <rect x="1050" y="268" width="30" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/><rect x="1102" y="268" width="30" height="6" rx="3" fill="#adbac7" fill-opacity=".4"/>
+      <rect x="1040" y="294" width="102" height="44" rx="8" fill="#22272e" stroke="#444c56"/>
+      <rect x="1050" y="304" width="34" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/><rect x="1096" y="304" width="36" height="6" rx="3" fill="#adbac7" fill-opacity=".4"/>
+      <rect x="1050" y="320" width="30" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/><rect x="1102" y="320" width="30" height="6" rx="3" fill="#adbac7" fill-opacity=".4"/>
+      <rect x="1040" y="346" width="102" height="44" rx="8" fill="#22272e" stroke="#444c56"/>
+      <rect x="1050" y="356" width="34" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/><rect x="1096" y="356" width="36" height="6" rx="3" fill="#adbac7" fill-opacity=".4"/>
+      <rect x="1050" y="372" width="30" height="6" rx="3" fill="#8f9cab" fill-opacity=".7"/><rect x="1102" y="372" width="30" height="6" rx="3" fill="#adbac7" fill-opacity=".4"/>
+    </g>
+    </g>
+  </g>
+</svg>

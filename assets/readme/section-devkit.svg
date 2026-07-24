@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="120" viewBox="0 0 1200 120" role="img" aria-label="Building a luci-app?">
+  <title>Building a luci-app?</title>
+  <rect width="1200" height="120" rx="16" fill="#22272e"/>
+  <rect x="0" y="0" width="6" height="120" fill="#569df5"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Manrope,sans-serif">
+    <text x="48" y="72" fill="#569df5" font-size="24" font-weight="800" letter-spacing="1" font-family="ui-monospace,'JetBrains Mono',monospace">04</text>
+    <text x="104" y="74" fill="#e6edf3" font-size="42" font-weight="800" letter-spacing="-1">Building a luci-app?</text>
+  </g>
+  <path d="M1152 60h-40" stroke="#444c56" stroke-width="4" stroke-linecap="round"/>
+</svg>
