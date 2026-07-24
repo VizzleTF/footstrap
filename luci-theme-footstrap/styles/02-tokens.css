@@ -491,10 +491,11 @@
 	 * These multiply the LADDERS, not the rules, so a size that is on a ladder follows the axis for
 	 * free and one that is not silently ignores it. That is the whole reason the ladders came first. */
 	:root[data-density="compact"] {
-		/* Type does NOT move. Compact is a request for less AIR, not for smaller writing — shrinking
-		 * the text is how a "compact" mode becomes an accessibility problem, and it buys far less
-		 * room than the padding does anyway. */
-		--fs-density-type: 1;
+		/* Type moves LEAST (.9 against .65 for the air), and that ordering is the point: padding is
+		 * where the room actually is, so leaning on the text instead would cost legibility to save
+		 * very little. At .9 the base is 12px and the eyebrow 10px — the floor this file is willing
+		 * to go to, and only because the user asked for this mode by name. */
+		--fs-density-type: .9;
 		--fs-density-box: .85;
 		--fs-density-space: .65;
 	}

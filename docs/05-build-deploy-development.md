@@ -111,20 +111,20 @@ luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — r
   Второго каталога нет: sidebar и верхний бар — одна и та же разметка, которую морфит
   `:root[data-layout]`;
 - копирует статику (`cascade.css`, шрифты, лого) и **все** resource-JS **глобом**
-  (`resources/*.js`: сейчас `menu-footstrap.js`, `menu-footstrap-common.js`, `fs-fit.js`,
-  `fs-select.js` и модули концернов `fs-{menutree,prefs,widgets,chrome,router,sheets,update,appearance}.js`)
+  (`resources/*.js`: `menu-footstrap.js`, `menu-footstrap-common.js` и модули концернов
+  `fs-{fit,menutree,prefs,widgets,chrome,select,sheets,search,router,version,appearance}.js`)
   плюс overview-include. Именно глобом, а не списком имён: список был
-  багом — пятый файл попадал в пакет (`luci.mk` копирует `htdocs/` целиком), но на
+  багом — новый файл попадал в пакет (`luci.mk` копирует `htdocs/` целиком), но на
   дев-роутер молча не доезжал и впервые проверялся уже после релиза;
 - штампует версию из `git describe` в `FS_VERSION` внутри залитого
-  `fs-update.js` — то же делает `Build/Prepare` в пакете, иначе поповер
-  показывает `dev` и проверка обновлений не работает;
+  `fs-version.js` — то же делает `Build/Prepare` в пакете, иначе поповер
+  показывает `dev`;
 - компилирует каталог переводов `i18n/*/*.po` → `/usr/lib/lua/luci/i18n/footstrap-theme.<lang>.lmo`,
   если в `$PATH` есть `po2lmo` (это host-tool `luci-base`; без него строки остаются
   английскими, синк не падает);
-- ставит бэкенд самообновления `/usr/libexec/footstrap-selfupdate.sh` и его rpcd-ACL, затем
-  `rpcd reload` (**reload, а не restart**: rpcd держит сессии в памяти, restart разлогинит
-  всех);
+- **бэкенд самообновления НЕ ставит** — апдейтер вынесен в отдельный репо, роутер остаётся в
+  состоянии «updater-not-installed» (версия видна, кнопок обновления нет). Бэкенд, его
+  `file.exec`-ACL и ключ ставит `luci-app-footstrap-updater/dev-sync.sh <router>` (docs/23);
 - **удаляет** (`rm -rf`) легаси-каталоги вариантов, включая `footstrap-top`: верхний бар
   больше не тема, симлинка нет и создавать его не надо;
 - прогоняет `root/etc/uci-defaults/30_luci-theme-footstrap` — единственный источник
@@ -151,10 +151,14 @@ luci-theme-footstrap/dev-sync.sh [host]     # host по умолчанию — r
 
 ## Правка JS: комментарии бесплатны, regex-литералы — нет
 
-`LUCI_MINIFY_JS` осознанно НЕ выключен (в отличие от `LUCI_MINIFY_CSS:=0`): `luci.mk` гонит JS
-темы через **jsmin** (`luci-base/src/jsmin.c`, он и так на билдботе). Это выгодно — ~72 КБ из
-127 КБ JS темы это комментарии, jsmin отдаёт 47 КБ, а uhttpd раздаёт `/www` **без сжатия**, т.е.
-это байты и на проводе, и во флеше. Комментировать можно сколько угодно: в пакет они не попадают.
+JS минифицируется на **двух путях**. Релизная CI-сборка пре-минифицирует **terser**
+(`tools/minify-js.mjs`, ~41 КБ — манглит идентификаторы) и выставляет `FOOTSTRAP_PREMIN=1`, что
+переводит `LUCI_MINIFY_JS:=0`. Сборка **без** node (SDK-пользователь, buildbot) держит дефолтный
+`1`, и `luci.mk` гонит **нетронутый исходник** через **jsmin** (`luci-base/src/jsmin.c`, он и так
+на билдботе, ~57 КБ). Комментарии — ~60 % исходника JS, а uhttpd раздаёт `/www` **без сжатия**,
+т.е. это байты и на проводе, и во флеше на обоих путях. Комментировать можно сколько угодно: в
+пакет они не попадают. **jsmin-правило ниже остаётся обязательным для исходника** — фолбэк-путь
+всё ещё гоняет jsmin.
 
 Плата — одно правило, и оно про корректность, а не про стиль. jsmin решает, `/` это regex или
 деление, по ОДНОМУ предыдущему символу из фиксированного списка (`( , = : [ ! & | ? + - ~ * / { } ;`).
@@ -211,7 +215,7 @@ ls bin/packages/*/luci/luci-theme-footstrap*.apk
 `cascade.css` в git не лежит: его генерирует хук `Build/Prepare` в Makefile
 темы — он вызывает `build-css.sh` уже по копии дерева в `PKG_BUILD_DIR` (нужны
 только `cat`/`awk`, поэтому это работает и на билдботе OpenWrt). Там же в
-`fs-update.js` штампуется версия.
+`fs-version.js` штампуется версия.
 
 ### Установка на роутер
 
@@ -263,7 +267,7 @@ src-git mytheme https://github.com/<you>/<repo>.git
 - Отдельно: страница `apply/rollback` (шторка подтверждения изменений) — рисуется
   ui.js поверх темы, часто ломается кастомными z-index.
 - Статические гейты (их же гоняет CI, docs/13). `build-css.sh` сам проверяет баланс скобок и
-  бюджет размера; остальное — двумя командами:
+  broken-build FLOOR (верхнего бюджета размера нет — снят); остальное — двумя командами:
   ```sh
   npm run check                                          # перед пушем
   python3 .claude/skills/footstrap-audit/audit.py --strict
@@ -276,7 +280,9 @@ src-git mytheme https://github.com/<you>/<repo>.git
   (пре-пейнт в `head.ut` согласован с живыми аппликаторами Appearance) → `export-tier`
   (контракт `--*-color-*` со сторонними `luci-app-*`) → `i18n` (`.pot` актуален, пустых
   msgstr нет) → `a11y` (axe-core по `docs/gallery.html`, матрица light/dark ×
-  footstrap/hicontrast). `audit.py --strict` — неопределённые `var()`, затенённые правила,
-  мёртвые декларации `base`, лишние `!important`, хардкод-цвета. CI сверх этого гоняет
-  `tools/jsmin-verify.mjs` (см. выше), `ucode -T -c` по шаблонам и бюджеты шрифтов/JS.
+  footstrap/hicontrast × {untinted,60°,260°} — 12 комбинаций) → `chrome-fence` (метка
+  `[data-fs-chrome]`, fence и pin совпадают с хромом) → `changelog` (контракт docs/21).
+  `audit.py --strict` — неопределённые `var()`, затенённые правила, мёртвые декларации `base`,
+  лишние `!important`, хардкод-цвета. CI сверх этого гоняет `tools/jsmin-verify.mjs` (см. выше) и
+  `ucode -T -c` по шаблонам. Бюджетов размера (CSS/шрифты/JS) больше нет — сняты.
   Ничего из `package.json` в пакет не попадает — на билдботе OpenWrt node нет.

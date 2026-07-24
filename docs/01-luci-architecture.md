@@ -137,7 +137,7 @@ baseclass, в `__init__` делает `ui.menu.load().then(tree => this.render(t
 **Важно**: menu-JS кладётся в `htdocs/luci-static/resources/` (не в каталог темы),
 потому что грузится через `L.require()`, который ищет в `resourcebase`. Оттуда же
 подтягиваются зависимости по прагмам `'require <модуль> as <имя>'` — так у нас
-`menu-footstrap` тянет `fs-fit`, `fs-prefs`, `fs-widgets` и `menu-footstrap-common`, а тот — весь остальной граф модулей (`fs-menutree`, `fs-chrome`, `fs-router`, `fs-sheets`, `fs-appearance`, `fs-update`). Граф ацикличен, и это проверяет сам рантайм: `require()` кидает `DependencyError` на цикле.
+`menu-footstrap` тянет `fs-fit`, `fs-prefs`, `fs-widgets` и `menu-footstrap-common`, а тот — весь остальной граф модулей (`fs-menutree`, `fs-chrome`, `fs-router`, `fs-sheets`, `fs-search`, `fs-appearance`, `fs-version`). Граф ацикличен, и это проверяет сам рантайм: `require()` кидает `DependencyError` на цикле. **`fs-update` в графе НЕТ** — апдейтер вынесен в отдельный репо (`luci-app-footstrap-updater`), и ни один модуль темы его статически не требует: `fs-appearance` грузит его рантаймом (`L.require('fs-update')` → `null` при отсутствии), иначе недостающий апдейтер был бы `DependencyError`, сносящим весь хром (docs/23).
 
 ## Регистрация темы в UCI
 
@@ -183,16 +183,17 @@ config internal 'themes'
         fs-chrome.js                    mode-меню, табы, рельс, fitShell/fitChrome
         fs-router.js                    SPA-роутер
         fs-sheets.js                    защита от чужого инжектнутого CSS
-        fs-update.js                    FS_VERSION, проверка и установка обновления
-        fs-appearance.js                DOM поповера Appearance
+        fs-search.js                    командная палитра: поиск страницы по имени (все узлы меню + табы)
+        fs-version.js                   FS_VERSION + строка версии/ссылка в поповере (без сети)
+        fs-appearance.js                DOM поповера Appearance (рантаймом грузит fs-update, если стоит)
         fs-fit.js                       общий «а влезает ли?» движок (ResizeObserver, rAF)
         fs-select.js                    <select> → ui.Dropdown, карточный режим таблиц
 /www/luci-static/resources/view/status/include/05_footstrap_overview_layout.js
         аддитивный layout-only инклюд Overview (LuCI сам подхватывает *.js из этого каталога)
 /usr/lib/lua/luci/i18n/footstrap-theme.<lang>.lmo
         каталог переводов — едет ВНУТРИ пакета темы (не отдельным luci-i18n-*, см. док 13)
-/usr/libexec/footstrap-selfupdate.sh    бэкенд кнопки Update
-/usr/share/rpcd/acl.d/luci-theme-footstrap.json   ACL, разрешающий его exec
+/usr/share/rpcd/acl.d/luci-theme-footstrap.json   ACL темы: uci footstrap (Save as default) + загрузка login-bg
+                                                  (file.exec на self-update — в репо апдейтера, docs/23)
 /usr/share/luci-theme-footstrap/.installed        маркер «уже ставились» (см. ниже)
 /etc/uci-defaults/30_luci-theme-<тема>            регистрация в uci
 ```

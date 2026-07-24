@@ -1,0 +1,331 @@
+{
+  "router": "http://172.31.0.3",
+  "runs": 3,
+  "themes": [
+    "bootstrap",
+    "footstrap"
+  ],
+  "baseline": "bootstrap",
+  "spa_pages": 34,
+  "median_speedup": 2.4,
+  "pages": [
+    {
+      "page": "admin/system/filemanager",
+      "view": "system/filemanager",
+      "title": "File Manager",
+      "speedup_vs_bootstrap": 1.53,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 190.2,
+      "footstrap_ms": 124.2
+    },
+    {
+      "page": "admin/system/package-manager",
+      "view": "package-manager",
+      "title": "Software",
+      "speedup_vs_bootstrap": 1.07,
+      "footstrap_nav": "full",
+      "bootstrap_ms": 140.2,
+      "footstrap_ms": 130.8
+    },
+    {
+      "page": "admin/system/system",
+      "view": "system/system",
+      "title": "System",
+      "speedup_vs_bootstrap": 1.38,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 282.3,
+      "footstrap_ms": 205.2
+    },
+    {
+      "page": "admin/system/admin",
+      "view": "system/password",
+      "title": "Administration",
+      "speedup_vs_bootstrap": 3.79,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 69.5,
+      "footstrap_ms": 18.4
+    },
+    {
+      "page": "admin/system/admin/password",
+      "view": "system/password",
+      "title": "Router Password",
+      "speedup_vs_bootstrap": 5.61,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 88.5,
+      "footstrap_ms": 15.8
+    },
+    {
+      "page": "admin/system/admin/dropbear",
+      "view": "system/dropbear",
+      "title": "SSH Access",
+      "speedup_vs_bootstrap": 6.2,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 239.6,
+      "footstrap_ms": 38.6
+    },
+    {
+      "page": "admin/system/admin/sshkeys",
+      "view": "system/sshkeys",
+      "title": "SSH-Keys",
+      "speedup_vs_bootstrap": 4.04,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 138.1,
+      "footstrap_ms": 34.2
+    },
+    {
+      "page": "admin/system/admin/uhttpd",
+      "view": "system/uhttpd",
+      "title": "HTTP(S) Access",
+      "speedup_vs_bootstrap": 1.84,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 119.9,
+      "footstrap_ms": 65.1
+    },
+    {
+      "page": "admin/system/admin/repokeys",
+      "view": "system/repokeys",
+      "title": "Repo Public Keys",
+      "speedup_vs_bootstrap": 1.66,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 224.7,
+      "footstrap_ms": 135.0
+    },
+    {
+      "page": "admin/system/startup",
+      "view": "system/startup",
+      "title": "Startup",
+      "speedup_vs_bootstrap": 1.28,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 441.7,
+      "footstrap_ms": 343.7
+    },
+    {
+      "page": "admin/system/crontab",
+      "view": "system/crontab",
+      "title": "Scheduled Tasks",
+      "speedup_vs_bootstrap": 3.42,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 119.6,
+      "footstrap_ms": 35.0
+    },
+    {
+      "page": "admin/system/flash",
+      "view": "system/flash",
+      "title": "Backup / Flash Firmware",
+      "speedup_vs_bootstrap": 2.01,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 172.2,
+      "footstrap_ms": 85.6
+    },
+    {
+      "page": "admin/system/reboot",
+      "view": "system/reboot",
+      "title": "Reboot",
+      "speedup_vs_bootstrap": 3.44,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 124.3,
+      "footstrap_ms": 36.2
+    },
+    {
+      "page": "admin/network/firewall",
+      "view": "firewall/zones",
+      "title": "Firewall",
+      "speedup_vs_bootstrap": 2.61,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 237.6,
+      "footstrap_ms": 91.0
+    },
+    {
+      "page": "admin/network/firewall/zones",
+      "view": "firewall/zones",
+      "title": "General Settings",
+      "speedup_vs_bootstrap": 3.48,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 258.2,
+      "footstrap_ms": 74.1
+    },
+    {
+      "page": "admin/network/firewall/forwards",
+      "view": "firewall/forwards",
+      "title": "Port Forwards",
+      "speedup_vs_bootstrap": 2.47,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 268.5,
+      "footstrap_ms": 108.8
+    },
+    {
+      "page": "admin/network/firewall/rules",
+      "view": "firewall/rules",
+      "title": "Traffic Rules",
+      "speedup_vs_bootstrap": 2.4,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 294.4,
+      "footstrap_ms": 122.9
+    },
+    {
+      "page": "admin/network/firewall/snats",
+      "view": "firewall/snats",
+      "title": "NAT Rules",
+      "speedup_vs_bootstrap": 2.16,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 223.9,
+      "footstrap_ms": 103.7
+    },
+    {
+      "page": "admin/network/firewall/ipsets",
+      "view": "firewall/ipsets",
+      "title": "IP Sets",
+      "speedup_vs_bootstrap": 4.01,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 167.9,
+      "footstrap_ms": 41.9
+    },
+    {
+      "page": "admin/network/sqm",
+      "view": "network/sqm",
+      "title": "SQM QoS",
+      "speedup_vs_bootstrap": 2.27,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 317.1,
+      "footstrap_ms": 139.8
+    },
+    {
+      "page": "admin/network/network",
+      "view": "network/interfaces",
+      "title": "Interfaces",
+      "speedup_vs_bootstrap": 2.8,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 262.2,
+      "footstrap_ms": 93.6
+    },
+    {
+      "page": "admin/network/routes",
+      "view": "network/routes",
+      "title": "Routing",
+      "speedup_vs_bootstrap": 2.21,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 203.4,
+      "footstrap_ms": 92.1
+    },
+    {
+      "page": "admin/network/dhcp",
+      "view": "network/dhcp",
+      "title": "DHCP and DNS",
+      "speedup_vs_bootstrap": 1.97,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 220.1,
+      "footstrap_ms": 111.9
+    },
+    {
+      "page": "admin/network/diagnostics",
+      "view": "network/diagnostics",
+      "title": "Diagnostics",
+      "speedup_vs_bootstrap": 5.18,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 166.2,
+      "footstrap_ms": 32.1
+    },
+    {
+      "page": "admin/status/overview",
+      "view": "admin_status/index",
+      "title": "Overview",
+      "speedup_vs_bootstrap": 1.29,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 342.8,
+      "footstrap_ms": 265.3
+    },
+    {
+      "page": "admin/status/routes",
+      "view": "status/routes",
+      "title": "Routing",
+      "speedup_vs_bootstrap": 3.66,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 151.6,
+      "footstrap_ms": 41.4
+    },
+    {
+      "page": "admin/status/nftables",
+      "view": "status/nftables",
+      "title": "Firewall",
+      "speedup_vs_bootstrap": 1.93,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 116.9,
+      "footstrap_ms": 60.4
+    },
+    {
+      "page": "admin/status/logs",
+      "view": "status/syslog",
+      "title": "System Log",
+      "speedup_vs_bootstrap": 1.36,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 170.0,
+      "footstrap_ms": 124.9
+    },
+    {
+      "page": "admin/status/logs/syslog",
+      "view": "status/syslog",
+      "title": "System Log",
+      "speedup_vs_bootstrap": 2.28,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 185.9,
+      "footstrap_ms": 81.4
+    },
+    {
+      "page": "admin/status/logs/dmesg",
+      "view": "status/dmesg",
+      "title": "Kernel Log",
+      "speedup_vs_bootstrap": 4.46,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 120.1,
+      "footstrap_ms": 26.9
+    },
+    {
+      "page": "admin/status/processes",
+      "view": "status/processes",
+      "title": "Processes",
+      "speedup_vs_bootstrap": 1.4,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 186.4,
+      "footstrap_ms": 132.9
+    },
+    {
+      "page": "admin/status/realtime",
+      "view": "status/load",
+      "title": "Realtime Graphs",
+      "speedup_vs_bootstrap": 6.21,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 116.8,
+      "footstrap_ms": 18.8
+    },
+    {
+      "page": "admin/status/realtime/load",
+      "view": "status/load",
+      "title": "Load",
+      "speedup_vs_bootstrap": 7.64,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 134.1,
+      "footstrap_ms": 17.6
+    },
+    {
+      "page": "admin/status/realtime/bandwidth",
+      "view": "status/bandwidth",
+      "title": "Bandwidth",
+      "speedup_vs_bootstrap": 2.12,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 137.7,
+      "footstrap_ms": 64.9
+    },
+    {
+      "page": "admin/status/realtime/connections",
+      "view": "status/connections",
+      "title": "Connections",
+      "speedup_vs_bootstrap": 7.45,
+      "footstrap_nav": "spa",
+      "bootstrap_ms": 120.3,
+      "footstrap_ms": 16.1
+    }
+  ],
+  "total_bootstrap_ms": 6753.0,
+  "total_footstrap_ms": 3130.4,
+  "total_speedup": 2.16
+}

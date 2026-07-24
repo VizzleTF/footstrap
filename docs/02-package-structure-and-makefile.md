@@ -24,12 +24,12 @@ luci-theme-footstrap/
 │   └── resources/                 # → /www/luci-static/resources/
 │       ├── menu-footstrap.js          # рендер меню (единственный)
 │       ├── menu-footstrap-common.js   # bootstrap хрома; концерны — в fs-*.js (см. CLAUDE.md)
-│       ├── fs-fit.js  fs-select.js
+│       ├── fs-{fit,menutree,prefs,widgets,chrome,select,sheets,search,router,version,appearance}.js
 │       └── view/status/include/05_footstrap_overview_layout.js
 ├── root/                          # → / (корень rootfs)
 │   ├── etc/uci-defaults/30_luci-theme-footstrap   # регистрация темы
-│   ├── usr/libexec/footstrap-selfupdate.sh        # бэкенд кнопки «Обновить»
-│   └── usr/share/rpcd/acl.d/luci-theme-footstrap.json  # ACL на file.exec для него
+│   ├── etc/config/footstrap                       # пустой стаб, пишется рантаймом (Save as default)
+│   └── usr/share/rpcd/acl.d/luci-theme-footstrap.json  # ACL: uci footstrap + загрузка login-bg
 └── ucode/template/themes/footstrap/    # → /usr/share/ucode/luci/template/...
     ├── header.ut  footer.ut  sysauth.ut
     └── partials/{head,brand,logout,notices,appearance,footer}.ut
@@ -73,23 +73,29 @@ include $(TOPDIR)/feeds/luci/luci.mk   # АБСОЛЮТНЫЙ путь, не ../
                                        # пакет в package/, а не в feed
 ```
 
-### Минификация: CSS выключена, JS — ВКЛЮЧЕНА
+### Минификация: CSS выключена, JS — ДВА пути
 
-Это две разные истории, и путать их дорого.
+Это разные истории, и путать их дорого.
 
 - **`LUCI_MINIFY_CSS:=0`** — обязательно. luci.mk гонит CSS через **csstidy**, который
   достаточно стар, чтобы манглить `:has()`, `color-mix()` и вложенный `calc()`: пакет
   ставится, верстка разваливается. Минифицирует вместо него `build-css.sh` (свой, строко-
-  осведомлённый awk-проход) — он же держит бюджет размера.
-- **`LUCI_MINIFY_JS` не выставлен, значит `1` (jsmin) — и тема этого ХОЧЕТ.** Комментарии —
-  57 % исходника JS (127 КБ исходника → **47 КБ** после jsmin), а uhttpd отдаёт `/www` **без
-  сжатия**, то есть это байты и на проводе, и во флеше 8–16-МБ железки. Выставить здесь `0`
-  значит утроить шипаемый JS. **Не делайте этого.**
+  осведомлённый awk-проход). Верхнего бюджета размера у него больше нет (снят) — остался только
+  broken-build FLOOR (отказ писать подозрительно короткий файл).
+- **`LUCI_MINIFY_JS` — два пути минификации.** Релизная CI-сборка пре-минифицирует **terser**
+  (`tools/minify-js.mjs`, ~41 КБ — умеет манглить идентификаторы, чего jsmin не может) и
+  выставляет `FOOTSTRAP_PREMIN=1`, что переводит `LUCI_MINIFY_JS:=0`. Сборка **без** node
+  (SDK-пользователь, buildbot) держит дефолтный `1`, и jsmin минифицирует **нетронутый исходник**
+  (~57 КБ), как раньше. Комментарии — ~60 % исходника JS, а uhttpd отдаёт `/www` **без сжатия**,
+  то есть это байты и на проводе, и во флеше 8–16-МБ железки на обоих путях. Выставить здесь `0`
+  вручную (без terser) значит утроить шипаемый JS. Численного бюджета минифицированного JS в CI
+  больше нет (снят).
 
   Опасность jsmin — совсем другая, не «ломает современный ES»: он решает, `/` — это регекс
   или деление, по **одному** предыдущему символу, и ни `n` (из `return`), ни `>` (из `=>`) в
   его allow-list'е нет. `return /re/…` заставляет его сожрать остаток файла **и выйти с кодом
-  0** (openwrt/luci#8299). Поэтому: eslint-правило `wrap-regex` запрещает саму форму, а
+  0** (openwrt/luci#8299). Поэтому исходник обязан оставаться jsmin-безопасным (фолбэк-путь
+  всё ещё гоняет jsmin): eslint-правило `wrap-regex` запрещает саму форму, а
   `tools/jsmin-verify.mjs` доказывает, что поток токенов минифицированного файла совпадает с
   исходным. Правила написания JS — в CLAUDE.md, раздел «Writing JS».
 
@@ -100,7 +106,8 @@ include $(TOPDIR)/feeds/luci/luci.mk   # АБСОЛЮТНЫЙ путь, не ../
 
 1. `build-css.sh` → `cascade.css` в build-дерево (`cat`/`awk`, host-тулчейн не нужен — потому
    это и работает на buildbot'е OpenWrt);
-2. `sed`'ом штампует git-версию в `fs-update.js` (`FS_VERSION`) — путь к файлу часть контракта;
+2. `sed`'ом штампует git-версию в `fs-version.js` (`FS_VERSION`) — путь к файлу часть контракта
+   (тот же `sed` по пути делает `dev-sync.sh`; сдвинуть константу = править оба места);
 3. `po2lmo` компилирует каталог перевода **внутрь пакета темы**.
 4. Кладёт `LICENSE` в `PKG_BUILD_DIR` — `PKG_LICENSE_FILES` резолвится относительно него, а
    luci.mk корень пакета не копирует.

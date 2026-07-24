@@ -1,17 +1,28 @@
 # Theme updates: the check and the self-update
 
 How the theme learns about a new release and how it installs it in one click. The
-code sits in three places, and that split is deliberate — see below. The working
-invariants (fail-closed, the trust chain, why the worker daemonises) are also in
-CLAUDE.md in condensed form; this doc is the whole picture, from the button press
+update machinery is a **separate, optional package in its own repository**
+(`luci-app-footstrap-updater`) — that split is deliberate, see below — but it still
+runs inside the theme's document at runtime, so this doc covers both sides. The
+working invariants (fail-closed, the trust chain, why the worker daemonises) are also
+in CLAUDE.md in condensed form; this doc is the whole picture, from the button press
 to the page reload.
 
-## Where it lives, and why it is a separate package
+## Where it lives, and why it is a separate REPOSITORY
 
-The theme itself has no update check. Everything to do with updating is split out
-into a **separate, optional package, `luci-app-footstrap-updater`**: its own
-`Makefile`, its own `dev-sync.sh`, its own directory. It installs three things on
-the router:
+The theme itself has no update check. Everything to do with updating lives in a
+**separate, optional package that has its own repository** —
+[`VizzleTF/luci-app-footstrap-updater`](https://github.com/VizzleTF/luci-app-footstrap-updater):
+its own `Makefile`, CI, tags, version and changelog. That is its home, and every
+future release comes from there; the two are versioned independently. **The split
+is complete (2026-07-22, commit `104d762`).** The updater repo cut its first tag
+**v1.0.0** — strictly above the theme's transition build 0.9.6, because opkg refuses
+a downgrade by default (exits 0, installs nothing), and a lower tag would strand
+every 24.10 router on the transition build while reporting success. The theme's
+transition builds up to 0.9.6 re-shipped the updater so no fielded router was
+stranded; from v1.0.0 every router crosses over to the updater's own repo.
+
+The updater installs three things on the router:
 
 - `htdocs/luci-static/resources/fs-update.js` — the client: the GitHub check plus
   the installer trigger, hosted in the Appearance popover;
@@ -20,13 +31,19 @@ the router:
 - `root/usr/share/rpcd/acl.d/…json` + `release.pub` — the `file.exec` grant for
   that one script, and the public key the signature is checked against.
 
+**The runtime seam is unchanged by the split.** `fs-update.js` still lands in
+`/www/luci-static/resources` and `L.require`s the theme's own modules; only its
+*source* moved repositories. So everything below about the check, the install and the
+trust chain describes behaviour that did not change — the code just ships from a
+different repo now.
+
 Why separate, not folded into the theme: **no theme module may statically require
 `fs-update`**. LuCI modules wire up through `L.require`, and a missing dependency is
 a `DependencyError` that would take out the whole chrome. A router without the
 updater is an ordinary state: the theme loads `fs-update` at runtime with
-`L.require('fs-update')`, resolves it to `null` on failure, and simply draws no
-update controls. The version (from `fs-version.js`, which is the theme's) always
-shows; the Update controls only when the updater is installed.
+`L.require('fs-update')` from `fs-appearance.js`, resolves it to `null` on failure,
+and simply draws no update controls. The version (from `fs-version.js`, which is the
+theme's) always shows; the Update controls only when the updater is installed.
 
 The router↔updater seam is inverted for the same reason: `fs-router.js` exports
 `onNavigate(fn)`, and `fs-update.js` registers its `cancel` there. The router never
@@ -250,13 +267,30 @@ for **everything** the router installs. opkg (24.10) cannot verify a standalone
 covers both formats with one mechanism, and its key authorises nothing but this
 package.
 
-The key lives in two places, and neither copy can go:
-`luci-app-footstrap-updater/…/release.pub` (the self-updater reads it) and an
-**embedded copy in `install.sh`** — that one runs from `curl | sh` before any
-package exists. One key signs both the theme and the updater. A divergence cannot be
-caught by any test (the installer would just reject every release with `BAD
-SIGNATURE`, which looks exactly like the attack), so CI compares the two copies on
-every run.
+**The key exists in two places per repo, and neither copy can go.** In the theme
+repo: an **embedded copy in `install.sh`** — that one runs from `curl | sh` before
+any package exists — and the reference `release.pub` at the repo root, which this
+repo's CI compares it against (the theme asset is signed too, so `install.sh`
+verifies it). The **same key** signs the updater's assets in *its own* repo, where
+its package ships its own `release.pub` and its CI runs the same compare. One key
+verifies every source. A divergence *within a repo* cannot be caught by any test —
+the installer would just reject every release with `BAD SIGNATURE`, which looks
+exactly like the attack — so each repo's CI compares its two copies on every run.
+**Cross-repo key agreement is NOT gated:** rotating the key means changing it in both
+repos, and the release that ships the new `release.pub` is the one that starts
+trusting it.
+
+**The self-updater resolves the updater from its own repo FIRST** (`resolve_updater()`
+in `footstrap-selfupdate.sh`), and that wins whenever it offers an asset. The
+theme-release fallback that carried the transition is now dead code there — the
+updater repo publishes v1.0.0 — and the theme's own `install.sh` dropped that
+fallback branch entirely: it resolves the updater from the updater repo directly.
+That is what made the day the updater repo published the day every router crossed
+over, with no second decision anywhere. On the (now dead) fallback path the version
+came from the asset FILE NAME (`asset_ver()`), because a theme release's `tag_name`
+is the theme's version, not the updater's. `$EXT` is resolved at top level, not inside
+`do_update` — `check-updater` resolves an asset too, and an unset `$EXT` made
+`asset_urls` match nothing, silently.
 
 ## No extra dependencies — `+luci-base` is the whole list
 
@@ -270,9 +304,15 @@ either. Do not add a runtime dep for a convenience tool; fall back instead.
 The two scripts — `install.sh` and `footstrap-selfupdate.sh` — **cannot share a
 file**: the installer runs from `curl | sh` before the package that would hold a
 library exists. So their `fetch()`, host allowlist, asset/signature lookup and
-`verify_sig()` are pinned with `@mirror` (`gh/fetch`, `gh/asset-host`,
-`gh/asset-urls`, `gh/verify-sig`); `npm run mirror` keeps the copies byte-identical.
-Not ceremony: they had already drifted three ways.
+`verify_sig()` are duplicated, and pinned with `@mirror` (`gh/fetch`,
+`gh/asset-host`, `gh/asset-urls`, `gh/verify-sig`) so the copies stay byte-identical.
+Not ceremony: they had already drifted three ways. **Since the split, the pinned pair
+lives in the updater repo** — `footstrap-selfupdate.sh` moved there, and a `@mirror`
+group with only one copy is a hard failure, so the theme's `install.sh` dropped the
+`@mirror gh/*` markers in that same commit (`104d762`). `npm run mirror` in the
+updater repo reports those four groups with two copies each. Cross-repo agreement
+between the two `install.sh` copies is not gated: they are free to drift, and only the
+helpers inside the markers are held together within each repo.
 
 ## The two flows at a glance
 
