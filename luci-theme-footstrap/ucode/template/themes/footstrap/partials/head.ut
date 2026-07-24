@@ -17,13 +17,27 @@
 	let _sd_lay  = index([ 'sidebar', 'top' ], fs_defaults.layout) >= 0 ? fs_defaults.layout : '';
 	let _sd_dark = index([ 'auto', 'light', 'dark' ], fs_defaults.darkmode) >= 0 ? fs_defaults.darkmode : '';
 	let _sd_pal  = index([ 'footstrap', 'hicontrast' ], fs_defaults.palette) >= 0 ? fs_defaults.palette : '';
-	let _sd_wall = index([ 'off', 'cats' ], fs_defaults.wallpaper) >= 0 ? fs_defaults.wallpaper : '';
+	let _sd_wall = index([ 'off', 'cats', 'file' ], fs_defaults.wallpaper) >= 0 ? fs_defaults.wallpaper : '';
 	let _sd_ac   = index([ 'on', 'off' ], fs_defaults.autocollapse) >= 0 ? fs_defaults.autocollapse : '';
 	let _tt = int(fs_defaults.tint),   _sd_tint = (_tt >= 1 && _tt <= 360) ? _tt : 0;
 	let _aa = int(fs_defaults.accent), _sd_acc  = (_aa >= 1 && _aa <= 360) ? _aa : 0;
 	let _rr = int(fs_defaults.rounding);
 	/* rounding 0 is SHARP corners, a real choice, so '' (unset) must map to -1, not 0 */
 	let _sd_round = (fs_defaults.rounding != '' && _rr >= 0 && _rr <= 20) ? _rr : -1;
+	/* login_bg is the CACHE-BUST TOKEN for the uploaded background (the cgi-upload checksum, an
+	   md5), not the image and not a path — the served path is FIXED (/luci-static/footstrap/bg).
+	   Whitelist it to hex so a hand-edited config cannot inject markup into the inline script that
+	   builds the url() below; anything else becomes '' = "no background". */
+	let _lb = fs_defaults.login_bg;
+	let _sd_lbg = (type(_lb) == 'string' && match(_lb, /^[a-f0-9]{6,64}$/)) ? _lb : '';
+	/* the router-identity Tint's DENSITY 0-200 (% of the designed chroma); '' (unset) -> -1, like
+	   rounding, because 0 is a real value (no tint). */
+	let _ts = int(fs_defaults.tint_strength);
+	let _sd_tstr = (fs_defaults.tint_strength != '' && _ts >= 0 && _ts <= 200) ? _ts : -1;
+	/* the File photo's scrim opacity 0-100 (Wallpaper -> File -> Dim), a SHARED router value; unset
+	   -> -1, because 0 is a real value (a fully transparent scrim). */
+	let _pd = int(fs_defaults.photo_dim);
+	let _sd_pdim = (fs_defaults.photo_dim != '' && _pd >= 0 && _pd <= 100) ? _pd : -1;
 %}
 {# The SERVER always stamps data-layout with an EXPLICIT value (sidebar|top): every layout rule
    then matches POSITIVELY, so a future third layout must opt in rather than inherit the
@@ -42,7 +56,7 @@
 		   current*() (so the popover's controls show the effective default when this browser has no
 		   localStorage of its own). Enums are '', the hues 0 (=off), rounding -1 (=unset) — see the
 		   sanitiser above. #}
-		<script>window.__fsSD={layout:"{{ _sd_lay }}",darkmode:"{{ _sd_dark }}",palette:"{{ _sd_pal }}",wallpaper:"{{ _sd_wall }}",tint:{{ _sd_tint }},accent:{{ _sd_acc }},rounding:{{ _sd_round }},autocollapse:"{{ _sd_ac }}"};</script>
+		<script>window.__fsSD={layout:"{{ _sd_lay }}",darkmode:"{{ _sd_dark }}",palette:"{{ _sd_pal }}",wallpaper:"{{ _sd_wall }}",tint:{{ _sd_tint }},accent:{{ _sd_acc }},rounding:{{ _sd_round }},autocollapse:"{{ _sd_ac }}",login_bg:"{{ _sd_lbg }}",tint_strength:{{ _sd_tstr }},photo_dim:{{ _sd_pdim }}};</script>
 		{# The update CHECK lives in the OPTIONAL luci-app-footstrap-updater package, which ships
 		   fs-update.js into /www/luci-static/resources. fs-appearance.js loads it at runtime to light
 		   up the Updates controls — but a bare require on a router WITHOUT the updater 404s in the
@@ -124,7 +138,7 @@
 
 					let w = localStorage.getItem('fs-wallpaper');
 					if (w === null) w = sd.wallpaper || null;
-					if (w === 'cats') root.setAttribute('data-wallpaper', 'cats');
+					if (w === 'cats' || w === 'file') root.setAttribute('data-wallpaper', w);
 					else root.removeAttribute('data-wallpaper');
 
 					/* Rounding 0-20px (02-tokens derives the control/chip radii from it). The
@@ -156,6 +170,25 @@
 						root.style.setProperty('--fs-accent-h', String(a));
 						root.setAttribute('data-accent', '');
 					}
+					/* The uploaded photo's URL: ROUTER-SIDE (the token comes purely from
+					   window.__fsSD — no localStorage). Set the property whenever a valid token
+					   exists; whether it PAINTS is the wallpaper axis above (data-wallpaper="file"),
+					   so a router whose default wallpaper is 'file' shows it here, pre-login included.
+					   Re-validate the token (defence in depth, same charset as the server sanitiser). */
+					const lb = sd.login_bg;
+					if (lb && (/^[a-f0-9]{6,64}$/).test(lb))
+						root.style.setProperty('--fs-login-bg-url', "url('/luci-static/footstrap/bg?v=" + lb + "')");
+					/* the router-identity Tint's density (default 100% = the designed chroma). */
+					const tsRaw = localStorage.getItem('fs-tint-strength');
+					let ts = parseInt(tsRaw, 10);
+					if (tsRaw === null) ts = (sd.tint_strength >= 0 ? sd.tint_strength : 100);
+					if (ts >= 0 && ts <= 200 && ts !== 100)
+						root.style.setProperty('--fs-tint-strength', String(ts / 100));
+					/* the File photo's scrim opacity — a SHARED router value (no localStorage), default
+					   74% lives in the CSS token. */
+					const pd = (sd.photo_dim >= 0 ? sd.photo_dim : 74);
+					if (pd >= 0 && pd <= 100 && pd !== 74)
+						root.style.setProperty('--fs-photo-dim', pd + '%');
 				} catch (e) {}
 			})();
 		</script>

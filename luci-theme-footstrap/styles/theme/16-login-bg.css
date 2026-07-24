@@ -1,0 +1,31 @@
+@layer theme {
+	/* The uploaded photo — the Wallpaper axis's third value, `file` (Appearance → Wallpaper → File).
+	 * The bytes are router-side and shared; the SERVED file is referenced by CSS `url()`, never inlined
+	 * (uhttpd has no gzip). Unlike the cats doodle a photo carries no bakeable opacity, so a scrim is
+	 * mandatory for legibility: --fs-photo-scrim (a wash derived from --fs-bg, so it follows
+	 * palette/mode/tint; 03-palettes.css) is painted as the TOP background layer OVER the photo on the
+	 * SAME element. That keeps it between image and content with no ::before and no z-index, and no
+	 * backdrop-filter: a blur on a full-viewport surface is the single most expensive paint on a phone
+	 * GPU (15-wallpaper.css / 95-a11y-media.css), the scrim already carries the readability, and
+	 * reduced-transparency turns the scrim opaque anyway.
+	 *
+	 * ONE-element rule, same as the cats wallpaper (15-wallpaper.css:20): .fs-shell where there is
+	 * chrome, the bare <body> on the login page (blank_page → no .fs-shell). Content blocks paint their
+	 * own opaque --fs-panel and float above the scrim, so it only has to carry the little text that sits
+	 * directly on the canvas. --fs-login-bg-url is `none` until a photo is uploaded (head.ut /
+	 * fs-prefs.js), so with File selected but nothing uploaded this is just the scrim over the base
+	 * canvas — which is what the popover's Choose-image prompt is for. */
+	:root[data-wallpaper="file"] :is(.fs-shell, body:not(:has(.fs-shell))) {
+		background-image: linear-gradient(var(--fs-photo-scrim), var(--fs-photo-scrim)), var(--fs-login-bg-url);
+		background-position: center;
+		background-size: cover;
+		background-repeat: no-repeat;
+		/* fixed, so the photo is one calm backdrop the page scrolls under, not a strip that slides
+		 * with every table. */
+		background-attachment: fixed;
+	}
+	/* .fs-main's opaque --fs-bg would cover the shell's single background layer — make it transparent
+	 * so the photo+scrim shows through the whole content area (as the cats wallpaper does at 15:34). */
+	:root[data-wallpaper="file"] .fs-main { background-color: transparent; }
+	:root[data-wallpaper="file"] footer.fs-footer { background: transparent; }
+}

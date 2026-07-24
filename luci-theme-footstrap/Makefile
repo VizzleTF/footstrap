@@ -145,6 +145,9 @@ LEGACY_THEMES="Footstrap FootstrapDark FootstrapLight FootstrapTop FootstrapTopD
 	# The "installed before" marker uci-defaults writes to tell fresh from upgrade. Removing it
 	# makes uninstall-then-reinstall count as fresh again.
 	rm -rf /usr/share/luci-theme-footstrap >/dev/null 2>&1 || true
+	# The admin-uploaded login background (kept out of the package on purpose, so it survives an
+	# upgrade). A real removal is the one time it should go — this branch never runs on upgrade.
+	rm -rf /etc/footstrap >/dev/null 2>&1 || true
 	rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/* >/dev/null 2>&1 || true
 	/etc/init.d/rpcd reload >/dev/null 2>&1 || true	# see the postinst note: reload keeps sessions
 }

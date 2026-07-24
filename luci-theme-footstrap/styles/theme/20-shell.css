@@ -381,6 +381,31 @@
 	 * place of the absent status text, hidden until a save actually fails. */
 	.fs-ap-err { margin-top: 8px; font-size: 11px; line-height: 1.35; color: var(--fs-danger); }
 
+	/* Wallpaper control: the segmented switch, and — only when File is picked — the upload sub-panel
+	 * below it. The preview shows the uploaded photo at a small fixed aspect so the popover height is
+	 * stable; Choose image and Remove share ONE row beneath it, Remove appearing only once a photo
+	 * exists (so Choose takes the full width until then). */
+	.fs-ap-wall { display: flex; flex-direction: column; gap: 8px; }
+	.fs-ap-bg { display: flex; flex-direction: column; gap: 8px; }
+	.fs-ap-bgprev {
+		display: block; width: 100%; height: 84px; object-fit: cover;
+		border: 1px solid var(--fs-border); border-radius: var(--fs-radius);
+	}
+	.fs-ap-bgrow { display: flex; gap: 8px; }
+	.fs-ap-bgrow .btn { flex: 1; font-size: 12px; padding: 7px 10px; cursor: pointer; }
+	.fs-ap-bgrow .btn:disabled { cursor: default; }
+	/* an explicit `display` DEFEATS the `hidden` attribute (the UA's `[hidden]{display:none}` is a
+	 * bare 0,0,1 rule these out-rank), so the JS's panel.hidden / preview.hidden / removeBtn.hidden
+	 * would not hide the panel for Off/Cats, the empty preview, or a not-yet-uploaded Remove. Restate
+	 * hidden at a specificity that wins. */
+	.fs-ap-bg[hidden], .fs-ap-bgprev[hidden], .fs-ap-bgrow .btn[hidden] { display: none; }
+	/* Under the File wallpaper only the photo Dim is relevant — the router-identity Tint colours the
+	 * canvas the photo covers, so hide the Tint hue AND its Density there (fs-ap-tint marks both). */
+	:root[data-wallpaper="file"] .fs-ap-tint { display: none; }
+	/* and the Density is meaningless with no hue set, so hide it whenever the Tint is off. (0,3,0)
+	 * out-ranks .fs-ap-group's own display. */
+	:root:not([data-tint]) .fs-ap-density { display: none; }
+
 	/* version line + "new version" pill + Update button at the foot of the popover */
 	.fs-ap-footer {
 		display: flex; flex-direction: column; gap: 8px;

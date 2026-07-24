@@ -253,10 +253,36 @@ function hueAxis(key, attr, prop) {
 const PALETTE = enumAxis('fs-palette', 'data-palette', 'hicontrast', 'footstrap');
 const currentPalette = PALETTE.current, applyPalette = PALETTE.apply;
 
-/* Wallpaper is a separate axis from the palette: the cats pattern composes with
- * either palette. data-wallpaper="cats" on :root drives styles/theme/15-wallpaper.css. */
-const WALLPAPER = enumAxis('fs-wallpaper', 'data-wallpaper', 'cats', 'off');
-const currentWallpaper = WALLPAPER.current, applyWallpaper = WALLPAPER.apply;
+/* Wallpaper is a THREE-value axis and its own concern (composes with either palette): off (bare
+ * canvas), cats (the doodle pattern, 15-wallpaper.css), file (the admin-uploaded photo,
+ * 16-login-bg.css). It is not the enumAxis shape (that is two-valued) — data-wallpaper carries the
+ * VALUE ('cats'|'file') or is absent for 'off'. The photo BYTES are router-side (currentLoginBg /
+ * uploadLoginBg below); this axis only decides whether THIS browser shows them, exactly like it
+ * decides cats vs off — so a router-wide photo comes from Save-as-default (wallpaper=file), including
+ * the pre-login page. */
+const WALLPAPERS = [ 'cats', 'file' ];		/* the two non-off values; 'off' = bare :root */
+function wallpaperDefault() {
+	const d = sd('wallpaper');
+	return (WALLPAPERS.indexOf(d) >= 0) ? d : 'off';
+}
+function currentWallpaper() {
+	const s = lsGet('fs-wallpaper');
+	if (WALLPAPERS.indexOf(s) >= 0) return s;
+	if (s === 'off') return 'off';
+	if (s === null) return wallpaperDefault();
+	return 'off';		/* a stray value reads as the built-in default */
+}
+function applyWallpaper(val) {
+	const root = document.documentElement;
+	const v = (WALLPAPERS.indexOf(val) >= 0) ? val : 'off';
+	/* stored explicitly (including 'off'), so it overrides a router default — see the header */
+	lsSet('fs-wallpaper', v);
+	if (v === 'off') root.removeAttribute('data-wallpaper');
+	else root.setAttribute('data-wallpaper', v);
+	/* write the choice through to the router default too (see _persistBaseline) */
+	_persistBaseline('wallpaper', v);
+	_persistUci('wallpaper', v);
+}
 
 /* Background-tint axis: ONE hue washed into the CANVAS the cards float on (--fs-bg), so a whole
  * install reads as green/violet/amber and you can tell which router a tab — or a screenshot in a
@@ -358,8 +384,12 @@ function currentRail() {
  * OTHER browsers/devices. resetToDefault() is the escape hatch that drops this browser back onto it. */
 const AXIS_KEYS = [
 	'fs-layout', 'fs-darkmode', 'fs-palette', 'fs-wallpaper',
-	'fs-tint', 'fs-accent', 'fs-radius', 'fs-menu-autocollapse'
+	'fs-tint', 'fs-accent', 'fs-radius', 'fs-menu-autocollapse', 'fs-tint-strength'
 ];
+/* the Tint-density default (its axis lives further down, but _resolvedDefault() runs at module init
+ * — before that block — so the const it reads must be declared up here, or it is in the TDZ and the
+ * whole module throws, taking the chrome and the menu with it. */
+const FS_TSTR_DEFAULT = 100;
 const _uciSet = rpc.declare({ object: 'uci', method: 'set', params: [ 'config', 'section', 'values' ] });
 const _uciCommit = rpc.declare({ object: 'uci', method: 'commit', params: [ 'config' ] });
 
@@ -372,7 +402,8 @@ function snapshotAxes() {
 		tint: String(currentTint()),
 		accent: String(currentAccent()),
 		rounding: String(currentRadius()),
-		autocollapse: currentAutoCollapse() ? 'on' : 'off'
+		autocollapse: currentAutoCollapse() ? 'on' : 'off',
+		tint_strength: String(currentTintStrength())
 	};
 }
 /* The RESOLVED router default (UCI value if set, else the built-in), in snapshotAxes() string form,
@@ -390,17 +421,34 @@ function _resolvedDefault() {
 		layout: sd('layout') || 'sidebar',
 		darkmode: modeDefault(),
 		palette: PALETTE.def(),
-		wallpaper: WALLPAPER.def(),
+		wallpaper: wallpaperDefault(),
 		tint: String(TINT.def()),
 		accent: String(ACCENT.def()),
 		rounding: String(radiusDefault()),
-		autocollapse: autoCollapseDefault() ? 'on' : 'off'
+		autocollapse: autoCollapseDefault() ? 'on' : 'off',
+		tint_strength: String(tintStrengthDefault())
 	};
 }
 let _savedDefault = _resolvedDefault();
 function matchesSavedDefault() {
 	const cur = snapshotAxes();
 	return Object.keys(cur).every((k) => cur[k] === _savedDefault[k]);
+}
+
+/* ---- wallpaper + photo dim write through to /etc/config/footstrap AS THEY CHANGE ----------------
+ * Every OTHER axis is per-browser and only reaches the router via Save-as-default. These two do not
+ * wait, because the File photo is a ROUTER-SIDE default: the image itself lands in uci on upload, so
+ * "which wallpaper shows it" (off/cats/file) and "how dim" belong there too — otherwise a fresh
+ * browser, or the pre-login page, would not match what the admin set. The Save-button baseline
+ * (_savedDefault, window.__fsSD) is moved in step so the axis does not then read as unsaved; the uci
+ * write is best-effort (a read-only session simply keeps the live per-browser value). */
+function _persistBaseline(field, strVal, numVal) {
+	_savedDefault[field] = strVal;
+	try { (window.__fsSD = window.__fsSD || {})[field] = (numVal === undefined) ? strVal : numVal; } catch (e) {}
+}
+function _persistUci(field, strVal) {
+	return _uciSet('footstrap', 'settings', { [field]: strVal })
+		.then(() => _uciCommit('footstrap')).catch(() => null);
 }
 function saveAsDefault() {
 	const snap = snapshotAxes();
@@ -412,6 +460,172 @@ function saveAsDefault() {
  * reloads so head.ut re-applies from window.__fsSD in one clean pass. */
 function resetToDefault() {
 	AXIS_KEYS.forEach(lsDel);
+}
+
+/* ---- Login/page background upload: ROUTER-SIDE, and deliberately NOT an axis --------------------
+ * The other axes are per-browser (localStorage) with a router default; this one has no browser layer
+ * at all. An admin uploads an image once, it becomes the router-wide background for EVERY device and
+ * shows pre-login, and there is nothing to override locally — so it is absent from AXIS_KEYS,
+ * snapshotAxes() and matchesSavedDefault() (it must not move the Save button), and it needs no
+ * enum/hue factory (so tools/axes.mjs never sees it).
+ *
+ * The image is a SERVED FILE (uhttpd has no gzip — inlining a photo in every page's <head> is out);
+ * only its cache-bust token lives in uci -> window.__fsSD -> the url() head.ut stamps. The file path
+ * is a FIXED server-side constant, matched exactly by the rpcd ACL, so nothing user-controlled ever
+ * reaches a path — no traversal surface. */
+const BG_PATH  = '/etc/footstrap/login-bg';		/* cgi-upload target; the ACL grants exactly this */
+const BG_SERVE = '/luci-static/footstrap/bg';	/* the uhttpd symlink to BG_PATH (uci-defaults) */
+const BG_MAX_SIDE = 2560;						/* cap the longest side — generous, so a full-screen backdrop stays crisp; still bounds flash/wire bytes */
+const BG_QUALITY  = 0.9;
+const BG_SRC_MAX  = 25 * 1024 * 1024;			/* refuse a source this big before decoding (decode-bomb guard) */
+const _fileRemove = rpc.declare({ object: 'file', method: 'remove', params: [ 'path' ] });
+/* cgi-upload writes the file mode 0600, and uhttpd refuses to SERVE a file that is not
+ * world-readable (measured: 0600 -> 403, 0644 -> 200), so make it 0644 before it can be fetched. The
+ * rpcd ACL grants exec on exactly `/bin/chmod 644 /etc/footstrap/login-bg` — one fixed command, no
+ * argument the caller controls. */
+const _fileExec = rpc.declare({ object: 'file', method: 'exec', params: [ 'command', 'params' ] });
+/* the cache-bust token charset — an md5/sha hex string. ONE copy here (currentLoginBg validates the
+ * stored token, uploadLoginBg validates the fresh cgi-upload checksum); head.ut's ucode sanitiser and
+ * the pre-paint inline script keep their own identical copies, unavoidably (they run before this
+ * module and cannot require it) — see the axes contract in head.ut. */
+const BG_TOKEN_RE = /^[a-f0-9]{6,64}$/;
+
+/* the token the server last saved (window.__fsSD.login_bg), validated to the same hex charset the
+ * head.ut sanitiser and pre-paint use — so the popover shows the current background and builds a
+ * cache-busted preview src. '' = none. */
+function currentLoginBg() {
+	const t = sd('login_bg');
+	return (typeof t === 'string' && BG_TOKEN_RE.test(t)) ? t : '';
+}
+function loginBgUrl(tok) { return BG_SERVE + '?v=' + tok; }
+
+/* set / clear the photo URL live, without a reload. This only supplies the url() — whether it PAINTS
+ * is the Wallpaper axis (data-wallpaper="file", applyWallpaper above), so an upload while the browser
+ * is on file shows at once, and removing the image leaves the file layer with `none`. */
+function _applyLoginBg(tok) {
+	const root = document.documentElement;
+	if (tok) root.style.setProperty('--fs-login-bg-url', "url('" + loginBgUrl(tok) + "')");
+	else root.style.removeProperty('--fs-login-bg-url');
+	try { (window.__fsSD = window.__fsSD || {}).login_bg = tok || ''; } catch (e) {}
+}
+
+/* Re-encode the picked image to a bounded JPEG on a canvas. This is a SECURITY step as much as a
+ * size one: the canvas keeps only the decoded pixels, so EXIF and any bytes appended past the image
+ * are dropped — the uploaded blob is exactly what the browser drew and nothing else. */
+function _downscale(file) {
+	return new Promise((resolve, reject) => {
+		const url = URL.createObjectURL(file);
+		const img = new Image();
+		img.onload = () => {
+			URL.revokeObjectURL(url);
+			const scale = Math.min(1, BG_MAX_SIDE / Math.max(img.width, img.height));
+			const w = Math.max(1, Math.round(img.width * scale));
+			const h = Math.max(1, Math.round(img.height * scale));
+			const cv = document.createElement('canvas');
+			cv.width = w; cv.height = h;
+			cv.getContext('2d').drawImage(img, 0, 0, w, h);
+			cv.toBlob((blob) => blob ? resolve(blob) : reject(new Error(_('Could not process the image.', 'footstrap'))),
+				'image/jpeg', BG_QUALITY);
+		};
+		img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(_('That file is not a readable image.', 'footstrap'))); };
+		img.src = url;
+	});
+}
+
+/* Upload flow: validate -> canvas re-encode -> multipart POST to cgi-io's cgi-upload (the same
+ * endpoint L.ui.uploadFile uses; session carried in the `sessionid` FIELD, path in `filename`, bytes
+ * in `filedata`) -> take the md5 `checksum` from the JSON reply as the cache-bust token -> save it in
+ * uci -> apply live. cgi-upload authorises the write against the ACL's `file` grant for BG_PATH. */
+function uploadLoginBg(file) {
+	if (!file || !(/^image\//).test(file.type || ''))
+		return Promise.reject(new Error(_('Please choose an image file.', 'footstrap')));
+	if (file.size > BG_SRC_MAX)
+		return Promise.reject(new Error(_('That image is too large.', 'footstrap')));
+	return _downscale(file).then((blob) => {
+		const fd = new FormData();
+		fd.append('sessionid', rpc.getSessionID());
+		fd.append('filename', BG_PATH);
+		fd.append('filedata', blob, 'login-bg');
+		return fetch(L.env.cgi_base + '/cgi-upload', { method: 'POST', body: fd, credentials: 'same-origin' })
+			.then((r) => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)));
+	}).then((reply) => {
+		/* cgi-upload answers { name, size, checksum, sha256sum } or { failure: [code, msg] } */
+		if (!reply || reply.failure)
+			return Promise.reject(new Error((reply && reply.failure && reply.failure[1]) || _('Upload failed.', 'footstrap')));
+		const tok = String(reply.checksum || '').toLowerCase();
+		if (!BG_TOKEN_RE.test(tok))
+			return Promise.reject(new Error(_('Upload failed.', 'footstrap')));
+		/* make the just-written 0600 file world-readable, or uhttpd 403s it (see _fileExec) */
+		return _fileExec('/bin/chmod', [ '644', BG_PATH ])
+			/* write the image AND switch the router default to File in one commit — uploading a photo
+			 * IS the act of making it the background, so a fresh browser and the pre-login page show it
+			 * without a separate Save-as-default. */
+			.then(() => _uciSet('footstrap', 'settings', { login_bg: tok, wallpaper: 'file' }))
+			.then(() => _uciCommit('footstrap'))
+			.then(() => {
+				_persistBaseline('wallpaper', 'file');
+				lsSet('fs-wallpaper', 'file');
+				document.documentElement.setAttribute('data-wallpaper', 'file');
+				_applyLoginBg(tok);
+				return tok;
+			});
+	});
+}
+
+/* Remove: delete the file, blank the token (uci `set` to '', not delete — the scoped ACL grants
+ * set/commit only), clear the background live. */
+function removeLoginBg() {
+	return _fileRemove(BG_PATH)
+		.catch(() => null)	/* already gone is success — still blank the token below */
+		.then(() => _uciSet('footstrap', 'settings', { login_bg: '' }))
+		.then(() => _uciCommit('footstrap'))
+		.then(() => { _applyLoginBg(''); });
+}
+
+/* Photo dim: the scrim opacity over the FILE photo (0–100%), and SHARED — one router-wide value in
+ * /etc/config/footstrap, not a per-browser axis, because it is a property of the shared photo (like
+ * the image). No localStorage: the value comes from window.__fsSD, and dragging the slider writes it
+ * straight to uci (coalesced) and updates __fsSD + the live --fs-photo-dim so the reading stays true.
+ * Distinct from the Tint's Density (fs-tint-strength) — that colours the canvas, this dims a photo. */
+const FS_PDIM_DEFAULT = 74;
+let _pdimTimer = null;
+function currentPhotoDim() {
+	const d = sd('photo_dim');
+	return (typeof d === 'number' && d >= 0 && d <= 100) ? d : FS_PDIM_DEFAULT;
+}
+function applyPhotoDim(pct) {
+	const root = document.documentElement;
+	const v = Math.max(0, Math.min(100, pct | 0));
+	if (v === FS_PDIM_DEFAULT) root.style.removeProperty('--fs-photo-dim');
+	else root.style.setProperty('--fs-photo-dim', v + '%');
+	try { (window.__fsSD = window.__fsSD || {}).photo_dim = v; } catch (e) {}
+	/* the slider fires continuously; commit to uci once it settles */
+	if (_pdimTimer) clearTimeout(_pdimTimer);
+	_pdimTimer = setTimeout(() => _persistUci('photo_dim', String(v)), 500);
+}
+
+/* Tint density: the STRENGTH of the router-identity Tint (the hue washed onto --fs-bg), a per-browser
+ * axis paired with the Tint hue — the hue picks the colour, this picks how strong it reads.
+ * --fs-tint-strength is a multiplier on the tint chroma (03-palettes.css): 100% = the designed
+ * strength, 0% = none, up to 200%. It only bites while a Tint hue is set (data-tint), and it is
+ * hidden and moot under the File wallpaper, where the tint resets to neutral (the photo covers the
+ * canvas). A normal per-browser axis: localStorage ?? router default ?? built-in; head.ut pre-paints
+ * it; stored explicitly (incl. the 100 default) so it can override a router default, like the hues. */
+function tintStrengthDefault() {
+	const d = sd('tint_strength');
+	return (typeof d === 'number' && d >= 0 && d <= 200) ? d : FS_TSTR_DEFAULT;
+}
+function currentTintStrength() {
+	const raw = lsGet('fs-tint-strength');
+	if (raw !== null) { const v = parseInt(raw, 10); return (v >= 0 && v <= 200) ? v : FS_TSTR_DEFAULT; }
+	return tintStrengthDefault();
+}
+function applyTintStrength(pct) {
+	const root = document.documentElement;
+	const v = Math.max(0, Math.min(200, pct | 0));
+	lsSet('fs-tint-strength', String(v));
+	if (v === FS_TSTR_DEFAULT) root.style.removeProperty('--fs-tint-strength');
+	else root.style.setProperty('--fs-tint-strength', String(v / 100));
 }
 
 return baseclass.extend({
@@ -427,6 +641,10 @@ return baseclass.extend({
 	currentLayout, isTopLayout, applyLayout,
 	currentAutoCollapse, applyAutoCollapse,
 	currentRail, applyRail,
+
+	currentLoginBg, loginBgUrl, uploadLoginBg, removeLoginBg,
+	currentTintStrength, applyTintStrength,
+	currentPhotoDim, applyPhotoDim,
 
 	saveAsDefault, resetToDefault, matchesSavedDefault
 });

@@ -38,6 +38,10 @@
 			--fs-bar-bg: var(--fs-panel);
 			--fs-glass: var(--fs-panel);
 			--fs-blur: none;
+			/* the uploaded background is a translucent wash over a photo — exactly the effect this
+			 * user asked the OS to drop. Make the scrim opaque so the canvas is flat, not a photo
+			 * ghosting through (16-login-bg.css lays it over the image as one background layer). */
+			--fs-photo-scrim: var(--fs-bg);
 		}
 	}
 

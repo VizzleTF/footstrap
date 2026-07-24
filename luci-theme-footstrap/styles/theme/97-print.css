@@ -37,6 +37,8 @@
 		.fs-content.fs-content { max-width: none; padding: 0; }
 		/* same selector as 15-wallpaper.css, later in the layer — the cats stay off the paper */
 		:root[data-wallpaper="cats"] :is(.fs-shell, body:not(:has(.fs-shell))) { background-image: none; }
+		/* and the uploaded photo — ink, not decoration, on paper (16-login-bg.css) */
+		:root[data-wallpaper="file"] :is(.fs-shell, body:not(:has(.fs-shell))) { background-image: none; }
 		/* keep a card in one piece where the page allows it */
 		.cbi-section { break-inside: avoid; }
 	}

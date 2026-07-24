@@ -34,7 +34,14 @@
 		tint:         fsd.tint || '',
 		accent:       fsd.accent || '',
 		rounding:     fsd.rounding || '',
-		autocollapse: fsd.autocollapse || ''
+		autocollapse: fsd.autocollapse || '',
+		/* '' (not the raw undefined) when unset, so head.ut's `!= ''` guard fires — otherwise
+		 * int(undefined) is 0, a VALID value, and the axis defaults to 0 instead of its real default */
+		tint_strength: fsd.tint_strength || '',
+		photo_dim:    fsd.photo_dim || '',
+		/* the uploaded background's cache-bust token (head.ut whitelists it to hex) — the image
+		 * itself is a served file, only this token travels in the page */
+		login_bg:     fsd.login_bg || ''
 	};
 
 	http.prepare_content('text/html; charset=UTF-8');

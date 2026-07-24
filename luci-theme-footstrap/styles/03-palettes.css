@@ -100,6 +100,24 @@
 		 * data-accent / data-tint are absent. */
 		--fs-accent-h: 0;
 		--fs-tint-h: 0;
+		/* Tint DENSITY (Appearance → Density), a multiplier on the tint chroma below: 1 = the designed
+		 * strength, 0 = none, up to 2. fs-prefs.js/head.ut set it inline (value/100) when the user
+		 * drags the slider; paired with the hue, it is the second half of the router-identity Tint. */
+		--fs-tint-strength: 1;
+		/* The uploaded login/page background (Appearance → Background image). --fs-login-bg-url is
+		 * the url() head.ut/fs-prefs.js stamp inline; `none` here is the same stand-on-its-own
+		 * default the hues carry above (a var() with no definition is invalid at computed-value
+		 * time). --fs-photo-scrim is the wash laid OVER the photo so on-canvas text stays legible on
+		 * an arbitrary image: derived from --fs-bg, so it follows the palette, the mode AND the tint,
+		 * and its opacity bounds the effective canvas contrast regardless of what the photo is. Both
+		 * are inert until data-login-bg is present (16-login-bg.css). */
+		--fs-login-bg-url: none;
+		/* --fs-photo-dim is the scrim OPACITY over a File photo (Wallpaper → File → Dim), a SHARED
+		 * router value; head.ut/fs-prefs.js override it inline. The scrim is mixed from --fs-bg-BASE,
+		 * NOT --fs-bg, so it is always NEUTRAL — the router-identity Tint colours --fs-bg and must
+		 * never leak onto a photo; the Tint's Density is a separate control. */
+		--fs-photo-dim: 74%;
+		--fs-photo-scrim: color-mix(in srgb, var(--fs-bg-base) var(--fs-photo-dim), transparent);
 		/* HOW STRONG THE CUE IS — a chroma, and a function of the HUE, because the canvas is
 		 * not neutral: every palette's canvas is a blue-grey (measured: oklch hue 248–264)
 		 * and the dark one carries chroma .0153 of it. A flat chroma made the blue/violet end
@@ -119,11 +137,11 @@
 		 * runs the HIGHER floor, which sounds backwards until you look at the surface:
 		 * near-white has almost no chroma of its own (.0034), so the tint is the only colour
 		 * there and 8 thousandths of it simply did not read. */
-		--fs-tint-c: calc(.016 + .012 * max(0, cos((var(--fs-tint-h) - 258) * 1deg)));
+		--fs-tint-c: calc((.016 + .012 * max(0, cos((var(--fs-tint-h) - 258) * 1deg))) * var(--fs-tint-strength));
 	}
 	:root[data-darkmode="true"] {
-		--fs-tint-c: calc(.011 + .016 * max(0, cos((var(--fs-tint-h) - 258) * 1deg))
-			- .004 * max(0, cos((var(--fs-tint-h) - 55) * 1deg)));
+		--fs-tint-c: calc((.011 + .016 * max(0, cos((var(--fs-tint-h) - 258) * 1deg))
+			- .004 * max(0, cos((var(--fs-tint-h) - 55) * 1deg))) * var(--fs-tint-strength));
 	}
 	:root[data-tint] { --fs-bg: oklch(from var(--fs-bg-base) l var(--fs-tint-c) var(--fs-tint-h)); }
 

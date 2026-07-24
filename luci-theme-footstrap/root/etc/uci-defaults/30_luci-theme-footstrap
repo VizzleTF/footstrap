@@ -87,6 +87,15 @@ if ! uci -q get footstrap.settings >/dev/null 2>&1; then
 	uci commit footstrap
 fi
 
+# Login/page background upload (Appearance -> Background image). cgi-upload writes the image to
+# /etc/footstrap/login-bg (a fixed, ACL-scoped path — kept in /etc so it survives a package upgrade
+# and, via lib/upgrade/keep.d, a sysupgrade). uhttpd serves only /www, so a symlink there exposes it
+# at /luci-static/footstrap/bg (uhttpd follows symlinks). Both are recreated on every install/upgrade
+# (postinst re-runs this script) and are idempotent; /www is repopulated from firmware on sysupgrade,
+# so recreating the symlink here rather than shipping it is what makes it reliable on both filesystems.
+mkdir -p /etc/footstrap 2>/dev/null
+[ -d /www/luci-static/footstrap ] && ln -sf /etc/footstrap/login-bg /www/luci-static/footstrap/bg 2>/dev/null
+
 # these caches embed theme paths — drop them so the switch applies on the next request
 rm -f /tmp/luci-indexcache* 2>/dev/null
 rm -rf /tmp/luci-modulecache 2>/dev/null

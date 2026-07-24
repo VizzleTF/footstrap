@@ -99,10 +99,76 @@ function wireAppearance(update) {
 			{ val: 'hicontrast', label: 'Hi-Contrast' }
 		], bump(prefs.applyPalette), label)),
 
-		group(_('Wallpaper', 'footstrap'), (label) => widgets.segControl(prefs.currentWallpaper(), [
-			{ val: 'off',  label: _('Off', 'footstrap') },
-			{ val: 'cats', label: _('Cats', 'footstrap') }
-		], bump(prefs.applyWallpaper), label)),
+		/* Wallpaper is THREE-valued: Off, Cats (doodle), File (the uploaded photo). Picking File reveals
+		 * the upload sub-panel BELOW the segments — a file input + preview + Remove, shown only in that
+		 * mode. The photo BYTES are router-side (fs-prefs uploads them and stores a token in uci); this
+		 * seg is the per-browser switch that decides whether to paint them, so it is what keeps the Save
+		 * button honest (refreshSave), while Choose/Remove only swap the picture behind whoever is on
+		 * File and never touch the axis. The native file input stays hidden — the styled "Choose image"
+		 * button triggers it. */
+		group(_('Wallpaper', 'footstrap'), (label) => {
+			const err = E('div', { 'class': 'fs-ap-err', 'role': 'alert', 'hidden': '' });
+			const preview = E('img', { 'class': 'fs-ap-bgprev', 'alt': '', 'hidden': '' });
+			/* display:none, not the `hidden` attribute — a bare `hidden=""` still rendered the native
+			 * "Choose File / No file chosen" control; only the styled button below should be visible. */
+			const fileInput = E('input', { 'type': 'file', 'accept': 'image/*', 'style': 'display:none' });
+			const chooseBtn = E('button', { 'class': 'btn cbi-button', 'type': 'button' }, [ _('Choose image', 'footstrap') ]);
+			const removeBtn = E('button', { 'class': 'btn', 'type': 'button', 'hidden': '' }, [ _('Remove', 'footstrap') ]);
+			const chooseLabel = _('Choose image', 'footstrap');
+			/* Dim: the scrim opacity over the photo — a SHARED router value (fs-prefs writes it straight
+			 * to uci), so NOT bump()-ed. Separate from the Tint's Density above. */
+			const dimLabel = _('Dim', 'footstrap');
+			const dim = E('div', { 'class': 'fs-ap-group' }, [
+				E('div', { 'class': 'fs-ap-label' }, [ dimLabel ]),
+				widgets.sliderControl(prefs.currentPhotoDim(), 0, 100, prefs.applyPhotoDim, dimLabel, {
+					step: 5,
+					fmt: (v) => v + '%'
+				})
+			]);
+			/* the upload sub-panel: the preview, then Choose image and Remove on ONE row below it
+			 * (Remove appears only once an image exists), then the Dim slider */
+			const panel = E('div', { 'class': 'fs-ap-bg', 'hidden': '' }, [
+				fileInput, preview,
+				E('div', { 'class': 'fs-ap-bgrow' }, [ chooseBtn, removeBtn ]),
+				dim, err
+			]);
+
+			function reflect(tok) {
+				if (tok) { preview.src = prefs.loginBgUrl(tok); preview.hidden = false; removeBtn.hidden = false; }
+				else { preview.removeAttribute('src'); preview.hidden = true; removeBtn.hidden = true; }
+			}
+			function togglePanel(v) { panel.hidden = (v !== 'file'); }
+			reflect(prefs.currentLoginBg());
+			togglePanel(prefs.currentWallpaper());
+
+			const seg = widgets.segControl(prefs.currentWallpaper(), [
+				{ val: 'off',  label: _('Off', 'footstrap') },
+				{ val: 'cats', label: _('Cats', 'footstrap') },
+				{ val: 'file', label: _('File', 'footstrap') }
+			], (v) => { prefs.applyWallpaper(v); refreshSave(); togglePanel(v); }, label);
+
+			chooseBtn.addEventListener('click', () => { err.hidden = true; fileInput.click(); });
+			fileInput.addEventListener('change', () => {
+				const f = fileInput.files && fileInput.files[0];
+				fileInput.value = '';	/* so re-picking the same file fires change again */
+				if (!f) return;
+				err.hidden = true; chooseBtn.disabled = true;
+				chooseBtn.textContent = _('Uploading…', 'footstrap');
+				prefs.uploadLoginBg(f)
+					.then(reflect)
+					.catch((e) => { err.textContent = String((e && e.message) || e); err.hidden = false; })
+					.finally(() => { chooseBtn.disabled = false; chooseBtn.textContent = chooseLabel; });
+			});
+			removeBtn.addEventListener('click', () => {
+				err.hidden = true; removeBtn.disabled = true;
+				prefs.removeLoginBg()
+					.then(() => reflect(''))
+					.catch((e) => { err.textContent = String((e && e.message) || e); err.hidden = false; })
+					.finally(() => { removeBtn.disabled = false; });
+			});
+
+			return E('div', { 'class': 'fs-ap-wall' }, [ seg, panel ]);
+		}),
 
 		/* the caption says what the axis is FOR: "Tint" alone reads as decoration and nobody would
 		 * look for the router-identity cue under it.
@@ -113,7 +179,15 @@ function wireAppearance(update) {
 				step: 5,
 				cls: 'fs-range-hue',
 				fmt: (v) => (v ? v + '°' : _('Off', 'footstrap'))
-			})),
+			}), { cls: 'fs-ap-tint' }),
+
+		/* the DENSITY half of the Tint — how strong the hue reads. fs-ap-tint hides it (with the hue)
+		 * under File; fs-ap-density also hides it while no Tint hue is set (theme/20-shell.css). */
+		group(_('Density', 'footstrap'),
+			(label) => widgets.sliderControl(prefs.currentTintStrength(), 0, 200, bump(prefs.applyTintStrength), label, {
+				step: 5,
+				fmt: (v) => v + '%'
+			}), { cls: 'fs-ap-tint fs-ap-density' }),
 
 		/* recolours the accented CONTROLS (buttons/toggles/sliders/focus rings), not the canvas
 		 * the way Tint does — same hue slider, off at 0 = palette default */

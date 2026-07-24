@@ -1,0 +1,7 @@
+# Preserve the admin-uploaded login/page background across sysupgrade.
+# It is written at runtime (Appearance -> Background image -> cgi-upload), so it is
+# NOT a package file and survives a package upgrade on its own; a firmware sysupgrade,
+# however, only keeps paths listed here (or in a conffile / /etc/sysupgrade.conf).
+# NOT a conffile: it lives outside root/etc/config, and tools/conffiles.mjs would reject
+# a conffiles-define entry the package does not ship.
+/etc/footstrap/login-bg
