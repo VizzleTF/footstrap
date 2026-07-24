@@ -19,14 +19,23 @@ function wire() {
 	/* fs-update ships in the optional updater package; resolve it to null when absent so the popover
 	 * degrades to version-only instead of failing to build.
 	 *
-	 * Deferred to IDLE: on a router without the updater that require is a guaranteed 404, and it
-	 * used to fire in the middle of chrome init — competing with the view's own module fetch and
-	 * RPCs on every full load. Nothing needs the popover in the first idle moment; the timeout
-	 * caps the wait on a page that never goes idle (a busy poll), so the Appearance button is
-	 * wired within ~2 s worst-case, typically a few ms after load. */
+	 * Gated on window.__fsUpd, which head.ut sets to 1 ONLY when fs-update.js is actually on disk
+	 * (a server-side glob). Without that gate the require is a guaranteed 404 in the browser console
+	 * on every router that has not installed the updater — the module loader XHRs the file to find
+	 * out it is missing. The server already knows, so we ask it: no updater -> no request, no error.
+	 * The `() => null` reject arm stays as belt-and-braces (the file could vanish between the render
+	 * and the require).
+	 *
+	 * Deferred to IDLE regardless: when the updater IS present, its load used to fire in the middle
+	 * of chrome init — competing with the view's own module fetch and RPCs on every full load.
+	 * Nothing needs the popover in the first idle moment; the timeout caps the wait on a page that
+	 * never goes idle (a busy poll), so the Appearance button is wired within ~2 s worst-case,
+	 * typically a few ms after load. */
 	return new Promise((resolve) => {
 		const go = () => resolve(
-			window.L.require('fs-update').then((m) => m, () => null).then(wireAppearance));
+			(window.__fsUpd
+				? window.L.require('fs-update').then((m) => m, () => null)
+				: Promise.resolve(null)).then(wireAppearance));
 		if (typeof window.requestIdleCallback === 'function')
 			window.requestIdleCallback(go, { timeout: 2000 });
 		else

@@ -11,6 +11,14 @@ Style and format guide: [docs/21-changelog-style-and-format.md](docs/21-changelo
 
 Every commit writes into `[Unreleased]`. Cutting a tag renames that heading.
 
+## [Unreleased]
+
+### Fixed
+
+- **Third-party pages that pack several label/field pairs into one `.cbi-value` no longer overflow the card — the fields stack instead of running off the right edge.** `luci-app-3ginfo-lite`'s "SIM card menu" modal renders three `title`+`field` pairs inside a single `.cbi-value`, a widget designed for one; footstrap's flex row then laid them side by side until the inputs spilled past the modal (stock bootstrap keeps each on its own line — measured: the value box scrolled to 708 px inside a 532 px modal). A `:has(.cbi-value-field ~ .cbi-value-field)` rule gives each title and field its own full-width row in that abnormal case only; a normal single-field `.cbi-value` — every real form on the router — keeps its label-beside-field layout untouched (verified on System → System: title still `flex-basis: 180px`, on the field's row).
+
+- **A router without the optional updater no longer logs a 404 for `fs-update.js` in the browser console.** `fs-appearance.js` loads the updater module at runtime to light up the Updates controls, and on a router that never installed `luci-app-footstrap-updater` that `L.require` was a guaranteed 404 — the module loader XHRs the file only to learn it is absent. The server already knows: `head.ut` now globs the file on disk and emits `window.__fsUpd`, and the popover requires the module only when it is really there. No updater → no request, no error; present → loads and 200s exactly as before. The `() => null` reject arm stays as belt-and-braces.
+
 ## [0.9.7] — 2026-07-23
 
 ### Removed

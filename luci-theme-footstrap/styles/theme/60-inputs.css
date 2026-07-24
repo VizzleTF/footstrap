@@ -73,6 +73,21 @@
 	.cbi-value-field input[type="text"],
 	.cbi-value-field input[type="url"],
 	.cbi-value-field input[type="search"] { width: 100%; max-width: 440px; }
+	/* A .cbi-value is designed to hold ONE title+field pair; base lays it out as a flex row —
+	 * label (180px) + field. Some apps cram SEVERAL pairs into one .cbi-value
+	 * (luci-app-3ginfo-lite's "SIM card menu" modal: three title/field pairs in one), and the
+	 * flex row then flows them side by side until the fields overflow the card — the exact bug
+	 * a user reported. Give each title and each field its own full-width row (the same stacked
+	 * layout base already uses on a phone), left-aligned, so nothing overflows and the pairs read
+	 * top to bottom. Scoped by :has() to the abnormal multi-field case ONLY — `.cbi-value-field ~
+	 * .cbi-value-field` needs two of them — so every normal single-field row (i.e. every real form
+	 * on the router) keeps its label-beside-field layout untouched. */
+	.cbi-value:has(.cbi-value-field ~ .cbi-value-field) > .cbi-value-title,
+	.cbi-value:has(.cbi-value-field ~ .cbi-value-field) > .cbi-value-field {
+		flex: 1 1 100%;
+		margin-inline-start: 0;
+		text-align: start;
+	}
 	/* fields inside a table cell fill it — moved from base with the generic 210px box below:
 	 * in base these beat the box in-layer, left behind they would lose to it by layer */
 	.td > input[type="text"],

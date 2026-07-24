@@ -43,6 +43,16 @@
 		   localStorage of its own). Enums are '', the hues 0 (=off), rounding -1 (=unset) — see the
 		   sanitiser above. #}
 		<script>window.__fsSD={layout:"{{ _sd_lay }}",darkmode:"{{ _sd_dark }}",palette:"{{ _sd_pal }}",wallpaper:"{{ _sd_wall }}",tint:{{ _sd_tint }},accent:{{ _sd_acc }},rounding:{{ _sd_round }},autocollapse:"{{ _sd_ac }}"};</script>
+		{# The update CHECK lives in the OPTIONAL luci-app-footstrap-updater package, which ships
+		   fs-update.js into /www/luci-static/resources. fs-appearance.js loads it at runtime to light
+		   up the Updates controls — but a bare require on a router WITHOUT the updater 404s in the
+		   browser console (the module loader XHRs the file to learn it is absent). The server can just
+		   look: glob the file and hand the client a flag, so it only requires the module when it is
+		   really there. Fails CLOSED (a throwing probe -> 0 -> controls stay hidden), which is the
+		   safe side: a false 0 only hides the update UI, a false 1 re-opens the 404. #}
+		{%- let _has_upd = false;
+		    try { _has_upd = length(require('fs').glob('/www/luci-static/resources/fs-update.js')) > 0; } catch (e) {} %}
+		<script>window.__fsUpd={{ _has_upd ? 1 : 0 }};</script>
 		<script>
 			/* Each block below pre-paints one Appearance axis before the first frame, duplicating
 			   a live applier in fs-prefs.js. They cannot share code — this runs before the module
