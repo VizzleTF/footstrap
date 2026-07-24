@@ -341,7 +341,12 @@
 	 * it .fs-dt — lit the ENTIRE block on hover (issue #5.3), and a data table's placeholder row
 	 * ("no active leases") lit up too (issue #5.2, plus :not(.placeholder) above). Data tables
 	 * hover per-cell above; config tables (.cbi-section-table, never .fs-dt) hover data rows here. */
-	.table.cbi-section-table .tr.cbi-section-table-row:hover { background: var(--fs-panel2); }
+	/* :not(.placeholder) — a config table's "This section contains no values yet" row carries
+	 * .cbi-section-table-row too, so it lit up under the pointer exactly as the data tables' did
+	 * before the rule above excluded theirs (issue #15: reported on UPnP, but every empty
+	 * GridSection had it — firewall's NAT rules, IP sets, static routes). A hover cue promises a
+	 * row you can act on; there is no row. */
+	.table.cbi-section-table .tr.cbi-section-table-row:not(.placeholder):hover { background: var(--fs-panel2); }
 	/* keep section/modal tables flush (no forced hover-card look) */
 	.cbi-section .table > .tr, .cbi-modal .table > .tr { border-radius: 0; }
 

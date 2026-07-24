@@ -160,7 +160,15 @@
 	 * not want in `base`. */
 	.spinning, .cbi-button.spinning, .btn.spinning,
 	.cbi-dropdown.btn.spinning, .cbi-dropdown.cbi-button.spinning,
-	.cbi-dropdown:not(.btn):not(.cbi-button).spinning {
+	.cbi-dropdown:not(.btn):not(.cbi-button).spinning,
+	/* …and the row-action rule below, which is (0,2,0) like `.cbi-button.spinning` and written
+	 * AFTER it, so it was winning on source order alone — the shape this project forbids, and the
+	 * symptom was the spinner drawn ON TOP of the label: Network → Interfaces, "Restart" during
+	 * "Interface is reconnecting…" came out at 12px of left padding where the glyph needs 28
+	 * (issue #15). One class more specific than the rule it must beat, exactly as above. */
+	.td .cbi-button.spinning, .td .btn.spinning,
+	.cbi-section-actions .cbi-button.spinning, .cbi-section-actions .btn.spinning,
+	.cbi-section-table .cbi-button.spinning {
 		/* clear the glyph base/95-luci.css draws: its inset + its box + a gap. Was a bare 32px. */
 		padding-left: calc(var(--fs-space-2) + var(--fs-spin-size) + var(--fs-space-1));
 	}

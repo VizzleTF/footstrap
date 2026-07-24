@@ -285,6 +285,15 @@
 		border-radius: var(--fs-radius-sm); padding: var(--fs-space-2) var(--fs-space-3);
 		border-left: 0; color: var(--fs-text);
 		position: relative;
+		/* An OPEN row wraps; only the closed preview ellipsizes. `.cbi-dropdown > ul > li` (0,1,2)
+		 * sets nowrap + overflow:hidden + ellipsis, which is right for the collapsed control — one
+		 * line showing the current value — and wrong for the menu: the list is capped at
+		 * min(92vw, 420px) (90-responsive.css), so an option that carries a description ran out of
+		 * box and was cut mid-word. Measured on Network → Firewall, "Hardware flow offloading":
+		 * "Requires hardware NAT support…" ended at the box edge with no ellipsis, because the cut
+		 * fell inside a nested element (issue #15). Raising the cap instead would let one verbose
+		 * option decide the width of every menu on the page. */
+		white-space: normal; overflow-wrap: anywhere;
 		/* no border-bottom divider: on a rounded box it curls up at the corners. The straight
 		 * inset strip below (::after) is the divider, so the hover pill stays rounded. */
 		border-bottom: 0;
