@@ -57,4 +57,20 @@ for s in firewall mwan3 watchcat justclash; do
 	"/etc/init.d/$s" disable 2>/dev/null || true
 done
 
+# Make Footstrap the active theme out of the box, so a fresh `docker compose up --build` comes
+# up on the theme under development instead of stock bootstrap. The theme FILES are not here yet
+# (a rebuild is a factory reset; dev-sync.sh installs them afterwards) and the package's own
+# uci-defaults that registers the luci.themes entry has not run either — so until the first
+# dev-sync this points at an unregistered path and LuCI shows its normal theme-fallback, NOT a
+# brick. The moment dev-sync lands the files it becomes active with no extra step. This lives in
+# the DEV fixtures on purpose: dev-sync.sh deliberately never changes the active theme (it
+# exercises the real install path), and the package's 30_ uci-defaults must not force-activate on
+# a real router's upgrade — only this container may.
+uci -q batch <<EOF
+set luci.main.mediaurlbase='/luci-static/footstrap'
+commit luci
+EOF
+rm -f /tmp/luci-indexcache* 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
+
 exit 0
